@@ -1,0 +1,17 @@
+{
+  "name": "fullops-squad",
+  "description": "Orca 기반 선택형 개발 하네스",
+  "owner": {
+    "name": "tourbut"
+  },
+  "allowCrossMarketplaceDependenciesOn": [
+    "ponytail",
+    "claude-plugins-official"
+  ],
+  "plugins": [
+    {
+      "name": "fullops-squad",
+      "source": "./dist/native/fullops-squad"
+    }
+  ]
+}

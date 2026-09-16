@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "python3 tests/check.py && node tests/standard.cjs"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1"
+  }
+}

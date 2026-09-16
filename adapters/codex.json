@@ -1,0 +1,17 @@
+{
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "FullOps Squad",
+    "shortDescription": "Orca 핸드오버 · 산출물 · 작업 기록",
+    "longDescription": "선택한 레포에서 setup 후 역할별 worker와 문서 기반 개발 흐름을 운영합니다.",
+    "developerName": "tourbut",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions"
+    ],
+    "defaultPrompt": [
+      "현재 레포에 FullOps 하네스를 setup해줘."
+    ]
+  }
+}
