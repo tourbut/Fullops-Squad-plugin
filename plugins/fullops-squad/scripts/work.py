@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """활성 레포의 핸드오버 인박스를 만들고 완료 기록을 안전하게 보존한다."""
 import argparse
+import json
 from datetime import date
 import os
 from pathlib import Path
 import re
 import subprocess
 
-ROLES = ("architect", "backend_dev", "frontend_dev", "devops", "qa_tester", "docs")
 KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 TEMPLATE = Path(__file__).resolve().parents[1] / "assets/repository/.fullops-squad/handovers/_TEMPLATE.md"
 
@@ -29,6 +29,7 @@ def safe_file(repo, relative):
 
 
 def new(repo, role, key, goal):
+    validate_role(repo, role)
     inbox = safe_file(repo, f".fullops-squad/handovers/to_{role}.md")
     if not inbox.is_file() or inbox.read_bytes():
         raise ValueError(f"진행 중이거나 없는 역할 인박스: {inbox}")
@@ -40,6 +41,7 @@ def new(repo, role, key, goal):
 
 
 def finish(repo, role, key):
+    validate_role(repo, role)
     inbox = safe_file(repo, f".fullops-squad/handovers/to_{role}.md")
     if not inbox.is_file():
         raise ValueError(f"없는 역할 인박스: {inbox}")
@@ -69,11 +71,19 @@ def finish(repo, role, key):
     print(log.relative_to(repo))
 
 
+def validate_role(repo, role):
+    config = json.loads(safe_file(repo, ".fullops-squad/fullops.json").read_text())
+    if not isinstance(config, dict) or config.get("schema_version") != 1 or not isinstance(config.get("roles"), dict):
+        raise ValueError("setup에서 역할 설정을 생성하거나 전환하세요")
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", role) or role not in config.get("roles", {}):
+        raise ValueError("등록되지 않은 역할입니다. setup에서 역할을 추가하세요")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("new", "finish"))
     parser.add_argument("--repo", required=True)
-    parser.add_argument("--role", choices=ROLES, required=True)
+    parser.add_argument("--role", required=True)
     parser.add_argument("--key", required=True)
     parser.add_argument("--goal")
     args = parser.parse_args()

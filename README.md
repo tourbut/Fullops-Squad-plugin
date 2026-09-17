@@ -50,6 +50,8 @@ Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 �
 
 ## 작업 흐름
 
+역할은 레포별 setup에서 제품·기술·규모에 맞게 구성합니다. `fullops.json`에 역할과 브랜치를 등록하고 역할별 인박스·컨텍스트를 생성합니다. GitHub remote의 기준 브랜치에서 `fullops/<역할 ID>` 원격 브랜치를 만들며, 기존 브랜치와 작업 기록은 보존합니다. CLI·모델 배정은 `orca-agents.md`에서 관리합니다.
+
 1. `fullops-work`: 실제 상태 확인 → 역할별 지시서·완료 기준·산출물·복귀 주소 작성.
 2. `fullops-orca dispatch`: 별도 worker 세션에 전달 → 실제 지시서 가시성과 착수 확인.
 3. worker: 구현·검증·원천 문서 갱신 → 로그 아카이브 → 컨텍스트 요약 → 부모에게 직접 회신.

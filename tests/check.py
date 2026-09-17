@@ -55,7 +55,7 @@ def main():
         packaged = root / 'packaged-service'
         packaged.mkdir()
         subprocess.run(['git', 'init', '-q', str(packaged)], check=True)
-        subprocess.run(['python3', str(native / 'scripts/setup.py'), '--repo', str(packaged)], check=True, capture_output=True)
+        subprocess.run(['python3', str(native / 'scripts/setup.py'), '--repo', str(packaged), '--roles', 'gameplay', '--local-only'], check=True, capture_output=True)
         assert (packaged / '.fullops-squad/FULLOPS.md').is_file()
         repo = root / 'service with spaces'
         other = root / 'other'
@@ -75,9 +75,9 @@ def main():
         old_pointer = setup.POINTER.replace('.fullops-squad/', '.agents/')
         (repo / 'CLAUDE.md').write_bytes((original + old_pointer + '추가 사용자 규칙\r\n').encode())
         before = snapshot(repo)
-        assert setup.setup(repo, dry_run=True)
+        assert setup.setup(repo, dry_run=True, roles=['backend_dev'])
         assert snapshot(repo) == before and snapshot(other) == {}
-        setup.setup(repo)
+        setup.setup(repo, roles=['backend_dev'])
         assert not (repo / '.fullops-squad/workflows').exists()
         assert (repo / 'AGENTS.md').read_bytes().startswith(original.encode())
         assert (repo / 'CLAUDE.md').read_bytes().startswith(original.encode())
@@ -138,16 +138,80 @@ def main():
         (other / '.fullops-squad/FULLOPS.md').write_text('기존 하네스')
         state = snapshot(other)
         try:
-            setup.setup(other)
+            setup.setup(other, roles=['backend_dev'])
         except ValueError:
             pass
         else:
             raise AssertionError('충돌 덮어쓰기')
         assert snapshot(other) == state
+        # Exercise real Git remote creation without touching GitHub/user repositories.
+        service, remote = root / 'dynamic-service', root / 'remote.git'
+        subprocess.run(['git', 'init', '-q', '-b', 'main', str(service)], check=True)
+        subprocess.run(['git', 'init', '-q', '--bare', '-b', 'main', str(remote)], check=True)
+        def git(*args):
+            return setup.git(service, *args)
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+            'commit', '--allow-empty', '-m', 'initial')
+        git('remote', 'add', 'origin', str(remote))
+        git('push', 'origin', 'main')
+        refs_before = git('ls-remote', 'origin')
+        setup.setup(service, roles=['gameplay', 'engine'], remote='origin', dry_run=True)
+        assert not (service / setup.MARKER).exists()
+        assert git('ls-remote', 'origin') == refs_before
+        setup.setup(service, roles=['gameplay', 'engine'], remote='origin')
+        config = __import__('json').loads((service / setup.MARKER).read_text())
+        assert config['roles'] == {'gameplay': 'fullops/gameplay', 'engine': 'fullops/engine'}
+        assert config['git'] == {'remote': 'origin', 'base': 'main'}
+        assert not (service / '.fullops-squad/contexts/backend_dev.md').exists()
+        work.new(service, 'gameplay', 'GAME-1', '게임 구현')
+        try:
+            work.new(service, 'backend_dev', 'NO-1', '미등록 역할')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('미등록 역할 허용')
+        before = snapshot(service)
+        assert setup.setup(service, remote='origin') == []
+        assert snapshot(service) == before
+        # Advance the base; old roles must retain their commits, new roles use new base.
+        old_sha = git('rev-parse', 'HEAD')
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+            'commit', '--allow-empty', '-m', 'new base')
+        git('push', 'origin', 'main')
+        setup.setup(service, roles=['mobile'], remote='origin')
+        assert git('ls-remote', 'origin', 'refs/heads/fullops/gameplay').split()[0] == old_sha
+        assert git('ls-remote', 'origin', 'refs/heads/fullops/mobile').split()[0] == git('rev-parse', 'HEAD')
+        assert (service / '.fullops-squad/handovers/to_gameplay.md').read_text().startswith('# GAME-1')
+        before, refs_before = snapshot(service), git('ls-remote', 'origin')
+        for kwargs in ({'roles': ['../escape']}, {'roles': ['newrole'], 'base': 'missing'}):
+            try:
+                setup.setup(service, remote='origin', **kwargs)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('잘못된 역할/기준 브랜치 허용')
+            assert snapshot(service) == before and git('ls-remote', 'origin') == refs_before
+        hook = remote / 'hooks/pre-receive'
+        hook.write_text('#!/bin/sh\nexit 1\n')
+        hook.chmod(0o755)
+        try:
+            setup.setup(service, roles=['rejected'], remote='origin')
+        except subprocess.CalledProcessError:
+            pass
+        else:
+            raise AssertionError('원격 거절을 성공으로 처리')
+        assert snapshot(service) == before and git('ls-remote', 'origin') == refs_before
+        # Explicit migration preserves old fixed-role documents.
+        marker = service / setup.MARKER
+        marker.write_text('{"schema_version": 1, "plugin_version": "0.1.0"}\n')
+        handover = service / '.fullops-squad/handovers/to_gameplay.md'
+        old_content = handover.read_bytes()
+        setup.setup(service, roles=['gameplay'])
+        assert handover.read_bytes() == old_content
         (other / '.fullops-squad/FULLOPS.md').unlink()
         (other / 'AGENTS.md').symlink_to(repo / 'AGENTS.md')
         try:
-            setup.setup(other)
+            setup.setup(other, roles=['backend_dev'])
         except ValueError:
             pass
         else:
@@ -156,7 +220,7 @@ def main():
         (other / setup.MARKER).write_text('[]')
         state = snapshot(other)
         try:
-            setup.setup(other)
+            setup.setup(other, roles=['backend_dev'])
         except ValueError:
             pass
         else:
@@ -186,7 +250,7 @@ def main():
         pass
     else:
         raise AssertionError('다른 출처의 같은 이름 마켓플레이스 허용')
-    print('PASS: setup 보존·재실행, 핸드오버 아카이브, 산출물 링크, 호스트별 설치 계획')
+    print('PASS: 동적 역할·원격 브랜치 생성/보존/실패, setup 재실행, 핸드오버, 산출물, 설치 계획')
 
 
 if __name__ == '__main__':

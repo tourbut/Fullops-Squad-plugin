@@ -8,7 +8,7 @@ description: FullOps setup이 완료된 레포에서 기능 개발을 역할별�
 현재 Git 레포 루트에 `.fullops-squad/fullops.json`이 있는지 확인한다. 없으면 `setup-fullops`를 안내한다. 이 스킬의 `../../scripts/work.py`가 레포 활성화·과제 키·역할·중복 기록을 검증한다.
 
 활성 레포에서는 `.fullops-squad/FULLOPS.md`를 읽는다.
-작업자는 자기 역할의 `contexts/<role>.md`와 받은 지시서만 먼저 읽는다.
+역할은 `fullops.json`에 등록된 ID를 사용한다. 작업자는 자기 역할의 `contexts/<role>.md`와 받은 지시서만 먼저 읽는다.
 
 ## 작성과 전달
 

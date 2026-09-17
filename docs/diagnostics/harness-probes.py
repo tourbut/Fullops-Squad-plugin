@@ -19,7 +19,7 @@ def repo_at(root, name):
     repo = root / name
     repo.mkdir()
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    assert run("setup.py", "--repo", repo).returncode == 0
+    assert run("setup.py", "--repo", repo, "--roles", "backend_dev", "--local-only").returncode == 0
     return repo, repo / ".fullops-squad"
 
 
