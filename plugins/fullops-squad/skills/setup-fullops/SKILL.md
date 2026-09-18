@@ -5,6 +5,10 @@ description: 사용자가 현재 레포에 FullOps Squad 하네스 setup 또는 
 
 # 레포별 setup
 
+재실행의 remote·기준 브랜치는 명시적 옵션 → 저장된 `fullops.json` 설정 → 최초 origin/원격 HEAD 순으로 선택한다. 원격 연결된 레포에서 `--local-only`는 기존 역할의 파일 유지에만 사용한다. 새 역할은 원격 setup으로 추가해야 하며 로컬 전용 추가는 변경 전에 실패한다. `--local-only`와 `--remote/--base`는 함께 사용하지 않는다.
+
+setup 후 `.fullops-squad/review/rule.json`을 제품별로 구성한다. 기본 문서·일부 테스트 패턴에 더해 레포의 테스트 경로와 게임 씬·셰이더 등 필요한 자산을 include하고 실제 생성물만 exclude한다. 기존 OCR 규칙이 있으면 명시적으로 통합한다. `fullops-review`가 항상 이 파일을 --rule로 전달한다. 기존 setup 재실행 시 추가된 리뷰 파일은 생성되고 기존 규칙과 기록은 보존된다.
+
 1. 사용자가 선택한 Git 레포 루트를 확인한다. 이 스킬 기준 `../../scripts/setup.py`를 사용한다. 플러그인 캐시 경로는 레포에 기록하지 않는다.
 2. 제품·기술·작업 규모에 필요한 역할과 책임을 구성한다. 고정 역할 세트는 없다. 역할 ID는 영문 소문자로 시작하고 소문자·숫자·밑줄·하이픈으로 최대 64자다. 기존 역할은 `fullops.json`에서 재사용하며 `--roles`는 추가만 한다.
 3. GitHub remote의 push URL과 기준 브랜치를 확인한다. `python3 <setup.py> --repo <레포 루트> --roles <역할 ID들> --remote <remote 이름> --dry-run`으로 계획을 확인한 뒤 같은 명령에서 `--dry-run`을 빼고 실행한다. 기본 remote는 origin, 기준은 원격 HEAD이며 `--base <브랜치>`로 지정한다. setup 요청은 선택한 레포의 역할 구성과 원격 역할 브랜치 생성 범위다. 원격이 없으면 연결에 필요한 정보만 질문한다. 로컬 구성만 요청받았으면 `--local-only`를 사용한다. 인증 실패나 빈 원격은 실패로 보고한다.

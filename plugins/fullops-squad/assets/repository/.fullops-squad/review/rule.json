@@ -1,0 +1,10 @@
+{
+  "include": ["**/*.md", "**/*.test.{js,jsx,ts,tsx}", "**/*.spec.{js,jsx,ts,tsx}", "**/*_test.{py,go,rs}", "**/__tests__/**"],
+  "exclude": [],
+  "rules": [
+    {
+      "path": "**/*.md",
+      "rule": "Check changed instructions and documents against actual behavior, requirements and linked sources. Identify contradictions, missing required artifacts and broken references. Preserve the project's document templates and tone; report only concrete defects."
+    }
+  ]
+}

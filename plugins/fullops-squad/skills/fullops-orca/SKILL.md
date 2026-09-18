@@ -39,5 +39,7 @@ Orca 실행 파일은 `ORCA_CLI_COMMAND` → `ORCA_DEV_REPO_ROOT`가 있는 개�
 
 ## merge — 병합 책임자
 
+`fullops-review`로 현재 기준/worker SHA의 delegate 리뷰를 완료하고 보고서·check 결과·skipped 사유·테스트 결과를 확인한다. 파일 누락이나 미해결 critical/high가 있으면 수락을 보류한다. check 통과만으로 수락하지 않는다. 수정 커밋 이후에는 최신 SHA의 리뷰가 필요하다.
+
 보고된 SHA의 브랜치 포함 여부, diff, 커밋 본문, 문서·검증 근거를 확인한다. 허가된 병합을 수행하고 필요한 검증을 실행한다. 실패하면 `PLANS.md`에 미완료 상태를 유지한다.
 worker가 쉬고 있고 작업 트리가 깨끗할 때만 기본 브랜치 변경을 상설 브랜치에 merge 또는 fast-forward로 동기화한다. 작업 중이면 동기화를 예약한다. 강제 reset이나 진행 중 작업 삭제를 복구 절차로 쓰지 않는다. 인박스·아카이브가 완료 커밋에 포함됐는지 확인하고 중복 기록하지 않는다.

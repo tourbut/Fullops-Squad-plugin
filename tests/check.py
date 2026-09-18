@@ -75,9 +75,9 @@ def main():
         old_pointer = setup.POINTER.replace('.fullops-squad/', '.agents/')
         (repo / 'CLAUDE.md').write_bytes((original + old_pointer + '추가 사용자 규칙\r\n').encode())
         before = snapshot(repo)
-        assert setup.setup(repo, dry_run=True, roles=['backend_dev'])
+        assert setup.setup(repo, dry_run=True, roles=['backend_dev'], local_only=True)
         assert snapshot(repo) == before and snapshot(other) == {}
-        setup.setup(repo, roles=['backend_dev'])
+        setup.setup(repo, roles=['backend_dev'], local_only=True)
         assert not (repo / '.fullops-squad/workflows').exists()
         assert (repo / 'AGENTS.md').read_bytes().startswith(original.encode())
         assert (repo / 'CLAUDE.md').read_bytes().startswith(original.encode())
@@ -125,7 +125,7 @@ def main():
         log.write_text('작업 기록')
         inbox.write_text('진행 중 과제')
         state = snapshot(repo)
-        assert setup.setup(repo) == []
+        assert setup.setup(repo, local_only=True) == []
         assert snapshot(repo) == state and snapshot(other) == {}
         assert snapshot(existing_agents) == agents_before
         try:
@@ -182,6 +182,35 @@ def main():
         assert git('ls-remote', 'origin', 'refs/heads/fullops/gameplay').split()[0] == old_sha
         assert git('ls-remote', 'origin', 'refs/heads/fullops/mobile').split()[0] == git('rev-parse', 'HEAD')
         assert (service / '.fullops-squad/handovers/to_gameplay.md').read_text().startswith('# GAME-1')
+        # A later CLI invocation must reuse the saved non-default remote/base.
+        git('branch', 'release', old_sha)
+        git('push', 'origin', 'release')
+        git('remote', 'rename', 'origin', 'upstream')
+        setup.setup(service, remote='upstream', base='release')
+        cli = ['python3', str(ROOT / 'plugins/fullops-squad/scripts/setup.py'), '--repo', str(service)]
+        before, refs_before = snapshot(service), git('ls-remote', 'upstream')
+        subprocess.run([*cli, '--roles', 'renderer', '--dry-run'], check=True, capture_output=True)
+        assert snapshot(service) == before and git('ls-remote', 'upstream') == refs_before
+        subprocess.run([*cli, '--roles', 'renderer'], check=True, capture_output=True)
+        config = __import__('json').loads((service / setup.MARKER).read_text())
+        assert config['git'] == {'remote': 'upstream', 'base': 'release'}
+        assert git('ls-remote', 'upstream', 'refs/heads/fullops/renderer').split()[0] == old_sha
+        assert setup.setup(service) == []  # shared API follows the same default resolution
+        before, refs_before = snapshot(service), git('ls-remote', 'upstream')
+        for extra in (['--roles', 'localworker', '--local-only'],
+                      ['--roles', 'localworker', '--local-only', '--dry-run'],
+                      ['--local-only', '--remote', 'upstream']):
+            result = subprocess.run([*cli, *extra], capture_output=True, text=True)
+            assert result.returncode != 0
+            assert snapshot(service) == before and git('ls-remote', 'upstream') == refs_before
+        assert setup.setup(service, local_only=True) == []  # existing roles/docs can be maintained offline
+        # Explicit options still override saved values.
+        git('remote', 'rename', 'upstream', 'origin')
+        subprocess.run([*cli, '--roles', 'explicitworker', '--remote', 'origin', '--base', 'main'],
+                       check=True, capture_output=True)
+        config = __import__('json').loads((service / setup.MARKER).read_text())
+        assert config['git'] == {'remote': 'origin', 'base': 'main'}
+        assert git('ls-remote', 'origin', 'refs/heads/fullops/explicitworker').split()[0] == git('rev-parse', 'HEAD')
         before, refs_before = snapshot(service), git('ls-remote', 'origin')
         for kwargs in ({'roles': ['../escape']}, {'roles': ['newrole'], 'base': 'missing'}):
             try:
@@ -206,7 +235,7 @@ def main():
         marker.write_text('{"schema_version": 1, "plugin_version": "0.1.0"}\n')
         handover = service / '.fullops-squad/handovers/to_gameplay.md'
         old_content = handover.read_bytes()
-        setup.setup(service, roles=['gameplay'])
+        setup.setup(service, roles=['gameplay'], local_only=True)
         assert handover.read_bytes() == old_content
         (other / '.fullops-squad/FULLOPS.md').unlink()
         (other / 'AGENTS.md').symlink_to(repo / 'AGENTS.md')
@@ -235,12 +264,13 @@ def main():
         hosts = {cmd[0] for cmd in plan} - {'npx'}
         assert hosts == {'all': {'npm', 'codex', 'claude', 'grok', 'agy'},
                          'both': {'npm', 'codex', 'claude'}}.get(host, {'npm', 'claude' if host == 'claude-code' else host})
-        assert plan[0] == ['npm', 'install', '--global', 'codebase-memory-mcp@latest', '@upstash/context7-mcp@4.1.1']
+        assert plan[0] == ['npm', 'install', '--global', 'codebase-memory-mcp@latest', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.5']
+        assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
         if host in ('grok', 'agy'):
             target = 'antigravity-cli' if host == 'agy' else 'grok'
             assert all(cmd[cmd.index('--agent') + 1] == target for cmd in skills)
             assert {cmd[4] for cmd in skills} == {'cathrynlavery/diagram-design', 'anthropics/skills',
-                                                'mattpocock/skills', 'DietrichGebert/ponytail'}
+                                                'mattpocock/skills', 'DietrichGebert/ponytail', 'alibaba/open-code-review'}
             assert plan[-1] == [host, 'plugin', 'install', str(install.PLUGIN)] + (['--trust'] if host == 'grok' else [])
     registered = {'codex': {'fullops-squad': str(ROOT), 'ponytail': 'https://github.com/DietrichGebert/ponytail.git'}}
     assert not any(cmd[2:4] == ['marketplace', 'add'] for cmd in install.commands('codex', registered))

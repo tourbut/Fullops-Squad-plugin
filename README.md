@@ -12,7 +12,7 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 FullOps Squad 플러그인을 https://github.com/tourbut/Fullops-Squad-plugin 에서 찾아 설치해줘. 저장소의 AGENTS.md 설치 지침을 읽고, 지금 사용 중인 AI CLI(Codex, Claude Code, grok, agy)에 맞는 호스트 하나를 선택해 플러그인과 의존성까지 설치하고 확인해줘. 서비스 레포의 하네스 setup은 내가 별도로 요청할 때 진행해줘.
 ```
 
-Python 3.9+, Git, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI와 Orca 앱이 필요합니다.
+Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI와 Orca 앱이 필요합니다.
 직접 설치하려면 이 레포를 유지할 경로에 내려받은 뒤 통합 설치기를 실행합니다. Codex·Claude Code는 해당 경로를 로컬 마켓플레이스로 등록합니다.
 
 ```bash
@@ -34,6 +34,7 @@ python3 scripts/install.py --host codex
 | anthropics/skills 5종 | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
 | codebase-memory-mcp | FullOps MCP 서버 | FullOps MCP 서버 | FullOps MCP 서버 |
 | Context7 | FullOps MCP 서버 | FullOps MCP 서버 | FullOps MCP 서버 |
+| Open Code Review delegate | CLI + 사용자 범위 스킬 | CLI + 사용자 범위 스킬 | CLI + 사용자 범위 스킬 |
 | Orca CLI 가이드 | 설치된 Orca에서 동적으로 조회 | 동일 | 동일 |
 
 설치기는 표준 원본에서 `dist/native/fullops-squad/`를 먼저 생성합니다. Codex·Claude Code의 마켓플레이스와 grok·agy의 `plugin install <로컬 경로>`는 이 호스트 호환 패키지를 사용합니다. grok·agy의 위 외부 스킬 의존성은 사용자 범위로 설치합니다.
@@ -52,11 +53,16 @@ Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 �
 
 역할은 레포별 setup에서 제품·기술·규모에 맞게 구성합니다. `fullops.json`에 역할과 브랜치를 등록하고 역할별 인박스·컨텍스트를 생성합니다. GitHub remote의 기준 브랜치에서 `fullops/<역할 ID>` 원격 브랜치를 만들며, 기존 브랜치와 작업 기록은 보존합니다. CLI·모델 배정은 `orca-agents.md`에서 관리합니다.
 
+setup 재실행은 저장된 remote·기준 브랜치를 재사용하며 명시적 옵션으로 변경할 수 있습니다. 원격 연결된 레포의 새 역할은 원격 setup으로 추가합니다. 로컬 전용 모드에서는 해당 레포의 기존 역할과 문서만 유지합니다.
+
 1. `fullops-work`: 실제 상태 확인 → 역할별 지시서·완료 기준·산출물·복귀 주소 작성.
 2. `fullops-orca dispatch`: 별도 worker 세션에 전달 → 실제 지시서 가시성과 착수 확인.
 3. worker: 구현·검증·원천 문서 갱신 → 로그 아카이브 → 컨텍스트 요약 → 부모에게 직접 회신.
-4. 병합 책임자: 브랜치·SHA·diff·검증 확인 → 허가된 병합 → 쉬고 있는 worker 브랜치 동기화.
-5. `fullops-deliverables`: 기획부터 이행까지 D01–D13 원천 문서와 납품용 인덱스 관리.
+4. `fullops-review`: SHA 고정 → OCR delegate 파일·규칙 준비 → AI 검토 → 통일된 보고서·기록 검사. OCR 제외 파일도 검토하거나 생략 사유를 남깁니다.
+5. 병합 책임자: 리뷰·브랜치·SHA·diff·검증 확인 → 허가된 병합 → 쉬고 있는 worker 브랜치 동기화.
+6. `fullops-deliverables`: 기획부터 이행까지 D01–D13 원천 문서와 납품용 인덱스 관리.
+
+OCR CLI는 `@alibaba-group/open-code-review@1.12.5`로 설치하고 자동 업데이트를 끈 상태로 delegate 명령을 실행합니다. 별도 OCR API 키 없이 호스트 AI가 리뷰하며 해당 AI의 사용량은 발생합니다. 레포별 `review/rule.json`으로 테스트·문서·게임 자산의 기본 제외를 보완합니다. 리뷰 기록 검사 통과는 검토 내용과 테스트 성공을 자동 보증하지 않습니다.
 
 ```text
 .fullops-squad/
@@ -67,6 +73,8 @@ Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 �
   handovers/to_<role>.md        # 지금 할 일만
   handovers/logs/               # 지시서·결과 전문, append
   contexts/<role>.md           # 결정·교훈 3줄 요약
+  review/rule.json             # 레포별 OCR 필터·규칙
+  review/_REPORT.md            # 리뷰 보고서 템플릿
   docs/
     planning/                  # 문제 정의·요구사항
     design-docs/               # 설계·도메인·목업·ADR
@@ -90,6 +98,7 @@ Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 �
 python3 scripts/build.py
 npm ci
 npm test
+python3 tests/review-check.py  # OCR CLI가 설치된 환경의 delegate 통합 검사
 python3 scripts/install.py --host all --dry-run
 claude plugin validate dist/native/fullops-squad
 claude plugin validate .claude-plugin/marketplace.json

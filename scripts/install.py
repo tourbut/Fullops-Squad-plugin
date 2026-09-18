@@ -15,7 +15,8 @@ def commands(host, registered=None):
     deps = json.loads((ROOT / "dependencies.json").read_text())
     agents = {"all": ["codex", "claude-code", "grok", "agy"],
               "both": ["codex", "claude-code"]}.get(host, [host])
-    yield ["npm", "install", "--global", *[server["package"] for server in deps["mcp"].values()]]
+    yield ["npm", "install", "--global", *[server["package"] for server in deps["mcp"].values()],
+           *[tool["package"] for tool in deps["tools"]]]
     for agent in agents:
         cli = "claude" if agent == "claude-code" else agent
         if agent in ("grok", "agy"):

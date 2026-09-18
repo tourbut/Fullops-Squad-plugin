@@ -47,7 +47,7 @@ def remote_branches(repo, remote, base, roles, dry_run):
     return {"remote": remote, "base": base}
 
 
-def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None):
+def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None, local_only=False):
     repo = Path(repo).expanduser().resolve(strict=True)
     root = Path(subprocess.check_output(
         ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
@@ -59,10 +59,19 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     config = json.loads(marker.read_text()) if marker.exists() else {"schema_version": 1}
     if not isinstance(config, dict) or config.get("schema_version") != 1:
         raise ValueError("지원하지 않는 FullOps 설정 버전")
+    connection = config.get("git", {})
+    if not isinstance(connection, dict) or any(
+        not isinstance(connection.get(key), str) or not connection[key]
+        for key in ("remote", "base") if connection):
+        raise ValueError("잘못된 원격 설정: git.remote와 git.base를 확인하세요")
+    if local_only and (remote is not None or base is not None):
+        raise ValueError("--local-only와 --remote/--base는 함께 사용할 수 없습니다")
     assigned = config.get("roles", {})
     if not isinstance(assigned, dict):
         raise ValueError("roles는 역할과 브랜치의 객체여야 합니다")
     assigned = dict(assigned)
+    if local_only and connection and any(role not in assigned for role in roles or []):
+        raise ValueError("원격 연결된 레포의 역할 추가에는 원격 setup을 사용하세요")
     for role in roles or []:
         assigned.setdefault(role, f"fullops/{role}")
     if not assigned:
@@ -107,7 +116,9 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     config.setdefault("plugin_version", json.loads((PLUGIN / "plugin.json").read_text())["version"])
     config["roles"] = assigned
     # Preflight the remote only after every local conflict has been checked.
-    if remote:
+    if not local_only:
+        remote = remote if remote is not None else connection.get("remote", "origin")
+        base = base if base is not None else connection.get("base")
         config["git"] = remote_branches(repo, remote, base, assigned, dry_run)
     updated = (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode()
     if not marker.exists() or marker.read_bytes() != updated:
@@ -129,15 +140,13 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--verbose", action="store_true", help="개별 파일 경로 출력")
     parser.add_argument("--roles", nargs="+", help="레포별 역할 ID. 재실행 시 기존 역할에 추가")
-    parser.add_argument("--remote", default="origin", help="역할 브랜치를 생성할 remote (기본 origin)")
+    parser.add_argument("--remote", help="역할 브랜치를 생성할 remote (저장값 또는 최초 origin)")
     parser.add_argument("--local-only", action="store_true", help="원격 생성 없이 로컬 역할만 구성")
-    parser.add_argument("--base", help="원격 기준 브랜치. 생략하면 원격 HEAD")
+    parser.add_argument("--base", help="원격 기준 브랜치 (저장값 또는 최초 원격 HEAD)")
     args = parser.parse_args()
     try:
-        if args.base and args.local_only:
-            parser.error("--base와 --local-only는 함께 사용할 수 없습니다")
         setup(args.repo, args.dry_run, args.verbose, args.roles,
-              None if args.local_only else args.remote, args.base)
+              args.remote, args.base, args.local_only)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"setup 실패: {error}\n")
 
