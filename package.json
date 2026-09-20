@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "test": "python3 tests/check.py && node tests/standard.cjs"
+    "test": "python3 tests/check.py && python3 tests/common-rules.py && node tests/standard.cjs",
+    "test:review": "python3 tests/review-check.py"
   },
   "devDependencies": {
     "ajv": "8.17.1"
