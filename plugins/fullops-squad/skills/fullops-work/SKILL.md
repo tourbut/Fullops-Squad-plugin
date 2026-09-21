@@ -7,14 +7,14 @@ description: FullOps setup이 완료된 레포에서 기능 개발을 역할별�
 
 현재 Git 레포 루트에 `.fullops-squad/fullops.json`이 있는지 확인한다. 없으면 `setup-fullops`를 안내한다. 이 스킬의 `../../scripts/work.py`가 레포 활성화·과제 키·역할·중복 기록을 검증한다.
 
-활성 레포에서는 `.fullops-squad/FULLOPS.md`를 읽는다.
-역할은 `fullops.json`에 등록된 ID를 사용한다. 작업자는 자기 역할의 `contexts/<role>.md`와 받은 지시서만 먼저 읽는다.
+활성 레포에서는 `.fullops-squad/FULLOPS.md`, `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙을 직접 읽고 `.fullops-squad/project.md`의 정본을 확인한다. 기존 FULLOPS.md에 링크가 없어도 생략하지 않는다. 공통 규칙이 없으면 적용 완료로 보고하지 말고 `setup-fullops` 갱신을 안내하며, 준비 전 새 worker 위임은 보류한다.
+역할은 `fullops.json`에 등록된 ID를 사용한다. 작업자는 자기 역할의 `contexts/<role>.md`와 받은 지시서로 과제 범위를 확인하고, 위 공통 규칙과 해당 프로젝트 정본을 함께 읽는다.
 
 ## 작성과 전달
 
 코드·운영 상태를 확인하고 주 역할과 과제 키를 정한다. 여러 worker의 파일 소유권·선행 조건을 분리한다. 같은 역할에 진행 중인 지시서가 있으면 후속 과제는 `PLANS.md`에 대기시킨다.
 
-`python3 <work.py> new --repo <레포 루트> --role <역할> --key <과제 키> --goal <한 줄 목표>`로 빈 역할 인박스에 템플릿을 만든다. 그 파일에 확인 근거·범위·완료 기준·산출물·복귀 주소·승인 범위를 채운다. 이미 허가된 실행은 진행한다. `fullops-orca` dispatch 전에 worker가 자기 체크아웃에서 같은 과제 키의 지시서와 원천 문서를 읽을 수 있어야 한다.
+`python3 <work.py> new --repo <레포 루트> --role <역할> --key <과제 키> --goal <한 줄 목표>`로 빈 역할 인박스에 템플릿을 만든다. 그 파일에 확인 근거·범위·완료 기준·산출물·복귀 주소·승인 범위를 채운다. `적용 기준과 예외`에 규칙 식별자·프로젝트 정본 경로·기준 커밋 또는 스냅샷·예외와 승인 근거를 기록한다. 진행 중인 이전 지시서에 이 절이 없으면 기존 내용을 보존하면서 보강한다. 이미 허가된 실행은 진행한다. `fullops-orca` dispatch 전에 worker가 자기 체크아웃에서 같은 과제 키의 지시서와 원천 문서를 읽을 수 있어야 한다.
 
 ## 작업과 완료
 

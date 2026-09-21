@@ -5,6 +5,10 @@ description: FullOps 활성 레포에서 worker 구현 완료 후 병합 전 OCR
 
 # 병합 전 delegate 리뷰
 
+현재 Git 레포 루트의 `.fullops-squad/fullops.json`으로 활성화를 확인한다. 없으면 `setup-fullops`를 안내하고 멈춘다.
+`.fullops-squad/rules/common/README.md` 및 연결된 세 규칙, `project.md`의 정본과 지시서의 `적용 기준과 예외`를 직접 읽는다. 이전 FULLOPS.md에 링크가 없어도 확인한다. 규칙이 없거나 worker가 사용한 버전과 다르면 setup 갱신 또는 준비 커밋·명시적인 스냅샷으로 일치시키고 재검토 범위를 정하기 전 수락하지 않는다.
+공통 규칙은 OCR의 `review/rule.json`을 자동 대체하지 않는다. report.md에 규칙 식별자·문서 경로·기준 커밋 또는 스냅샷·예외·검증 근거를 남긴다. `review.py check`는 공통 Markdown의 내용·버전이나 테스트 성공을 자동 검증하지 않으며 미해결 critical/high 차단은 그대로 유지한다.
+
 1. 레포의 `fullops.json`, 요구사항·설계·핸드오버 완료 기준을 읽고 병합 책임자 또는 배정된 검토자가 리뷰한다. 고정 리뷰 역할은 없다. 인증·결제·데이터 변경·동시성 등 위험한 변경은 고성능 모델에 배정한다. `open-code-review-delegate` 외부 스킬을 읽는다. OCR 측 LLM 설정과 일반 `ocr review`는 사용하지 않는다.
 2. 레포의 `.fullops-squad/review/rule.json`을 확인한다. setup에서 제품별 테스트·문서·씬·셰이더 등의 include와 생성물 exclude를 구성한다. include는 whitelist가 아니며 사용자 규칙은 첫 매칭으로 기본 언어 규칙을 대체한다. 기존 `.opencodereview/rule.json`을 통합할 때 이 의미를 보존한다. 전역 규칙은 변경하지 않는다.
 3. 이 스킬 기준 `../../scripts/review.py`를 사용해 `python3 <review.py> prepare --repo <루트> --key <리뷰 키> --from <기준 ref> --to <worker ref>`를 실행한다. SHA를 고정한 preview·rules·result와 report 템플릿이 `docs/evaluations/qa-reports/<키>-review/`에 생성된다. 기존 기록은 덮어쓰지 않으므로 재리뷰는 새 키를 사용한다. OCR CLI가 없거나 JSON 명령이 실패하면 실패를 보고하고 설치기를 안내한다.

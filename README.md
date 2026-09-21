@@ -4,6 +4,12 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.3.1 공통 개발 기준
+
+ECC에서 코딩·테스트·보안 원칙만 선별·수정한 [공통 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/README.md)을 제공합니다. ECC 런타임·에이전트·훅은 설치하지 않습니다. 규칙은 setup한 레포의 `.fullops-squad/rules/common/`에만 생성하며 기존 프로젝트 기준과 미해결 critical/high 차단은 유지합니다.
+
+작업자와 검토자는 같은 규칙·프로젝트 정본 버전을 확인하고 지시서에 적용 기준과 예외를 남깁니다. 기존 레포의 규칙·문서·작업 기록은 자동 덮어쓰지 않습니다. 플러그인 업데이트와 별도로 setup 갱신 및 연결 문서의 명시적 통합이 필요합니다. [변경 범위·기존 레포 적용·개선 우선순위](docs/releases/0.3.1.md)를 확인하세요.
+
 ## 설치
 
 사용 중인 AI CLI에 아래 프롬프트를 그대로 붙여 넣으세요. 에이전트가 현재 CLI에 맞는 플러그인과 의존성을 설치합니다.
@@ -70,6 +76,7 @@ OCR CLI는 `@alibaba-group/open-code-review@1.12.5`로 설치하고 자동 업�
   FULLOPS.md                   # 규약 지도
   project.md, orca-agents.md    # 프로젝트 기준·역할 배정
   PLANS.md                     # 현재 할 일
+  rules/common/                # 공통 코딩·테스트·보안 기준과 출처·MIT 고지
   handovers/to_<role>.md        # 지금 할 일만
   handovers/logs/               # 지시서·결과 전문, append
   contexts/<role>.md           # 결정·교훈 3줄 요약
@@ -98,7 +105,7 @@ OCR CLI는 `@alibaba-group/open-code-review@1.12.5`로 설치하고 자동 업�
 python3 scripts/build.py
 npm ci
 npm test
-python3 tests/review-check.py  # OCR CLI가 설치된 환경의 delegate 통합 검사
+npm run test:review  # OCR CLI가 설치된 환경의 delegate 통합 검사
 python3 scripts/install.py --host all --dry-run
 claude plugin validate dist/native/fullops-squad
 claude plugin validate .claude-plugin/marketplace.json
@@ -107,6 +114,8 @@ agy plugin validate dist/native/fullops-squad
 ```
 
 setup 검증은 임시 레포에서 실행합니다. 공식 스키마 사본과 개발용 Ajv로 표준 형식을 검사하며 설치·실행 중 스키마를 다운로드하지 않습니다. agy 검증에는 MCP 실행 파일이 PATH에 있어야 합니다. 전체 Orca worker 기동은 별도 통합 검증이 필요합니다.
+
+`npm test`는 기존 Python 회귀·표준 스키마 검사와 공통 규칙 배포·보존·worker 가시성 검사를 실행합니다. GitHub Actions는 기본 검사와 고정 OCR CLI의 실제 delegate 검사를 별도 job으로 실행합니다. 공통 규칙 문서는 자동 품질 판정이나 실행 권한을 추가하지 않습니다.
 
 ## 참고
 
