@@ -15,14 +15,18 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     git('init', '-q', '-b', 'main')
     def commit():
         git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-q', '--allow-empty', '-m', 'test')
+    subprocess.run(['python3', str(SCRIPTS / 'setup.py'), '--repo', tmp,
+                    '--roles', 'implementer', '--local-only'], check=True, capture_output=True)
+    git('add', '.')
     commit()
     base = git('rev-parse', 'HEAD')
     for name in ['sample.py', 'guide.md', 'sample.test.ts', 'scene.tscn']:
         (repo / name).write_text('sample\n')
     git('add', '.')
     commit()
-    subprocess.run(['python3', str(SCRIPTS / 'setup.py'), '--repo', tmp,
-                    '--roles', 'implementer', '--local-only'], check=True, capture_output=True)
+    lint_out = repo / '.git/fullops-lint.json'
+    subprocess.run(['python3', str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base, '--out', str(lint_out)],
+                   capture_output=True)
     def run(mode):
         return subprocess.run(['python3', str(SCRIPTS / 'review.py'), mode, '--repo', tmp,
                                '--key', 'REVIEW-1', '--from', base, '--to', 'HEAD'], capture_output=True, text=True)
@@ -44,6 +48,8 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     def save():
         path.write_text(json.dumps(data))
     save()
+    assert 'lint' in run('check').stderr  # lint 결과 누락
+    (directory / 'lint.json').write_bytes(lint_out.read_bytes())
     assert run('check').returncode == 0
     removed = data['files'].pop()
     save()
@@ -62,4 +68,4 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     rule.write_bytes(original)
     commit()
     assert run('check').returncode != 0  # new head
-    print('PASS: real OCR prepare, document/test inclusion, record preservation, pending/missing/high/rule/SHA gates')
+    print('PASS: real OCR prepare, document/test inclusion, record preservation, pending/missing/high/rule/SHA/lint gates')

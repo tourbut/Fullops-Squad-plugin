@@ -26,27 +26,36 @@ Orca 실행 파일은 `ORCA_CLI_COMMAND` → `ORCA_DEV_REPO_ROOT`가 있는 개�
 2. coordinator와 worker의 실제 repo id·워크트리·터미널 핸들을 조회해 지시서에 넣는다. 과거 핸들을 재사용하지 않는다.
 3. worker가 지시서와 원천 문서를 읽을 수 있는 버전을 전달하고 과제 키·내용을 확인한다. `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙과 지시서가 지정한 프로젝트 정본도 같은 버전으로 전달하고 실제 경로·기준 커밋 또는 스냅샷을 확인한다. 누락·불일치를 해소하기 전 착수시키지 않는다. 워크트리는 파일을 자동 공유하지 않는다. 기본은 준비 커밋을 worker에 반영하는 방식이며, 미커밋 지시서는 명시한 절대경로의 스냅샷으로 제공한다. 진행 중 변경을 덮어쓰지 않는다.
 4. 현재 작업과 분리된 새 에이전트 세션을 시작한다. 제목만으로 세션 초기화를 판단하거나 진행 중인 세션을 임의로 중단하지 않는다.
-5. 한 문단으로 과제 키·지시서 실제 경로·worker 경로·복귀 주소를 전달하고 긴 내용은 파일로 제공한다. 권한 모드는 임의로 완화하지 않는다.
+5. 한 문단으로 과제 키·지시서 실제 경로·worker 경로·복귀 주소를 전달하고 긴 내용은 파일로 제공한다. 읽을 범위는 지시서의 `먼저 읽을 문서`로 한정하고, 원천 문서 전체를 전달문에 붙이지 않는다. 권한 모드는 임의로 완화하지 않는다.
 6. terminal read로 worker가 해당 지시서를 읽고 착수했는지 확인한다. send 성공이나 idle 상태만으로 판단하지 않는다. 핸들과 착수 근거를 보고하고 카드에 과제 키를 남긴다.
 7. 착수를 확인하면 결과를 기다리며 턴을 유지하지 않고 dispatch를 마친다. 아래 대기 규칙을 따른다.
 
 ## 대기 — coordinator
 
-- 결과를 기다려야 하면 `terminal wait`을 긴 타임아웃으로 호스트의 백그라운드 실행 기능을 통해 한 번 걸고 턴을 끝낸다. 종료 알림을 받으면 그때 확인한다. 백그라운드 실행이 없으면 대기하지 않고 worker의 `[완료]` 보고를 받을 때 이어서 한다.
-- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다.
-- 완료 판정은 worker의 `[완료]` 보고, 보고된 브랜치·SHA, 산출물 파일로 한다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
+- Orca는 `--types`가 붙은 대기가 받지 않는 메시지(heartbeat·status)마다 idle 터미널에 "You have N orchestration message" 알림을 넣어 세션을 깨운다. worker heartbeat는 Orca가 5분마다 보내므로 `check --wait --types …`를 직접 걸지 않는다.
+- orchestration Run을 기다릴 때는 이 스킬 기준 `../../scripts/orca_wait.py`를 사용한다: `python3 <orca_wait.py> --orca <실행 파일> [--run <run id>] [--ack <처리한 delivery id>]`. `--types` 없이 대기해 알림을 막고, heartbeat·status만 있는 묶음은 모델을 부르지 않고 ack한다. 처리할 메시지가 오면 ack하지 않은 묶음과 흡수한 내용 요약을 반환한다.
+- 호스트의 백그라운드 실행으로 한 번 걸고 턴을 끝낸다. 백그라운드 실행이 없으면 포그라운드에서 실행한다. 반환된 `actionable` 묶음은 오케스트레이션 규칙대로 모두 처리한 뒤, 다음 대기를 `--ack <deliveryId>`로 이어 건다. `absorbed`의 status도 확인한다.
+- `idle_timeout`(기본 45분)은 실패가 아니다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
+- orchestration을 쓰지 않는 터미널 전달은 `terminal wait`을 긴 타임아웃으로 백그라운드에서 한 번 건다.
+- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. 완료 판정은 worker의 `worker_done`·`[완료]` 보고, 보고된 브랜치·SHA, 산출물 파일로 한다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
+
+## 메시지 — worker
+
+- coordinator에게는 `worker_done`, 결정이 필요한 `question`(`ask`), 막힘을 알리는 `escalation`만 보낸다. 진행 상황은 완료 보고와 산출물에 남기고, 진행 알림용 status는 보내지 않는다. `send`는 `--type`을 생략하면 status가 되므로 항상 타입을 명시한다.
+- heartbeat는 preamble이 정한 주기를 따른다. coordinator 쪽 `orca_wait.py`가 흡수하므로 줄이려고 규칙을 어기지 않는다.
+- coordinator도 worker에게 보내는 지시는 모아서 보낸다. idle worker에게 보내는 메시지는 그 세션을 깨운다.
 
 ## report — worker가 직접 실행
 
 `fullops-work`의 기록·아카이브·커밋 절차를 마친다. 실제 브랜치와 SHA를 조회해 아카이브된 지시서의 복귀 핸들로 보낸다:
 
-`[완료] <과제 키> | 브랜치 <branch> | SHA <sha 또는 미커밋> | 변경: … | 검토 필요: … | 검증: … | 산출물/로그: … | 후속: …`
+`[완료] <과제 키> | 브랜치 <branch> | SHA <sha 또는 미커밋> | 변경: … | 검토 필요: … | 검증(lint 포함): … | 산출물/로그: … | 후속: …`
 
 핸들이 만료됐으면 같은 repo id와 coordinator 워크트리에서 다시 조회한다. 후보가 여러 개면 복귀 대상을 확인한다. 전송 오류와 재시도 여부를 기록·보고하고 카드를 갱신한 뒤 검토자의 질문을 받을 수 있도록 세션을 유지한다.
 
 ## merge — 병합 책임자
 
-`fullops-review`로 현재 기준/worker SHA의 delegate 리뷰를 완료하고 보고서·check 결과·skipped 사유·테스트 결과를 확인한다. 파일 누락이나 미해결 critical/high가 있으면 수락을 보류한다. check 통과만으로 수락하지 않는다. 수정 커밋 이후에는 최신 SHA의 리뷰가 필요하다.
+`fullops-review`로 현재 기준/worker SHA의 delegate 리뷰를 완료하고 보고서·check 결과·skipped 사유·lint·테스트 결과를 확인한다. 파일 누락이나 미해결 critical/high가 있으면 수락을 보류한다. check 통과만으로 수락하지 않는다. 수정 커밋 이후에는 최신 SHA의 리뷰가 필요하다.
 
 보고된 SHA의 브랜치 포함 여부, diff, 커밋 본문, 문서·검증 근거를 확인한다. 허가된 병합을 수행하고 필요한 검증을 실행한다. 실패하면 `PLANS.md`에 미완료 상태를 유지한다.
 worker가 쉬고 있고 작업 트리가 깨끗할 때만 기본 브랜치 변경을 상설 브랜치에 merge 또는 fast-forward로 동기화한다. 작업 중이면 동기화를 예약한다. 강제 reset이나 진행 중 작업 삭제를 복구 절차로 쓰지 않는다. 인박스·아카이브가 완료 커밋에 포함됐는지 확인하고 중복 기록하지 않는다.

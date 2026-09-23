@@ -5,6 +5,7 @@
 - OCR 버전 / 적용 규칙:
 - 요구사항·완료 기준 원천:
 - 전체 변경 / OCR 대상 / 제외 / reviewed / skipped:
+- lint(`lint.json`) ERROR / WARNING / 실행 불가와 사유:
 
 ## 검토 범위
 

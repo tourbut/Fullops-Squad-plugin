@@ -1,6 +1,6 @@
 # Jev 관찰 실험
 
-`jev_observe.py`는 기존 검색/그래프가 찾은 소수 후보와 고정 SHA의 완료 근거를 평가해 JSON만 기록한다. worker 핸드오버, `review.py check`, 테스트, 승인, 병합에는 연결하지 않는다. 기본 검사는 오프라인이며 외부 호출은 CLI를 명시적으로 실행할 때만 발생한다.
+`jev_observe.py`는 기존 검색/그래프가 찾은 소수 후보와 고정 SHA의 완료 근거를 평가해 JSON만 기록한다. `review.py check`, 테스트, 승인, 병합에는 연결하지 않는다. 핸드오버에는 아래 dispatch 문맥 분류의 추천으로만 쓰인다. 기본 검사는 오프라인이며 외부 호출은 CLI를 명시적으로 실행할 때만 발생한다.
 
 ```bash
 python3 tests/jev-observe.py             # npm test에도 포함, 외부 호출 없음
@@ -41,6 +41,10 @@ CLI는 OpenRouter `https://openrouter.ai/api/v1/systemone`에 `~typesafe/jev-lat
 결과는 모델의 `choice`·전체 `probabilities`·`confidence`를 `judgment`에 그대로 보존하고, 별도 `decision`과 `status`를 기록한다. 관찰용 제외 추천은 검증된 원문이 있고 `irrelevant`와 `does_not_contradict`의 각 선택 확률이 0.9 이상, confidence가 각각 0.8 이상일 때만 낸다. 이는 정답률이 입증된 임계값이 아닌 보수적 실험 정책이다. 낮은 값은 유지한다. 검증되지 않은 증거나 결정적 증거 결함은 `insufficient_evidence`와 `reason`, 모델 확신 부족은 `uncertain`, API/형식 실패는 `error`다. 일치하는 명령의 완전한 로그가 0이 아닌 종료코드를 기록하면 `contradicts`와 `test_command_failed`를 남긴다. 모델의 원판단이 `supports`여도 이 정책 판정은 유지된다.
 
 실행 완료 주장은 입력 `claims[].test_command`에 정확한 명령을 구조화해 적어야 한다. 이 필드가 있으면 같은 `evidence_ids` 안에 `kind: "test_log"`인 검증된 로그가 적어도 하나 필요하다. 파일 증거를 함께 연결해도 된다. `test_log`는 파일 안의 단일 `command=<문자열>`·`exit_code=<정수>`를 코드가 읽고 기록한다. `supports`에는 선택 범위가 전체 로그이고 명령이 `test_command`와 일치하며 종료코드가 0인 로그가 필요하다. 로그의 `kind`를 생략하면 기본값 `file`로 처리한다. 자유 텍스트의 모든 실행 주장을 자동으로 찾아내지는 않으므로 입력 작성자가 실행 주장을 이 계약에 맞게 구조화해야 한다. 텍스트 로그의 진위와 실제 테스트 실행 여부는 별도 검증이 필요하다.
+
+## dispatch 문맥 분류
+
+`jev_context.py`는 지시서를 쓸 때 후보 문서의 입력을 자동으로 만든다. 인박스 지시서 본문을 task로, 후보 경로마다 SHA-256·HEAD 일치 여부·첫 34줄(최대 3,500자) 구간을 source로 넣는다. 공통 필수 문서와 인박스는 항상 유지된다. `observe()`는 후보 하나의 원문이 민감 패턴이나 크기로 거부되면 호출 전체를 건너뛰므로, 그런 파일과 64KB 초과·비 UTF-8 파일은 source 없이 넣어 keep으로 남긴다(`unsent_sources`). 민감 경로는 후보에서 빼고 `refused_paths`에 기록한다. 지시서 본문에 민감 문자열이 있거나 키가 없거나 API가 실패하면 전부 keep이다. 결과는 `.fullops-squad/docs/evaluations/jev/<과제 키>-context.json`에 남고 덮어쓰지 않는다. worker 완료 보고의 "제외 추천 문서가 필요했는지" 기록이 이 분류의 사람 라벨이 된다. 이 라벨이 쌓이기 전에는 제외 추천을 게이트로 쓰지 않는다.
 
 평가 사례는 `tests/fixtures/jev-observe-0.3.1.md`에 원문을 보존한다. 출처는 커밋 `2be2a31b0d4dad6794ef374d701dc7357d8214b9`의 `docs/releases/0.3.1.md`이며, 사례 JSON에 원문 SHA-256을 기록했다. 기본 검사는 이 자체 완결 fixture만 읽으므로 Git 과거 객체가 필요 없다.
 

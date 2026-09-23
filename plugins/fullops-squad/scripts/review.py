@@ -79,8 +79,22 @@ def check(repo, key, base, head):
             raise ValueError('발견 사항에 severity와 resolved(boolean)를 기록하세요')
         if finding['severity'] in ('critical', 'high') and not finding['resolved']:
             raise ValueError('critical/high 미해결 사항이 있습니다')
+    lint = read('lint')
+    if (lint['base'], lint['head']) != (result['base'], result['head']):
+        raise ValueError('lint 결과의 base/head가 리뷰와 다릅니다. worker 체크아웃에서 lint.py를 다시 실행하세요')
+    config = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f"{result['head']}:.fullops-squad/lint/lint.json"],
+                            capture_output=True)
+    if lint['config_sha256'] != (hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
+        raise ValueError('lint 설정이 head와 다릅니다')
+    if any(c['status'] == 'unavailable' and not c.get('reason', '').strip() for c in lint['commands']):
+        raise ValueError('실행 불가 lint 명령에 reason을 기록하세요')
+    errors = (sum(v['severity'] == 'ERROR' for v in lint['violations'])
+              + sum(c['status'] in ('failed', 'timeout') for c in lint['commands']))
+    if errors:
+        raise ValueError(f'lint ERROR {errors}건이 남아 있습니다. 수정 커밋 후 새 리뷰를 준비하세요')
     reviewed = sum(f['review_status'] == 'reviewed' for f in result['files'])
-    print(f'기록 검사 통과: reviewed={reviewed}, skipped={len(actual)-reviewed}, total={len(actual)}')
+    print(f'기록 검사 통과: reviewed={reviewed}, skipped={len(actual)-reviewed}, total={len(actual)}, '
+          f"lint WARNING={lint['summary']['warnings']}")
 
 
 def main():

@@ -19,7 +19,7 @@
 ## 원본에서 유지하거나 조정한 부분
 
 핸드오버·컨텍스트·산출물 규약은 원본 `.agents/handovers/`, `skills/{handover,role-context,deliverable-docs}/`, `workflows/orca.md`를 검토해 이식했다.
-서비스별 코드·특정 스택의 린터·실행 이력·remote·라벨은 패키지에서 제외하고 setup에서 실제 프로젝트 기준을 연결한다.
+서비스별 코드·실행 이력·remote·라벨은 패키지에서 제외하고 setup에서 실제 프로젝트 기준을 연결한다. 린터는 원본 `verify-linter-rules`(AgentBuilder 파생본)에서 스택 무관 검사(주석 제외 줄 수, 범위 없는 억제, eval/exec, 비밀값, 자가 확장 정규식 규칙)만 `scripts/lint.py`로 옮겼다. 파일명·import·레이어·Svelte 규칙은 제외하고, 레포의 기존 lint 도구를 `lint/lint.json`에 연결한다.
 새 세션은 제목 변경과 구분하고, 다른 워크트리에서 지시서가 자동 공유된다고 가정하지 않는다.
 이미 허가된 작업의 반복 승인 대신 실제 추가 권한이 필요한 행위를 지시서에 분리한다.
 

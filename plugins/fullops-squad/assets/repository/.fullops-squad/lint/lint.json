@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "commands": [],
+  "timeout_seconds": 600,
+  "size": {
+    "severity": "WARNING",
+    "max_code_lines": 300,
+    "max_doc_lines": 500
+  },
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/vendor/**",
+    "**/*.min.*",
+    "**/*.lock",
+    "**/package-lock.json",
+    ".fullops-squad/handovers/**",
+    ".fullops-squad/contexts/**",
+    ".fullops-squad/docs/evaluations/**"
+  ],
+  "rules": []
+}

@@ -11,6 +11,7 @@
 | 현재 할 일·우선순위 | `PLANS.md` |
 | 역할별 작업 명세와 완료 처리 | `handovers/_TEMPLATE.md` · `fullops-work` 스킬 |
 | Orca 착수 확인·회신·검토 | `orca-agents.md` · `fullops-orca` 스킬 |
+| 코드 변경의 lint 게이트 | `lint/README.md` · `lint/lint.json` |
 | 병합 전 delegate 코드·문서 검토 | `review/rule.json` · `fullops-review` 스킬 |
 | 과거 결정·교훈 | `contexts/<role>.md` |
 | 산출물과 원천 매핑 | `docs/deliverables/README.md` |
