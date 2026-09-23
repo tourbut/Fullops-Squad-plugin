@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 
+import jev_find
 from work import active_repo, safe_file, KEY
 
 
@@ -54,7 +55,7 @@ def prepare(repo, key, base, head):
     print(destination.relative_to(repo))
 
 
-def check(repo, key, base, head):
+def check(repo, key, base, head, task_key=None):
     directory = f'.fullops-squad/docs/evaluations/qa-reports/{key}-review'
     def read(name):
         return json.loads(safe_file(repo, f'{directory}/{name}.json').read_text())
@@ -95,9 +96,23 @@ def check(repo, key, base, head):
               + sum(c['status'] in ('failed', 'timeout') for c in lint['commands']))
     if errors:
         raise ValueError(f'lint ERROR {errors}건이 남아 있습니다. 수정 커밋 후 새 리뷰를 준비하세요')
+    record_find_score(repo, directory, task_key or key, result['base'], result['head'])
     reviewed = sum(f['review_status'] == 'reviewed' for f in result['files'])
     print(f'기록 검사 통과: reviewed={reviewed}, skipped={len(actual)-reviewed}, total={len(actual)}, '
           f"lint WARNING={lint['summary']['warnings']}")
+
+
+def record_find_score(repo, directory, task_key, base, head):
+    """과제의 jev_find 결과가 있으면 실제 변경과 비교한 적중률을 남긴다. 수락 판단에는 쓰지 않는다."""
+    if not jev_find.result_path(repo, task_key, 'find').is_file():
+        return
+    try:
+        scored = jev_find.score(repo, task_key, base, head)
+    except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
+        print(f'jev_find score 생략: {error}')
+        return
+    safe_file(repo, f'{directory}/jev-find-score.json').write_text(json.dumps(scored, ensure_ascii=False, indent=2) + '\n')
+    print(f"jev_find score: recall {scored['recall']} / precision {scored['precision']} / 존재 판정 {scored['existence_correct']}")
 
 
 def main():
@@ -105,12 +120,18 @@ def main():
     parser.add_argument('mode', choices=['prepare', 'check'])
     for option in ['repo', 'key', 'from', 'to']:
         parser.add_argument('--' + option, required=True)
+    parser.add_argument('--task-key', help='check: jev_find 결과의 과제 키 (기본: 리뷰 키)')
     args = parser.parse_args()
     try:
         if not KEY.fullmatch(args.key):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
-        (prepare if args.mode == 'prepare' else check)(repo, args.key, getattr(args, 'from'), args.to)
+        if args.mode == 'prepare':
+            prepare(repo, args.key, getattr(args, 'from'), args.to)
+        else:
+            if args.task_key and not KEY.fullmatch(args.task_key):
+                raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
+            check(repo, args.key, getattr(args, 'from'), args.to, args.task_key)
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'리뷰 처리 실패: {error}\n')
 

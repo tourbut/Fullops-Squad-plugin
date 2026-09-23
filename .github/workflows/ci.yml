@@ -18,6 +18,13 @@ jobs:
   core:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      # git 2.47+ runs auto maintenance detached after commit; it races temp-repo cleanup in tests.
+      GIT_CONFIG_COUNT: '2'
+      GIT_CONFIG_KEY_0: maintenance.auto
+      GIT_CONFIG_VALUE_0: 'false'
+      GIT_CONFIG_KEY_1: gc.auto
+      GIT_CONFIG_VALUE_1: '0'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -39,6 +46,11 @@ jobs:
     timeout-minutes: 10
     env:
       OCR_NO_UPDATE: '1'
+      GIT_CONFIG_COUNT: '2'
+      GIT_CONFIG_KEY_0: maintenance.auto
+      GIT_CONFIG_VALUE_0: 'false'
+      GIT_CONFIG_KEY_1: gc.auto
+      GIT_CONFIG_VALUE_1: '0'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

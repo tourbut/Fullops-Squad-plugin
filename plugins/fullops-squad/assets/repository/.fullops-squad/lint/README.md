@@ -21,6 +21,7 @@
 | ANTI-004 | ERROR | 테스트 파일에 skip·only 표식 추가(`.skip(`, `.only(`, `xit(`, `@pytest.mark.skip`, `t.Skip(`, `#[ignore]`, `@Disabled` 등) |
 | ANTI-005 | WARNING | 테스트 케이스 수 감소 또는 테스트 파일 삭제. 대체 테스트나 삭제 이유를 검토자가 확인한다 |
 | SEC-001 | ERROR (테스트·`.md`는 WARNING) | 하드코딩 비밀값 의심. `test`·`example`·`dummy` 등 더미 값과 환경변수 참조는 예외다. |
+| DOC-001 | WARNING | 새 코드 파일에 무엇을 하는지 적은 헤더 설명(docstring·주석 1~3줄)이 없음. 이 설명이 `jev_find.py`의 코드 지도가 된다 |
 | LINT-000 | WARNING | 프로젝트 lint 명령이 등록되지 않음 |
 | LINT-001 | WARNING | 검사 대상 브랜치가 `lint.json`을 바꿈. 변경은 병합 후 적용된다 |
 | CUSTOM-NNN | 규칙별 | `rules`에 등록한 레포별 정규식 규칙 |

@@ -73,6 +73,7 @@ def main():
         (repo / 'node_modules').mkdir()
         (repo / 'node_modules/dep.py').write_text('q = eval("1")\n')
         (repo / 'image.bin').write_bytes(b'\0eval(1)')
+        (repo / 'src/documented.py').write_text('"""주문 합계 계산."""\ntotal = 1\n')  # 헤더가 있으면 DOC-001 없음
         (repo / 'short.py').write_text((repo / 'short.py').read_text() + 'b = 2\n')
         head = commit('work')
 
@@ -91,6 +92,9 @@ def main():
             ('SEC-001', 'tests/test_app.py', 1),
             ('ANTI-003', 'web.ts', 1),
             ('ANTI-003', 'web.ts', 2),
+            ('DOC-001', 'src/app.py', None),  # 헤더 설명 없는 새 코드 파일
+            ('DOC-001', 'tests/test_app.py', None),
+            ('DOC-001', 'web.ts', None),
         }
         assert found == expected, found ^ expected
         severity = {(v['code'], v['path']): v['severity'] for v in result['violations']}
@@ -100,7 +104,7 @@ def main():
         assert result['head'] == head and result['base'] == base
         assert result['config_sha256'] == hashlib.sha256(config_path.read_bytes()).hexdigest()
         assert result['commands'][0]['status'] == 'passed'
-        assert result['summary']['errors'] == 7 and result['summary']['warnings'] == 2
+        assert result['summary']['errors'] == 7 and result['summary']['warnings'] == 5
 
         # 명령 실패·실행 불가·레포 밖 cwd
         config['commands'] = [{'name': 'fail', 'run': [PY, '-c', 'import sys; print("bad"); sys.exit(3)']},
@@ -202,6 +206,22 @@ def main():
         assert review().returncode != 0
         save({**data, 'config_sha256': 'changed'})
         assert '설정' in review().stderr
+
+        # find.json이 있으면 check가 적중률을 자동으로 남기고, 계산 실패는 check를 막지 않는다.
+        save(data)
+        find = repo / '.fullops-squad/docs/evaluations/jev/TASK-1-find.json'
+        find.parent.mkdir(parents=True, exist_ok=True)
+        find.write_text(json.dumps({'head': base, 'candidates': [{'path': 'todo.py'}], 'existence': {'status': 'found'}}))
+        done = subprocess.run([PY, str(SCRIPTS / 'review.py'), 'check', '--repo', tmp, '--key', 'LINT-1', '--task-key', 'TASK-1',
+                               '--from', base, '--to', head], capture_output=True, text=True)
+        assert done.returncode == 0 and 'jev_find score' in done.stdout, done.stdout + done.stderr
+        scored = json.loads((directory / 'jev-find-score.json').read_text())
+        assert scored['task_key'] == 'TASK-1' and scored['head'] == head
+        find.write_text('broken')
+        done = subprocess.run([PY, str(SCRIPTS / 'review.py'), 'check', '--repo', tmp, '--key', 'LINT-1', '--task-key', 'TASK-1',
+                               '--from', base, '--to', head], capture_output=True, text=True)
+        assert done.returncode == 0 and '생략' in done.stdout, done.stdout + done.stderr
+        assert review().returncode == 0  # 리뷰 키로는 find.json이 없어 기록하지 않는다
     print('PASS: changed-only scope, size growth, suppressions, eval, secrets, custom rules, commands, review lint gate')
 
 

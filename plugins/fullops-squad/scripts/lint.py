@@ -110,6 +110,30 @@ def code_lines(text, ext):
     return count
 
 
+def header_summary(text, ext):
+    """파일 머리의 설명 한 줄(docstring·주석·제목). 없으면 ''. jev_find의 코드 지도가 이 값을 쓴다."""
+    lines = [line.strip() for line in text.splitlines()[:40]]
+    lines = [line for line in lines if line and not line.startswith(('#!', '# -*-', '// @ts-', "'use ", '"use '))]
+    if not lines:
+        return ''
+    first = lines[0]
+    if ext == '.md':
+        return first.lstrip('#').strip() if first.startswith('#') else ''
+    if ext in PY:
+        for quote in ('"""', "'''"):
+            if first.startswith(quote):
+                body = first[3:].split(quote)[0].strip()
+                return body or next((line for line in lines[1:] if line and not line.startswith(quote)), '')
+    if ext in PY | HASH and first.startswith('#'):
+        return first.lstrip('#').strip()
+    if ext in C_STYLE:
+        for marker in ('//', '/**', '/*', '<!--'):
+            if first.startswith(marker):
+                body = first[len(marker):].replace('*/', '').replace('-->', '').strip(' *')
+                return body or next((line.strip('/* ') for line in lines[1:] if line.strip('/* ')), '')
+    return ''
+
+
 def is_test(path):
     name, parts = Path(path).name, Path(path).parts
     return (name.startswith('test_') or re.search(r'[._](test|spec)\.[^.]+$', name) is not None
@@ -159,6 +183,8 @@ def check_file(path, old, new, config):
                    f'{after}줄(이전 {before}, 상한 {limit}). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다')
     test = is_test(path)
     soft = test or ext == '.md'
+    if not old and ext in PY | HASH | C_STYLE and not header_summary(new, ext):
+        yield ('DOC-001', 'WARNING', None, '새 코드 파일에 무엇을 하는지 적은 헤더 설명(docstring·주석 1~3줄)이 없다')
     if test and old and len(CASE.findall(new)) < len(CASE.findall(old)):
         yield ('ANTI-005', 'WARNING', None,
                f'테스트 케이스 {len(CASE.findall(old)) - len(CASE.findall(new))}개 감소. 대체 테스트나 삭제 이유를 확인한다')

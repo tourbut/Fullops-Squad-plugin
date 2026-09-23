@@ -42,6 +42,14 @@ CLI는 OpenRouter `https://openrouter.ai/api/v1/systemone`에 `~typesafe/jev-lat
 
 실행 완료 주장은 입력 `claims[].test_command`에 정확한 명령을 구조화해 적어야 한다. 이 필드가 있으면 같은 `evidence_ids` 안에 `kind: "test_log"`인 검증된 로그가 적어도 하나 필요하다. 파일 증거를 함께 연결해도 된다. `test_log`는 파일 안의 단일 `command=<문자열>`·`exit_code=<정수>`를 코드가 읽고 기록한다. `supports`에는 선택 범위가 전체 로그이고 명령이 `test_command`와 일치하며 종료코드가 0인 로그가 필요하다. 로그의 `kind`를 생략하면 기본값 `file`로 처리한다. 자유 텍스트의 모든 실행 주장을 자동으로 찾아내지는 않으므로 입력 작성자가 실행 주장을 이 계약에 맞게 구조화해야 한다. 텍스트 로그의 진위와 실제 테스트 실행 여부는 별도 검증이 필요하다.
 
+## 코드 탐색 (jev_find)
+
+`jev_find.py find`는 TypeSafe [semantic_find](https://docs.typesafe.ai/cookbooks/semantic_find) 예제를 코드에 옮겼다. HEAD의 일반 파일(lint `exclude`·민감 경로·바이너리·심볼릭 링크·서브모듈 제외)과 파일 헤더 설명 한 줄로 지도를 만든다. Choice 질문 하나로 파일에 확률 분포를 받고, 두 값짜리 존재 질문(`found`/`absent`)으로 관련 코드가 있기는 한지 판정한다. Choice 확률은 답이 없어도 합이 1이라 존재 판정을 따로 둔다. 두 질문은 한 요청에 들어간다.
+
+선택지가 255개를 넘으면 디렉터리 단위 Choice로 누적 확률 0.8(최대 3개)까지 고른 뒤 그 안에서 다시 묻는다. 존재 질문은 첫 요청에만 넣는다. 파일 후보는 누적 확률 0.9 또는 `--limit`(기본 12)까지다. 존재 경계는 예제의 0.7/0.35이며 코드 검색에 맞는 값은 아래 score 기록으로 다시 정한다. OpenRouter 경로에서 예제의 Noul 타입 지원을 확인하지 않아 두 값짜리 Choice를 쓴다. 실패하면 후보 없이 오류를 기록하고 검색으로 대신한다. 결과는 `.fullops-squad/docs/evaluations/jev/<과제 키>-find.json`에 남는다.
+
+`jev_find.py score`는 과제가 끝난 뒤 merge-base..worker 결과의 실제 변경 파일을 정답으로 삼는다. 지도에 있던 파일 중 바뀐 것 대비 recall·precision, 존재 판정의 정오, 새로 만든 파일 수를 기록한다. 같은 과제의 `-context.json`이 있으면 제외 추천했는데 실제로 바뀐 파일(`context_wrong_omits`)도 센다. `review.py check`는 과제의 `find.json`이 있으면 같은 계산을 자동으로 실행해 리뷰 디렉터리의 `jev-find-score.json`에 남긴다(`--task-key`, 기본은 리뷰 키). 계산 실패는 check 결과를 바꾸지 않는다. 사람 라벨 없이 쌓이는 이 기록으로 임계값과 게이트 사용 여부를 판단한다.
+
 ## dispatch 문맥 분류
 
 `jev_context.py`는 지시서를 쓸 때 후보 문서의 입력을 자동으로 만든다. 인박스 지시서 본문을 task로, 후보 경로마다 SHA-256·HEAD 일치 여부·첫 34줄(최대 3,500자) 구간을 source로 넣는다. 공통 필수 문서와 인박스는 항상 유지된다. `observe()`는 후보 하나의 원문이 민감 패턴이나 크기로 거부되면 호출 전체를 건너뛰므로, 그런 파일과 64KB 초과·비 UTF-8 파일은 source 없이 넣어 keep으로 남긴다(`unsent_sources`). 민감 경로는 후보에서 빼고 `refused_paths`에 기록한다. 지시서 본문에 민감 문자열이 있거나 키가 없거나 API가 실패하면 전부 keep이다. 결과는 `.fullops-squad/docs/evaluations/jev/<과제 키>-context.json`에 남고 덮어쓰지 않는다. 응답은 요청 내용 해시로 `~/.cache/fullops-squad/jev/`(`FULLOPS_JEV_CACHE`)에 캐시해, 같은 입력은 같은 답을 비용 없이 받는다. 캐시 적중은 사용량 0과 `cached: true`로 기록한다. worker 완료 보고의 "제외 추천 문서가 필요했는지" 기록이 이 분류의 사람 라벨이 된다. 이 라벨이 쌓이기 전에는 제외 추천을 게이트로 쓰지 않는다.
