@@ -266,11 +266,18 @@ def main():
                          'both': {'npm', 'codex', 'claude'}}.get(host, {'npm', 'claude' if host == 'claude-code' else host})
         assert plan[0] == ['npm', 'install', '--global', 'codebase-memory-mcp@latest', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.5']
         assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
+        for source, name in (('JuliusBrussee/caveman', 'caveman'), ('typesafe-ai/skills', 'typesafe-ai')):
+            targets = {cmd[cmd.index('--agent') + 1] for cmd in skills
+                       if cmd[4] == source and cmd[5:7] == ['--skill', name]}
+            assert targets == {'all': {'codex', 'claude-code', 'grok', 'antigravity-cli'},
+                               'both': {'codex', 'claude-code'},
+                               'agy': {'antigravity-cli'}}.get(host, {host})
         if host in ('grok', 'agy'):
             target = 'antigravity-cli' if host == 'agy' else 'grok'
             assert all(cmd[cmd.index('--agent') + 1] == target for cmd in skills)
             assert {cmd[4] for cmd in skills} == {'cathrynlavery/diagram-design', 'anthropics/skills',
-                                                'mattpocock/skills', 'DietrichGebert/ponytail', 'alibaba/open-code-review'}
+                                                'mattpocock/skills', 'DietrichGebert/ponytail', 'alibaba/open-code-review',
+                                                'JuliusBrussee/caveman', 'typesafe-ai/skills'}
             assert plan[-1] == [host, 'plugin', 'install', str(install.PLUGIN)] + (['--trust'] if host == 'grok' else [])
     registered = {'codex': {'fullops-squad': str(ROOT), 'ponytail': 'https://github.com/DietrichGebert/ponytail.git'}}
     assert not any(cmd[2:4] == ['marketplace', 'add'] for cmd in install.commands('codex', registered))

@@ -4,6 +4,8 @@
     "claude-plugins-official": "anthropics/claude-plugins-official"
   },
   "skills": [
+    {"source": "JuliusBrussee/caveman", "names": ["caveman"]},
+    {"source": "typesafe-ai/skills", "names": ["typesafe-ai"]},
     {"source": "alibaba/open-code-review", "names": ["open-code-review-delegate"]},
     {"source": "cathrynlavery/diagram-design", "names": ["diagram-design"]},
     {"source": "anthropics/skills", "names": ["frontend-design", "mcp-builder", "skill-creator", "web-artifacts-builder", "webapp-testing"]}
