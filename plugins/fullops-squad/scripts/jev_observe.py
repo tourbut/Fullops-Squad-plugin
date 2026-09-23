@@ -70,20 +70,28 @@ def excerpt(raw, spec):
         quote = safe_text(spec['quote'])
         if not quote or text.count(quote) != 1:
             raise ValueError('quote missing or ambiguous')
-        first = text[:text.index(quote)].count('\n')
-        last = first + quote.count('\n')
-        start, end = max(0, first - 3), min(len(lines), last + 4)
+        offset = text.index(quote)
+        selected_start = text[:offset].count('\n') + 1
+        selected_end = text[:offset + len(quote) - 1].count('\n') + 1
     else:
         if type(spec.get('start_line')) is not int or type(spec.get('end_line')) is not int:
             raise ValueError('line span required')
-        start, end = spec['start_line'] - 1, spec['end_line']
-    if start < 0 or end <= start or end > len(lines) or end - start > 40:
+        selected_start, selected_end = spec['start_line'], spec['end_line']
+    if selected_start < 1 or selected_end < selected_start or selected_end > len(lines) or selected_end - selected_start + 1 > 40:
         raise ValueError('invalid line span')
+    start, end = max(0, selected_start - 4), min(len(lines), selected_end + 3)
+    while end - start > 40 or len(''.join(lines[start:end])) > MAX_EXCERPT:
+        left, right = selected_start - 1 - start, end - selected_end
+        if right >= left and right:
+            end -= 1
+        elif left:
+            start += 1
+        else:
+            raise ValueError('excerpt too long')
     passage = ''.join(lines[start:end])
-    if len(passage) > MAX_EXCERPT:
-        raise ValueError('excerpt too long')
     safe_text(passage)
-    return {'start_line': start + 1, 'end_line': end, 'text': passage}
+    return {'start_line': start + 1, 'end_line': end, 'selected_start_line': selected_start,
+            'selected_end_line': selected_end, 'text': passage}
 
 
 def checked_answer(value, labels):
@@ -257,8 +265,8 @@ def observe(data, repo, call):
             if item.get('kind', 'file') not in ('file', 'test_log'):
                 raise ValueError('invalid evidence kind')
             checked[eid] = {'status': 'verified', 'path': str(path.relative_to(repo)),
-                            'passage': passage, 'coverage': 'complete' if passage['start_line'] == 1 and
-                            passage['end_line'] == len(lines) else 'partial', 'exit_code': exit_code,
+                            'passage': passage, 'coverage': 'complete' if passage['selected_start_line'] == 1 and
+                            passage['selected_end_line'] == len(lines) else 'partial', 'exit_code': exit_code,
                             'kind': item.get('kind', 'file'), 'command': command}
         except (OSError, ValueError, UnicodeError, KeyError, TypeError, subprocess.CalledProcessError) as error:
             checked[eid] = {'status': 'unverified', 'reason': str(error) if str(error) in
@@ -279,7 +287,7 @@ def observe(data, repo, call):
         if not isinstance(links, list) or any(not isinstance(eid, str) or eid not in checked or
                 checked[eid]['status'] != 'verified' for eid in links) or not links:
             verdicts[item['id']] = {'status': 'insufficient_evidence', 'evidence_ids': links,
-                                    'decision': 'review'}
+                                    'decision': 'review', 'reason': 'missing_or_unverified_evidence'}
             continue
         state[f'claim_{n}'] = {'criterion': item['criterion'], 'worker_report': item['report'],
                               'test_command': item.get('test_command'),
@@ -344,14 +352,30 @@ def observe(data, repo, call):
                 verdict = verdicts[item['id']]
                 verdict['judgment'] = answer
                 top = answer['probabilities'][answer['choice']]
-                complete_logs = all(checked[eid]['kind'] != 'test_log' or
-                                    (item.get('test_command') and checked[eid]['coverage'] == 'complete' and
-                                     checked[eid]['exit_code'] == 0 and
-                                     checked[eid]['command'] == item['test_command'])
-                                    for eid in verdict['evidence_ids'])
+                logs = [checked[eid] for eid in verdict['evidence_ids'] if checked[eid]['kind'] == 'test_log']
+                command = item.get('test_command')
+                matching = [log for log in logs if log['command'] == command] if command else []
+                complete = [log for log in matching if log['coverage'] == 'complete']
+                reason = None
+                if command and any(log['exit_code'] is not None and log['exit_code'] != 0 for log in complete):
+                    verdict['status'], verdict['reason'] = 'contradicts', 'test_command_failed'
+                    continue
+                if command:
+                    if not logs:
+                        reason = 'missing_test_log'
+                    elif not matching:
+                        reason = 'test_command_mismatch'
+                    elif not complete:
+                        reason = 'partial_test_log'
+                    elif not any(log['exit_code'] == 0 for log in complete):
+                        reason = 'missing_test_result'
+                elif logs:
+                    reason = 'missing_test_command'
+                if reason:
+                    verdict['status'], verdict['reason'] = 'insufficient_evidence', reason
+                    continue
                 verdict['status'] = (('insufficient_evidence' if answer['choice'] == 'insufficient' else answer['choice'])
-                                     if top >= 0.9 and answer['confidence'] >= 0.8 and
-                                     (answer['choice'] != 'supports' or complete_logs) else 'uncertain')
+                                     if top >= 0.9 and answer['confidence'] >= 0.8 else 'uncertain')
     except (AttributeError, KeyError, TypeError, ValueError, RuntimeError, OSError, json.JSONDecodeError):
         outcome['latency_seconds'] = round(time.monotonic() - started, 3)
         context['recommended_ids'] = baseline[:]

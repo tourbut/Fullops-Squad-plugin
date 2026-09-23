@@ -104,21 +104,55 @@ with tempfile.TemporaryDirectory() as directory:
     partial = json.loads(json.dumps(base))
     partial['claims'][0]['criterion'] = 'all tests passed'
     partial['claims'][0]['report'] = 'all tests passed'
+    partial['claims'][0]['test_command'] = 'python3 -m test'
     partial['evidence'][0] = {'id': 'source', 'path': 'test.log', 'kind': 'test_log',
                               'sha256': hashlib.sha256(log).hexdigest(),
                               'span': {'start_line': 2, 'end_line': 2}}
     result = jev.observe(partial, repo, response)
-    assert result['claims']['claim']['status'] == 'uncertain'
+    assert result['claims']['claim']['status'] == 'insufficient_evidence'
+    assert result['claims']['claim']['reason'] == 'partial_test_log'
     assert result['evidence_checks']['source']['coverage'] == 'partial'
     assert result['evidence_checks']['source']['exit_code'] == 0
+    assert result['claims']['claim']['judgment']['choice'] == 'supports'
     complete = json.loads(json.dumps(partial))
     complete['claims'][0]['test_command'] = 'python3 -m test'
     complete['evidence'][0]['span'] = {'start_line': 1, 'end_line': 3}
     result = jev.observe(complete, repo, response)
     assert result['claims']['claim']['status'] == 'supports'
+    no_command = json.loads(json.dumps(complete))
+    no_command['claims'][0].pop('test_command')
+    result = jev.observe(no_command, repo, response)
+    assert result['claims']['claim']['status'] == 'insufficient_evidence'
+    assert result['claims']['claim']['reason'] == 'missing_test_command'
     complete['claims'][0]['test_command'] = 'npm test'
     result = jev.observe(complete, repo, response)
-    assert result['claims']['claim']['status'] == 'uncertain'
+    assert result['claims']['claim']['status'] == 'insufficient_evidence'
+    assert result['claims']['claim']['reason'] == 'test_command_mismatch'
+    for kind in (None, 'file'):
+        no_log = json.loads(json.dumps(complete))
+        no_log['claims'][0]['test_command'] = 'python3 -m test'
+        if kind is None:
+            no_log['evidence'][0].pop('kind')
+        else:
+            no_log['evidence'][0]['kind'] = kind
+        result = jev.observe(no_log, repo, response)
+        assert result['claims']['claim']['status'] == 'insufficient_evidence'
+        assert result['claims']['claim']['reason'] == 'missing_test_log'
+    mixed = json.loads(json.dumps(complete))
+    mixed['claims'][0]['test_command'] = 'python3 -m test'
+    mixed['claims'][0]['evidence_ids'].append('file')
+    mixed['evidence'].append({'id': 'file', 'path': 'relevant.py',
+                              'sha256': hashlib.sha256(relevant).hexdigest()})
+    assert jev.observe(mixed, repo, response)['claims']['claim']['status'] == 'supports'
+    (repo / 'failed.log').write_text('command=python3 -m test\n1 test failed\nexit_code=1\n')
+    failed_log = (repo / 'failed.log').read_bytes()
+    failed_claim = json.loads(json.dumps(complete))
+    failed_claim['claims'][0]['test_command'] = 'python3 -m test'
+    failed_claim['evidence'][0].update(path='failed.log', sha256=hashlib.sha256(failed_log).hexdigest())
+    result = jev.observe(failed_claim, repo, response)
+    assert result['claims']['claim']['status'] == 'contradicts'
+    assert result['claims']['claim']['reason'] == 'test_command_failed'
+    assert result['claims']['claim']['judgment']['choice'] == 'supports'
 
     def contradicts(payload):
         answer, elapsed = response(payload)
@@ -222,14 +256,39 @@ with tempfile.TemporaryDirectory() as directory:
     assert result['claims']['claim']['status'] == 'uncertain'
     assert result['claims']['claim']['judgment']['probabilities']['supports'] == 0.5
 
-    real_repo = SCRIPT.parents[3]
-    cases = json.loads((SCRIPT.parents[3] / 'tests/fixtures/jev-observe-cases.json').read_text())
+    fixture_dir = SCRIPT.parents[3] / 'tests/fixtures'
+    cases = json.loads((fixture_dir / 'jev-observe-cases.json').read_text())
     assert {case['human_label'] for case in cases} == {'supports', 'insufficient'}
     for case in cases:
-        source = subprocess.check_output(['git', '-C', str(real_repo), 'show',
-                                          f'{case["head"]}:{case["evidence_path"]}']).decode()
+        source_bytes = (fixture_dir / case['source']).read_bytes()
+        assert hashlib.sha256(source_bytes).hexdigest() == case['source_sha256']
+        source = source_bytes.decode()
         assert source.count(case['quote']) == 1
         assert case['reason']
+
+    passage = jev.excerpt(b'pre\n  selected  \npost\n', {'start_line': 2, 'end_line': 2})
+    assert passage == {'start_line': 1, 'end_line': 3, 'selected_start_line': 2,
+                       'selected_end_line': 2, 'text': 'pre\n  selected  \npost\n'}
+    assert jev.excerpt(b'pre\nselected\npost\n', {'quote': 'selected'})['selected_start_line'] == 2
+    assert jev.excerpt(b'pre\nselected\npost\n', {'quote': 'selected'})['end_line'] == 3
+    assert jev.excerpt(b'a\nb\nc\n', {'quote': 'a\n'})['selected_end_line'] == 1
+    adjacent = jev.excerpt(b'constraint: skip release\nselected claim\nexception: only staging\n',
+                           {'quote': 'selected claim'})
+    assert adjacent['text'] == 'constraint: skip release\nselected claim\nexception: only staging\n'
+    assert (adjacent['selected_start_line'], adjacent['selected_end_line']) == (2, 2)
+    assert jev.excerpt(b'  first\r\nsecond  \r\n', {'start_line': 1, 'end_line': 1})['text'] == '  first\r\nsecond  \r\n'
+    assert len(jev.excerpt(('x\n' * 50).encode(), {'start_line': 21, 'end_line': 21})['text'].splitlines()) == 7
+    full_span = jev.excerpt(('x\n' * 50).encode(), {'start_line': 1, 'end_line': 40})
+    assert (full_span['start_line'], full_span['end_line']) == (1, 40)
+    bounded = jev.excerpt((('x' * 1000 + '\n') * 10).encode(), {'start_line': 5, 'end_line': 5})
+    assert len(bounded['text']) <= 4000 and bounded['selected_start_line'] == 5
+    for raw, span in [(('x' * 4001).encode(), {'start_line': 1, 'end_line': 1}),
+                      (('x\n' * 41).encode(), {'start_line': 1, 'end_line': 41})]:
+        try:
+            jev.excerpt(raw, span)
+            raise AssertionError('oversized selection accepted')
+        except ValueError:
+            pass
 
     if len(sys.argv) == 3 and sys.argv[1] == '--live-env-file':
         input_file, output_file = repo / 'input.json', repo / 'output.json'
