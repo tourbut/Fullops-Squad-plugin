@@ -1,0 +1,20 @@
+[
+  {
+    "head": "2be2a31b0d4dad6794ef374d701dc7357d8214b9",
+    "task": "FullOps 0.3.1 공통 규칙 배포 확인",
+    "claim": "0.3.1 변경안은 코딩 스타일·테스트·보안 세 규칙을 추가했다",
+    "evidence_path": "docs/releases/0.3.1.md",
+    "quote": "추가한 규칙은 코딩 스타일·테스트·보안 세 개다.",
+    "human_label": "supports",
+    "reason": "릴리스 문서가 세 규칙 추가를 직접 명시한다. 파일 설치 성공은 별도 검사 대상이다."
+  },
+  {
+    "head": "2be2a31b0d4dad6794ef374d701dc7357d8214b9",
+    "task": "FullOps 0.3.1 테스트 완료 주장 확인",
+    "claim": "npm test가 실제 실행되어 모두 통과했다",
+    "evidence_path": "docs/releases/0.3.1.md",
+    "quote": "`npm test`에 `tests/common-rules.py`를 추가한다.",
+    "human_label": "insufficient",
+    "reason": "문서는 테스트 연결 계획을 말할 뿐 실제 실행 로그나 종료코드를 제공하지 않는다."
+  }
+]
