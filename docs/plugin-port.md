@@ -8,7 +8,6 @@
 |---|---|
 | 설치 한 번으로 의존성 준비 | `scripts/install.py --host all`, 외부 출처는 `dependencies.json` |
 | 선택한 레포에서만 활성화 | `setup-fullops`, 레포 루트 `.fullops-squad/fullops.json` 확인 |
-| 코드 탐색 그래프 | `codebase-memory-mcp` 전역 실행 파일 + 플러그인별 MCP 선언 |
 | worker 핸드오버 | 역할별 인박스·템플릿, 실제 지시서 가시성·착수 확인 |
 | 부모에게 직접 완료 회신 | 지시서의 복귀 주소, 브랜치·SHA·검증·산출물 링크 |
 | 작업 기록 보존 | logs 전문 append → 기록 확인 → 완료분만 인박스 제거 |
@@ -48,10 +47,9 @@
 - grok·agy의 실제 CLI로 플러그인 검증 통과(agy 스킬 4종 인식). 전체 의존성 설치와 모델 세션 실행은 검증하지 않았다.
 - 임시 `GROK_HOME`에서 실제 설치 성공. 설치된 패키지에 setup 스크립트와 하네스 템플릿이 포함되는 것을 확인했다.
 
-## codebase-memory-mcp 의존성
+## codebase-memory-mcp 제거
 
-`scripts/install.py`는 `codebase-memory-mcp@latest`를 한 번 전역 설치한다. Codex·Claude Code·grok은 `.mcp.json`, agy는 `mcp_config.json`으로 같은 stdio 서버를 연결한다.
-이 방식은 codebase-memory-mcp의 전역 agent-config 자동 설치를 실행하지 않으므로, FullOps를 설치하지 않은 호스트/클라이언트의 MCP 설정을 변경하지 않는다.
+0.4.1에서 codebase-memory-mcp 의존성과 MCP 선언을 제거했다. 설치기는 더 이상 설치하지 않으며, 이미 전역 설치된 실행 파일과 인덱스는 삭제하지 않는다. 코드 탐색은 지시서의 `먼저 읽을 문서`와 일반 검색으로 한다.
 
 ## 전용 디렉터리 분리
 

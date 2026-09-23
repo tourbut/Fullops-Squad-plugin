@@ -1,5 +1,7 @@
 """stub 응답으로 dispatch 문맥 분류의 입력 조립·제외 추천·원문 미전송·거부·실패 시 전부 유지를 확인한다."""
 import importlib.util
+import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -11,6 +13,7 @@ sys.path.insert(0, str(SCRIPTS))
 spec = importlib.util.spec_from_file_location('jev_context', SCRIPTS / 'jev_context.py')
 jev = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev)
+import jev_observe  # noqa: E402 — SCRIPTS를 경로에 넣은 뒤 import한다
 
 
 def answers(payload, omit):
@@ -98,7 +101,23 @@ def main():
         assert done.returncode == 0 and 'keep  src/old.py' in done.stdout, done.stdout + done.stderr
         assert (repo / '.fullops-squad/docs/evaluations/jev/T-1-context.json').is_file()
         assert subprocess.run(command, capture_output=True, text=True, env=env).returncode == 1
-    print('PASS: jev dispatch context build, omit suggestion, unsent/refused sources, fallback keeps all, CLI record')
+    with tempfile.TemporaryDirectory(prefix='fullops-jev-cache-') as cache:
+        os.environ['FULLOPS_JEV_CACHE'] = cache
+        payload = {'model': 'm', 'state': {'task': 't'}, 'questions': {}}
+        stored = {'model': 'typesafe/jev-1', 'answers': {}, 'usage': {'input_tokens': 9, 'output_tokens': 9, 'cost': 1}}
+        jev_observe.cache_path(payload).parent.mkdir(parents=True, exist_ok=True)
+        jev_observe.cache_path(payload).write_text(json.dumps(stored))
+        response, elapsed = jev_observe.request(payload, '')  # 캐시는 키 없이도 읽는다
+        assert response['cached'] and response['usage']['cost'] == 0 and elapsed == 0.0
+        jev_observe.cache_path(payload).write_text('broken')
+        try:
+            jev_observe.request(payload, '')
+        except ValueError as error:
+            assert 'unavailable' in str(error)  # 손상된 캐시는 miss로 취급한다
+        else:
+            raise AssertionError('corrupt cache used')
+        del os.environ['FULLOPS_JEV_CACHE']
+    print('PASS: jev dispatch context build, omit suggestion, unsent/refused sources, fallback keeps all, CLI record, content cache')
 
 
 if __name__ == '__main__':

@@ -82,10 +82,13 @@ def check(repo, key, base, head):
     lint = read('lint')
     if (lint['base'], lint['head']) != (result['base'], result['head']):
         raise ValueError('lint 결과의 base/head가 리뷰와 다릅니다. worker 체크아웃에서 lint.py를 다시 실행하세요')
-    config = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f"{result['head']}:.fullops-squad/lint/lint.json"],
+    merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', result['base'], result['head']],
+                                         text=True).strip()
+    config = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f'{merge_base}:.fullops-squad/lint/lint.json'],
                             capture_output=True)
-    if lint['config_sha256'] != (hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
-        raise ValueError('lint 설정이 head와 다릅니다')
+    if lint.get('merge_base') != merge_base or lint['config_sha256'] != (
+            hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
+        raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
     if any(c['status'] == 'unavailable' and not c.get('reason', '').strip() for c in lint['commands']):
         raise ValueError('실행 불가 lint 명령에 reason을 기록하세요')
     errors = (sum(v['severity'] == 'ERROR' for v in lint['violations'])

@@ -44,7 +44,7 @@ CLI는 OpenRouter `https://openrouter.ai/api/v1/systemone`에 `~typesafe/jev-lat
 
 ## dispatch 문맥 분류
 
-`jev_context.py`는 지시서를 쓸 때 후보 문서의 입력을 자동으로 만든다. 인박스 지시서 본문을 task로, 후보 경로마다 SHA-256·HEAD 일치 여부·첫 34줄(최대 3,500자) 구간을 source로 넣는다. 공통 필수 문서와 인박스는 항상 유지된다. `observe()`는 후보 하나의 원문이 민감 패턴이나 크기로 거부되면 호출 전체를 건너뛰므로, 그런 파일과 64KB 초과·비 UTF-8 파일은 source 없이 넣어 keep으로 남긴다(`unsent_sources`). 민감 경로는 후보에서 빼고 `refused_paths`에 기록한다. 지시서 본문에 민감 문자열이 있거나 키가 없거나 API가 실패하면 전부 keep이다. 결과는 `.fullops-squad/docs/evaluations/jev/<과제 키>-context.json`에 남고 덮어쓰지 않는다. worker 완료 보고의 "제외 추천 문서가 필요했는지" 기록이 이 분류의 사람 라벨이 된다. 이 라벨이 쌓이기 전에는 제외 추천을 게이트로 쓰지 않는다.
+`jev_context.py`는 지시서를 쓸 때 후보 문서의 입력을 자동으로 만든다. 인박스 지시서 본문을 task로, 후보 경로마다 SHA-256·HEAD 일치 여부·첫 34줄(최대 3,500자) 구간을 source로 넣는다. 공통 필수 문서와 인박스는 항상 유지된다. `observe()`는 후보 하나의 원문이 민감 패턴이나 크기로 거부되면 호출 전체를 건너뛰므로, 그런 파일과 64KB 초과·비 UTF-8 파일은 source 없이 넣어 keep으로 남긴다(`unsent_sources`). 민감 경로는 후보에서 빼고 `refused_paths`에 기록한다. 지시서 본문에 민감 문자열이 있거나 키가 없거나 API가 실패하면 전부 keep이다. 결과는 `.fullops-squad/docs/evaluations/jev/<과제 키>-context.json`에 남고 덮어쓰지 않는다. 응답은 요청 내용 해시로 `~/.cache/fullops-squad/jev/`(`FULLOPS_JEV_CACHE`)에 캐시해, 같은 입력은 같은 답을 비용 없이 받는다. 캐시 적중은 사용량 0과 `cached: true`로 기록한다. worker 완료 보고의 "제외 추천 문서가 필요했는지" 기록이 이 분류의 사람 라벨이 된다. 이 라벨이 쌓이기 전에는 제외 추천을 게이트로 쓰지 않는다.
 
 평가 사례는 `tests/fixtures/jev-observe-0.3.1.md`에 원문을 보존한다. 출처는 커밋 `2be2a31b0d4dad6794ef374d701dc7357d8214b9`의 `docs/releases/0.3.1.md`이며, 사례 JSON에 원문 SHA-256을 기록했다. 기본 검사는 이 자체 완결 fixture만 읽으므로 Git 과거 객체가 필요 없다.
 

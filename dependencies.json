@@ -4,26 +4,72 @@
     "claude-plugins-official": "anthropics/claude-plugins-official"
   },
   "skills": [
-    {"source": "JuliusBrussee/caveman", "names": ["caveman"]},
-    {"source": "typesafe-ai/skills", "names": ["typesafe-ai"]},
-    {"source": "alibaba/open-code-review", "names": ["open-code-review-delegate"]},
-    {"source": "cathrynlavery/diagram-design", "names": ["diagram-design"]},
-    {"source": "anthropics/skills", "names": ["frontend-design", "mcp-builder", "skill-creator", "web-artifacts-builder", "webapp-testing"]}
-  ],
-  "portable_skills": [{"source": "DietrichGebert/ponytail", "names": ["*"]}],
-  "tools": [{"package": "@alibaba-group/open-code-review@1.12.5", "command": "ocr"}],
-  "mcp": {
-    "codebase-memory-mcp": {
-      "package": "codebase-memory-mcp@latest",
-      "command": "codebase-memory-mcp"
+    {
+      "source": "JuliusBrussee/caveman",
+      "names": [
+        "caveman"
+      ]
     },
+    {
+      "source": "typesafe-ai/skills",
+      "names": [
+        "typesafe-ai"
+      ]
+    },
+    {
+      "source": "alibaba/open-code-review",
+      "names": [
+        "open-code-review-delegate"
+      ]
+    },
+    {
+      "source": "cathrynlavery/diagram-design",
+      "names": [
+        "diagram-design"
+      ]
+    },
+    {
+      "source": "anthropics/skills",
+      "names": [
+        "frontend-design",
+        "mcp-builder",
+        "skill-creator",
+        "web-artifacts-builder",
+        "webapp-testing"
+      ]
+    }
+  ],
+  "portable_skills": [
+    {
+      "source": "DietrichGebert/ponytail",
+      "names": [
+        "*"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "package": "@alibaba-group/open-code-review@1.12.5",
+      "command": "ocr"
+    }
+  ],
+  "mcp": {
     "context7": {
       "package": "@upstash/context7-mcp@4.1.1",
       "command": "context7-mcp"
     }
   },
   "codex": {
-    "plugins": ["ponytail@ponytail"],
-    "skills": [{"source": "mattpocock/skills", "names": ["*"]}]
+    "plugins": [
+      "ponytail@ponytail"
+    ],
+    "skills": [
+      {
+        "source": "mattpocock/skills",
+        "names": [
+          "*"
+        ]
+      }
+    ]
   }
 }

@@ -2,7 +2,7 @@
 
 Python 3.9+, Git 2.41+, Node.js 20.18.1+, npm, 사용할 에이전트 CLI와 Orca가 필요하다.
 리뷰에는 `ocr` (`@alibaba-group/open-code-review@1.12.5`)와 외부 `open-code-review-delegate` 스킬이 필요하다. 별도 OCR LLM endpoint/API 키는 필요 없다. FullOps 리뷰는 OCR_NO_UPDATE=1로 실행하고 호스트 AI가 판단한다.
-MCP 실행 파일은 PATH에서 찾는다: `codebase-memory-mcp`, `context7-mcp` (`@upstash/context7-mcp@4.1.1`).
+MCP 실행 파일은 PATH에서 찾는다: `context7-mcp` (`@upstash/context7-mcp@4.1.1`).
 Context7은 키 없이 기본 사용이 가능하다. 선택적 인증값 전달은 호스트 설정을 따르며 표준 환경변수 치환에 의존하지 않는다.
 
 설치는 [배포 저장소](https://github.com/tourbut/Fullops-Squad-plugin)의 `AGENTS.md`와 `scripts/install.py --host <현재 CLI>`를 사용한다. 외부 스킬·플러그인 의존성 정본은 배포 저장소 루트의 `dependencies.json`이다. Agent Plugins 표준 자체는 의존성을 설치하지 않는다.

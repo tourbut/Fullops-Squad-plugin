@@ -109,7 +109,7 @@ def main():
         config_path.write_text(json.dumps(config))
         for name in ('src/app.py', 'web.ts', 'tests/test_app.py'):
             (repo / name).unlink()
-        commit('fix')
+        base = commit('fix')  # 설정은 merge-base에서 읽으므로 기준을 옮긴다
         done = lint('--out', str(out))
         result = json.loads(out.read_text())
         assert done.returncode == 1 and 'bad' in done.stdout
@@ -118,13 +118,45 @@ def main():
 
         config['commands'] = [{'name': 'escape', 'run': ['true'], 'cwd': '..'}]
         config_path.write_text(json.dumps(config))
-        commit('escape')
+        base = commit('escape')
         assert lint().returncode == 2
         config['commands'] = []
+        config['rules'] = [{'code': 'CUSTOM-009', 'description': 'TODO 금지', 'pattern': 'TODO', 'severity': 'ERROR'}]
         config_path.write_text(json.dumps(config))
-        commit('clean')
+        base = commit('clean')
+        gate = repo / '.git/fullops-gate/pass.json'
         done = lint()
         assert done.returncode == 0 and 'LINT-000' in done.stdout, done.stdout
+        assert json.loads(gate.read_text())['head'] == base  # done-gate 통과 기록
+
+        # 브랜치가 스스로 설정을 느슨하게 해도 merge-base 설정이 적용된다.
+        config['rules'][0]['enabled'] = False
+        config['exclude'].append('**')
+        config_path.write_text(json.dumps(config))
+        (repo / 'todo.py').write_text('x = 1  # TODO\n')
+        commit('loosen')
+        done = lint('--out', str(out))
+        found = {(v['code'], v['path']) for v in json.loads(out.read_text())['violations']}
+        assert done.returncode == 1 and ('CUSTOM-009', 'todo.py') in found and ('LINT-001', '.fullops-squad/lint/lint.json') in found, found
+        assert json.loads(gate.read_text())['head'] == base  # 실패는 통과 기록을 바꾸지 않는다
+        git('reset', '-q', '--hard', base)
+
+        # 테스트 skip 추가는 ERROR, 케이스 감소·파일 삭제는 WARNING
+        (repo / 'tests/test_calc.py').parent.mkdir(exist_ok=True)
+        (repo / 'tests/test_calc.py').write_text('def test_a():\n    pass\n\ndef test_b():\n    pass\n')
+        (repo / 'tests/test_gone.py').write_text('def test_c():\n    pass\n')
+        (repo / 'app.js').write_text('list.only(x)\n')
+        base = commit('tests')
+        (repo / 'tests/test_calc.py').write_text('import pytest\n\n@pytest.mark.skip\ndef test_a():\n    pass\n')
+        (repo / 'tests/test_gone.py').unlink()
+        (repo / 'app.js').write_text('list.only(x)\nlist.only(y)\n')  # 테스트가 아닌 파일은 대상이 아니다
+        commit('damage')
+        done = lint('--out', str(out))
+        found = {(v['code'], v['severity'], v['path'], v['line']) for v in json.loads(out.read_text())['violations']}
+        assert found == {('ANTI-004', 'ERROR', 'tests/test_calc.py', 3), ('ANTI-005', 'WARNING', 'tests/test_calc.py', None),
+                         ('ANTI-005', 'WARNING', 'tests/test_gone.py', None),
+                         ('LINT-000', 'WARNING', '.fullops-squad/lint/lint.json', None)}, found
+        git('reset', '-q', '--hard', base)
 
         (repo / 'dirty.py').write_text('d = 1\n')
         assert lint().returncode == 2  # 커밋 전 실행 거부
@@ -166,7 +198,7 @@ def main():
         assert review().returncode == 0
         save({**data, 'commands': [{'name': 'x', 'status': 'timeout'}]})
         assert review().returncode != 0
-        save({**data, 'head': base})
+        save({**data, 'head': '0' * 40})
         assert review().returncode != 0
         save({**data, 'config_sha256': 'changed'})
         assert '설정' in review().stderr

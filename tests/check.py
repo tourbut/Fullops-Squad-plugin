@@ -27,7 +27,7 @@ def main():
     install = load('install', 'scripts/install.py')
     build = load('build', 'scripts/build.py')
     dependencies = __import__('json').loads((ROOT / 'dependencies.json').read_text())
-    assert dependencies['mcp']['codebase-memory-mcp']['command'] == 'codebase-memory-mcp'
+    assert set(dependencies['mcp']) == {'context7'}  # codebase-memory-mcp는 0.4.1에서 제거했다
     assert dependencies['mcp']['context7']['package'] == '@upstash/context7-mcp@4.1.1'
     mcp = __import__('json').loads((ROOT / 'plugins/fullops-squad/mcp.json').read_text())
     assert mcp['mcpServers']['context7'] == {'type': 'stdio', 'command': dependencies['mcp']['context7']['command'], 'args': []}
@@ -264,7 +264,7 @@ def main():
         hosts = {cmd[0] for cmd in plan} - {'npx'}
         assert hosts == {'all': {'npm', 'codex', 'claude', 'grok', 'agy'},
                          'both': {'npm', 'codex', 'claude'}}.get(host, {'npm', 'claude' if host == 'claude-code' else host})
-        assert plan[0] == ['npm', 'install', '--global', 'codebase-memory-mcp@latest', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.5']
+        assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.5']
         assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
         for source, name in (('JuliusBrussee/caveman', 'caveman'), ('typesafe-ai/skills', 'typesafe-ai')):
             targets = {cmd[cmd.index('--agent') + 1] for cmd in skills

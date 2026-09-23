@@ -4,6 +4,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.4.1 done-gate·lint 보강
+
+worker 세션이 코드를 바꾸고 lint를 통과하지 않은 채 끝내려 하면 Stop hook이 한 번 막습니다. lint 설정은 merge-base 기준으로 적용해 브랜치가 스스로 규칙을 느슨하게 할 수 없고, 테스트 skip 추가·삭제를 잡습니다. codebase-memory-mcp 의존성은 제거했습니다. [변경 범위·기존 레포 적용](docs/releases/0.4.1.md)을 확인하세요.
+
 ## 0.4.0 lint 게이트·대기 비용·Jev 문맥
 
 코드 변경마다 레포의 기존 lint 도구와 스택 무관 기본 검사를 실행하고, ERROR가 남으면 리뷰를 수락하지 않습니다. coordinator는 `orca_wait.py`로 기다려 worker heartbeat·status 알림에 세션이 깨지 않게 합니다. 지시서를 쓸 때 Jev로 후보 문서를 분류해 worker가 먼저 읽을 목록을 줄일 수 있습니다. 기존 레포는 setup 갱신과 lint 명령 등록이 필요합니다. [변경 범위·기존 레포 적용](docs/releases/0.4.0.md)을 확인하세요.
@@ -44,7 +48,6 @@ python3 scripts/install.py --host codex
 | caveman | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
 | typesafe-ai | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
 | anthropics/skills 5종 | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
-| codebase-memory-mcp | FullOps MCP 서버 | FullOps MCP 서버 | FullOps MCP 서버 |
 | Context7 | FullOps MCP 서버 | FullOps MCP 서버 | FullOps MCP 서버 |
 | Open Code Review delegate | CLI + 사용자 범위 스킬 | CLI + 사용자 범위 스킬 | CLI + 사용자 범위 스킬 |
 | Orca CLI 가이드 | 설치된 Orca에서 동적으로 조회 | 동일 | 동일 |
@@ -58,7 +61,6 @@ caveman은 Codex·Claude Code에서 FullOps 플러그인을 활성화한 새 세
 이미 같은 스킬을 다른 출처로 설치했다면 중복 설치 경로를 정리해 한 출처만 사용하세요. 설치기는 기존 사용자 스킬을 삭제하지 않습니다.
 
 **호스트의 설치 버튼만으로 모든 외부 스킬이 설치되는 것은 아닙니다.** Claude Code의 플러그인 의존성은 네이티브 자동 설치를 사용하지만, 사용자 범위 스킬과 Codex의 보완 설치는 위 통합 설치기가 수행합니다. 현재 구현의 전체 설치 진입점은 `scripts/install.py`입니다.
-`codebase-memory-mcp`는 `npm install --global codebase-memory-mcp@latest`로 설치합니다. FullOps 플러그인의 MCP 선언이 이 실행 파일을 Codex·Claude Code·grok·agy에 연결하므로, 전역 MCP 설정을 별도로 쓰지 않습니다.
 Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 네 CLI에 `context7-mcp` stdio 서버로 연결합니다. 기본 사용은 키 없이 시작하며, 높은 호출 한도가 필요하면 MCP 프로세스에 `CONTEXT7_API_KEY`를 제공하도록 사용하는 호스트의 환경/비밀 설정을 사용합니다. 키를 레포나 지시서에 기록하지 않습니다. 연결·조회 실패는 설치 성공과 구분해 확인합니다. [Context7 설정 안내](https://context7.com/docs/resources/all-clients)
 외부 의존성은 일반 도구로 전역 설치됩니다. 이 플러그인의 레포별 활성화 조건은 외부 플러그인의 자체 동작까지 비활성화하지 않습니다.
 

@@ -142,8 +142,22 @@ def key_from_file(path):
     raise ValueError('OPENROUTER_API_KEY is unavailable')
 
 
+def cache_path(payload):
+    root = Path(os.environ.get('FULLOPS_JEV_CACHE') or Path.home() / '.cache/fullops-squad/jev')
+    return root / (digest(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()) + '.json')
+
+
 def request(payload, key):
+    """Same payload, same answer: Jev drifts between runs, so answers are cached by content (as Canny does)."""
     import tempfile
+    cached = cache_path(payload)
+    try:
+        response = json.loads(cached.read_text())
+        response['usage'] = {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}  # no new spend
+        response['cached'] = True
+        return response, 0.0
+    except (OSError, ValueError, TypeError):
+        pass
     if not key or not re.fullmatch(r'[A-Za-z0-9._-]+', key):
         raise ValueError('OPENROUTER_API_KEY is unavailable')
     started = time.monotonic()
@@ -158,7 +172,16 @@ def request(payload, key):
         )
     if result.returncode:
         raise RuntimeError('OpenRouter request failed')
-    return json.loads(result.stdout), round(time.monotonic() - started, 3)
+    response = json.loads(result.stdout)
+    try:  # a cache that cannot be written is not an error; the answer is already in hand
+        cached.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        temporary = cached.with_suffix(f'.{os.getpid()}.tmp')
+        temporary.write_text(json.dumps(response, ensure_ascii=False))
+        temporary.chmod(0o600)
+        temporary.replace(cached)
+    except OSError:
+        pass
+    return response, round(time.monotonic() - started, 3)
 
 
 def observe(data, repo, call):

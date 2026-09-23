@@ -29,6 +29,12 @@ SUPPRESSIONS = [
     (re.compile(r'@ts-ignore|@ts-nocheck'), '정확한 타입 또는 @ts-expect-error <사유>'),
     (re.compile(r'eslint-disable(?:-next-line|-line)?\s*(?:\*/|-->)?\s*$'), 'eslint-disable-next-line <rule>'),
 ]
+# Canny(qkal/canny)의 테스트 케이스·skip 패턴을 따른다.
+CASE = re.compile(r'\b[xf]?(?:it|test|describe)(?:\.\w+)?\s*\(|\bdef test_\w+|\bfunc Test\w+|#\[test\]|@Test\b|'
+                  r'\bfunc test\w+\s*\(|\b(?:it|test)\s+"[^"]*"\s+do\b')
+SKIP = re.compile(r'\.(?:skip|todo|only)\s*\(|\b[xf](?:it|test|describe)\s*\(|@pytest\.mark\.(?:skip|xfail)|'
+                  r'\bpytest\.(?:skip|xfail)\(|@unittest\.skip|\bt\.Skip(?:f|Now)?\(|#\[ignore\]|@Ignore\b|'
+                  r'@Disabled\b|XCTSkip|\bpending\s*\(')
 EVAL = re.compile(r'(?<![\w.$])(?:eval|exec)\s*\(')
 SECRET = re.compile(r"""(?:password|passwd|pwd|api[_-]?key|apikey|secret(?:_key)?|(?:access_|auth_)?token|"""
                     r"""db_password|database_password)\s*[:=]\s*["'][^"']+["']""", re.IGNORECASE)
@@ -41,11 +47,17 @@ def git(repo, *args, data=False):
     return output if data else output.decode().strip()
 
 
-def load_config(repo):
-    path = safe_file(repo, CONFIG)
-    if not path.is_file():
+def config_blob(repo, ref):
+    """ref 시점의 설정 원문. 없으면 None."""
+    done = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f'{ref}:{CONFIG}'], capture_output=True)
+    return done.stdout if done.returncode == 0 else None
+
+
+def load_config(repo, ref):
+    """검사 대상 브랜치가 스스로 규칙을 느슨하게 하지 못하도록 기준 시점(merge-base)의 설정을 쓴다."""
+    raw = config_blob(repo, ref)
+    if raw is None:
         return DEFAULT, None
-    raw = path.read_bytes()
     config = {**DEFAULT, **json.loads(raw)}
     if config.get('schema_version') != 1:
         raise ValueError('지원하지 않는 lint 설정 버전')
@@ -101,7 +113,8 @@ def code_lines(text, ext):
 def is_test(path):
     name, parts = Path(path).name, Path(path).parts
     return (name.startswith('test_') or re.search(r'[._](test|spec)\.[^.]+$', name) is not None
-            or bool({'test', 'tests', '__tests__'} & set(parts[:-1])))
+            or re.search(r'Tests?\.(swift|kt|java|cs)$|_spec\.rb$', name) is not None
+            or bool({'test', 'tests', 'spec', 'specs', '__tests__'} & set(parts[:-1])))
 
 
 def changed(repo, base, head):
@@ -113,15 +126,15 @@ def changed(repo, base, head):
             items.append((fields[i + 1], fields[i + 2]))
             i += 3
         else:
-            if status[0] != 'D':
-                items.append((fields[i + 1] if status[0] != 'A' else None, fields[i + 1]))
+            path = fields[i + 1]
+            items.append((None if status[0] == 'A' else path, None if status[0] == 'D' else path))
             i += 2
     return items
 
 
 def blob(repo, ref, path):
     if path is None:
-        return ''
+        return ''  # 추가·삭제된 쪽은 빈 내용으로 비교한다
     data = git(repo, 'cat-file', 'blob', f'{ref}:{path}', data=True)
     return None if b'\0' in data else data.decode('utf-8', errors='replace')
 
@@ -144,7 +157,11 @@ def check_file(path, old, new, config):
         if after > limit and after > before:
             yield ('SIZE-001', size['severity'], None,
                    f'{after}줄(이전 {before}, 상한 {limit}). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다')
-    soft = is_test(path) or ext == '.md'
+    test = is_test(path)
+    soft = test or ext == '.md'
+    if test and old and len(CASE.findall(new)) < len(CASE.findall(old)):
+        yield ('ANTI-005', 'WARNING', None,
+               f'테스트 케이스 {len(CASE.findall(old)) - len(CASE.findall(new))}개 감소. 대체 테스트나 삭제 이유를 확인한다')
     rules = [r for r in config['rules'] if r.get('enabled', True)
              and (not r.get('file_extensions') or ext in r['file_extensions'])]
     for number, line in added_lines(old or '', new):
@@ -152,6 +169,8 @@ def check_file(path, old, new, config):
             for pattern, hint in SUPPRESSIONS:
                 if pattern.search(line):
                     yield 'ANTI-003', 'ERROR', number, f'범위 없는 억제 금지. {hint}로 좁힌다'
+        if test and SKIP.search(line):
+            yield 'ANTI-004', 'ERROR', number, '테스트 skip·only 표식 추가 금지. 실패 원인을 고치거나 테스트를 정당하게 바꾼다'
         if ext in EVAL_TARGETS and EVAL.search(line):
             yield 'ANTI-002', 'ERROR', number, 'eval()/exec() 금지'
         if SECRET.search(line) and not SECRET_OK.search(line):
@@ -181,10 +200,19 @@ def lint(repo, base_ref):
     head = git(repo, 'rev-parse', 'HEAD')
     base = git(repo, 'rev-parse', '--verify', base_ref + '^{commit}')
     merge_base = git(repo, 'merge-base', base, head)
-    config, digest = load_config(repo)
+    config, digest = load_config(repo, merge_base)
     violations, files = [], 0
+    if config_blob(repo, head) != config_blob(repo, merge_base):
+        violations.append({'code': 'LINT-001', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
+                           'message': '이 브랜치의 lint 설정 변경은 적용하지 않았습니다. 병합 후 적용되니 변경 이유를 검토하세요'})
     for old_path, path in changed(repo, merge_base, head):
-        if any(fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in config['exclude']):
+        target = path or old_path
+        if any(fnmatch(target, p) or (p.startswith('**/') and fnmatch(target, p[3:])) for p in config['exclude']):
+            continue
+        if path is None:
+            if is_test(old_path):
+                violations.append({'code': 'ANTI-005', 'severity': 'WARNING', 'line': None, 'path': old_path,
+                                   'message': '테스트 파일 삭제. 대체 테스트나 삭제 이유를 확인한다'})
             continue
         new = blob(repo, head, path)
         old = blob(repo, merge_base, old_path)
@@ -203,6 +231,16 @@ def lint(repo, base_ref):
             'summary': {'files': files, 'errors': errors,
                         'warnings': sum(v['severity'] == 'WARNING' for v in violations),
                         'unavailable': sum(c['status'] == 'unavailable' for c in commands)}}
+
+
+def stamp(repo, head):
+    """done-gate(Stop hook)가 읽는 통과 기록. 체크아웃별 git 디렉터리에 둔다."""
+    try:
+        gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
+        gate.mkdir(exist_ok=True)
+        (gate / 'pass.json').write_text(json.dumps({'head': head}) + '\n')
+    except (OSError, subprocess.CalledProcessError):
+        pass  # 기록 실패는 lint 결과를 바꾸지 않는다
 
 
 def main():
@@ -228,6 +266,8 @@ def main():
         print(f"{v['severity']} {v['code']} {v['path']}{':' + str(v['line']) if v['line'] else ''} {v['message']}")
     s = result['summary']
     print(f"head {result['head'][:12]} / 파일 {s['files']} / ERROR {s['errors']} / WARNING {s['warnings']} / 실행 불가 {s['unavailable']}")
+    if not (s['errors'] or s['unavailable']):
+        stamp(repo, result['head'])
     raise SystemExit(1 if s['errors'] or s['unavailable'] else 0)
 
 
