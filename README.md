@@ -99,6 +99,8 @@ OCR CLI는 `@alibaba-group/open-code-review@1.12.5`로 설치하고 자동 업�
 
 ## 개발 검증
 
+선택형 Jev 관찰 실험의 입력 형식과 실행 방법은 [Jev 관찰 실험](docs/jev-observe.md)에 있습니다.
+
 `plugins/fullops-squad/`는 Agent Plugins 1.0.0의 표준 원본입니다. `plugin.json`과 `mcp.json`이 공통 정본이며 `adapters/`에서 기존 호스트 메타데이터를 관리합니다. `dist/`는 생성물이므로 직접 수정하지 않습니다. 표준 지원 클라이언트에는 원본 디렉터리를 전달할 수 있으며, 실행 의존성은 별도 설치해야 합니다.
 
 ```bash
