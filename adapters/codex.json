@@ -1,5 +1,6 @@
 {
   "skills": "./skills/",
+  "hooks": "./hooks/caveman.json",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "FullOps Squad",
@@ -8,7 +9,8 @@
     "developerName": "tourbut",
     "category": "Productivity",
     "capabilities": [
-      "Instructions"
+      "Instructions",
+      "Lifecycle hooks"
     ],
     "defaultPrompt": [
       "현재 레포에 FullOps 하네스를 setup해줘."

@@ -1,5 +1,6 @@
 {
   "skills": "./skills/",
+  "hooks": "./hooks/caveman.json",
   "mcpServers": "./.mcp.json",
   "dependencies": [
     {"name": "ponytail", "marketplace": "ponytail"},
