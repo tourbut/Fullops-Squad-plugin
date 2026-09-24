@@ -5,6 +5,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.7.5 grok worker 신뢰 확인
+
+grok worker가 원본 레포 폴더 신뢰 확인에서 멈추지 않도록 coordinator가 배정 전에 `grok_trust.py --check`로 확인하고, 사용자 승인 뒤 `--add`로 추가합니다. [변경 범위](docs/releases/0.7.5.md)
+
 ## 0.7.4 배정 누락 방지
 
 coordinator가 Jev로 분류한 과제를 배정하지 않고 세션을 끝내려 하면 flow-gate가 한 번 막습니다. 대화 요약 뒤 배정을 잊는 문제를 막습니다. [변경 범위](docs/releases/0.7.4.md)
@@ -138,6 +142,7 @@ python3 -c "import os,pathlib as p;r=p.Path(os.environ['ORCA_ROOT_PATH']);w=p.Pa
 - Windows, macOS, Linux에서 같은 줄을 씁니다. 환경 변수를 셸이 아니라 Python이 읽기 때문에, Orca가 Windows에서 설정 스크립트를 실행하는 cmd.exe에서도 동작합니다. PowerShell 문법(`$env:`, `ForEach-Object`)은 cmd.exe에서 실패합니다.
 - Windows는 개발자 모드(설정 → 시스템 → 개발자용)가 켜져 있어야 관리자 권한 없이 심볼릭 링크를 만들 수 있습니다. `python3`가 Microsoft Store 스텁이면 `py -3`로 바꿉니다.
 - 서비스 레포의 `.gitignore`에 `.env`와 `.env.local`이 있는지 확인합니다. 링크도 워크트리 안에서는 일반 파일처럼 보입니다.
+- **grok worker**: grok은 워크트리에서도 원본 레포 경로(예: `D:\workspace\서비스`)의 폴더 신뢰를 요구하고, 신뢰되지 않으면 worker가 착수 전에 확인 화면에서 멈춥니다. 원본 레포를 한 번 신뢰하면 모든 워크트리에 적용됩니다. grok에서 `/hooks-trust`를 실행하거나, 승인 후 `python3 <플러그인>/scripts/grok_trust.py --repo <레포> --add`로 추가합니다. `--check`로 확인할 수 있고, coordinator는 grok 배정 전에 확인하고 필요하면 사용자에게 묻습니다.
 - 에이전트가 `git worktree add`나 설정 생략 옵션으로 만든 워크트리는 설정 스크립트가 돌지 않습니다. 그래서 FullOps의 SessionStart hook이 워크트리에서 시작하는 모든 세션마다 원본 체크아웃 루트의 `.env*`(git 미추적) 중 빠진 것을 링크합니다(링크 불가 시 복사). 직접 실행하려면 `python3 <플러그인>/scripts/env_link.py --all <레포 루트>`입니다.
 
 ## 시작 프롬프트
