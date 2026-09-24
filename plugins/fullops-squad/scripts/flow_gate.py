@@ -22,6 +22,7 @@ SETTLE = re.compile(r'orchestration\s+send\b.*--type[ =]+(?:worker_done|escalati
 INJECT = re.compile(r'\bterminal\s+send\b.*handovers/|\bdispatch\b.*--inject\b', re.S)
 HANDOVER = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
 TITLE = re.compile(r'#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—')
+ROUTED = re.compile(r'\bjev_route\.py\b.*?--key[ =]+["\']?([A-Za-z0-9][A-Za-z0-9._-]*)', re.S)
 
 
 def context(root):
@@ -78,6 +79,13 @@ def handover_denial(root, designer, role, key):
     return None
 
 
+def handled(root, key):
+    """과제 키가 인박스·작업 로그·PLANS.md 어딘가에 있으면 배정했거나 보류를 기록한 것으로 본다."""
+    base = root / '.fullops-squad'
+    places = [*base.glob('handovers/to_*.md'), *base.glob('handovers/logs/*.md'), base / 'PLANS.md']
+    return any(key in board.read(path) for path in places)
+
+
 def tool_denial(root, event, state):
     tool = field(event, 'tool_input') or {}
     if not isinstance(tool, dict):
@@ -85,6 +93,8 @@ def tool_denial(root, event, state):
     command, files = targets(tool)
     if SETTLE.search(command):
         state['settled'] = True
+    for key in ROUTED.findall(command):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
+        state['routed'] = sorted(set(state.get('routed', [])) | {key})
     role, designer = context(root)
     if INJECT.search(command):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
@@ -179,6 +189,16 @@ def main():
                           f"FullOps: Dispatch {state['dispatch']}의 `worker_done`을 보내지 않았습니다. 과제를 마쳤으면 preamble의 "
                           '`worker_done` 명령(`--outcome succeeded|failed`)을 보내고, 판단이 필요하면 `ask`, 막혔으면 `escalation`을 보내세요. '
                           '아직 작업 중이면 계속 진행하세요.'}
+        pending = [k for k in state.get('routed', []) if not handled(root, k)]
+        if pending and 'decision' not in output:
+            if field(event, 'stop_hook_active') and state.get('pending_blocked') == pending:
+                output = {'systemMessage': f"FullOps: 분류만 하고 배정하지 않은 과제가 있습니다: {', '.join(pending)}"}
+            else:
+                state['pending_blocked'] = pending
+                output = {'decision': 'block', 'reason':
+                          f"FullOps: `jev_route.py`로 분류한 과제 {', '.join(pending)}를 아직 배정하지 않았습니다. "
+                          '대화 요약 뒤라면 route 기록(docs/evaluations/jev/<키>-route.json)을 다시 읽고 지시서 작성과 dispatch를 이어서 하세요. '
+                          '배정하지 않을 이유가 있으면 PLANS.md에 과제 키와 보류 사유를 적고 끝내세요.'}
         if context(root)[0] == 'coordinator':
             try:
                 board.write(root)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다

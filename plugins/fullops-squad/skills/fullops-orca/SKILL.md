@@ -46,6 +46,8 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 - Orca는 `--types`가 붙은 대기가 받지 않는 메시지(heartbeat·status)마다 idle 터미널에 "You have N orchestration message" 알림을 넣어 세션을 깨운다. worker heartbeat는 Orca가 5분마다 보내므로 `check --wait --types …`를 직접 걸지 않는다.
 - orchestration Run을 기다릴 때는 이 스킬 기준 `../../scripts/orca_wait.py`를 사용한다: `python3 <orca_wait.py> --orca <실행 파일> --run <dispatch에서 쓴 run id> [--ack <처리한 delivery id>]`. 자기 Run을 만든 dispatched worker가 `--run`을 빼면 상위 Run을 보게 되어 하위 보고를 받지 못한다. `--types` 없이 대기해 알림을 막고, heartbeat·status만 있는 묶음은 모델을 부르지 않고 ack한다. 처리할 메시지가 오면 ack하지 않은 묶음과 흡수한 내용 요약을 반환한다.
 - 호스트의 백그라운드 실행으로 한 번 걸고 턴을 끝낸다. 백그라운드 실행이 없으면 포그라운드에서 실행한다. 반환된 `actionable` 묶음은 오케스트레이션 규칙대로 모두 처리한 뒤, 다음 대기를 `--ack <deliveryId>`로 이어 건다. `absorbed`의 status도 확인한다.
+- 새 coordinator 세션(재시작·플러그인 갱신 후)은 터미널이 바뀌어 기존 Run 연결이 끊긴다. `orchestration check`가 "no longer bound"를 반환하면 PLANS.md·현황판에 기록한 run id로 `orchestration run-use --id <run id>`를 실행해 다시 연결한다.
+- 분류(`jev_route.py`)한 과제는 같은 세션에서 배정하거나 PLANS.md에 보류 사유를 적는다. flow-gate Stop hook이 배정되지 않은 route를 한 번 막는다. 대화가 요약된 뒤에는 route 기록을 다시 읽고 이어서 진행한다.
 - `idle_timeout`(기본 45분)은 실패가 아니다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
 - orchestration을 쓰지 않는 터미널 전달은 `terminal wait`을 긴 타임아웃으로 백그라운드에서 한 번 건다.
 - 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. 완료 판정은 worker의 `worker_done`·`[완료]` 보고, 보고된 브랜치·SHA, 산출물 파일로 한다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.

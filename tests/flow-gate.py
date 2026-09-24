@@ -91,6 +91,21 @@ def main():
              'orca orchestration send --from w --type worker_done --task-id t-1 --dispatch-id d-1 --outcome succeeded'})
         assert hook('stop', sessionId='g') == {}
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'git status'}) == {}
+        # 분류만 하고 배정하지 않은 과제는 종료를 한 번 막는다(대화 요약 뒤 배정을 잊는 경우)
+        route_cmd = 'python3 C:/plugins/fullops-squad/scripts/jev_route.py --repo . --key WIN-1 --request "Windows 점검"'
+        assert hook('tool', session_id='r', tool_name='Bash', tool_input={'command': route_cmd}) == {}
+        blocked = hook('stop', session_id='r')
+        assert blocked.get('decision') == 'block' and 'WIN-1' in blocked['reason'], blocked
+        assert 'systemMessage' in hook('stop', session_id='r', stop_hook_active=True)  # 같은 상태로 다시 끝내면 통과
+        (repo / '.fullops-squad/handovers/to_art.md').write_text('# WIN-1 — Windows 점검\n', encoding='utf-8')
+        assert hook('stop', session_id='r') == {}  # 지시서에 과제 키가 있으면 배정한 것으로 본다
+        hook('tool', session_id='r2', tool_name='Bash', tool_input={'command': route_cmd.replace('WIN-1', 'WIN-2')})
+        assert hook('stop', session_id='r2').get('decision') == 'block'
+        plans = repo / '.fullops-squad/PLANS.md'
+        plans.write_text(plans.read_text(encoding='utf-8') + '| WIN-2 | Windows 점검 | ops | 보류: Editor 사용 중 | |\n', encoding='utf-8')
+        assert hook('stop', session_id='r2') == {}  # PLANS.md에 보류를 적으면 통과
+        (repo / '.fullops-squad/handovers/to_art.md').write_text('', encoding='utf-8')
+
         # coordinator를 역할 워크트리에서 운영: 라우팅 기준의 coordinator 역할 줄로 판정한다
         agents = repo / '.fullops-squad/orca-agents.md'
         agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
