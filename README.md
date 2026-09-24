@@ -163,10 +163,10 @@ flow-gate는 역할 브랜치(`fullops/<역할>`)가 아닌 브랜치를 coordin
 
 ### 기존 레포 0.7.0 업데이트
 
-FullOps를 이미 쓰는 레포에 0.7.0을 적용합니다. 서비스 레포의 기본 브랜치 체크아웃에서 coordinator 세션을 열어 붙여 넣으면 플러그인 갱신부터 레포 적용까지 진행합니다. 실행 중인 세션은 시작할 때 읽은 스킬·hook을 계속 쓰므로, 갱신 뒤 스크립트는 새 플러그인 경로에서 직접 실행하고 마지막에 새 세션을 엽니다.
+FullOps를 이미 쓰는 레포에 0.7.0을 적용합니다. 서비스 레포의 기본 브랜치 체크아웃에서 **업데이트 전용 세션**을 열어 붙여 넣으면 플러그인 갱신부터 레포 적용까지 진행합니다. 이 세션은 시작할 때 읽은 옛 스킬·hook을 계속 쓰므로 coordinator로 이어 쓰지 않습니다. 갱신 뒤 스크립트는 새 플러그인 경로에서 직접 실행하고, 끝나면 새 세션을 열어 coordinator로 씁니다.
 
 ```text
-FullOps Squad 플러그인을 0.7.0으로 올리고 이 레포에 적용해줘. 지금 체크아웃은 서비스 레포의 기본 브랜치이고, 이 세션이 coordinator다.
+FullOps Squad 플러그인을 0.7.0으로 올리고 이 레포에 적용해줘. 지금 체크아웃은 서비스 레포의 기본 브랜치다. 이 세션은 업데이트만 하는 세션이고 coordinator가 아니다. 요청을 받거나 worker를 dispatch하지 마.
 0. 플러그인 갱신: 이 PC의 https://github.com/tourbut/Fullops-Squad-plugin 체크아웃을 찾아 git pull로 최신 main에 맞추고, 저장소 AGENTS.md대로 지금 쓰는 CLI의 --host로 install.py를 --dry-run 후 실행해. Codex와 Claude Code는 설치된 플러그인 버전이 0.7.0인지 확인하고, grok은 plugin details에서 v0.7.0이 아니면 uninstall 후 --trust로 다시 설치해. 이 세션은 옛 스킬을 쓰고 있으니 이후 단계의 scripts/*.py와 템플릿은 갱신된 플러그인 경로(체크아웃의 dist/native/fullops-squad)에서 직접 실행하고 읽어.
 1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
 2. 모든 인박스(handovers/to_<역할>.md)와 PLANS.md에서 진행 중인 과제를 찾아 보고해. 건드리지 마.
@@ -181,7 +181,7 @@ FullOps Squad 플러그인을 0.7.0으로 올리고 이 레포에 적용해줘. 
 6. deliverables.py --repo . --strict를 실행해. 경고가 난 원천 문서마다 deliverables.py --stamp로 front matter를 써. 처음 쓰는 문서는 --owner와 --summary를 문서 내용에서 정하고, 원천이 폴더이거나 여러 파일이면 --path를 붙여. 본문에 있던 자유 형식 "상태·갱신일" 줄은 front matter로 옮긴 뒤 지워. --strict 결과가 0이 될 때까지 반복해. front matter를 손으로 쓰지 마.
 7. board.py --repo .를 실행하고 board/index.html 경로를 알려줘.
 8. 변경을 기본 브랜치에 커밋하고 push해. 쉬고 있고 작업 트리가 깨끗한 역할 브랜치에만 기본 브랜치를 반영하고, 작업 중인 역할은 반영을 예약해.
-9. 추가·수정한 파일, stamp한 산출물, 예약된 동기화, 미정 사항을 보고해. 새 hook(현황판 자동 갱신·DOC-002)은 새 세션부터 적용되니, 다른 PC와 worker 세션도 플러그인을 갱신하고 새 세션을 열어야 한다고 알려줘.
+9. 추가·수정한 파일, stamp한 산출물, 예약된 동기화, 미정 사항을 보고해. 이 세션을 닫고 새 세션을 열어 coordinator로 쓰라고 안내해. 새 스킬·hook(현황판 자동 갱신·DOC-002)은 새 세션부터 적용되니, 다른 PC와 worker 세션도 플러그인을 갱신하고 새 세션을 열어야 한다고 함께 알려줘.
 ```
 
 ### setup 뒤 요청
