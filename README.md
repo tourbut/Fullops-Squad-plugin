@@ -72,9 +72,8 @@ codex plugin add fullops-squad@fullops-squad
 **grok**
 ```bash
 grok plugin marketplace add tourbut/Fullops-Squad-plugin
-grok plugin install fullops-squad@Fullops-Squad-plugin --trust
+grok plugin install fullops-squad@fullops-squad --trust
 ```
-마켓플레이스 이름이 다르면 `grok plugin marketplace list`로 확인합니다.
 
 **의존성**. 마켓플레이스 설치는 npm 도구(Open Code Review CLI, Context7 MCP)와 사용자 범위 스킬(caveman, typesafe-ai, open-code-review-delegate, diagram-design 등)을 넣지 않습니다. 설치 뒤 새 세션을 열면 빠진 도구를 알려 주고, 레포 setup(`setup-fullops`)의 첫 단계에서 승인을 받아 설치합니다. 직접 설치하려면 설치된 플러그인 안의 스크립트를 실행합니다.
 
