@@ -75,6 +75,12 @@ def main():
         assert bash("orca orchestration task-create --spec 'Task key K1 follow-up'") == {}
         os.environ['FULLOPS_ORCA_CLI'] = str(repo / '.git/missing-orca')
         assert bash('orca orchestration worker-start --run r1 --task task_x --agent codex') == {}  # 확인 불가면 막지 않는다
+        assert bash('orca orchestration worker-start --help') == {}  # 사용법 확인은 막지 않는다
+        assert bash('orca orchestration task-create -h') == {}
+        (repo / '.fullops-squad/handovers/to_dev.md').write_text('# K1 — 점프 수치\n', encoding='utf-8')
+        for ref in ('.fullops-squad/handovers/to_dev.md', f'{tmp}/.fullops-squad/handovers/to_dev.md'.replace('\\', '/')):
+            assert bash(f'orca orchestration worker-start --run r1 --spec "지시서 {ref}를 읽고 착수" --agent codex') == {}, ref
+        (repo / '.fullops-squad/handovers/to_dev.md').write_text('', encoding='utf-8')
         del os.environ['FULLOPS_ORCA_CLI']
         route('K3', 'design', 'architecture')
         assert '설계 역할' in denied(write('.fullops-squad/handovers/to_dev.md', '# K3 — 저장 형식\n'))

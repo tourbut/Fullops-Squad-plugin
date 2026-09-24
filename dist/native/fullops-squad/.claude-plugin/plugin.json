@@ -1,0 +1,22 @@
+{
+  "name": "fullops-squad",
+  "version": "0.8.0",
+  "description": "Orca worker 핸드오버와 개발 산출물을 관리하는 레포별 선택형 하네스",
+  "author": {
+    "name": "tourbut"
+  },
+  "repository": "https://github.com/tourbut/Fullops-Squad-plugin",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
+  "dependencies": [
+    {
+      "name": "ponytail",
+      "marketplace": "ponytail"
+    },
+    {
+      "name": "mattpocock-skills",
+      "marketplace": "claude-plugins-official"
+    }
+  ]
+}

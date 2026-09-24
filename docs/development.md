@@ -10,6 +10,23 @@
 - `dependencies.json`: 외부 스킬·MCP·도구의 출처와 설치 대상. 외부 구현은 이 레포에 복사하지 않는다.
 - `docs/releases/`: 버전별 변경 범위와 기존 레포 적용 방법.
 
+## 체크아웃에서 설치
+
+개발 중인 체크아웃을 로컬 마켓플레이스로 등록해 바로 시험하거나, 마켓플레이스 등록 방법이 확인되지 않은 agy에 설치할 때 쓴다. 체크아웃 경로는 지우지 않는다.
+
+```bash
+git clone https://github.com/tourbut/Fullops-Squad-plugin.git
+cd Fullops-Squad-plugin
+python3 scripts/install.py --host codex --dry-run   # claude-code, grok, agy, all
+python3 scripts/install.py --host codex
+```
+
+설치기는 빌드한 뒤 플러그인 안의 `scripts/deps.py`와 같은 의존성 목록으로 의존성을 설치하고, 체크아웃을 로컬 마켓플레이스로 등록해 플러그인을 설치한다.
+
+## 배포
+
+GitHub 마켓플레이스가 커밋된 `dist/native/fullops-squad`를 가리킨다. 원본을 고치면 `python3 scripts/build.py`로 `dist/`를 다시 만들어 함께 커밋한다. CI는 빌드 결과가 커밋된 `dist/`와 다르면 실패한다. 버전을 올리고 `docs/releases/<버전>.md`에 변경 범위와 기존 레포 적용 방법을 적는다.
+
 ## 검증
 
 ```bash

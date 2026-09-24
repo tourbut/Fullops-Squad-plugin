@@ -1,0 +1,65 @@
+{
+  "marketplaces": {
+    "ponytail": "DietrichGebert/ponytail",
+    "claude-plugins-official": "anthropics/claude-plugins-official"
+  },
+  "skills": [
+    {
+      "source": "JuliusBrussee/caveman",
+      "names": [
+        "caveman"
+      ]
+    },
+    {
+      "source": "typesafe-ai/skills",
+      "names": [
+        "typesafe-ai"
+      ]
+    },
+    {
+      "source": "alibaba/open-code-review",
+      "names": [
+        "open-code-review-delegate"
+      ]
+    },
+    {
+      "source": "cathrynlavery/diagram-design",
+      "names": [
+        "diagram-design"
+      ]
+    }
+  ],
+  "portable_skills": [
+    {
+      "source": "DietrichGebert/ponytail",
+      "names": [
+        "*"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "package": "@alibaba-group/open-code-review@latest",
+      "command": "ocr"
+    }
+  ],
+  "mcp": {
+    "context7": {
+      "package": "@upstash/context7-mcp@4.1.1",
+      "command": "context7-mcp"
+    }
+  },
+  "codex": {
+    "plugins": [
+      "ponytail@ponytail"
+    ],
+    "skills": [
+      {
+        "source": "mattpocock/skills",
+        "names": [
+          "*"
+        ]
+      }
+    ]
+  }
+}

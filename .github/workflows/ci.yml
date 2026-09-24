@@ -38,8 +38,10 @@ jobs:
         run: python3 scripts/build.py
       - name: Run setup, handover, common-rules and schema checks
         run: npm test
-      - name: Check generated catalog consistency
-        run: git diff --exit-code -- .agents/plugins/marketplace.json .claude-plugin/marketplace.json
+      - name: Check committed build output and catalogs match the source
+        run: |
+          git diff --exit-code -- dist .agents/plugins/marketplace.json .claude-plugin/marketplace.json
+          test -z "$(git status --porcelain --untracked-files=all -- dist)"
 
   review:
     runs-on: ubuntu-24.04

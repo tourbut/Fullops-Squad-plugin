@@ -36,6 +36,7 @@ def build(output=NATIVE):
         staged = Path(temp) / "fullops-squad"
         shutil.copytree(SOURCE, staged, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git"))
         (staged / "mcp.json").unlink()
+        shutil.copy2(ROOT / "dependencies.json", staged / "dependencies.json")  # 설치된 플러그인의 deps.py가 읽는다
         write_json(staged / "plugin.json", {key: common[key] for key in ("name", "version", "description")})
         for host, directory in (("codex", ".codex-plugin"), ("claude-code", ".claude-plugin")):
             adapter = json.loads((ROOT / f"adapters/{host}.json").read_text())

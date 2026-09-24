@@ -50,26 +50,54 @@ hook은 셸 리다이렉션 같은 우회까지는 막지 못하고, hook 자체
 
 ## 설치
 
-필요 환경: Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI, **Orca IDE**. 설치기는 Orca를 설치하지 않습니다.
+필요 환경: Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI, **Orca IDE**. Orca는 따로 설치합니다.
 
-사용 중인 AI CLI에 아래 프롬프트를 붙여 넣으면 현재 CLI에 맞게 플러그인과 의존성을 설치합니다.
+GitHub 마켓플레이스로 설치합니다. 레포를 내려받을 필요는 없습니다.
 
+**Claude Code**
 ```text
-FullOps Squad 플러그인을 https://github.com/tourbut/Fullops-Squad-plugin 에서 찾아 설치해줘. 저장소의 AGENTS.md 설치 지침을 읽고, 지금 사용 중인 AI CLI(Codex, Claude Code, grok, agy)에 맞는 호스트 하나를 선택해 플러그인과 의존성까지 설치하고 확인해줘. 서비스 레포의 하네스 setup은 내가 별도로 요청할 때 진행해줘.
+/plugin marketplace add DietrichGebert/ponytail
+/plugin marketplace add anthropics/claude-plugins-official
+/plugin marketplace add tourbut/Fullops-Squad-plugin
+/plugin install fullops-squad@fullops-squad
+```
+의존 플러그인(ponytail, mattpocock-skills)이 두 마켓플레이스에 있어 먼저 등록합니다. 이미 등록돼 있으면 건너뜁니다.
+
+**Codex**
+```bash
+codex plugin marketplace add tourbut/Fullops-Squad-plugin
+codex plugin add fullops-squad@fullops-squad
 ```
 
-직접 설치하려면 이 레포를 유지할 경로에 내려받고 설치기를 실행합니다. Codex·Claude Code는 이 경로를 로컬 마켓플레이스로 등록하므로 지우지 않습니다.
+**grok**
+```bash
+grok plugin marketplace add tourbut/Fullops-Squad-plugin
+grok plugin install fullops-squad@Fullops-Squad-plugin --trust
+```
+마켓플레이스 이름이 다르면 `grok plugin marketplace list`로 확인합니다.
+
+**의존성**. 마켓플레이스 설치는 npm 도구(Open Code Review CLI, Context7 MCP)와 사용자 범위 스킬(caveman, typesafe-ai, open-code-review-delegate, diagram-design 등)을 넣지 않습니다. 설치 뒤 새 세션을 열면 빠진 도구를 알려 주고, 레포 setup(`setup-fullops`)의 첫 단계에서 승인을 받아 설치합니다. 직접 설치하려면 설치된 플러그인 안의 스크립트를 실행합니다.
 
 ```bash
-git clone https://github.com/tourbut/Fullops-Squad-plugin.git
-cd Fullops-Squad-plugin
-python3 scripts/install.py --host codex --dry-run   # 실행할 명령 확인
-python3 scripts/install.py --host codex
+python3 <플러그인 경로>/scripts/deps.py --host codex      # claude-code, grok, agy
+python3 <플러그인 경로>/scripts/deps.py --check           # 빠진 필수 CLI만 확인
 ```
 
-`--host`는 `codex`, `claude-code`, `grok`, `agy`, `all` 중에서 고릅니다. 설치기는 플러그인과 함께 의존성(ponytail, mattpocock/skills, diagram-design, caveman, typesafe-ai, Open Code Review CLI·delegate 스킬, Context7 MCP)을 설치합니다. 출처는 [dependencies.json](dependencies.json)에 있습니다. 호스트의 플러그인 설치 버튼만으로는 사용자 범위 스킬과 CLI가 설치되지 않습니다.
+에이전트에게 맡기려면 설치할 CLI에서 아래 프롬프트를 붙여 넣습니다.
 
-설치하거나 업데이트한 뒤에는 새 에이전트 세션을 열어야 스킬과 hook이 적용됩니다.
+```text
+FullOps Squad 플러그인을 GitHub 마켓플레이스 tourbut/Fullops-Squad-plugin 에서 설치해줘. https://github.com/tourbut/Fullops-Squad-plugin 의 README "설치" 절에서 지금 쓰는 CLI 부분을 따라 마켓플레이스를 등록하고 플러그인을 설치한 뒤, 설치된 플러그인의 scripts/deps.py로 의존성을 설치하고 확인해줘. 서비스 레포의 setup은 내가 별도로 요청할 때 진행해줘.
+```
+
+설치하거나 업데이트한 뒤에는 새 에이전트 세션을 열어야 스킬과 hook이 적용됩니다. agy와 개발 중인 체크아웃 설치는 [개발 문서](docs/development.md)를 봅니다.
+
+**업데이트**
+```bash
+claude plugin marketplace update fullops-squad && claude plugin update fullops-squad@fullops-squad
+codex plugin marketplace upgrade fullops-squad && codex plugin add fullops-squad@fullops-squad
+grok plugin marketplace update && grok plugin update fullops-squad
+```
+실행 중인 세션은 옛 버전의 hook 경로를 쓰므로 업데이트 뒤 모든 세션을 새로 엽니다.
 
 ## 레포에 적용
 
@@ -115,7 +143,7 @@ python3 scripts/install.py --host codex
 
 ```text
 FullOps Squad 플러그인을 최신으로 올리고 이 레포에 적용해줘. 지금 체크아웃은 서비스 레포의 기본 브랜치다. 이 세션은 업데이트만 하는 세션이고 coordinator가 아니다. 요청을 받거나 worker를 dispatch하지 마.
-0. 이 PC의 https://github.com/tourbut/Fullops-Squad-plugin 체크아웃을 찾아 git pull로 최신 main에 맞추고, AGENTS.md대로 지금 쓰는 CLI의 --host로 install.py를 --dry-run 후 실행해. 설치된 버전을 확인하고, grok은 버전이 그대로면 uninstall 후 --trust로 다시 설치해. 이후 단계의 스크립트와 템플릿은 갱신된 플러그인 경로(체크아웃의 dist/native/fullops-squad)에서 직접 실행하고 읽어.
+0. README "설치 → 업데이트"의 명령으로 지금 쓰는 CLI의 FullOps 플러그인을 최신으로 올리고 설치된 버전을 확인해. 새 버전의 scripts/deps.py --check로 의존성을 확인하고 빠진 것은 --host로 설치해. 이후 단계의 스크립트와 템플릿은 새로 설치된 플러그인 경로에서 직접 실행하고 읽어.
 1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
 2. docs/releases/에서 이 레포의 plugin_version 이후 변경을 읽고 "기존 레포 적용" 항목을 정리해 보여줘.
 3. setup-fullops를 기존 역할로 다시 실행해 새 파일만 추가하고, 정리한 항목 중 기존 문서에 직접 반영할 것을 반영해. 진행 중인 과제와 기록은 건드리지 마.
