@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "test": "python3 tests/check.py && python3 tests/common-rules.py && python3 tests/jev-observe.py && python3 tests/caveman-start.py && python3 tests/lint.py && python3 tests/orca-wait.py && python3 tests/jev-context.py && python3 tests/jev-find.py && python3 tests/jev-route.py && python3 tests/done-gate.py && python3 tests/flow-gate.py && python3 tests/board.py && python3 tests/deliverables.py && node tests/standard.cjs",
+    "test": "python3 tests/check.py && python3 tests/common-rules.py && python3 tests/jev-observe.py && python3 tests/caveman-start.py && python3 tests/lint.py && python3 tests/orca-wait.py && python3 tests/jev-context.py && python3 tests/jev-find.py && python3 tests/jev-route.py && python3 tests/done-gate.py && python3 tests/flow-gate.py && python3 tests/board.py && python3 tests/deliverables.py && python3 tests/env-link.py && node tests/standard.cjs",
     "test:review": "python3 tests/review-check.py"
   },
   "devDependencies": {

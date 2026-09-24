@@ -13,6 +13,7 @@ import shlex
 import sys
 
 import board
+import env_link
 from done_gate import CODE, field, git
 from jev_route import coordinator_role, guide
 
@@ -149,7 +150,16 @@ def main():
     if mode == 'start':
         role, designer = context(root)
         kind = 'coordinator' if role == 'coordinator' else 'designer' if role == designer else 'worker'
-        output = {'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': BRIEF[kind]}}
+        brief = BRIEF[kind]
+        try:  # 워크트리에 빠진 .env*를 원본 체크아웃에서 연결한다. 실패해도 세션을 막지 않는다
+            linked = env_link.link(root)
+        except Exception:  # noqa: BLE001
+            linked = []
+        if linked:
+            copied = [name for name, how in linked if how == 'copy']
+            brief += (f" 워크트리에 없던 {', '.join(name for name, _ in linked)}를 원본 체크아웃에서 연결했다."
+                      + (f" {', '.join(copied)}는 링크를 만들 수 없어 복사했으니 원본이 바뀌면 다시 복사해야 한다." if copied else ''))
+        output = {'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': brief}}
     elif mode == 'prompt':
         match = DISPATCH.search(str(field(event, 'prompt') or ''))
         if match and match.group(1) != state.get('dispatch'):

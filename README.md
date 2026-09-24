@@ -5,6 +5,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.7.2 워크트리 .env 자동 연결
+
+에이전트가 만든 워크트리에도 원본 체크아웃 루트의 `.env*`가 자동으로 링크됩니다. 워크트리에서 시작하는 세션마다 SessionStart hook이 빠진 파일을 연결합니다. [변경 범위](docs/releases/0.7.2.md)
+
 ## 0.7.1 역할 워크트리 coordinator
 
 coordinator를 역할 워크트리(예: `coor`)에서 운영하면 `orca-agents.md` 라우팅 기준에 `- coordinator 역할: `<역할>`` 줄을 둡니다. 그 브랜치의 세션이 coordinator 규칙과 현황판 자동 갱신을 받고 배정 후보에서 빠집니다. [변경 범위](docs/releases/0.7.1.md)
@@ -126,6 +130,7 @@ python3 -c "import os,pathlib as p;r=p.Path(os.environ['ORCA_ROOT_PATH']);w=p.Pa
 - Windows, macOS, Linux에서 같은 줄을 씁니다. 환경 변수를 셸이 아니라 Python이 읽기 때문에, Orca가 Windows에서 설정 스크립트를 실행하는 cmd.exe에서도 동작합니다. PowerShell 문법(`$env:`, `ForEach-Object`)은 cmd.exe에서 실패합니다.
 - Windows는 개발자 모드(설정 → 시스템 → 개발자용)가 켜져 있어야 관리자 권한 없이 심볼릭 링크를 만들 수 있습니다. `python3`가 Microsoft Store 스텁이면 `py -3`로 바꿉니다.
 - 서비스 레포의 `.gitignore`에 `.env`와 `.env.local`이 있는지 확인합니다. 링크도 워크트리 안에서는 일반 파일처럼 보입니다.
+- 에이전트가 `git worktree add`나 설정 생략 옵션으로 만든 워크트리는 설정 스크립트가 돌지 않습니다. 그래서 FullOps의 SessionStart hook이 워크트리에서 시작하는 모든 세션마다 원본 체크아웃 루트의 `.env*`(git 미추적) 중 빠진 것을 링크합니다(링크 불가 시 복사). 직접 실행하려면 `python3 <플러그인>/scripts/env_link.py --all <레포 루트>`입니다.
 
 ## 시작 프롬프트
 
