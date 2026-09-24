@@ -1,6 +1,7 @@
 # FullOps Squad
 
 Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **개발 산출물과 작업 기록을 레포에 남기는 하네스 플러그인**입니다.
+**Orca IDE가 필수입니다.** worker의 워크트리·터미널·메시지 전달과 완료 보고를 Orca가 맡기 때문에 Orca 없이는 동작하지 않습니다.
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
@@ -34,7 +35,7 @@ ECC에서 코딩·테스트·보안 원칙만 선별·수정한 [공통 규칙](
 FullOps Squad 플러그인을 https://github.com/tourbut/Fullops-Squad-plugin 에서 찾아 설치해줘. 저장소의 AGENTS.md 설치 지침을 읽고, 지금 사용 중인 AI CLI(Codex, Claude Code, grok, agy)에 맞는 호스트 하나를 선택해 플러그인과 의존성까지 설치하고 확인해줘. 서비스 레포의 하네스 setup은 내가 별도로 요청할 때 진행해줘.
 ```
 
-Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI와 Orca 앱이 필요합니다.
+Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI, 그리고 **Orca IDE(필수)**가 필요합니다. 설치기는 Orca를 설치하지 않으니 먼저 설치하세요.
 직접 설치하려면 이 레포를 유지할 경로에 내려받은 뒤 통합 설치기를 실행합니다. Codex·Claude Code는 해당 경로를 로컬 마켓플레이스로 등록합니다.
 
 ```bash
@@ -71,24 +72,44 @@ caveman은 Codex·Claude Code에서 FullOps 플러그인을 활성화한 새 세
 Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 네 CLI에 `context7-mcp` stdio 서버로 연결합니다. 기본 사용은 키 없이 시작하며, 높은 호출 한도가 필요하면 MCP 프로세스에 `CONTEXT7_API_KEY`를 제공하도록 사용하는 호스트의 환경/비밀 설정을 사용합니다. 키를 레포나 지시서에 기록하지 않습니다. 연결·조회 실패는 설치 성공과 구분해 확인합니다. [Context7 설정 안내](https://context7.com/docs/resources/all-clients)
 외부 의존성은 일반 도구로 전역 설치됩니다. 이 플러그인의 레포별 활성화 조건은 외부 플러그인의 자체 동작까지 비활성화하지 않습니다.
 
+## Jev 설정
+
+FullOps는 TypeSafe의 판단 모델 Jev(`~typesafe/jev-latest`, OpenRouter 경유)를 세 곳에서 씁니다. Jev는 선택지마다 확률을 돌려주는 작고 저렴한 모델입니다.
+
+| 스크립트 | 쓰는 곳 | 키가 없거나 실패하면 |
+|---|---|---|
+| `jev_route.py` | coordinator가 요청을 simple·design으로 분류 | 항상 설계 역할로 보냄 |
+| `jev_find.py` | 지시서를 쓸 때 관련 코드 위치 탐색 | 검색으로 후보를 정함 |
+| `jev_context.py` | worker가 먼저 읽을 문서 선별 | 후보를 모두 유지 |
+
+키가 없어도 FullOps는 동작합니다. 다만 라우팅이 항상 설계 쪽으로 가서 상위 모델 비용이 늘어납니다.
+
+**API 키 넣는 곳**: [OpenRouter](https://openrouter.ai/)에서 발급한 키를 환경 변수 `OPENROUTER_API_KEY`로 등록합니다. 에이전트 세션은 Orca가 띄우므로, Orca가 물려받는 사용자 환경에 넣고 **Orca를 다시 시작**해야 합니다.
+
+- Windows: `setx OPENROUTER_API_KEY "sk-or-..."` 실행 후 Orca 재시작
+- macOS·Linux: `~/.zshrc` 또는 `~/.bashrc`에 `export OPENROUTER_API_KEY="sk-or-..."`를 추가하고 Orca 재시작. Dock에서 실행한 Orca가 셸 설정을 읽지 않으면 터미널에서 Orca를 실행합니다.
+- 환경 변수 대신 파일을 쓰려면 스크립트에 `--env-file <경로>`를 넘깁니다. 파일에서 `OPENROUTER_API_KEY=...` 줄만 읽고 코드로 실행하지 않습니다. 파일은 레포 밖에 두거나 `.gitignore`에 넣습니다.
+
+키를 레포, 지시서, `orca-agents.md`에 적지 않습니다. 스크립트는 비밀값처럼 보이는 문자열이 섞인 요청을 Jev에 보내지 않습니다. 같은 요청의 응답은 `~/.cache/fullops-squad/jev`(`FULLOPS_JEV_CACHE`로 변경 가능)에 캐시되어 다시 과금되지 않습니다.
+
 ## 시작 프롬프트
 
 서비스 레포의 **기본 브랜치(main) 체크아웃**에서 새 에이전트 세션을 열고 아래 프롬프트를 붙여 넣습니다. 이 체크아웃이 coordinator가 됩니다. coordinator는 비용이 낮은 모델로 여는 것을 권합니다.
 flow-gate는 역할 브랜치(`fullops/<역할>`)가 아닌 브랜치를 coordinator로 판정합니다. 따라서 coordinator 세션은 항상 기본 브랜치에서 시작합니다.
-`<>` 부분은 레포에 맞게 바꿉니다. 역할을 모르면 지워 두세요. 에이전트가 레포를 보고 제안합니다.
+`<>` 부분은 레포에 맞게 바꿉니다. worker 구성은 레포마다 다르며, 새 레포에서는 에이전트가 레포를 보고 worker 역할을 제안한 뒤 확정하고 setup합니다. 아래 dev·art·ops 같은 이름은 예시입니다. Orca IDE 안에서 세션을 열어야 합니다.
 
 ### 새 레포
 
 ```text
 이 레포에 FullOps Squad를 처음 setup하고 Orca 워크트리까지 구성해줘. 지금 체크아웃은 기본 브랜치이고, 이 세션이 coordinator다.
 
-1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
-2. setup-fullops로 setup해. 역할은 설계 역할 architecture와 worker <dev, art, ops>로 한다. 먼저 --dry-run으로 계획을 보여주고 실행해. 원격이 없으면 연결 정보만 물어봐.
+1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘. OPENROUTER_API_KEY가 없으면 Jev 없이 진행된다고 알려줘.
+2. 레포의 코드·에셋·배포 구조를 보고 필요한 worker 역할을 제안해. 역할마다 책임과 담당 경로를 한 줄씩 적고, 내가 확정하면 설계 역할 architecture와 함께 그 역할로 setup-fullops를 실행해. 먼저 --dry-run으로 계획을 보여주고 실행해. 원격이 없으면 연결 정보만 물어봐.
 3. project.md에 기술 기준·검증 명령을 채우고, 레포에 있는 lint 도구를 lint.json에 등록해. review/rule.json도 이 레포에 맞게 구성해.
 4. orca-agents.md 배정표에 역할별 CLI·모델을 적어. coordinator는 <하위 모델>, architecture는 <상위 모델>, worker는 <하위 모델>이다. 미정인 것만 물어봐.
 5. orca-agents.md의 "## 라우팅 기준"에서 설계 역할 줄과 역할별 책임 줄을 실제 역할에 맞게 고쳐.
 6. setup으로 생긴 파일을 기본 브랜치에 커밋하고 원격에 push해.
-7. fullops-orca bootstrap으로 worker 역할(<dev, art, ops>)의 상설 워크트리를 fullops/<역할> 브랜치에서 만들어. 각 역할 브랜치에 방금 커밋한 setup을 반영해. architecture 워크트리도 만들되 세션은 띄우지 마. 설계가 필요할 때 worker-start로 띄운다.
+7. fullops-orca bootstrap으로 확정한 worker 역할마다 상설 워크트리를 fullops/<역할> 브랜치에서 만들어. 각 역할 브랜치에 방금 커밋한 setup을 반영해. architecture 워크트리도 만들되 세션은 띄우지 마. 설계가 필요할 때 worker-start로 띄운다.
 8. 이번 작업에 쓸 orchestration Run을 만들고 run id를 PLANS.md에 적어.
 9. 만든 워크트리·브랜치·run id·미정 사항을 보고하고 첫 요청을 기다려.
 ```
@@ -101,7 +122,7 @@ flow-gate는 역할 브랜치(`fullops/<역할>`)가 아닌 브랜치를 coordin
 1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
 2. fullops.json의 기존 역할을 읽어. 모든 역할의 인박스(handovers/to_<역할>.md)와 PLANS.md에서 진행 중인 과제를 찾아 보고해. 진행 중 작업은 건드리지 마.
 3. setup-fullops를 기존 역할로 다시 실행해. 먼저 --dry-run으로 보여주고, 새로 생기는 파일만 추가해. 사용자 문서와 기록은 보존해.
-4. orca-agents.md에 "## 라우팅 기준" 섹션이 없으면 플러그인 템플릿 형식으로 추가해. 설계 역할은 <architecture>, worker 역할은 <dev, art, ops>로 하고, 역할별 책임은 기존 배정표와 contexts/에서 가져와. 배정표에 coordinator(<하위 모델>)를 추가하고 architecture는 필요할 때만 띄우는 설계 역할로 바꿔.
+4. orca-agents.md에 "## 라우팅 기준" 섹션이 없으면 플러그인 템플릿 형식으로 추가해. 설계 역할은 <architecture>로 하고, worker 역할은 fullops.json에 이미 등록된 역할을 그대로 쓰되 빠진 역할이 필요하면 제안해. 역할별 책임은 기존 배정표와 contexts/에서 가져와. 배정표에 coordinator(<하위 모델>)를 추가하고 architecture는 필요할 때만 띄우는 설계 역할로 바꿔.
 5. 변경을 기본 브랜치에 커밋하고 push해.
 6. fullops-orca bootstrap으로 기존 워크트리를 조회해. 없는 역할의 워크트리만 만들어. 쉬고 있고 작업 트리가 깨끗한 역할 브랜치에만 기본 브랜치를 반영해. 작업 중인 역할은 반영을 예약하고 보고해.
 7. 지금까지 architecture가 터미널로 띄운 worker가 있으면 목록을 보고해. 다음 과제부터는 worker-start --run으로 띄운다.
@@ -121,7 +142,7 @@ fullops-orca route로 분류하고 dispatch해줘.
 
 ## 작업 흐름
 
-역할은 레포별 setup에서 제품·기술·규모에 맞게 구성합니다. `fullops.json`에 역할과 브랜치를 등록하고 역할별 인박스·컨텍스트를 생성합니다. GitHub remote의 기준 브랜치에서 `fullops/<역할 ID>` 원격 브랜치를 만들며, 기존 브랜치와 작업 기록은 보존합니다. CLI·모델 배정은 `orca-agents.md`에서 관리합니다.
+역할은 레포별 setup에서 제품·기술·규모에 맞게 구성합니다. 고정된 worker 세트는 없으며, 문서의 dev·art·ops는 예시입니다. `fullops.json`에 역할과 브랜치를 등록하고 역할별 인박스·컨텍스트를 생성합니다. GitHub remote의 기준 브랜치에서 `fullops/<역할 ID>` 원격 브랜치를 만들며, 기존 브랜치와 작업 기록은 보존합니다. CLI·모델 배정은 `orca-agents.md`에서 관리합니다.
 
 setup 재실행은 저장된 remote·기준 브랜치를 재사용하며 명시적 옵션으로 변경할 수 있습니다. 원격 연결된 레포의 새 역할은 원격 setup으로 추가합니다. 로컬 전용 모드에서는 해당 레포의 기존 역할과 문서만 유지합니다.
 
