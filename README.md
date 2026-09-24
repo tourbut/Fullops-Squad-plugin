@@ -51,7 +51,6 @@ python3 scripts/install.py --host codex
 | diagram-design | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
 | caveman | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
 | typesafe-ai | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
-| anthropics/skills 5종 | 사용자 범위 스킬 | 사용자 범위 스킬 | 사용자 범위 스킬 |
 | Context7 | FullOps MCP 서버 | FullOps MCP 서버 | FullOps MCP 서버 |
 | Open Code Review delegate | CLI + 사용자 범위 스킬 | CLI + 사용자 범위 스킬 | CLI + 사용자 범위 스킬 |
 | Orca CLI 가이드 | 설치된 Orca에서 동적으로 조회 | 동일 | 동일 |
@@ -59,7 +58,7 @@ python3 scripts/install.py --host codex
 설치기는 표준 원본에서 `dist/native/fullops-squad/`를 먼저 생성합니다. Codex·Claude Code의 마켓플레이스와 grok·agy의 `plugin install <로컬 경로>`는 이 호스트 호환 패키지를 사용합니다. grok·agy의 위 외부 스킬 의존성은 사용자 범위로 설치합니다.
 agy의 npx 대상은 IDE용 `antigravity`가 아닌 `antigravity-cli`이며 경로는 `~/.gemini/antigravity-cli/skills/`입니다. grok은 `~/.grok/skills/`를 사용합니다.
 
-Anthropic 스킬은 frontend-design, mcp-builder, skill-creator, web-artifacts-builder, webapp-testing입니다.
+프런트엔드 디자인·웹 테스트 등 범용 스킬은 각 호스트(Claude Code·Codex)의 기본 제공 스킬을 사용하며 이 하네스에서 설치하지 않습니다.
 caveman은 Codex·Claude Code에서 FullOps 플러그인을 활성화한 새 세션(`startup`·`clear`)에 `full`로 적용됩니다. SessionStart 훅이 설치된 스킬을 읽으며 외부 규칙을 복제하지 않습니다. `/caveman off`로 해제할 수 있고, 재개·압축 시에는 다시 활성화하지 않습니다. grok·agy는 스킬 설치만 지원하므로 명시적으로 호출합니다. typesafe-ai는 Jev의 문맥 선별·증거 대조 등 의미 판단 기능을 개발·유지보수할 때 사용하는 가이드입니다. Jev 실행 자체의 런타임 의존성은 아니며, 스킬 설치는 API 호출을 활성화하거나 API 키를 설정하지 않습니다.
 외부 스킬·MCP 구현을 이 레포에 복사하지 않습니다. 출처와 설치 대상은 [dependencies.json](dependencies.json)에서 관리합니다.
 이미 같은 스킬을 다른 출처로 설치했다면 중복 설치 경로를 정리해 한 출처만 사용하세요. 설치기는 기존 사용자 스킬을 삭제하지 않습니다.
@@ -81,7 +80,7 @@ setup 재실행은 저장된 remote·기준 브랜치를 재사용하며 명시�
 5. 병합 책임자: 리뷰·브랜치·SHA·diff·검증 확인 → 허가된 병합 → 쉬고 있는 worker 브랜치 동기화.
 6. `fullops-deliverables`: 기획부터 이행까지 D01–D13 원천 문서와 납품용 인덱스 관리.
 
-OCR CLI는 `@alibaba-group/open-code-review@1.12.5`로 설치하고 자동 업데이트를 끈 상태로 delegate 명령을 실행합니다. 별도 OCR API 키 없이 호스트 AI가 리뷰하며 해당 AI의 사용량은 발생합니다. 레포별 `review/rule.json`으로 테스트·문서·게임 자산의 기본 제외를 보완합니다. 리뷰 기록 검사 통과는 검토 내용과 테스트 성공을 자동 보증하지 않습니다.
+OCR CLI는 `@alibaba-group/open-code-review@latest`(설치 시점 최신)로 설치하고 자동 업데이트를 끈 상태로 delegate 명령을 실행합니다. 별도 OCR API 키 없이 호스트 AI가 리뷰하며 해당 AI의 사용량은 발생합니다. 레포별 `review/rule.json`으로 테스트·문서·게임 자산의 기본 제외를 보완합니다. 리뷰 기록 검사 통과는 검토 내용과 테스트 성공을 자동 보증하지 않습니다.
 
 코드 변경은 `scripts/lint.py` lint 게이트를 거칩니다. setup에서 레포에 이미 있는 ruff·eslint·타입 검사 등의 명령을 `.fullops-squad/lint/lint.json`에 등록하면, 변경 파일에 대해 그 명령들과 스택 무관 기본 검사(줄 수 증가, 범위 없는 억제, `eval`/`exec`, 하드코딩 비밀값, 레포별 정규식 규칙)를 함께 실행합니다. 기존 위반은 소급하지 않습니다. `review.py check`는 lint 결과가 없거나 SHA가 다르거나 ERROR가 남아 있으면 실패합니다. 규칙과 설정은 [lint 게이트](plugins/fullops-squad/assets/repository/.fullops-squad/lint/README.md)를 참고하세요.
 

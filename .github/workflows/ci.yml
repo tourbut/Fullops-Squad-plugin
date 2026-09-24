@@ -58,7 +58,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - name: Install existing pinned OCR CLI
-        run: npm install --global @alibaba-group/open-code-review@1.12.5
+      - name: Install latest OCR CLI
+        run: npm install --global @alibaba-group/open-code-review@latest
       - name: Run real delegate record regression checks
         run: npm run test:review

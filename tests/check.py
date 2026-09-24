@@ -264,7 +264,7 @@ def main():
         hosts = {cmd[0] for cmd in plan} - {'npx'}
         assert hosts == {'all': {'npm', 'codex', 'claude', 'grok', 'agy'},
                          'both': {'npm', 'codex', 'claude'}}.get(host, {'npm', 'claude' if host == 'claude-code' else host})
-        assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.5']
+        assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@latest']
         assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
         for source, name in (('JuliusBrussee/caveman', 'caveman'), ('typesafe-ai/skills', 'typesafe-ai')):
             targets = {cmd[cmd.index('--agent') + 1] for cmd in skills
@@ -275,7 +275,7 @@ def main():
         if host in ('grok', 'agy'):
             target = 'antigravity-cli' if host == 'agy' else 'grok'
             assert all(cmd[cmd.index('--agent') + 1] == target for cmd in skills)
-            assert {cmd[4] for cmd in skills} == {'cathrynlavery/diagram-design', 'anthropics/skills',
+            assert {cmd[4] for cmd in skills} == {'cathrynlavery/diagram-design',
                                                 'mattpocock/skills', 'DietrichGebert/ponytail', 'alibaba/open-code-review',
                                                 'JuliusBrussee/caveman', 'typesafe-ai/skills'}
             assert plan[-1] == [host, 'plugin', 'install', str(install.PLUGIN)] + (['--trust'] if host == 'grok' else [])

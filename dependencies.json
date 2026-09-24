@@ -27,16 +27,6 @@
       "names": [
         "diagram-design"
       ]
-    },
-    {
-      "source": "anthropics/skills",
-      "names": [
-        "frontend-design",
-        "mcp-builder",
-        "skill-creator",
-        "web-artifacts-builder",
-        "webapp-testing"
-      ]
     }
   ],
   "portable_skills": [
@@ -49,7 +39,7 @@
   ],
   "tools": [
     {
-      "package": "@alibaba-group/open-code-review@1.12.5",
+      "package": "@alibaba-group/open-code-review@latest",
       "command": "ocr"
     }
   ],
