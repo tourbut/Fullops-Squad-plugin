@@ -8,6 +8,7 @@ import io
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tokenize
 
@@ -209,7 +210,8 @@ def check_file(path, old, new, config):
 def run_command(repo, command, timeout):
     entry = {'name': command['name'], 'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
     try:
-        done = subprocess.run(command['run'], cwd=repo / entry['cwd'], capture_output=True, text=True,
+        run = [shutil.which(command['run'][0]) or command['run'][0], *command['run'][1:]]  # Windows의 npx.cmd 등
+        done = subprocess.run(run, cwd=repo / entry['cwd'], capture_output=True, text=True,
                               timeout=timeout, errors='replace')
     except FileNotFoundError:
         return {**entry, 'status': 'unavailable', 'exit_code': None, 'output_tail': ''}

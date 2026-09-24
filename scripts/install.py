@@ -6,6 +6,7 @@ from pathlib import Path
 import shlex
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "dist/native/fullops-squad"
@@ -48,7 +49,7 @@ def normalize_source(source):
 
 
 def registered_marketplaces(cli):
-    result = json.loads(subprocess.check_output([cli, "plugin", "marketplace", "list", "--json"], text=True))
+    result = json.loads(subprocess.check_output([shutil.which(cli) or cli, "plugin", "marketplace", "list", "--json"], text=True))
     if cli == "codex":
         return {m["name"]: m.get("marketplaceSource", {}).get("source", m["root"])
                 for m in result["marketplaces"]}
@@ -64,7 +65,7 @@ def main():
     if args.dry_run:
         print(shlex.join(["python3", str(ROOT / "scripts/build.py")]))
     else:
-        subprocess.run(["python3", str(ROOT / "scripts/build.py")], check=True, cwd=ROOT)
+        subprocess.run([sys.executable, str(ROOT / "scripts/build.py")], check=True, cwd=ROOT)
     plan = list(commands(args.host))
     if not args.dry_run:
         missing = sorted({cmd[0] for cmd in plan if not shutil.which(cmd[0])})
@@ -78,7 +79,7 @@ def main():
     for cmd in plan:
         print(shlex.join(cmd), flush=True)
         if not args.dry_run:
-            subprocess.run(cmd, check=True, cwd=ROOT)
+            subprocess.run([shutil.which(cmd[0]) or cmd[0], *cmd[1:]], check=True, cwd=ROOT)  # Windows의 .cmd
     print("설치 계획 확인 완료" if args.dry_run else "설치 완료. 새 에이전트 세션에서 setup-fullops를 실행하세요.")
 
 

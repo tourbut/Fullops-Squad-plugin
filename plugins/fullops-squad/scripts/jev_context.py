@@ -31,7 +31,7 @@ def candidate(repo, head, rel, n):
         excerpt(raw, span)  # observe()는 후보 하나의 원문 거부로 전체 호출을 건너뛴다
     except ValueError:
         return item, 'sensitive or oversized passage'
-    saved = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{rel}'], capture_output=True)
+    saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{rel}'], capture_output=True)  # 체크아웃 변환(CRLF) 적용
     item['source'] = {'sha256': digest(raw), 'at_head': saved.returncode == 0 and saved.stdout == raw, 'span': span}
     return item, None
 
@@ -48,7 +48,7 @@ def context(repo, role, key, paths, call, required=()):
     candidates, unsent, refused = [], {}, []
     for n, name in enumerate(dict.fromkeys(paths)):
         try:
-            rel = str(local_file(repo, name).relative_to(repo))
+            rel = local_file(repo, name).relative_to(repo).as_posix()
         except (OSError, ValueError) as error:
             refused.append({'path': name, 'reason': str(error)})
             continue
@@ -57,7 +57,7 @@ def context(repo, role, key, paths, call, required=()):
         if reason:
             unsent[rel] = reason
     data = {'task': f'{key}\n' + text[:3500], 'head': head, 'candidates': candidates,
-            'required_paths': [str(inbox.relative_to(repo)), *required]}
+            'required_paths': [inbox.relative_to(repo).as_posix(), *required]}
     try:
         outcome = observe(data, repo, call)
     except ValueError as error:  # 지시서 본문의 민감 문자열 등: Jev 없이 전부 유지한다

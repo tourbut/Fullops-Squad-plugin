@@ -18,6 +18,11 @@ CODE = PY | HASH | C_STYLE
 LINT = Path(__file__).resolve().with_name('lint.py')
 
 
+def field(event, name):
+    """Claude·Codex는 snake_case, grok은 camelCase 키로 보낸다."""
+    return event.get(name, event.get(re.sub(r'_(\w)', lambda m: m.group(1).upper(), name)))
+
+
 def git(root, *args):
     return subprocess.check_output(['git', '-C', str(root), *args], text=True, stderr=subprocess.DEVNULL).strip()
 
@@ -64,17 +69,17 @@ def main():
         event = json.load(sys.stdin)
     except ValueError:
         event = {}
-    root = Path(git(event.get('cwd') or '.', 'rev-parse', '--show-toplevel'))
+    root = Path(git(field(event, 'cwd') or '.', 'rev-parse', '--show-toplevel'))
     if not (root / '.fullops-squad/fullops.json').is_file():
         return {}
     gate = Path(git(root, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
     gate.mkdir(exist_ok=True)
-    session = gate / (re.sub(r'[^A-Za-z0-9_-]', '_', str(event.get('session_id') or 'default'))[:100] + '.json')
+    session = gate / (re.sub(r'[^A-Za-z0-9_-]', '_', str(field(event, 'session_id') or 'default'))[:100] + '.json')
     state = json.loads(session.read_text()) if session.is_file() else None
     if mode == 'start':
         if state is None:  # resume·compact는 처음 시작 지점을 유지한다
             session.write_text(json.dumps({'reflog': len(reflog(root))}))
-        if event.get('source', 'startup') not in ('startup', 'clear'):
+        if (field(event, 'source') or 'startup') not in ('startup', 'clear'):
             return {}
         try:
             names = [c['name'] for c in json.loads((root / CONFIG).read_text()).get('commands', [])]
@@ -86,8 +91,8 @@ def main():
                  '통과 기록이 없으면 종료가 한 번 막힌다. 적용할 검사가 없으면 이유를 말하고 다시 끝낸다. '
                  '테스트 로그를 증거로 남길 때 `| tail` 등으로 명령 자신의 종료코드를 가리지 않는다.')
         return {'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': brief}}
-    if state is None:
-        return {}  # 게이트 도입 전에 시작한 세션
+    if state is None or (field(event, 'reason') or 'end_turn') != 'end_turn':
+        return {}  # 게이트 도입 전 세션, grok의 세션 종료 Stop
     committed, dirty = code_changes(root, state)
     if not committed and not dirty:
         return {}
@@ -99,7 +104,7 @@ def main():
     if passed and not dirty:
         return {}
     marker = [head, [[p, (root / p).stat().st_mtime_ns if (root / p).exists() else None] for p in dirty]]
-    if event.get('stop_hook_active') and state.get('blocked') == marker:
+    if field(event, 'stop_hook_active') and state.get('blocked') == marker:
         return {'systemMessage': 'FullOps: lint.py 통과 기록 없이 세션을 끝냈습니다. 완료 보고의 검증 항목을 확인하세요.'}
     session.write_text(json.dumps({**state, 'blocked': marker}))
     files = (dirty or committed)[:5]

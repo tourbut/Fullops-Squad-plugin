@@ -96,11 +96,12 @@ def main():
         inbox.write_text(inbox.read_text().replace('API_KEY=sk-or-abcdefghijklmnop\n', ''))
         command = [sys.executable, str(SCRIPTS / 'jev_context.py'), '--repo', tmp, '--role', 'dev', '--key', 'T-1',
                    '--paths', 'src/auth.py', 'src/old.py']
-        env = {'PATH': '/usr/bin:/bin'}
-        done = subprocess.run(command, capture_output=True, text=True, env=env)
+        env = {k: v for k, v in os.environ.items() if k != 'OPENROUTER_API_KEY'}  # 키 없음
+        env['FULLOPS_JEV_CACHE'] = str(repo / 'no-cache')
+        done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'keep  src/old.py' in done.stdout, done.stdout + done.stderr
         assert (repo / '.fullops-squad/docs/evaluations/jev/T-1-context.json').is_file()
-        assert subprocess.run(command, capture_output=True, text=True, env=env).returncode == 1
+        assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 1
     with tempfile.TemporaryDirectory(prefix='fullops-jev-cache-') as cache:
         os.environ['FULLOPS_JEV_CACHE'] = cache
         payload = {'model': 'm', 'state': {'task': 't'}, 'questions': {}}

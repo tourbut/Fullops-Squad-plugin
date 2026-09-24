@@ -6,13 +6,15 @@
 """
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
 
 
 def check(args, ack):
-    command = [args.orca, 'orchestration', 'check', '--wait', '--timeout-ms', str(args.wait_ms), '--json']
+    orca = shutil.which(args.orca) or args.orca  # Windows의 orca.cmd
+    command = [orca, 'orchestration', 'check', '--wait', '--timeout-ms', str(args.wait_ms), '--json']
     for flag, value in (('--run', args.run), ('--terminal', args.terminal), ('--ack', ack)):
         if value:
             command += [flag, value]

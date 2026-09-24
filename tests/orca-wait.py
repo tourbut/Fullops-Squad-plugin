@@ -35,7 +35,8 @@ def run(tmp, responses, *extra):
     state.unlink(missing_ok=True)
     (Path(tmp) / 'responses.json').write_text(json.dumps(responses))
     env = dict(os.environ, FAKE_STATE=str(state), FAKE_RESPONSES=str(Path(tmp) / 'responses.json'))
-    done = subprocess.run([sys.executable, str(SCRIPT), '--orca', str(Path(tmp) / 'orca'), '--run', 'run_1', *extra],
+    orca = Path(tmp) / ('orca.cmd' if os.name == 'nt' else 'orca')
+    done = subprocess.run([sys.executable, str(SCRIPT), '--orca', str(orca), '--run', 'run_1', *extra],
                           capture_output=True, text=True, env=env)
     return done.returncode, json.loads(done.stdout), json.loads(state.read_text())
 
@@ -45,6 +46,8 @@ def main():
         fake = Path(tmp) / 'orca'
         fake.write_text(FAKE)
         fake.chmod(0o755)
+        if os.name == 'nt':  # shebang을 실행할 수 없으므로 실제 Orca처럼 orca.cmd로 감싼다
+            (Path(tmp) / 'orca.cmd').write_text(f'@"{sys.executable}" "%~dp0orca" %*\n')
         empty = ok({'deliveryId': None, 'count': 0, 'messages': [], 'timedOut': True})
 
         # heartbeat·status 묶음은 흡수해서 다음 대기에 ack하고, worker_done이 오면 ack 없이 반환한다.

@@ -80,7 +80,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", role) or branch != f"fullops/{role}":
             raise ValueError(f"잘못된 역할/브랜치: {role}")
     templates = PLUGIN / "assets/repository"
-    files = {str(p.relative_to(templates)): p.read_bytes()
+    files = {p.relative_to(templates).as_posix(): p.read_bytes()
              for p in sorted(templates.rglob("*")) if p.is_file()}
     for role in assigned:
         files[f".fullops-squad/handovers/to_{role}.md"] = b""

@@ -121,8 +121,8 @@ def verified_bytes(repo, head, path, spec):
     if digest(raw) != spec['sha256']:
         raise ValueError('source hash or size mismatch')
     if spec.get('at_head'):
-        saved = subprocess.check_output(['git', '-C', str(repo), 'show',
-                                         f'{head}:{path.relative_to(repo)}'], stderr=subprocess.DEVNULL)
+        saved = subprocess.check_output(['git', '-C', str(repo), 'cat-file', '--filters',  # 체크아웃 변환(CRLF) 적용
+                                         f'{head}:{path.relative_to(repo).as_posix()}'], stderr=subprocess.DEVNULL)
         if saved != raw:
             raise ValueError('source differs from head')
     return raw
@@ -242,7 +242,7 @@ def observe(data, repo, call):
     for item in candidates:
         try:
             path = local_file(repo, item['path'])
-            selected = {'id': item['id'], 'path': str(path.relative_to(repo)),
+            selected = {'id': item['id'], 'path': path.relative_to(repo).as_posix(),
                         'summary': item.get('summary', '')}
             if 'source' in item:
                 source = item['source']
@@ -281,13 +281,13 @@ def observe(data, repo, call):
             span = item.get('span', {'start_line': 1, 'end_line': min(len(lines), 40)})
             passage = excerpt(raw, span)
             text = raw.decode('utf-8')
-            codes = re.findall(r'(?m)^exit_code=(-?\d+)$', text)
-            commands = re.findall(r'(?m)^command=(.*)$', text)
+            codes = re.findall(r'(?m)^exit_code=(-?\d+)\r?$', text)  # CRLF 로그 허용
+            commands = re.findall(r'(?m)^command=(.*?)\r?$', text)
             exit_code = int(codes[0]) if len(codes) == 1 else None
             command = safe_text(commands[0], 1000) if len(commands) == 1 else None
             if item.get('kind', 'file') not in ('file', 'test_log'):
                 raise ValueError('invalid evidence kind')
-            checked[eid] = {'status': 'verified', 'path': str(path.relative_to(repo)),
+            checked[eid] = {'status': 'verified', 'path': path.relative_to(repo).as_posix(),
                             'passage': passage, 'coverage': 'complete' if passage['selected_start_line'] == 1 and
                             passage['selected_end_line'] == len(lines) else 'partial', 'exit_code': exit_code,
                             'kind': item.get('kind', 'file'), 'command': command}

@@ -119,13 +119,14 @@ def main():
         # CLI: 키가 없으면 오류를 기록하고 후보 없이 끝나며, 기존 결과는 덮어쓰지 않는다.
         out.unlink()
         command = [sys.executable, str(SCRIPTS / 'jev_find.py'), 'find', '--repo', tmp, '--role', 'dev', '--key', 'F-1']
-        env = {'PATH': os.environ['PATH'], 'HOME': tmp, 'FULLOPS_JEV_CACHE': str(repo / '.git/jev-cache')}
-        done = subprocess.run(command, capture_output=True, text=True, env=env)
+        env = {**{k: v for k, v in os.environ.items() if k != 'OPENROUTER_API_KEY'},  # Windows는 SYSTEMROOT 등이 필요하다
+               'HOME': tmp, 'FULLOPS_JEV_CACHE': str(repo / '.git/jev-cache')}
+        done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'paths: \n' in done.stdout + '\n' and 'API or response' in done.stdout, done.stdout + done.stderr
-        assert subprocess.run(command, capture_output=True, text=True, env=env).returncode == 1
+        assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 1
         score_cmd = [sys.executable, str(SCRIPTS / 'jev_find.py'), 'score', '--repo', tmp, '--key', 'F-1',
                      '--from', base, '--to', 'HEAD']
-        done = subprocess.run(score_cmd, capture_output=True, text=True, env=env)
+        done = subprocess.run(score_cmd, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'recall' in done.stdout, done.stdout + done.stderr
     print('PASS: jev find map, ranking, existence, directory pass, fallback, score vs actual diff, CLI')
 

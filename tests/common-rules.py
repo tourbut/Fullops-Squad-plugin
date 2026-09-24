@@ -119,13 +119,13 @@ class CommonRulesTests(unittest.TestCase):
         marker = self.repo / '.fullops-squad/fullops.json'
         config = json.loads(marker.read_text())
         config['plugin_version'] = '0.3.0'
-        marker.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n')
+        marker.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', newline='\n')
         for name in ['FULLOPS.md', 'project.md', 'handovers/_TEMPLATE.md']:
             (self.repo / '.fullops-squad' / name).write_text('# 기존 레포 정본\n자동 교체 금지\n')
         before = snapshot(self.repo)
         planned = self.activate(dry_run=True)
         self.assertEqual(snapshot(self.repo), before)
-        self.assertEqual(set(planned), {str(RULES / name) for name in BUNDLE_NAMES})
+        self.assertEqual(set(planned), {(RULES / name).as_posix() for name in BUNDLE_NAMES})
         self.activate()
         self.assert_bundle(self.repo)
         for name, content in before.items():

@@ -4,6 +4,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.6.0 coordinator 라우팅·flow-gate
+
+비용이 낮은 모델의 coordinator가 `jev_route.py`로 요청을 분류합니다. simple은 담당 역할에 바로 보내고, design은 설계 역할이 지시서를 쓴 뒤 worker에게 넘깁니다. worker는 `worker-start --run`으로만 띄워 완료 보고가 요청자에게 돌아오게 합니다. flow-gate hook이 Claude Code·Codex·grok build에서 이 흐름을 강제합니다. Windows 호환도 보강했습니다. [변경 범위·기존 레포 적용](docs/releases/0.6.0.md)을 확인하세요.
+
 ## 0.5.0 Jev 코드 탐색
 
 지시서를 쓸 때 `jev_find.py`가 파일 목록과 헤더 설명으로 만든 지도에서 Jev로 코드 위치를 찾고, "관련 코드 없음"도 판정합니다. 과제가 끝나면 실제 변경과 비교한 적중률을 자동으로 기록합니다. 새 코드 파일에는 헤더 설명을 적습니다(lint DOC-001). [변경 범위·기존 레포 적용](docs/releases/0.5.0.md)을 확인하세요.
@@ -67,6 +71,54 @@ caveman은 Codex·Claude Code에서 FullOps 플러그인을 활성화한 새 세
 Context7도 통합 설치기가 `@upstash/context7-mcp@4.1.1`을 설치하고 네 CLI에 `context7-mcp` stdio 서버로 연결합니다. 기본 사용은 키 없이 시작하며, 높은 호출 한도가 필요하면 MCP 프로세스에 `CONTEXT7_API_KEY`를 제공하도록 사용하는 호스트의 환경/비밀 설정을 사용합니다. 키를 레포나 지시서에 기록하지 않습니다. 연결·조회 실패는 설치 성공과 구분해 확인합니다. [Context7 설정 안내](https://context7.com/docs/resources/all-clients)
 외부 의존성은 일반 도구로 전역 설치됩니다. 이 플러그인의 레포별 활성화 조건은 외부 플러그인의 자체 동작까지 비활성화하지 않습니다.
 
+## 시작 프롬프트
+
+서비스 레포의 **기본 브랜치(main) 체크아웃**에서 새 에이전트 세션을 열고 아래 프롬프트를 붙여 넣습니다. 이 체크아웃이 coordinator가 됩니다. coordinator는 비용이 낮은 모델로 여는 것을 권합니다.
+flow-gate는 역할 브랜치(`fullops/<역할>`)가 아닌 브랜치를 coordinator로 판정합니다. 따라서 coordinator 세션은 항상 기본 브랜치에서 시작합니다.
+`<>` 부분은 레포에 맞게 바꿉니다. 역할을 모르면 지워 두세요. 에이전트가 레포를 보고 제안합니다.
+
+### 새 레포
+
+```text
+이 레포에 FullOps Squad를 처음 setup하고 Orca 워크트리까지 구성해줘. 지금 체크아웃은 기본 브랜치이고, 이 세션이 coordinator다.
+
+1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
+2. setup-fullops로 setup해. 역할은 설계 역할 architecture와 worker <dev, art, ops>로 한다. 먼저 --dry-run으로 계획을 보여주고 실행해. 원격이 없으면 연결 정보만 물어봐.
+3. project.md에 기술 기준·검증 명령을 채우고, 레포에 있는 lint 도구를 lint.json에 등록해. review/rule.json도 이 레포에 맞게 구성해.
+4. orca-agents.md 배정표에 역할별 CLI·모델을 적어. coordinator는 <하위 모델>, architecture는 <상위 모델>, worker는 <하위 모델>이다. 미정인 것만 물어봐.
+5. orca-agents.md의 "## 라우팅 기준"에서 설계 역할 줄과 역할별 책임 줄을 실제 역할에 맞게 고쳐.
+6. setup으로 생긴 파일을 기본 브랜치에 커밋하고 원격에 push해.
+7. fullops-orca bootstrap으로 worker 역할(<dev, art, ops>)의 상설 워크트리를 fullops/<역할> 브랜치에서 만들어. 각 역할 브랜치에 방금 커밋한 setup을 반영해. architecture 워크트리도 만들되 세션은 띄우지 마. 설계가 필요할 때 worker-start로 띄운다.
+8. 이번 작업에 쓸 orchestration Run을 만들고 run id를 PLANS.md에 적어.
+9. 만든 워크트리·브랜치·run id·미정 사항을 보고하고 첫 요청을 기다려.
+```
+
+### 기존 레포
+
+```text
+이 레포는 이미 FullOps Squad를 쓰고 있다. 최신 플러그인 기준으로 setup을 갱신하고, coordinator 구조로 Orca 워크트리를 다시 맞춰줘. 지금 체크아웃은 기본 브랜치이고, 이 세션이 coordinator다.
+
+1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
+2. fullops.json의 기존 역할을 읽어. 모든 역할의 인박스(handovers/to_<역할>.md)와 PLANS.md에서 진행 중인 과제를 찾아 보고해. 진행 중 작업은 건드리지 마.
+3. setup-fullops를 기존 역할로 다시 실행해. 먼저 --dry-run으로 보여주고, 새로 생기는 파일만 추가해. 사용자 문서와 기록은 보존해.
+4. orca-agents.md에 "## 라우팅 기준" 섹션이 없으면 플러그인 템플릿 형식으로 추가해. 설계 역할은 <architecture>, worker 역할은 <dev, art, ops>로 하고, 역할별 책임은 기존 배정표와 contexts/에서 가져와. 배정표에 coordinator(<하위 모델>)를 추가하고 architecture는 필요할 때만 띄우는 설계 역할로 바꿔.
+5. 변경을 기본 브랜치에 커밋하고 push해.
+6. fullops-orca bootstrap으로 기존 워크트리를 조회해. 없는 역할의 워크트리만 만들어. 쉬고 있고 작업 트리가 깨끗한 역할 브랜치에만 기본 브랜치를 반영해. 작업 중인 역할은 반영을 예약하고 보고해.
+7. 지금까지 architecture가 터미널로 띄운 worker가 있으면 목록을 보고해. 다음 과제부터는 worker-start --run으로 띄운다.
+8. orchestration Run을 만들거나 PLANS.md의 기존 run id를 확인해.
+9. 워크트리·브랜치·run id·예약된 동기화·미정 사항을 보고하고 요청을 기다려.
+```
+
+### setup 뒤 요청
+
+coordinator 세션에 요청할 때는 아래 형식을 씁니다. route, dispatch, 대기는 스킬과 flow-gate가 이어서 처리합니다.
+
+```text
+요청: <기능 또는 수정 내용>
+과제 키: <예: PLAYER-JUMP-1>
+fullops-orca route로 분류하고 dispatch해줘.
+```
+
 ## 작업 흐름
 
 역할은 레포별 setup에서 제품·기술·규모에 맞게 구성합니다. `fullops.json`에 역할과 브랜치를 등록하고 역할별 인박스·컨텍스트를 생성합니다. GitHub remote의 기준 브랜치에서 `fullops/<역할 ID>` 원격 브랜치를 만들며, 기존 브랜치와 작업 기록은 보존합니다. CLI·모델 배정은 `orca-agents.md`에서 관리합니다.
@@ -115,6 +167,14 @@ OCR CLI는 `@alibaba-group/open-code-review@latest`(설치 시점 최신)로 설
 ## 개발 검증
 
 선택형 Jev 관찰 실험의 입력 형식과 실행 방법은 [Jev 관찰 실험](docs/jev-observe.md)에 있습니다. 지시서를 쓸 때 `jev_context.py`로 후보 문서를 분류해 worker가 먼저 읽을 목록을 줄일 수 있습니다. 제외는 추천이며 필수 문서와 실패 시에는 모두 유지합니다.
+coordinator는 `jev_route.py`로 요청을 simple(담당 역할에 직접 지시)과 design(설계 역할에 먼저 맡김)으로 나눕니다. 판단 기준은 `orca-agents.md`의 `## 라우팅 기준`이고, 이 섹션이 Jev에 전달됩니다. 확신이 낮거나 호출이 실패하면 설계 역할로 보냅니다. worker의 설계 질문은 coordinator가 설계 역할에게 전달하고, 받은 답을 그대로 회신합니다. 기존 레포는 `orca-agents.md`에 이 섹션을 직접 추가해야 합니다.
+flow-gate hook(`flow_gate.py`)이 이 흐름을 강제합니다. Claude Code·Codex·grok build에서 동작하며, 현재 브랜치로 역할을 판정합니다.
+- 공통: 지시서의 터미널 주입과 `--run` 없는 `worker-start`를 차단합니다.
+- coordinator: route 기록 없는 dispatch, route와 맞지 않는 지시서 작성을 차단합니다.
+- 설계 역할: 코드 파일 수정을 차단합니다.
+- dispatched worker: `worker_done`·`escalation` 없이 끝내면 한 번 막습니다.
+
+셸 리다이렉션 같은 우회까지는 막지 못하며, hook 오류는 작업을 막지 않습니다.
 
 `plugins/fullops-squad/`는 Agent Plugins 1.0.0의 표준 원본입니다. `plugin.json`과 `mcp.json`이 공통 정본이며 `adapters/`에서 기존 호스트 메타데이터를 관리합니다. `dist/`는 생성물이므로 직접 수정하지 않습니다. 표준 지원 클라이언트에는 원본 디렉터리를 전달할 수 있으며, 실행 의존성은 별도 설치해야 합니다.
 

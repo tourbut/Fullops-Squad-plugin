@@ -4,11 +4,16 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 
 import jev_find
 from work import active_repo, safe_file, KEY
+
+
+def ocr_command():
+    return shutil.which('ocr') or 'ocr'  # Windows의 ocr.cmd
 
 
 def sha(repo, ref):
@@ -31,7 +36,7 @@ def prepare(repo, key, base, head):
     env = dict(os.environ, OCR_NO_UPDATE='1')
     options = ['--repo', str(repo), '--from', base, '--to', head, '--rule', str(rule), '--format', 'json']
     def ocr(*args):
-        return json.loads(subprocess.check_output(['ocr', 'delegate', *args, *options], text=True, env=env))
+        return json.loads(subprocess.check_output([ocr_command(), 'delegate', *args, *options], text=True, env=env))
     preview = ocr('preview')
     if preview.get('schema_version') != '1':
         raise ValueError('지원하지 않는 OCR preview 스키마')
@@ -41,7 +46,7 @@ def prepare(repo, key, base, head):
     rules = ocr('rule', *paths) if paths else {'schema_version': '1', 'groups': []}
     if rules.get('schema_version') != '1' or digest != rule_hash(rule):
         raise ValueError('규칙 스키마 또는 실행 중 규칙 변경을 확인하세요')
-    version = subprocess.check_output(['ocr', '--version'], text=True, env=env).strip()
+    version = subprocess.check_output([ocr_command(), '--version'], text=True, env=env).strip()
     result = {'base': base, 'head': head, 'rule_sha256': digest, 'ocr_version': version,
               'reviewer': '', 'conclusion': '',
               'files': [{**item, 'review_status': 'pending', 'reason': ''}

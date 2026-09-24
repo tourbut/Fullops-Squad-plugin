@@ -12,15 +12,21 @@ PACKAGE = ROOT / 'dist/native/fullops-squad'
 for host in ('codex', 'claude'):
     manifest = json.loads((PACKAGE / f'.{host}-plugin/plugin.json').read_text())
     config = json.loads((PACKAGE / manifest['hooks']).read_text())
-    assert set(config['hooks']) == {'SessionStart', 'Stop'}
-    group, gate = config['hooks']['SessionStart']
+    assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'Stop'}
+    group, gate, flow = config['hooks']['SessionStart']
     assert group['matcher'] == 'startup|clear'  # Resume/compact must preserve an opt-out.
     hook, = group['hooks']
     assert hook['command'] == 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/caveman_start.py"'
     assert 'matcher' not in gate  # done-gate는 resume·compact에도 시작 지점을 확인한다
     assert gate['hooks'][0]['command'] == 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/done_gate.py" start'
-    stop, = config['hooks']['Stop']
+    assert flow['matcher'] == 'startup|clear'
+    assert flow['hooks'][0]['command'] == 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py" start'
+    stop, flow_stop = config['hooks']['Stop']
     assert stop['hooks'][0]['command'] == 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/done_gate.py" stop'
+    assert flow_stop['hooks'][0]['command'] == 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py" stop'
+    for event, mode in (('UserPromptSubmit', 'prompt'), ('PreToolUse', 'tool')):
+        entry, = config['hooks'][event]
+        assert entry['hooks'][0]['command'] == f'python3 "${{CLAUDE_PLUGIN_ROOT}}/scripts/flow_gate.py" {mode}'
 
 with tempfile.TemporaryDirectory() as directory:
     env = {**os.environ, 'HOME': directory, 'USERPROFILE': directory,
