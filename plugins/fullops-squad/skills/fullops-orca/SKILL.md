@@ -26,8 +26,9 @@ flow-gate hook이 route 기록, `worker-start --run`, 설계 역할의 코드 �
 coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 않는다. `orca-agents.md`의 `## 라우팅 기준`을 읽는다.
 
 1. 과제 키를 정한다. 이 스킬 기준 `../../scripts/jev_route.py`로 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --request "<요청 원문>"`을 실행한다. 비밀값이 섞인 요청은 원문 대신 요약을 넘긴다. 결과는 `docs/evaluations/jev/<과제 키>-route.json`에 남는다.
-2. `route: simple → <역할>`이면 `fullops-work`로 그 역할 인박스에 짧은 지시서를 쓰고 dispatch한다. 지시서를 쓰다가 파일 소유권·완료 기준·검증 명령 중 하나라도 정할 수 없으면 design으로 바꾼다. Jev 결과보다 이 판단이 우선한다.
-3. `route: design → <설계 역할>`이면(오류·키 없음 포함) 설계 역할을 dispatch한다. spec에는 과제 키, 요청 원문 파일 경로, 대상 역할 인박스(`handovers/to_<역할>.md`)를 넣는다. 설계 역할은 설계 문서와 역할별 지시서를 쓰고 커밋한다. 그다음 `worker_done` body에 `[설계] <과제 키> | 지시서: <경로들> | 역할: … | SHA …`를 보낸다. 코드는 구현하지 않는다.
+출력의 `갱신할 산출물`(route.json의 `deliverables`)은 이 요청으로 쓰거나 고쳐야 할 D01–D13이다. 추천일 뿐이며 판단으로 더하거나 뺄 수 있다.
+2. `route: simple → <역할>`이면 `fullops-work`로 그 역할 인박스에 짧은 지시서를 쓰고 dispatch한다. 지시서의 `갱신할 산출물`에 route 결과를 옮긴다. 지시서를 쓰다가 파일 소유권·완료 기준·검증 명령 중 하나라도 정할 수 없으면 design으로 바꾼다. Jev 결과보다 이 판단이 우선한다.
+3. `route: design → <설계 역할>`이면(오류·키 없음 포함) 설계 역할을 dispatch한다. spec에는 과제 키, 요청 원문 파일 경로, 대상 역할 인박스(`handovers/to_<역할>.md`), route의 갱신할 산출물을 넣는다. 설계 역할은 산출물 목록을 확정해 각 지시서의 `갱신할 산출물`에 나눠 적는다. 설계 역할은 설계 문서와 역할별 지시서를 쓰고 커밋한다. 그다음 `worker_done` body에 `[설계] <과제 키> | 지시서: <경로들> | 역할: … | SHA …`를 보낸다. 코드는 구현하지 않는다.
 4. 설계 `worker_done`을 받으면 설계 역할을 `worker-retain`으로 남긴다. 이어서 적힌 지시서마다 해당 역할을 dispatch한다. 설계 역할은 그 과제의 병합이 끝나면 `worker-release`한다. 다음 설계는 새 세션에서 시작해 컨텍스트가 과제 단위로 끊기게 한다.
 
 ## dispatch
@@ -70,6 +71,12 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 `[완료] <과제 키> | 브랜치 <branch> | SHA <sha 또는 미커밋> | 변경: … | 검토 필요: … | 검증(lint 포함): … | 산출물/로그: … | 후속: …`
 
 preamble이 없으면 오케스트레이션 없이 착수한 것이다. `worker_done`을 만들어 보내지 않는다. 지시서의 복귀 터미널 핸들로 위 줄을 `terminal send` 하고, 이 경로는 요청자가 `terminal wait`으로 기다릴 때만 도달한다고 보고에 적는다. 핸들이 만료됐으면 같은 repo id와 복귀 워크트리에서 다시 조회한다. 전송 오류와 재시도 여부를 기록·보고하고 카드를 갱신한다. `worker_done` 뒤에는 턴을 끝내고 idle로 둔다.
+
+## 현황판 — coordinator
+
+사람이 진행 상황을 눈으로 보는 `.fullops-squad/board/index.html`은 플러그인이 제공하는 고정 양식이다. 고치지 않는다.
+coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summary`와 `phases`(각 항목 `name`, `status`: done/active/blocked/todo, `deliverables`: D01–D13 ID 목록, `note`)를 적는다. 프로젝트 단계가 시작·완료·추가되면 바로 고치고 기본 브랜치에 커밋한다. 산출물 상태는 `docs/deliverables/README.md`에서 읽으므로 board.json에 중복해서 적지 않는다.
+역할별 과제, PLANS.md, 완료 이력, route, 리뷰 결과, 산출물은 이 스킬 기준 `../../scripts/board.py`가 레포 기록에서 모아 `board/board-data.js`를 만든다. coordinator 세션이 끝날 때 flow-gate hook이 자동으로 실행하고, 즉시 보려면 `python3 <board.py> --repo <레포 루트>`를 실행한다. board-data.js는 커밋하지 않는다.
 
 ## merge — 병합 책임자
 

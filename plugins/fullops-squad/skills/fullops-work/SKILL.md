@@ -30,4 +30,5 @@ description: FullOps setup이 완료된 레포에서 기능 개발을 역할별�
 새 코드 파일은 맨 위 docstring·주석 1~3줄에 무엇을 하는지 적는다. 이 설명이 Jev 코드 지도가 되며, 없으면 lint DOC-001 WARNING이다.
 변경 파일과 산출물을 커밋해 브랜치·SHA를 확보한다. 커밋이 허가되지 않았거나 실패하면 미커밋 상태를 명시한다.
 코드를 바꿨으면 커밋한 뒤 이 스킬 기준 `../../scripts/lint.py`로 `python3 <lint.py> --repo <자기 체크아웃 루트> --from <지시서의 기준 ref>`를 실행한다. 규약은 `.fullops-squad/lint/README.md`를 따른다. ERROR를 모두 고치고 다시 커밋해 통과시킨다. 완료 보고의 검증 항목에 HEAD·ERROR·WARNING·실행 불가와 사유를 적는다. 같은 실수가 반복되면 `lint.json`의 `rules`에 규칙을 추가하도록 제안한다. worker 브랜치에서 바꾼 `lint.json`은 병합 전까지 적용되지 않는다. 테스트 실행 증거는 명령 자신의 종료코드를 남긴다. `| tail`처럼 파이프로 종료코드를 가린 로그는 통과 근거로 쓰지 않는다(`set -o pipefail` 또는 파일 저장 후 확인).
+지시서의 `갱신할 산출물`이 있으면 `fullops-deliverables`로 해당 원천 문서를 갱신하고 front matter는 `deliverables.py --stamp --task <과제 키>`로 쓴 뒤, 완료 보고의 산출물 항목에 바꾼 ID를 적는다.
 worker는 지시서의 복귀 주소로 `fullops-orca` report를 직접 실행한다. 전송 실패 시 보존한 로그는 유지하고 회신 재시도를 남긴다. 검토자는 같은 과제를 다시 아카이빙하지 않는다.

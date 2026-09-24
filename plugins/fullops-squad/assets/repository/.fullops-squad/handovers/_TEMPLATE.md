@@ -29,6 +29,10 @@ worker가 먼저 읽을 경로를 적는다. `jev_context.py`로 분류했다면
 
 관찰 가능한 성공 조건·실행할 검증·예상 실패 및 경계 조건을 적는다.
 
+## 갱신할 산출물
+
+`jev_route.py`가 고른 산출물 ID(D01–D13)와 설계 판단으로 더한 것을 적는다. worker는 해당 원천 문서의 본문과 front matter(`status`·`updated`·`tasks`)를 `fullops-deliverables` 규칙대로 갱신한다. 없으면 "없음"으로 적는다.
+
 ## 기대 산출물
 
 코드·테스트·기획/설계/QA 원천 파일·상세 작업 로그 경로를 적는다.

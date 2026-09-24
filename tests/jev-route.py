@@ -15,7 +15,8 @@ jev = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev)
 
 
-def stub(sent, simple, role, role_p=0.9):
+def stub(sent, simple, role, role_p=0.9, docs=None):
+    """docs: {산출물 ID 또는 'none': 확률}. 나머지 선택지가 남은 확률을 나눠 갖는다. None이면 답하지 않는다."""
     def call(payload):
         sent.append(payload)
         roles = list(payload['questions']['role']['criteria'])
@@ -24,6 +25,12 @@ def stub(sent, simple, role, role_p=0.9):
                              'probabilities': {'simple': simple, 'design': 1 - simple}},
                    'role': {'type': 'choice', 'choice': role, 'confidence': 0.9,
                             'probabilities': {r: role_p if r == role else rest for r in roles}}}
+        if docs is not None and 'docs' in payload['questions']:
+            options = list(payload['questions']['docs']['criteria'])
+            left = (1 - sum(docs.values())) / max(len(options) - len(docs), 1)
+            probabilities = {o: docs.get(o, left) for o in options}
+            answers['docs'] = {'type': 'choice', 'choice': max(probabilities, key=probabilities.get), 'confidence': 0.8,
+                               'probabilities': probabilities}
         return {'model': 'typesafe/jev-test', 'answers': answers, 'usage': {'cost': 0.0001}}, 0.1
     return call
 
@@ -44,6 +51,25 @@ def main():
         assert '설계 역할' in state['guide'] and state['request'].startswith('점프')
         assert set(questions['role']['criteria']) == {'dev', 'art', 'ops'}  # 설계 역할은 후보가 아니다
         assert '게임플레이' in questions['role']['criteria']['dev']
+        assert result['deliverables'] == [] and result['answers']['docs'] is None  # 산출물 답이 없어도 역할 라우팅 유지
+
+        # 산출물 라우팅: 선택지는 인덱스와 front matter에서 만들고 범위 밖은 뺀다
+        fo = repo / '.fullops-squad'
+        index = fo / 'docs/deliverables/README.md'
+        index.write_text(index.read_text(encoding='utf-8').replace('| 테이블정의서 | `docs/generated/db-schema.md` | 미작성 |',
+                                                                  '| 테이블정의서 | `docs/generated/db-schema.md` | 범위 밖 |'), encoding='utf-8')
+        (fo / 'docs/design-docs').mkdir(parents=True, exist_ok=True)
+        (fo / 'docs/design-docs/architecture.md').write_text(
+            '---\nid: D03\ntitle: 점프 시스템 설계\nstatus: draft\nupdated: 2026-09-24\nsummary: 점프 물리와 입력 처리 구조\n---\n', encoding='utf-8')
+        sent = []
+        result = jev.route(repo, 'T-7', '점프 물리 구조를 바꿔줘', stub(sent, 0.3, 'dev', docs={'D03': 0.55, 'D10': 0.3}))
+        docs = sent[0]['questions']['docs']['criteria']
+        assert 'D08' not in docs and 'none' in docs and docs['D03'] == 'D03 점프 시스템 설계 (설계): 점프 물리와 입력 처리 구조'
+        assert (result['route'], result['deliverables']) == ('design', ['D03', 'D10']), result
+        result = jev.route(repo, 'T-8', '문구 오타 수정', stub([], 0.95, 'dev', docs={'none': 0.7}))
+        assert (result['route'], result['deliverables']) == ('simple', []), result
+        result = jev.route(repo, 'T-9', '전체 개편', stub([], 0.9, 'dev', docs={'D02': 0.3, 'D03': 0.25, 'D04': 0.2, 'D05': 0.2}))
+        assert result['deliverables'] == ['D02', 'D03', 'D04'], result  # 최대 3개
 
         for simple, role_p in ((0.6, 0.9), (0.95, 0.4)):  # scope나 role 확신이 낮으면 설계로
             result = jev.route(repo, 'T-2', '저장 형식을 바꿔줘', stub([], simple, 'dev', role_p))

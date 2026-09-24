@@ -2,6 +2,7 @@
 """FullOps flow-gate hook. coordinator·설계 역할·worker가 route → dispatch → 질문 → 완료 보고 흐름을 벗어나지 않게 막는다.
 
 역할은 현재 브랜치로 정한다. `fullops.json`의 역할 브랜치가 아니면 coordinator, 라우팅 기준의 설계 역할이면 설계 역할이다.
+coordinator 세션이 끝날 때마다 작업 현황판 데이터(board/board-data.js)를 다시 만든다.
 Claude Code·Codex(snake_case)와 grok(camelCase) 입력을 함께 읽는다. 셸 우회까지 막지는 못하며, 어떤 오류도 작업을 막지 않는다.
 """
 import json
@@ -10,6 +11,7 @@ import re
 import shlex
 import sys
 
+import board
 from done_gate import CODE, field, git
 from jev_route import guide
 
@@ -119,7 +121,7 @@ def tool_denial(root, event, state):
 BRIEF = {
     'coordinator': ('FullOps coordinator: 새 요청은 과제 키를 정하고 `jev_route.py`로 먼저 분류한다. simple이면 그 역할 지시서를, '
                     'design이면 설계 역할을 `worker-start --run`으로 띄운다. 설계·범위 질문은 직접 답하지 않고 설계 역할에게 넘긴다. '
-                    '이 규칙은 hook이 강제한다.'),
+                    '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다.'),
     'designer': ('FullOps 설계 역할: 설계 문서와 역할별 지시서만 쓰고 코드는 고치지 않는다. 끝나면 preamble의 `worker_done`으로 '
                  '`[설계] <과제 키> | 지시서: … | 역할: … | SHA …`를 보낸다.'),
     'worker': ('FullOps worker: 설계·범위 판단이 필요하면 preamble의 `ask`로 묻고 추측하지 않는다. 끝나면 preamble의 '
@@ -165,6 +167,11 @@ def main():
                           f"FullOps: Dispatch {state['dispatch']}의 `worker_done`을 보내지 않았습니다. 과제를 마쳤으면 preamble의 "
                           '`worker_done` 명령(`--outcome succeeded|failed`)을 보내고, 판단이 필요하면 `ask`, 막혔으면 `escalation`을 보내세요. '
                           '아직 작업 중이면 계속 진행하세요.'}
+        if context(root)[0] == 'coordinator':
+            try:
+                board.write(root)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다
+            except Exception:  # noqa: BLE001
+                pass
     if state != before:
         session.write_text(json.dumps(state))
     return output

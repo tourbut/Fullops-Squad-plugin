@@ -17,7 +17,8 @@
     "**/package-lock.json",
     ".fullops-squad/handovers/**",
     ".fullops-squad/contexts/**",
-    ".fullops-squad/docs/evaluations/**"
+    ".fullops-squad/docs/evaluations/**",
+    ".fullops-squad/board/**"
   ],
   "rules": []
 }

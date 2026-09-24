@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tokenize
 
+import deliverables
 from work import active_repo, safe_file
 
 CONFIG = '.fullops-squad/lint/lint.json'
@@ -207,6 +208,21 @@ def check_file(path, old, new, config):
                 yield rule['code'], rule.get('severity', 'WARNING'), number, f"{rule['description']}. {rule.get('suggestion', '')}".strip()
 
 
+def deliverable_violations(path, text, index):
+    """바뀐 파일이 산출물 원천 문서면 front matter를 deliverables.py 규칙으로 검사한다(DOC-002)."""
+    if not path.startswith('.fullops-squad/'):
+        return []
+    relative = path[len('.fullops-squad/'):]
+    found = []
+    for doc_id, (_, sources, status) in index.items():
+        if status != '범위 밖' and deliverables.owner_of(sources, relative):
+            for problem in deliverables.problems(text, doc_id, status):
+                found.append({'code': 'DOC-002', 'severity': 'ERROR', 'line': None, 'path': path,
+                              'message': f'{doc_id} front matter: {problem}. '
+                                         f'`deliverables.py --stamp --id {doc_id}`로 다시 쓴다'})
+    return found
+
+
 def run_command(repo, command, timeout):
     entry = {'name': command['name'], 'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
     try:
@@ -233,6 +249,7 @@ def lint(repo, base_ref):
     if config_blob(repo, head) != config_blob(repo, merge_base):
         violations.append({'code': 'LINT-001', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '이 브랜치의 lint 설정 변경은 적용하지 않았습니다. 병합 후 적용되니 변경 이유를 검토하세요'})
+    index = deliverables.index_rows(blob(repo, head, '.fullops-squad/' + deliverables.INDEX) or '')
     for old_path, path in changed(repo, merge_base, head):
         target = path or old_path
         if any(fnmatch(target, p) or (p.startswith('**/') and fnmatch(target, p[3:])) for p in config['exclude']):
@@ -249,6 +266,7 @@ def lint(repo, base_ref):
         files += 1
         violations += [dict(zip(('code', 'severity', 'line', 'message'), v), path=path)
                        for v in check_file(path, old, new, config)]
+        violations += deliverable_violations(path, new, index)
     commands = [run_command(repo, c, config['timeout_seconds']) for c in config['commands']]
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
@@ -285,7 +303,7 @@ def main():
     if args.out:
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+        out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     for c in result['commands']:
         print(f"[{c['status']}] {c['name']}: {' '.join(c['run'])}")
         if c['status'] == 'failed':

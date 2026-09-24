@@ -3,16 +3,22 @@
 
 `orca-agents.md`의 `## 라우팅 기준`을 Jev의 state로 보내 레포 기준으로 판단하게 한다. 확신이 낮거나
 기준·키가 없거나 호출이 실패하면 항상 설계 역할로 보낸다. 잘못된 simple은 재작업이고 잘못된 design은 비용뿐이다.
+같은 요청으로 갱신할 산출물(D01–D13)도 고른다. 산출물 front matter의 title·summary가 선택지 설명이 된다.
 """
 import argparse
 import json
 import os
 import re
 
+from pathlib import Path
+
+from board import deliverables
 from jev_observe import MODEL, checked_answer, key_from_file, request, safe_text
 from work import KEY, active_repo, safe_file
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
+DOC, DOC_TOTAL, DOC_MAX = 0.2, 0.8, 3  # 산출물: 개별 확률 하한, 누적 목표, 최대 개수
+NONE = 'none'
 SCOPE = {'simple': 'Files, acceptance and checks are clear from the request and it stays inside one role.',
          'design': 'Needs design decisions, changes a shared contract, spans several roles, or is ambiguous.'}
 
@@ -31,10 +37,40 @@ def guide(repo):
     return body, designer.group(1), described
 
 
+def document_options(repo):
+    """갱신 후보 산출물 선택지. 범위 밖 산출물은 빼고, 비밀값처럼 보이는 요약은 버린다."""
+    options = {}
+    for d in deliverables(Path(repo) / '.fullops-squad'):
+        if '범위 밖' in d['status']:
+            continue
+        label = f"{d['id']} {d['name']} ({d['stage']})"
+        try:
+            options[d['id']] = safe_text(f"{label}: {d['summary']}" if d['summary'] else label, 300)
+        except ValueError:
+            options[d['id']] = label
+    if options:
+        options[NONE] = 'No deliverable document needs to change for this request.'
+    return options
+
+
+def picked(answer):
+    """확률 높은 산출물부터 누적 DOC_TOTAL까지, 개별 DOC 이상, 최대 DOC_MAX개. none이 가장 높으면 없음."""
+    if not answer or answer['choice'] == NONE:
+        return []
+    result, total = [], 0.0
+    for option, probability in sorted(answer['probabilities'].items(), key=lambda kv: -kv[1]):
+        if option == NONE or probability < DOC or len(result) >= DOC_MAX or total >= DOC_TOTAL:
+            break
+        result.append(option)
+        total += probability
+    return result
+
+
 def route(repo, key, text, call):
     roles = list(json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8'))['roles'])
-    result = {'version': 'jev-route-v1', 'task_key': key, 'requested_model': MODEL, 'route': None, 'role': None,
-              'thresholds': {'simple': SIMPLE, 'role': ROLE}, 'answers': None, 'usage': None, 'error': None}
+    result = {'version': 'jev-route-v2', 'task_key': key, 'requested_model': MODEL, 'route': None, 'role': None,
+              'deliverables': [], 'thresholds': {'simple': SIMPLE, 'role': ROLE, 'deliverable': DOC},
+              'answers': None, 'usage': None, 'error': None}
     try:
         body, designer, described = guide(repo)
     except (OSError, ValueError) as error:
@@ -49,16 +85,25 @@ def route(repo, key, text, call):
                            'Using the repository routing `guide`, can a worker do `request` directly without a design step?'},
                  'role': {'type': 'choice', 'criteria': workers, 'instructions':
                           'Using the repository routing `guide`, which role owns most of the work in `request`?'}}
+    docs = document_options(repo)
+    if docs:
+        questions['docs'] = {'type': 'choice', 'criteria': docs, 'instructions':
+                             'Which project deliverable document must be written or updated because of `request`? '
+                             'Choose none when no deliverable document changes.'}
     try:
         response, elapsed = call({'model': MODEL, 'state': {'guide': safe_text(body), 'request': safe_text(text)},
                                   'questions': questions})
-        answers = {q: checked_answer(response['answers'][q], questions[q]['criteria']) for q in questions}
+        answers = {q: checked_answer(response['answers'][q], questions[q]['criteria']) for q in ('scope', 'role')}
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
         return {**result, 'route': 'design', 'error': f'Jev 생략: {error}'}
+    try:  # 산출물 답이 이상해도 역할 라우팅은 유지한다
+        answers['docs'] = checked_answer(response['answers']['docs'], docs) if docs else None
+    except (ValueError, KeyError, TypeError):
+        answers['docs'] = None
     scope, role = answers['scope'], answers['role']
     simple = scope['probabilities']['simple'] >= SIMPLE and role['probabilities'][role['choice']] >= ROLE
     return {**result, 'route': 'simple' if simple else 'design', 'role': role['choice'] if simple else designer,
-            'answers': answers, 'usage': response.get('usage') or {}, 'latency_seconds': elapsed,
+            'deliverables': picked(answers['docs']), 'answers': answers, 'usage': response.get('usage') or {}, 'latency_seconds': elapsed,
             'response_model': response.get('model')}
 
 
@@ -89,6 +134,7 @@ def main():
     detail = (f" (simple {answers['scope']['probabilities']['simple']:.2f}, "
               f"{answers['role']['choice']} {answers['role']['probabilities'][answers['role']['choice']]:.2f})") if answers else ''
     print(f"route: {result['route']} → {result['role'] or '-'}{detail} / {result['error'] or '정상'}")
+    print(f"갱신할 산출물: {', '.join(result['deliverables']) or '없음'}")
     print(output.relative_to(repo))
 
 

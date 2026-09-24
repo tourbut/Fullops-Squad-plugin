@@ -9,6 +9,7 @@
 | 기술 기준·검증 명령·문서 정본 | `project.md` |
 | 역할·워크트리·에이전트 배정 | `orca-agents.md` |
 | 현재 할 일·우선순위 | `PLANS.md` |
+| 프로젝트 단계·진행 현황판 | `board/board.json` (coordinator가 관리) · `board/index.html` |
 | 역할별 작업 명세와 완료 처리 | `handovers/_TEMPLATE.md` · `fullops-work` 스킬 |
 | Orca 착수 확인·회신·검토 | `orca-agents.md` · `fullops-orca` 스킬 |
 | 코드 변경의 lint 게이트 | `lint/README.md` · `lint/lint.json` |

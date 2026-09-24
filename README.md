@@ -5,6 +5,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.7.0 작업 현황판·산출물 메타정보
+
+`.fullops-squad/board/index.html`에서 프로젝트 단계, 역할별 과제, 리뷰, 산출물 진행을 눈으로 확인합니다. coordinator 세션이 끝날 때마다 자동으로 갱신됩니다. 산출물 원천 문서의 front matter는 `deliverables.py --stamp`로만 쓰고 lint `DOC-002`가 형식을 검사해, 모델이 달라도 같은 형식으로 남습니다. Jev가 요청마다 갱신할 산출물도 고릅니다. [변경 범위·기존 레포 적용](docs/releases/0.7.0.md)을 확인하세요.
+
 ## 0.6.0 coordinator 라우팅·flow-gate
 
 비용이 낮은 모델의 coordinator가 `jev_route.py`로 요청을 분류합니다. simple은 담당 역할에 바로 보내고, design은 설계 역할이 지시서를 쓴 뒤 worker에게 넘깁니다. worker는 `worker-start --run`으로만 띄워 완료 보고가 요청자에게 돌아오게 합니다. flow-gate hook이 Claude Code·Codex·grok build에서 이 흐름을 강제합니다. Windows 호환도 보강했습니다. [변경 범위·기존 레포 적용](docs/releases/0.6.0.md)을 확인하세요.
@@ -78,7 +82,7 @@ FullOps는 TypeSafe의 판단 모델 Jev(`~typesafe/jev-latest`, OpenRouter 경�
 
 | 스크립트 | 쓰는 곳 | 키가 없거나 실패하면 |
 |---|---|---|
-| `jev_route.py` | coordinator가 요청을 simple·design으로 분류 | 항상 설계 역할로 보냄 |
+| `jev_route.py` | coordinator가 요청을 simple·design으로 분류하고, 갱신할 산출물(D01–D13)을 고름 | 설계 역할로 보내고 산출물은 추천하지 않음 |
 | `jev_find.py` | 지시서를 쓸 때 관련 코드 위치 탐색 | 검색으로 후보를 정함 |
 | `jev_context.py` | worker가 먼저 읽을 문서 선별 | 후보를 모두 유지 |
 
@@ -91,6 +95,17 @@ FullOps는 TypeSafe의 판단 모델 Jev(`~typesafe/jev-latest`, OpenRouter 경�
 - 환경 변수 대신 파일을 쓰려면 스크립트에 `--env-file <경로>`를 넘깁니다. 파일에서 `OPENROUTER_API_KEY=...` 줄만 읽고 코드로 실행하지 않습니다. 파일은 레포 밖에 두거나 `.gitignore`에 넣습니다.
 
 키를 레포, 지시서, `orca-agents.md`에 적지 않습니다. 스크립트는 비밀값처럼 보이는 문자열이 섞인 요청을 Jev에 보내지 않습니다. 같은 요청의 응답은 `~/.cache/fullops-squad/jev`(`FULLOPS_JEV_CACHE`로 변경 가능)에 캐시되어 다시 과금되지 않습니다.
+
+## 작업 현황판
+
+사람이 프로젝트 진행 상황을 눈으로 확인하는 페이지입니다. 서비스 레포의 `.fullops-squad/board/index.html`을 브라우저로 열면 됩니다. 60초마다 새로고침합니다.
+
+- **양식은 고정**: `index.html`은 플러그인이 제공하며 고치지 않습니다.
+- **단계는 coordinator가 관리**: `board/board.json`에 제목, 요약, 프로젝트 단계(상태: 완료·진행 중·막힘·예정)와 단계별 산출물 ID를 적습니다. 단계를 추가하면 현황판에도 늘어납니다.
+- **나머지는 자동 수집**: 역할별 현재 과제(인박스), `PLANS.md`, 완료 이력(작업 로그), Jev 분류, 리뷰·lint 결과, 산출물 D01–D13 상태와 원천 문서 유무를 `scripts/board.py`가 레포 기록에서 모아 `board/board-data.js`로 만듭니다.
+- **자동 갱신**: coordinator 세션이 끝날 때마다 flow-gate hook이 데이터를 다시 만듭니다. 바로 보려면 `python3 <플러그인>/scripts/board.py --repo .`를 실행합니다.
+- `board-data.js`는 `board/.gitignore`로 커밋하지 않습니다. 다른 PC에서는 한 번 실행하면 생깁니다.
+- **산출물 메타정보**: 산출물 원천 문서 맨 위의 front matter(`id`·`title`·`status`·`updated`·`owner`·`tasks`·`upstream`·`downstream`·`summary`)를 현황판이 인덱스 표보다 우선해서 읽습니다. front matter는 모델이 손으로 쓰지 않고 `deliverables.py --stamp`로만 씁니다. 필드 순서·목록 표기·갱신일이 고정되고 인덱스 표의 상태도 함께 맞춰집니다. 바뀐 원천 문서가 이 형식과 다르면 lint `DOC-002` ERROR로 worker 종료와 병합이 막힙니다. Jev 산출물 라우팅도 이 `title`·`summary`로 판단합니다.
 
 ## Orca 설정
 
@@ -144,6 +159,28 @@ flow-gate는 역할 브랜치(`fullops/<역할>`)가 아닌 브랜치를 coordin
 7. 지금까지 architecture가 터미널로 띄운 worker가 있으면 목록을 보고해. 다음 과제부터는 worker-start --run으로 띄운다.
 8. orchestration Run을 만들거나 PLANS.md의 기존 run id를 확인해.
 9. 워크트리·브랜치·run id·예약된 동기화·미정 사항을 보고하고 요청을 기다려.
+```
+
+### 기존 레포 0.7.0 업데이트
+
+FullOps를 이미 쓰는 레포에 0.7.0을 적용합니다. 먼저 각 PC에서 플러그인을 0.7.0으로 갱신하고, 기본 브랜치 체크아웃에서 새 coordinator 세션을 열어 붙여 넣습니다.
+
+```text
+FullOps Squad 플러그인이 0.7.0으로 올라갔다. 이 레포에 업데이트를 적용해줘. 지금 체크아웃은 기본 브랜치이고, 이 세션이 coordinator다.
+1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘. 설치된 플러그인이 0.7.0인지도 확인해.
+2. 모든 인박스(handovers/to_<역할>.md)와 PLANS.md에서 진행 중인 과제를 찾아 보고해. 건드리지 마.
+3. setup-fullops를 fullops.json의 기존 역할 그대로 다시 실행해. --dry-run으로 먼저 보여주고, 새 파일(.fullops-squad/board/)만 추가하고 기존 문서와 기록은 보존해.
+4. setup이 바꾸지 않는 파일을 플러그인 템플릿과 비교해 필요한 부분만 더해.
+   - handovers/_TEMPLATE.md: "## 갱신할 산출물" 절
+   - lint/lint.json: exclude에 ".fullops-squad/board/**"
+   - FULLOPS.md: 현황판 행
+   - docs/deliverables/README.md: front matter 절(--stamp 규칙). 기존 행과 상태는 보존
+   - orca-agents.md에 "## 라우팅 기준"이 없으면 템플릿 형식으로 추가
+5. board/board.json을 이 레포에 맞게 써. title과 summary, 그리고 PLANS.md와 개발계획 문서에서 실제 프로젝트 단계와 상태를 옮기고, 단계마다 관련 산출물 ID를 연결해.
+6. deliverables.py --repo . --strict를 실행해. 경고가 난 원천 문서마다 deliverables.py --stamp로 front matter를 써. 처음 쓰는 문서는 --owner와 --summary를 문서 내용에서 정하고, 원천이 폴더이거나 여러 파일이면 --path를 붙여. 본문에 있던 자유 형식 "상태·갱신일" 줄은 front matter로 옮긴 뒤 지워. --strict 결과가 0이 될 때까지 반복해. front matter를 손으로 쓰지 마.
+7. board.py --repo .를 실행하고 board/index.html 경로를 알려줘.
+8. 변경을 기본 브랜치에 커밋하고 push해. 쉬고 있고 작업 트리가 깨끗한 역할 브랜치에만 기본 브랜치를 반영하고, 작업 중인 역할은 반영을 예약해.
+9. 추가·수정한 파일, stamp한 산출물, 예약된 동기화, 미정 사항을 보고해.
 ```
 
 ### setup 뒤 요청
