@@ -91,6 +91,20 @@ def main():
              'orca orchestration send --from w --type worker_done --task-id t-1 --dispatch-id d-1 --outcome succeeded'})
         assert hook('stop', sessionId='g') == {}
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'git status'}) == {}
+        # coordinator를 역할 워크트리에서 운영: 라우팅 기준의 coordinator 역할 줄로 판정한다
+        agents = repo / '.fullops-squad/orca-agents.md'
+        agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
+                                                                      '- 설계 역할: `architecture`\n- coordinator 역할: `art`'), encoding='utf-8')
+        git('checkout', '-q', '-B', roles['art'])
+        assert 'jev_route.py' in hook('start', session_id='ca', source='startup')['hookSpecificOutput']['additionalContext']
+        assert 'route 기록' in denied(hook('tool', session_id='ca', tool_name='Bash', tool_input={
+            'command': 'orca orchestration worker-start --run r1 --spec "K99 작업" --agent codex'}))
+        board_data = repo / '.fullops-squad/board/board-data.js'
+        board_data.unlink(missing_ok=True)
+        assert hook('stop', session_id='ca') == {} and board_data.is_file()  # coordinator 역할 브랜치에서도 현황판 갱신
+        git('checkout', '-q', roles['dev'])
+        assert 'worker_done' in hook('start', session_id='wd', source='startup')['hookSpecificOutput']['additionalContext']
+
         (repo / '.fullops-squad/fullops.json').write_text('{', encoding='utf-8')
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'orca terminal send handovers/'}) == {}  # fail-open
     print('PASS: flow-gate roles, inject/run/route denials, handover route check, designer code block, worker_done stop gate, grok input')

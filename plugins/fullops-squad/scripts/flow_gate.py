@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """FullOps flow-gate hook. coordinator·설계 역할·worker가 route → dispatch → 질문 → 완료 보고 흐름을 벗어나지 않게 막는다.
 
-역할은 현재 브랜치로 정한다. `fullops.json`의 역할 브랜치가 아니면 coordinator, 라우팅 기준의 설계 역할이면 설계 역할이다.
+역할은 현재 브랜치로 정한다. `fullops.json`의 역할 브랜치가 아니거나 라우팅 기준의 coordinator 역할이면 coordinator,
+라우팅 기준의 설계 역할이면 설계 역할이다.
 coordinator 세션이 끝날 때마다 작업 현황판 데이터(board/board-data.js)를 다시 만든다.
 Claude Code·Codex(snake_case)와 grok(camelCase) 입력을 함께 읽는다. 셸 우회까지 막지는 못하며, 어떤 오류도 작업을 막지 않는다.
 """
@@ -13,7 +14,7 @@ import sys
 
 import board
 from done_gate import CODE, field, git
-from jev_route import guide
+from jev_route import coordinator_role, guide
 
 DISPATCH = re.compile(r'--dispatch-id[ =]+([A-Za-z0-9_.:-]+)')
 SETTLE = re.compile(r'orchestration\s+send\b.*--type[ =]+(?:worker_done|escalation)\b', re.S)  # ask는 턴을 끝내지 않는다
@@ -23,14 +24,15 @@ TITLE = re.compile(r'#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—')
 
 
 def context(root):
-    """(역할 또는 'coordinator', 설계 역할 또는 None)"""
+    """(역할 또는 'coordinator', 설계 역할 또는 None). 역할 브랜치가 아니거나 지정된 coordinator 역할이면 coordinator다."""
     roles = json.loads((root / '.fullops-squad/fullops.json').read_text(encoding='utf-8')).get('roles', {})
     branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD')
     try:
         designer = guide(root)[1]
     except (OSError, ValueError):
         designer = None
-    return next((role for role, b in roles.items() if b == branch), 'coordinator'), designer
+    role = next((role for role, b in roles.items() if b == branch), 'coordinator')
+    return ('coordinator' if role == coordinator_role(root) else role), designer
 
 
 def route_of(root, key):

@@ -5,6 +5,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.7.1 역할 워크트리 coordinator
+
+coordinator를 역할 워크트리(예: `coor`)에서 운영하면 `orca-agents.md` 라우팅 기준에 `- coordinator 역할: `<역할>`` 줄을 둡니다. 그 브랜치의 세션이 coordinator 규칙과 현황판 자동 갱신을 받고 배정 후보에서 빠집니다. [변경 범위](docs/releases/0.7.1.md)
+
 ## 0.7.0 작업 현황판·산출물 메타정보
 
 `.fullops-squad/board/index.html`에서 프로젝트 단계, 역할별 과제, 리뷰, 산출물 진행을 눈으로 확인합니다. coordinator 세션이 끝날 때마다 자동으로 갱신됩니다. 산출물 원천 문서의 front matter는 `deliverables.py --stamp`로만 쓰고 lint `DOC-002`가 형식을 검사해, 모델이 달라도 같은 형식으로 남습니다. Jev가 요청마다 갱신할 산출물도 고릅니다. [변경 범위·기존 레포 적용](docs/releases/0.7.0.md)을 확인하세요.

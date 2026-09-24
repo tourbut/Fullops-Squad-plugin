@@ -37,6 +37,17 @@ def guide(repo):
     return body, designer.group(1), described
 
 
+def coordinator_role(repo):
+    """라우팅 기준의 "- coordinator 역할: `<역할>`" 줄. 없으면 None(기본 브랜치 체크아웃이 coordinator)."""
+    try:
+        text = safe_file(repo, '.fullops-squad/orca-agents.md').read_text(encoding='utf-8')
+    except OSError:
+        return None
+    section = re.search(r'^## 라우팅 기준\n(.*?)(?=^## |\Z)', text, re.M | re.S)
+    match = section and re.search(r'^- coordinator 역할: `([a-z][a-z0-9_-]*)`', section.group(1), re.M)
+    return match.group(1) if match else None
+
+
 def document_options(repo):
     """갱신 후보 산출물 선택지. 범위 밖 산출물은 빼고, 비밀값처럼 보이는 요약은 버린다."""
     options = {}
@@ -78,7 +89,8 @@ def route(repo, key, text, call):
     result['role'] = designer
     if designer not in roles:
         return {**result, 'route': 'design', 'error': f'설계 역할 {designer}이 fullops.json에 없습니다'}
-    workers = {r: f'{r}: {described.get(r, r)}' for r in roles if r != designer}
+    coordinator = coordinator_role(repo)
+    workers = {r: f'{r}: {described.get(r, r)}' for r in roles if r not in (designer, coordinator)}
     if not workers:
         return {**result, 'route': 'design', 'error': '설계 역할 외 worker 역할이 없습니다'}
     questions = {'scope': {'type': 'choice', 'criteria': SCOPE, 'instructions':

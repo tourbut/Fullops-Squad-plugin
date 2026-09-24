@@ -50,6 +50,14 @@ def main():
         state, questions = sent[0]['state'], sent[0]['questions']
         assert '설계 역할' in state['guide'] and state['request'].startswith('점프')
         assert set(questions['role']['criteria']) == {'dev', 'art', 'ops'}  # 설계 역할은 후보가 아니다
+        guide_file = repo / '.fullops-squad/orca-agents.md'
+        original = guide_file.read_text(encoding='utf-8')
+        guide_file.write_text(original.replace('- 설계 역할: `architecture`', '- 설계 역할: `architecture`\n- coordinator 역할: `ops`'),
+                              encoding='utf-8')
+        sent2 = []
+        jev.route(repo, 'T-1b', '빌드 설정 바꿔줘', stub(sent2, 0.9, 'dev'))
+        assert set(sent2[0]['questions']['role']['criteria']) == {'dev', 'art'}  # coordinator 역할도 후보가 아니다
+        guide_file.write_text(original, encoding='utf-8')
         assert '게임플레이' in questions['role']['criteria']['dev']
         assert result['deliverables'] == [] and result['answers']['docs'] is None  # 산출물 답이 없어도 역할 라우팅 유지
 
