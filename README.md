@@ -92,6 +92,22 @@ FullOps는 TypeSafe의 판단 모델 Jev(`~typesafe/jev-latest`, OpenRouter 경�
 
 키를 레포, 지시서, `orca-agents.md`에 적지 않습니다. 스크립트는 비밀값처럼 보이는 문자열이 섞인 요청을 Jev에 보내지 않습니다. 같은 요청의 응답은 `~/.cache/fullops-squad/jev`(`FULLOPS_JEV_CACHE`로 변경 가능)에 캐시되어 다시 과금되지 않습니다.
 
+## Orca 설정
+
+FullOps는 Orca IDE가 있어야 동작합니다. worker 워크트리, 에이전트 터미널, orchestration 메시지와 완료 보고를 모두 Orca가 관리합니다. 서비스 레포는 Orca에 등록해서 열고, coordinator 세션도 Orca 안에서 시작합니다.
+
+**워크트리 설정 스크립트: `.env` 연결**
+
+git은 `.env`를 새 워크트리로 옮겨 주지 않습니다. Orca 레포 설정의 설정 스크립트(새 워크트리를 만든 뒤 실행)에 아래 한 줄을 넣으면, 원본 체크아웃(`ORCA_ROOT_PATH`)의 `.env*` 파일이 새 워크트리(`ORCA_WORKTREE_PATH`)에 심볼릭 링크로 연결됩니다. 워크트리에 이미 같은 이름이 있으면 건너뛰므로 git이 관리하는 `.env.example`은 바뀌지 않습니다.
+
+```text
+python3 -c "import os,pathlib as p;r=p.Path(os.environ['ORCA_ROOT_PATH']);w=p.Path(os.environ['ORCA_WORKTREE_PATH']);[(w/f.name).symlink_to(f) for f in r.glob('.env*') if f.is_file() and not (w/f.name).exists() and not (w/f.name).is_symlink()]"
+```
+
+- Windows, macOS, Linux에서 같은 줄을 씁니다. 환경 변수를 셸이 아니라 Python이 읽기 때문에, Orca가 Windows에서 설정 스크립트를 실행하는 cmd.exe에서도 동작합니다. PowerShell 문법(`$env:`, `ForEach-Object`)은 cmd.exe에서 실패합니다.
+- Windows는 개발자 모드(설정 → 시스템 → 개발자용)가 켜져 있어야 관리자 권한 없이 심볼릭 링크를 만들 수 있습니다. `python3`가 Microsoft Store 스텁이면 `py -3`로 바꿉니다.
+- 서비스 레포의 `.gitignore`에 `.env`와 `.env.local`이 있는지 확인합니다. 링크도 워크트리 안에서는 일반 파일처럼 보입니다.
+
 ## 시작 프롬프트
 
 서비스 레포의 **기본 브랜치(main) 체크아웃**에서 새 에이전트 세션을 열고 아래 프롬프트를 붙여 넣습니다. 이 체크아웃이 coordinator가 됩니다. coordinator는 비용이 낮은 모델로 여는 것을 권합니다.
@@ -217,6 +233,7 @@ setup 검증은 임시 레포에서 실행합니다. 공식 스키마 사본과 
 
 ## 참고
 
+- [구조 다이어그램](docs/diagrams/fullops-overview.html): 품질 관문과 산출물, 역할 구조, 요청 라우팅, 질문 전달, flow-gate 규칙.
 - [Agent Plugins 표준 적용](docs/agent-plugins-spec-review.md): 공통 배포 형식과 호스트 호환 패키지.
 - [mattpocock/skills](https://github.com/mattpocock/skills): 배포와 레포별 setup 분리 방식 참고.
 - [Claude Code 플러그인 의존성](https://code.claude.com/docs/en/plugin-dependencies): 네이티브 dependencies 및 cross-marketplace 허용 목록.
