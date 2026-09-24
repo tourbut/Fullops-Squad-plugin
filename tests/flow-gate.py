@@ -45,16 +45,37 @@ def main():
         bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash', tool_input={'command': command}, **kw)
         assert 'worker-start' in denied(bash('orca terminal send --terminal t1 --text "handovers/to_dev.md 읽고 착수"'))
         assert '--run' in denied(bash('orca orchestration worker-start --spec "K1 작업" --agent codex'))
-        assert 'route 기록' in denied(bash('orca orchestration worker-start --run r1 --spec "K1 작업" --agent codex'))
+        assert '분류한 과제 키' in denied(bash('orca orchestration worker-start --run r1 --spec "K1 작업" --agent codex'))
         route('K1', 'simple', 'dev')
         assert bash('orca orchestration worker-start --run r1 --spec "K1 작업" --agent codex') == {}
-        assert 'route 기록' in denied(bash('orca orchestration worker-start --run r1 --spec "K10 작업" --agent codex'))
+        assert '분류한 과제 키' in denied(bash('orca orchestration worker-start --run r1 --spec "K10 작업" --agent codex'))
 
         write = lambda path, content, **kw: hook('tool', session_id='c', tool_name='Write',
                                                   tool_input={'file_path': path, 'content': content}, **kw)
         assert write(f'{tmp}/.fullops-squad/handovers/to_dev.md', '# K1 — 점프 수치\n') == {}
         assert '설계 역할' in denied(write(f'{tmp}/.fullops-squad/handovers/to_art.md', '# K1 — 점프 수치\n'))
         assert 'route 기록' in denied(write('.fullops-squad/handovers/to_dev.md', '# K2 — 없음\n'))
+
+        # task-create + worker-start --task: 과제 spec에서 키를 찾는다(가짜 Orca task-list)
+        tl = repo / '.git/fake-tasks.py'
+        tl.write_text('import json\nprint(json.dumps({"ok": True, "result": {"tasks": ['
+                      '{"id": "task_ok", "spec": "Task key K1 follow-up"}, {"id": "task_bad", "spec": "Task key loose-check"}]}}))\n',
+                      encoding='utf-8')
+        tcli = repo / '.git' / ('fake-tasks.cmd' if os.name == 'nt' else 'fake-tasks')
+        if os.name == 'nt':
+            tcli.write_text(f'@"{sys.executable}" "{tl}" %*\n', encoding='utf-8')
+        else:
+            tcli.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{tl}" "$@"\n', encoding='utf-8')
+            tcli.chmod(0o755)
+        os.environ['FULLOPS_ORCA_CLI'] = str(tcli)
+        assert bash('orca orchestration worker-start --run r1 --task task_ok --agent codex') == {}
+        bad = denied(bash('orca orchestration worker-start --run r1 --task task_bad --agent codex'))
+        assert '--task task_bad' in bad and 'K1' in bad, bad  # 최근 분류된 키를 알려 준다
+        assert '분류한 과제 키' in denied(bash("orca orchestration task-create --spec 'Task key loose-check'"))
+        assert bash("orca orchestration task-create --spec 'Task key K1 follow-up'") == {}
+        os.environ['FULLOPS_ORCA_CLI'] = str(repo / '.git/missing-orca')
+        assert bash('orca orchestration worker-start --run r1 --task task_x --agent codex') == {}  # 확인 불가면 막지 않는다
+        del os.environ['FULLOPS_ORCA_CLI']
         route('K3', 'design', 'architecture')
         assert '설계 역할' in denied(write('.fullops-squad/handovers/to_dev.md', '# K3 — 저장 형식\n'))
         assert write('.fullops-squad/handovers/to_architecture.md', '# K3 — 저장 형식\n') == {}
@@ -151,7 +172,7 @@ def main():
                                                                       '- 설계 역할: `architecture`\n- coordinator 역할: `art`'), encoding='utf-8')
         git('checkout', '-q', '-B', roles['art'])
         assert 'jev_route.py' in hook('start', session_id='ca', source='startup')['hookSpecificOutput']['additionalContext']
-        assert 'route 기록' in denied(hook('tool', session_id='ca', tool_name='Bash', tool_input={
+        assert '분류한 과제 키' in denied(hook('tool', session_id='ca', tool_name='Bash', tool_input={
             'command': 'orca orchestration worker-start --run r1 --spec "K99 작업" --agent codex'}))
         board_data = repo / '.fullops-squad/board/board-data.js'
         board_data.unlink(missing_ok=True)

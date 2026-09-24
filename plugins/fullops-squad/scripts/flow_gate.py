@@ -112,6 +112,27 @@ def handled(root, key):
     return any(key in board.read(path) for path in places)
 
 
+def route_key_denial(root, command):
+    """dispatch(worker-start·task-create)에 Jev 분류 기록이 있는 과제 키가 보이는지. `--task <id>`면 그 과제의 spec도 본다."""
+    jev = root / '.fullops-squad/docs/evaluations/jev'
+    routes = sorted(jev.glob('*-route.json'), key=lambda p: p.stat().st_mtime, reverse=True) if jev.is_dir() else []
+    keys = [p.name[:-len('-route.json')] for p in routes]
+    text = command
+    task, run = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command), re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
+    if task:
+        listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
+        if listing is None:
+            return None  # 과제 내용을 확인할 수 없으면 막지 않는다
+        found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
+        text += ' ' + str(found.get('spec') or '') + ' ' + str(found.get('task_title') or '')
+    if any(re.search(rf'(?<![A-Za-z0-9._-]){re.escape(k)}(?![A-Za-z0-9._-])', text) for k in keys):
+        return None
+    where = f"`--task {task.group(1)}` 과제의 spec" if task else 'dispatch 명령의 spec'
+    recent = ', '.join(keys[:5]) or '없음'
+    return (f'{where}에 Jev로 분류한 과제 키가 보이지 않습니다. 모든 배정은 `jev_route.py --key <과제 키>`로 먼저 분류하고, '
+            f'그 과제 키를 spec에 적어야 합니다. 최근 분류된 키: {recent}. 새 과제면 먼저 분류하고, 기존 과제의 후속이면 그 키를 spec에 넣으세요.')
+
+
 def tool_denial(root, event, state):
     tool = field(event, 'tool_input') or {}
     if not isinstance(tool, dict):
@@ -126,14 +147,13 @@ def tool_denial(root, event, state):
     role, designer = context(root)
     if INJECT.search(command):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
-    if re.search(r'\borchestration\s+worker-start\b', command):
-        if '--run' not in command:
-            return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
-        if role == 'coordinator':
-            jev = root / '.fullops-squad/docs/evaluations/jev'
-            keys = [p.name[:-len('-route.json')] for p in jev.glob('*-route.json')] if jev.is_dir() else []
-            if not any(re.search(rf'(?<![A-Za-z0-9._-]){re.escape(k)}(?![A-Za-z0-9._-])', command) for k in keys):
-                return 'dispatch spec에 route 기록이 있는 과제 키가 없습니다. 먼저 `jev_route.py`로 분류하고 spec에 과제 키를 넣으세요.'
+    starting = re.search(r'\borchestration\s+worker-start\b', command)
+    if starting and '--run' not in command:
+        return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
+    if role == 'coordinator' and (starting or re.search(r'\borchestration\s+task-create\b', command)):
+        denial = route_key_denial(root, command)
+        if denial:
+            return denial
     if role == 'coordinator' and designer:
         new = re.search(r'\bwork\.py\b.*\bnew\b', command)
         if new:
