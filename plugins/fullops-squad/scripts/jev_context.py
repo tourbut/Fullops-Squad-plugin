@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from jev_observe import digest, excerpt, key_from_file, local_file, observe, request
+from jev_observe import api_key, digest, excerpt, local_file, observe, request
 from work import KEY, active_repo, safe_file, validate_role
 
 SPAN_LINES, SPAN_CHARS, MAX_SOURCE = 34, 3500, 65536
@@ -104,8 +104,7 @@ def main():
             raise ValueError(f'기존 결과를 보존합니다: {output.relative_to(repo)}')
 
         def call(payload):
-            return request(payload, key_from_file(args.env_file) if args.env_file
-                           else os.environ.get('OPENROUTER_API_KEY', ''))
+            return request(payload, api_key(args.env_file, repo))
         result = context(repo, args.role, args.key, args.paths, call, args.required)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'Jev 문맥 분류 실패: {error}\n')

@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import subprocess
 
-from jev_observe import MODEL, checked_answer, key_from_file, local_file, request, safe_text
+from jev_observe import MODEL, api_key, checked_answer, local_file, request, safe_text
 from lint import CONFIG, DEFAULT, header_summary
 from work import KEY, active_repo, safe_file, validate_role
 
@@ -198,8 +198,7 @@ def main():
                 raise ValueError('find에는 --role이 필요합니다')
 
             def call(payload):
-                return request(payload, key_from_file(args.env_file) if args.env_file
-                               else os.environ.get('OPENROUTER_API_KEY', ''))
+                return request(payload, api_key(args.env_file, repo))
             result = find(repo, args.role, args.key, call, args.limit)
         else:
             if not (args.base and args.to):

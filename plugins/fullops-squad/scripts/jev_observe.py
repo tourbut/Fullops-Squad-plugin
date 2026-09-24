@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 
@@ -135,11 +136,26 @@ def identifier(value):
 
 
 def key_from_file(path):
-    for line in Path(path).read_text().splitlines():
+    for line in Path(path).read_text(encoding='utf-8', errors='replace').splitlines():
         match = re.fullmatch(r'\s*OPENROUTER_API_KEY\s*=\s*["\']?([A-Za-z0-9._-]+)["\']?\s*', line)
         if match:
             return match.group(1)
     raise ValueError('OPENROUTER_API_KEY is unavailable')
+
+
+def api_key(env_file=None, repo=None):
+    """--env-file → 환경 변수 → 레포 루트 .env 순으로 키를 찾는다. 없으면 빈 문자열(Jev 없이 진행)."""
+    if env_file:
+        return key_from_file(env_file)
+    if os.environ.get('OPENROUTER_API_KEY'):
+        return os.environ['OPENROUTER_API_KEY']
+    local = Path(repo) / '.env' if repo else None
+    if local and local.is_file():
+        try:
+            return key_from_file(local)
+        except ValueError:
+            pass
+    return ''
 
 
 def cache_path(payload):
@@ -152,7 +168,7 @@ def request(payload, key):
     import tempfile
     cached = cache_path(payload)
     try:
-        response = json.loads(cached.read_text())
+        response = json.loads(cached.read_text(encoding='utf-8'))
         response['usage'] = {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}  # no new spend
         response['cached'] = True
         return response, 0.0
@@ -161,22 +177,26 @@ def request(payload, key):
     if not key or not re.fullmatch(r'[A-Za-z0-9._-]+', key):
         raise ValueError('OPENROUTER_API_KEY is unavailable')
     started = time.monotonic()
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as body:
-        json.dump(payload, body, ensure_ascii=False)
-        body.flush()
-        config = f'header = "Authorization: Bearer {key}"\n'
+    # Windows는 열려 있는 NamedTemporaryFile을 다른 프로세스가 열 수 없다(curl exit 26). 닫은 뒤 넘기고 지운다.
+    handle, body = tempfile.mkstemp(suffix='.json')
+    try:
+        with os.fdopen(handle, 'w', encoding='utf-8') as output:
+            json.dump(payload, output, ensure_ascii=False)
+        config = f'header = "Authorization: Bearer {key}"\n'  # 키는 명령줄이 아니라 표준입력으로 넘긴다
         result = subprocess.run(
-            ['curl', '--config', '-', '--silent', '--show-error', '--fail', '--max-time', '30',
-             '--header', 'Content-Type: application/json', '--data-binary', '@' + body.name, URL],
+            [shutil.which('curl') or 'curl', '--config', '-', '--silent', '--show-error', '--fail', '--max-time', '30',
+             '--header', 'Content-Type: application/json', '--data-binary', '@' + body, URL],
             input=config, text=True, capture_output=True,
         )
+    finally:
+        os.unlink(body)
     if result.returncode:
         raise RuntimeError('OpenRouter request failed')
     response = json.loads(result.stdout)
     try:  # a cache that cannot be written is not an error; the answer is already in hand
         cached.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         temporary = cached.with_suffix(f'.{os.getpid()}.tmp')
-        temporary.write_text(json.dumps(response, ensure_ascii=False))
+        temporary.write_text(json.dumps(response, ensure_ascii=False), encoding='utf-8')
         temporary.chmod(0o600)
         temporary.replace(cached)
     except OSError:
@@ -422,7 +442,7 @@ def main():
     repo = Path(args.repo).resolve(strict=True)
     data = json.loads(Path(args.input).read_text())
     result = observe(data, repo, lambda payload: request(
-        payload, key_from_file(args.env_file) if args.env_file else os.environ.get('OPENROUTER_API_KEY', '')))
+        payload, api_key(args.env_file, args.repo)))
     output = Path(args.output)
     if output.exists():
         parser.error('output already exists')

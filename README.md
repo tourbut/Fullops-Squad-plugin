@@ -5,6 +5,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.7.3 Windows Jev 호출 수정
+
+Windows에서 Jev 호출이 curl exit 26으로 실패하던 문제를 고쳤습니다. 키는 환경 변수가 없으면 레포 루트 `.env`에서도 읽습니다. [변경 범위](docs/releases/0.7.3.md)
+
 ## 0.7.2 워크트리 .env 자동 연결
 
 에이전트가 만든 워크트리에도 원본 체크아웃 루트의 `.env*`가 자동으로 링크됩니다. 워크트리에서 시작하는 세션마다 SessionStart hook이 빠진 파일을 연결합니다. [변경 범위](docs/releases/0.7.2.md)
@@ -96,7 +100,7 @@ FullOps는 TypeSafe의 판단 모델 Jev(`~typesafe/jev-latest`, OpenRouter 경�
 
 키가 없어도 FullOps는 동작합니다. 다만 라우팅이 항상 설계 쪽으로 가서 상위 모델 비용이 늘어납니다.
 
-**API 키 넣는 곳**: [OpenRouter](https://openrouter.ai/)에서 발급한 키를 환경 변수 `OPENROUTER_API_KEY`로 등록합니다. 에이전트 세션은 Orca가 띄우므로, Orca가 물려받는 사용자 환경에 넣고 **Orca를 다시 시작**해야 합니다.
+**API 키 넣는 곳**: [OpenRouter](https://openrouter.ai/)에서 발급한 키를 쓰며, 스크립트는 `--env-file`로 지정한 파일 → 환경 변수 `OPENROUTER_API_KEY` → 레포 루트 `.env`의 `OPENROUTER_API_KEY=` 줄 순서로 찾습니다. 레포 루트 `.env`에 넣어 두면 워크트리에도 자동 링크되므로 가장 간단합니다. 환경 변수로 쓰려면 아래처럼 등록합니다. 에이전트 세션은 Orca가 띄우므로, Orca가 물려받는 사용자 환경에 넣고 **Orca를 다시 시작**해야 합니다.
 
 - Windows: `setx OPENROUTER_API_KEY "sk-or-..."` 실행 후 Orca 재시작
 - macOS·Linux: `~/.zshrc` 또는 `~/.bashrc`에 `export OPENROUTER_API_KEY="sk-or-..."`를 추가하고 Orca 재시작. Dock에서 실행한 Orca가 셸 설정을 읽지 않으면 터미널에서 Orca를 실행합니다.

@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 from board import deliverables
-from jev_observe import MODEL, checked_answer, key_from_file, request, safe_text
+from jev_observe import MODEL, api_key, checked_answer, request, safe_text
 from work import KEY, active_repo, safe_file
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
@@ -137,8 +137,7 @@ def main():
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
 
     def call(payload):
-        return request(payload, key_from_file(args.env_file) if args.env_file
-                       else os.environ.get('OPENROUTER_API_KEY', ''))
+        return request(payload, api_key(args.env_file, repo))
     result = route(repo, args.key, args.request, call)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
