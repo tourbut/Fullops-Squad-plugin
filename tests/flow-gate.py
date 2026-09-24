@@ -1,5 +1,6 @@
 """임시 레포에서 flow-gate hook의 역할 판정·dispatch 차단·지시서 route 확인·설계 역할 코드 차단·worker_done 종료 게이트를 확인한다."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -105,6 +106,44 @@ def main():
         plans.write_text(plans.read_text(encoding='utf-8') + '| WIN-2 | Windows 점검 | ops | 보류: Editor 사용 중 | |\n', encoding='utf-8')
         assert hook('stop', session_id='r2') == {}  # PLANS.md에 보류를 적으면 통과
         (repo / '.fullops-squad/handovers/to_art.md').write_text('', encoding='utf-8')
+
+        # worker를 띄운 세션은 결과를 받기 전에 끝내지 않는다(가짜 Orca CLI로 확인)
+        fake_state = repo / '.git/fake-orca.json'
+        fake = repo / '.git/fake-orca.py'
+        fake.write_text('import json, os, sys\n'
+                        'state = json.load(open(os.environ["FAKE_ORCA_STATE"], encoding="utf-8"))\n'
+                        'key = "messages" if "check" in sys.argv else "workers"\n'
+                        'print(json.dumps({"ok": True, "result": {key: state[key]}}))\n', encoding='utf-8')
+        cli = repo / '.git' / ('fake-orca.cmd' if os.name == 'nt' else 'fake-orca')
+        if os.name == 'nt':
+            cli.write_text(f'@"{sys.executable}" "{fake}" %*\n', encoding='utf-8')
+        else:
+            cli.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{fake}" "$@"\n', encoding='utf-8')
+            cli.chmod(0o755)
+        os.environ.update({'FULLOPS_ORCA_CLI': str(cli), 'FAKE_ORCA_STATE': str(fake_state)})
+
+        def scenario(messages, workers):
+            fake_state.write_text(json.dumps({'messages': messages, 'workers': workers}), encoding='utf-8')
+
+        live = [{'dispatchId': 'ctx_1', 'projection': {'outcome': None}}]
+        done_rows = [{'dispatchId': 'ctx_1', 'projection': {'outcome': 'succeeded'}}]
+        route('W-9', 'simple', 'dev')
+        git('checkout', '-q', 'main')
+        start = 'orca orchestration worker-start --run run_9 --spec "W-9 작업" --agent grok'
+        assert hook('tool', session_id='wt', tool_name='Bash', tool_input={'command': start}) == {}
+        scenario([], live)
+        waiting = hook('stop', session_id='wt')
+        assert waiting.get('decision') == 'block' and 'orca_wait.py' in waiting['reason'] and 'ctx_1' in waiting['reason'], waiting
+        assert 'systemMessage' in hook('stop', session_id='wt', stop_hook_active=True)  # 같은 상태로 다시 끝내면 통과
+        scenario([{'type': 'heartbeat'}, {'type': 'worker_done'}], done_rows)
+        unread = hook('stop', session_id='wt')
+        assert unread.get('decision') == 'block' and 'check --run run_9' in unread['reason'], unread
+        scenario([{'type': 'heartbeat'}], done_rows)
+        assert hook('stop', session_id='wt') == {}  # 결과를 받았고 실행 중인 worker가 없으면 통과
+        os.environ['FULLOPS_ORCA_CLI'] = str(repo / '.git/missing-orca')
+        scenario([], live)
+        assert hook('stop', session_id='wt') == {}  # Orca를 확인할 수 없으면 막지 않는다
+        del os.environ['FULLOPS_ORCA_CLI']
 
         # coordinator를 역할 워크트리에서 운영: 라우팅 기준의 coordinator 역할 줄로 판정한다
         agents = repo / '.fullops-squad/orca-agents.md'

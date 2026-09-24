@@ -39,13 +39,13 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 4. 보고를 받을 Run을 정한다. 내 세션에 Task·Dispatch ID가 든 preamble이 있으면 나도 dispatched worker다. 이때 상위 Run에 하위 worker를 띄우면 완료 보고가 상위 coordinator에게 간다. 먼저 `orchestration run-create`로 내 Run을 만들고 그 run id를 쓴다. preamble이 없으면 내가 최상위 coordinator다. 별도 coordinator 없이 한 역할(예: 아키텍처)이 다른 역할 worker를 띄우는 구성도 같다. 이 경우 기존 Run을 쓰거나 `run-create`로 새로 만든다. `nested_worker_depth_exceeded`면 하위 worker를 띄우지 말고 상위에 `escalation`으로 알린다.
 5. 대상 역할이 grok이면 `grok_trust.py --check`로 원본 레포 신뢰를 먼저 확인한다(bootstrap 규칙). `orchestration worker-start --run <run id> --spec "<한 문단>" --worktree <worker 워크트리> --agent <CLI>`로 현재 작업과 분리된 새 세션을 시작한다. 한 문단에는 과제 키·지시서 실제 경로·worker 경로를 넣고, 긴 내용은 파일로 제공한다. Orca가 넣는 preamble이 `worker_done` 복귀 경로다. 터미널 주입(`terminal send`, `dispatch --inject`)으로 착수시키면 worker가 `worker_done`을 보낼 수 없으므로 쓰지 않는다. 읽을 범위는 지시서의 `먼저 읽을 문서`로 한정하고, 원천 문서 전체를 붙이지 않는다. 권한 모드는 임의로 완화하지 않는다. 진행 중인 세션을 임의로 중단하지 않는다.
 6. 반환된 run id·task id·dispatch id·worker 핸들을 지시서의 복귀 항목과 카드에 남긴다. terminal read로 worker가 지시서를 읽고 착수했는지 확인한다. send 성공이나 idle 상태만으로 판단하지 않는다.
-7. 착수를 확인하면 결과를 기다리며 턴을 유지하지 않고 dispatch를 마친다. 아래 대기 규칙대로 `--run <run id>`를 지정해 기다린다.
+7. 착수를 확인하면 아래 대기 규칙대로 `--run <run id>`를 지정해 기다린다. 호스트에 따라 백그라운드(Claude Code) 또는 포그라운드(Codex·grok)로 기다린다.
 
 ## 대기 — coordinator
 
 - Orca는 `--types`가 붙은 대기가 받지 않는 메시지(heartbeat·status)마다 idle 터미널에 "You have N orchestration message" 알림을 넣어 세션을 깨운다. worker heartbeat는 Orca가 5분마다 보내므로 `check --wait --types …`를 직접 걸지 않는다.
 - orchestration Run을 기다릴 때는 이 스킬 기준 `../../scripts/orca_wait.py`를 사용한다: `python3 <orca_wait.py> --orca <실행 파일> --run <dispatch에서 쓴 run id> [--ack <처리한 delivery id>]`. 자기 Run을 만든 dispatched worker가 `--run`을 빼면 상위 Run을 보게 되어 하위 보고를 받지 못한다. `--types` 없이 대기해 알림을 막고, heartbeat·status만 있는 묶음은 모델을 부르지 않고 ack한다. 처리할 메시지가 오면 ack하지 않은 묶음과 흡수한 내용 요약을 반환한다.
-- 호스트의 백그라운드 실행으로 한 번 걸고 턴을 끝낸다. 백그라운드 실행이 없으면 포그라운드에서 실행한다. 반환된 `actionable` 묶음은 오케스트레이션 규칙대로 모두 처리한 뒤, 다음 대기를 `--ack <deliveryId>`로 이어 건다. `absorbed`의 status도 확인한다.
+- Claude Code처럼 백그라운드 명령이 끝나면 세션을 다시 깨우는 호스트에서만 백그라운드로 한 번 걸고 턴을 끝낸다. Codex·grok은 백그라운드 명령이 끝나도 세션을 깨우지 않으므로 포그라운드로 실행해 결과가 올 때까지 턴을 유지한다. heartbeat는 스크립트가 흡수하므로 모델 비용이 들지 않는다. Orca의 "You have N orchestration message" 알림은 보장되지 않으니 알림에 기대고 턴을 끝내지 않는다. flow-gate Stop hook이 결과를 받지 않은 Run을 한 번 막는다. 반환된 `actionable` 묶음은 오케스트레이션 규칙대로 모두 처리한 뒤, 다음 대기를 `--ack <deliveryId>`로 이어 건다. `absorbed`의 status도 확인한다.
 - 새 coordinator 세션(재시작·플러그인 갱신 후)은 터미널이 바뀌어 기존 Run 연결이 끊긴다. `orchestration check`가 "no longer bound"를 반환하면 PLANS.md·현황판에 기록한 run id로 `orchestration run-use --id <run id>`를 실행해 다시 연결한다.
 - 분류(`jev_route.py`)한 과제는 같은 세션에서 배정하거나 PLANS.md에 보류 사유를 적는다. flow-gate Stop hook이 배정되지 않은 route를 한 번 막는다. 대화가 요약된 뒤에는 route 기록을 다시 읽고 이어서 진행한다.
 - `idle_timeout`(기본 45분)은 실패가 아니다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.

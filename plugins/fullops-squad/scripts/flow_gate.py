@@ -7,9 +7,12 @@ coordinator 세션이 끝날 때마다 작업 현황판 데이터(board/board-da
 Claude Code·Codex(snake_case)와 grok(camelCase) 입력을 함께 읽는다. 셸 우회까지 막지는 못하며, 어떤 오류도 작업을 막지 않는다.
 """
 import json
+import os
 from pathlib import Path
 import re
 import shlex
+import shutil
+import subprocess
 import sys
 
 import board
@@ -22,6 +25,7 @@ SETTLE = re.compile(r'orchestration\s+send\b.*--type[ =]+(?:worker_done|escalati
 INJECT = re.compile(r'\bterminal\s+send\b.*handovers/|\bdispatch\b.*--inject\b', re.S)
 HANDOVER = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
 TITLE = re.compile(r'#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—')
+STARTED = re.compile(r'\borchestration\s+worker-start\b.*?--run[ =]+["\']?([A-Za-z0-9_-]+)', re.S)
 ROUTED = re.compile(r'\bjev_route\.py\b.*?--key[ =]+["\']?([A-Za-z0-9][A-Za-z0-9._-]*)', re.S)
 
 
@@ -79,6 +83,28 @@ def handover_denial(root, designer, role, key):
     return None
 
 
+def orca(*args):
+    """Orca CLI를 JSON으로 호출한다. 실패하면 None. hook은 coordinator 터미널 환경에서 돌아 호출자가 그 터미널로 식별된다."""
+    exe = os.environ.get('FULLOPS_ORCA_CLI') or os.environ.get('ORCA_CLI_COMMAND') or 'orca'
+    try:
+        done = subprocess.run([shutil.which(exe) or exe, *args, '--json'], capture_output=True, text=True,
+                              encoding='utf-8', timeout=15)
+        data = json.loads(done.stdout)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+    return data.get('result') if isinstance(data, dict) and data.get('ok') else None
+
+
+def run_state(run):
+    """(처리하지 않은 worker_done·question·escalation 수, 아직 결과가 없는 Dispatch ID들). 확인할 수 없으면 None."""
+    inbox, workers = orca('orchestration', 'check', '--run', run, '--peek'), orca('orchestration', 'worker-list', '--run', run)
+    if inbox is None or workers is None:
+        return None
+    unread = sum(1 for m in inbox.get('messages') or [] if m.get('type') in ('worker_done', 'question', 'escalation'))
+    active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if not (w.get('projection') or {}).get('outcome'))
+    return unread, active
+
+
 def handled(root, key):
     """과제 키가 인박스·작업 로그·PLANS.md 어딘가에 있으면 배정했거나 보류를 기록한 것으로 본다."""
     base = root / '.fullops-squad'
@@ -93,6 +119,8 @@ def tool_denial(root, event, state):
     command, files = targets(tool)
     if SETTLE.search(command):
         state['settled'] = True
+    for run in STARTED.findall(command):  # 띄운 worker의 결과를 받기 전에 끝내지 않게 Run을 기억한다
+        state['runs'] = sorted(set(state.get('runs', [])) | {run})
     for key in ROUTED.findall(command):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
         state['routed'] = sorted(set(state.get('routed', [])) | {key})
     role, designer = context(root)
@@ -199,6 +227,27 @@ def main():
                           f"FullOps: `jev_route.py`로 분류한 과제 {', '.join(pending)}를 아직 배정하지 않았습니다. "
                           '대화 요약 뒤라면 route 기록(docs/evaluations/jev/<키>-route.json)을 다시 읽고 지시서 작성과 dispatch를 이어서 하세요. '
                           '배정하지 않을 이유가 있으면 PLANS.md에 과제 키와 보류 사유를 적고 끝내세요.'}
+        for run in state.get('runs', []):
+            status = None if 'decision' in output else run_state(run)
+            if not status or not (status[0] or status[1]):
+                continue
+            unread, active = status
+            marker = [run, unread, active]
+            if field(event, 'stop_hook_active') and state.get('wait_blocked') == marker:
+                output = {'systemMessage': f'FullOps: Run {run}의 worker 결과를 받지 않은 채 세션을 끝냈습니다.'}
+            elif unread:
+                state['wait_blocked'] = marker
+                output = {'decision': 'block', 'reason':
+                          f'FullOps: Run {run}에 처리하지 않은 worker_done·질문·escalation {unread}건이 있습니다. '
+                          f'`orca orchestration check --run {run}`으로 받아 규칙대로 처리하고 ack하세요.'}
+            else:
+                state['wait_blocked'] = marker
+                output = {'decision': 'block', 'reason':
+                          f"FullOps: Run {run}의 worker({', '.join(active)})가 아직 실행 중입니다. Orca 알림은 보장되지 않고 "
+                          'Codex·grok은 백그라운드 명령이 끝나도 세션을 깨우지 않습니다. '
+                          f'`python3 <orca_wait.py> --orca <orca> --run {run}`을 포그라운드로 실행해 결과를 기다리세요. '
+                          '지금 사용자와 다른 일을 해야 하면 그 이유를 말하고 다시 끝내면 됩니다.'}
+            break
         if context(root)[0] == 'coordinator':
             try:
                 board.write(root)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다

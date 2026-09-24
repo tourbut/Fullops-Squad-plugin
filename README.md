@@ -5,6 +5,10 @@ Orca에서 Codex·Claude Code·grok·agy worker에게 작업을 전달하고, **
 고성능 모델이 기획·설계를 맡고 비용이 낮은 모델이 명확한 지시서에 따라 구현하도록 구성하는 것이 목적입니다. 모델 선택은 프로젝트의 역할 배정과 Orca 실행 설정에서 관리합니다.
 플러그인 설치와 레포 활성화를 분리합니다. 설치만으로 다른 레포에 AGENTS.md나 문서 디렉터리를 만들지 않습니다.
 
+## 0.7.6 worker 완료 보고 누락 방지
+
+Codex·grok coordinator는 `orca_wait.py`를 포그라운드로 실행해 worker 결과를 기다립니다. worker를 띄운 세션이 결과를 받기 전에 끝내려 하면 flow-gate가 Orca 상태를 확인해 한 번 막습니다. [변경 범위](docs/releases/0.7.6.md)
+
 ## 0.7.5 grok worker 신뢰 확인
 
 grok worker가 원본 레포 폴더 신뢰 확인에서 멈추지 않도록 coordinator가 배정 전에 `grok_trust.py --check`로 확인하고, 사용자 승인 뒤 `--add`로 추가합니다. [변경 범위](docs/releases/0.7.5.md)

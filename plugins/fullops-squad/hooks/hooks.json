@@ -46,7 +46,7 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" stop",
-            "timeout": 10
+            "timeout": 40
           }
         ]
       }
