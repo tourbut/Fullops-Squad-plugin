@@ -24,6 +24,7 @@ FINISH = {'done': 'The goal is complete according to the current state.',
           'blocked': 'The goal cannot progress: the needed actor or action is missing, or the game is stuck.'}
 HINT = ('You play a game to reach `goal`. Choose the next action from `actions`. Distances, reach and directions are already '
         'measured in `player` and `actors`. Use `history` and `lastOutcome` to avoid repeating a step that did not help. '
+        'When `gamePaused` is true the game waits for a menu choice: movement does not progress, so answer the menu. '
         'Choose done only when the state shows the goal is complete.')
 STALL = 3
 
@@ -87,6 +88,7 @@ def model_state(state):
             'actors': actors,
             'fields': {f['name']: clean(f.get('value') if not f.get('error') else 'error: ' + f['error']) for f in state.get('fields') or []},
             'texts': [clean(t, 160) for t in state.get('texts') or []],
+            'gamePaused': bool(state.get('gamePaused')),
             'lastAction': state.get('lastAction'), 'lastOutcome': state.get('lastOutcome')}
 
 

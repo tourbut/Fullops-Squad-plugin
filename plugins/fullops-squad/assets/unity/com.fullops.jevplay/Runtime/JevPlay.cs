@@ -41,6 +41,7 @@ namespace Fullops.JevPlay
     {
         public int step;
         public float gameTime;
+        public bool gamePaused;  // 게임이 스스로 멈춘 상태(레벨업 선택 등). 이때 이동은 진행되지 않고 입력만 받는다
         public Actor player;
         public Actor[] actors;
         public Field[] fields;
@@ -58,6 +59,7 @@ namespace Fullops.JevPlay
         Config config;
         Transform playerTransform;
         string lastAction = "", lastOutcome = "";
+        float gameScale = 1f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Launch()
@@ -82,7 +84,9 @@ namespace Fullops.JevPlay
             yield return new WaitForSecondsRealtime(config.startDelay);
             for (int step = 1; step <= config.maxDecisions; step++)
             {
-                Time.timeScale = 0f;  // 결정하는 동안 게임을 멈춰 Jev 지연이 게임에 영향을 주지 않게 한다
+                // 결정하는 동안 게임을 멈춰 Jev 지연이 게임에 영향을 주지 않게 한다. 게임이 스스로 멈춘 상태는 기억했다가 그대로 돌려준다
+                gameScale = Time.timeScale;
+                Time.timeScale = 0f;
                 var choices = Choices();
                 Write($"state-{step}.json", JsonUtility.ToJson(Snapshot(step, choices)));
                 string actionPath = Path.Combine(dir, $"action-{step}.json");
@@ -96,7 +100,7 @@ namespace Fullops.JevPlay
                         catch (IOException) { }  // Windows에서 파일을 교체하는 중이면 다음 틱에 다시 읽는다
                     if (action == null) { yield return new WaitForSecondsRealtime(0.05f); waited += 0.05f; }
                 }
-                Time.timeScale = 1f;
+                Time.timeScale = gameScale;
                 if (action.action == "quit") { Finish("quit", step); yield break; }
                 if (!choices.Any(c => c.id == action.action)) { lastAction = action.action; lastOutcome = "unknown action"; continue; }
                 lastAction = action.action;
@@ -110,9 +114,9 @@ namespace Fullops.JevPlay
             var parts = id.Split(':');
             if (parts[0] == "approach")
             {
-                float until = Time.time + config.approachSeconds;
+                float until = Time.unscaledTime + config.approachSeconds;  // 게임이 멈춰도 끝나도록 실제 시간으로 잰다
                 Actor target = null;
-                while (Time.time < until)
+                while (Time.unscaledTime < until)
                 {
                     target = Nearest(parts[1]);
                     if (target == null) { lastOutcome = "target gone"; break; }
@@ -123,7 +127,8 @@ namespace Fullops.JevPlay
                 Hold(0, 0);
                 yield return null;
                 target = Nearest(parts[1]);
-                lastOutcome = target == null ? "target gone" : target.withinReach ? "reached" : $"still {target.distance:0.0} away";
+                lastOutcome = target == null ? "target gone" : target.withinReach ? "reached" :
+                    $"still {target.distance:0.0} away" + (Time.timeScale == 0f ? " (game paused)" : "");
             }
             else if (parts[0] == "press")
             {
@@ -131,14 +136,14 @@ namespace Fullops.JevPlay
                 if (!Enum.TryParse(key.key, true, out Key code)) { lastOutcome = $"unknown key {key.key}"; yield break; }
                 InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(code));
                 yield return null;
-                yield return new WaitForSeconds(config.pressSeconds);
+                yield return new WaitForSecondsRealtime(config.pressSeconds);
                 InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
                 yield return null;
                 lastOutcome = "pressed";
             }
             else
             {
-                yield return new WaitForSeconds(config.waitSeconds);
+                yield return new WaitForSecondsRealtime(config.waitSeconds);
                 lastOutcome = "waited";
             }
         }
@@ -175,7 +180,7 @@ namespace Fullops.JevPlay
 
         State Snapshot(int step, List<Choice> choices) => new State
         {
-            step = step, gameTime = Time.time, player = Player(), actors = Actors(), fields = Fields(), texts = Texts(),
+            step = step, gameTime = Time.time, gamePaused = gameScale == 0f, player = Player(), actors = Actors(), fields = Fields(), texts = Texts(),
             actions = choices.ToArray(), lastAction = lastAction, lastOutcome = lastOutcome,
         };
 
@@ -269,7 +274,7 @@ namespace Fullops.JevPlay
 
         void Finish(string reason, int decisions)
         {
-            Time.timeScale = 1f;
+            Time.timeScale = gameScale;
             InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
             Write("result.json", JsonUtility.ToJson(new Result { reason = reason, decisions = decisions }));
             Application.Quit(0);

@@ -1,6 +1,6 @@
 {
   "name": "fullops-squad",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Orca worker 핸드오버와 개발 산출물을 관리하는 레포별 선택형 하네스",
   "author": {
     "name": "tourbut"

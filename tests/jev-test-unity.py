@@ -78,6 +78,8 @@ def main():
                 'checks': [{'actor': 'enemy', 'absent': True}, {'field': 'enemy_hp', 'op': '<=', 'value': 0}, {'text': 'VICTORY'}]}
     quiet = {'log': lambda _: None}
     assert unity.problems(scenario) == []
+    shown = unity.model_state({'gamePaused': True, 'actors': [], 'fields': [], 'texts': []})
+    assert shown['gamePaused'] is True  # 게임이 스스로 멈춘 상태를 Jev에게 알린다(레벨업 선택 등)
     bad = unity.problems({'goal': 'x', 'checks': [{'field': 'hp', 'op': '~', 'value': 1}], 'player_args': 'x'})
     assert len(bad) == 3, bad  # covers·op·player_args
     with tempfile.TemporaryDirectory(prefix='fullops-jev-unity-') as tmp:
