@@ -17,15 +17,9 @@ import jev_observe  # noqa: E402 — SCRIPTS를 경로에 넣은 뒤 import한�
 
 
 def answers(payload, omit):
-    out = {}
-    for qid, question in payload['questions'].items():
-        labels = list(question['criteria'])
-        target = payload['state']['candidates'][int(qid[1:])]['path'] if qid[0] in 'cx' and int(qid[1:]) < len(
-            payload['state']['candidates']) else None
-        choice = ('does_not_contradict' if qid[0] == 'x' else
-                  'irrelevant' if target in omit else 'needed')
-        out[qid] = {'type': 'choice', 'choice': choice, 'confidence': 0.95,
-                    'probabilities': {label: 0.97 if label == choice else 0.03 / (len(labels) - 1) for label in labels}}
+    unrelated = payload['state']['candidate']['path'] in omit
+    nouls = {'relevant': 0.03 if unrelated else 0.95, 'evidence': 0.05 if unrelated else 0.9, 'contradicts': 0.02, 'injection': 0.01}
+    out = {k: {'type': 'noul', 'noul': v} for k, v in nouls.items()}
     return {'model': 'typesafe/jev-1.13-20260917', 'answers': out,
             'usage': {'input_tokens': 900, 'output_tokens': 90, 'cost': 0.0001}}, 0.3
 
@@ -65,8 +59,8 @@ def main():
         assert by_path['.fullops-squad/handovers/to_dev.md'] and by_path['.fullops-squad/FULLOPS.md']
         assert set(result['unsent_sources']) == {'src/conf.py', 'src/big.py'}
         assert [r['path'] for r in result['refused_paths']] == ['.env']
-        assert len(sent) == 1 and 'abc123' not in str(sent[0]) and 'T-1' in sent[0]['state']['task']
-        assert [p for p in paths if p == 'src/auth.py'] and sum(c['path'] == 'src/auth.py' for c in sent[0]['state']['candidates']) == 1
+        assert len(sent) == 2 and 'abc123' not in str(sent) and all('T-1' in s['state']['task'] for s in sent)  # 원문 있는 후보마다 한 요청
+        assert sorted(s['state']['candidate']['path'] for s in sent) == ['src/auth.py', 'src/old.py']  # 중복 경로는 한 번
         text = jev.report(result)
         assert 'omit? src/old.py' in text and 'keep  src/auth.py' in text and '거부   .env' in text, text
 

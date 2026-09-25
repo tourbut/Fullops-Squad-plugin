@@ -44,6 +44,9 @@ def main():
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
         bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash', tool_input={'command': command}, **kw)
         assert 'worker-start' in denied(bash('orca terminal send --terminal t1 --text "handovers/to_dev.md 읽고 착수"'))
+        assert '새 세션' in denied(bash('orca terminal send --terminal t1 --text "F 버튼 겹침을 다시 판단하고 설계를 고쳐 커밋해"'))  # 경로 없는 지시도 막는다
+        assert bash('orca terminal send --terminal t1 --text "y"') == {}  # 확인 프롬프트 응답은 허용
+        assert bash('orca terminal send --terminal t1 --key Enter') == {}
         assert '--run' in denied(bash('orca orchestration worker-start --spec "K1 작업" --agent codex'))
         assert '분류한 과제 키' in denied(bash('orca orchestration worker-start --run r1 --spec "K1 작업" --agent codex'))
         route('K1', 'simple', 'dev')
@@ -100,6 +103,16 @@ def main():
         assert '코드를 고치지' in denied(hook('tool', session_id='a', tool_name='apply_patch', tool_input={'command': patch}))
         assert hook('tool', session_id='a', tool_name='Write',
                     tool_input={'file_path': '.fullops-squad/handovers/to_dev.md', 'content': '# K3 — 저장 형식\n'}) == {}
+
+        # tester 역할로 지정한 역할만 검증 도구 안내를 받는다
+        git('checkout', '-q', '-B', roles['art'])
+        assert 'fullops-test' not in hook('start', session_id='t0', source='startup')['hookSpecificOutput']['additionalContext']
+        agents_md = repo / '.fullops-squad/orca-agents.md'
+        plain = agents_md.read_text(encoding='utf-8')
+        marked = plain.replace('- 설계 역할: `architecture`', '- 설계 역할: `architecture`\n- tester 역할: `art`')
+        agents_md.write_text(marked, encoding='utf-8')
+        assert 'fullops-test' in hook('start', session_id='t', source='startup')['hookSpecificOutput']['additionalContext']
+        agents_md.write_text(plain, encoding='utf-8')
 
         # dispatched worker
         git('checkout', '-q', '-B', roles['dev'])

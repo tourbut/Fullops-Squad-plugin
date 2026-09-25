@@ -15,13 +15,14 @@ import re
 from pathlib import Path
 
 from board import deliverables
-from jev_observe import MODEL, api_key, checked_answer, request, safe_text
+from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text
 from work import KEY, active_repo, safe_file
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
-DOC, DOC_TOTAL, DOC_MAX = 0.2, 0.8, 3  # 산출물: 개별 확률 하한, 누적 목표, 최대 개수
-NONE = 'none'
+# 산출물마다 독립된 예/아니오로 묻는다. Choice는 여러 문서가 해당하면 확률을 나눠 가져 문서마다 낮아진다
+DOC, DOC_MAX = 0.5, 3  # 산출물: 확률 하한, 최대 개수
 CANDIDATE = re.compile(r'^- `([a-z][a-z0-9_-]*)` `([A-Za-z0-9._-]+)` `([A-Za-z0-9._:/-]+)` `([A-Za-z0-9_-]+)`\s*:\s*(.+?)\s*$', re.M)
+MODEL_TIE = 0.05  # 1등과 이만큼 이내인 후보가 있으면 품질 쪽(더 높은 레벨)을 쓴다
 PROVIDER = {'claude': 'anthropic', 'codex': 'openai', 'grok': 'xai', 'agy': 'google'}  # 에이전트 CLI → 모델 제공사
 MODEL_HINT = ('Candidates are ordered by level: level 1 is the cheapest and weakest, the highest level is the strongest '
               'and most expensive, across providers. Pick the lowest level that can still do `request` well for this role. Choose a higher '
@@ -46,12 +47,17 @@ def guide(repo):
 
 def coordinator_role(repo):
     """라우팅 기준의 "- coordinator 역할: `<역할>`" 줄. 없으면 None(기본 브랜치 체크아웃이 coordinator)."""
+    return marked_role(repo, 'coordinator')
+
+
+def marked_role(repo, label):
+    """라우팅 기준의 "- <label> 역할: `<역할>`" 줄이 가리키는 역할. 없으면 None."""
     try:
         text = safe_file(repo, '.fullops-squad/orca-agents.md').read_text(encoding='utf-8')
     except OSError:
         return None
     section = re.search(r'^## 라우팅 기준\n(.*?)(?=^## |\Z)', text, re.M | re.S)
-    match = section and re.search(r'^- coordinator 역할: `([a-z][a-z0-9_-]*)`', section.group(1), re.M)
+    match = section and re.search(rf'^- {re.escape(label)} 역할: `([a-z][a-z0-9_-]*)`', section.group(1), re.M)
     return match.group(1) if match else None
 
 
@@ -92,8 +98,11 @@ def pick_model(repo, role, text, call):
         answer = checked_answer(response['answers']['model'], criteria)
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
         return {**strongest, 'source': 'fallback', 'error': f'Jev 생략: {error}'}
-    chosen = next(c for c in candidates if c['id'] == answer['choice'])
+    top = answer['probabilities'][answer['choice']]
+    close = [c for c in candidates if answer['probabilities'][c['id']] >= top - MODEL_TIE]
+    chosen = close[-1]  # 후보는 약한 것부터 적으므로 마지막이 가장 강하다
     return {**{k: chosen[k] for k in ('agent', 'provider', 'model', 'effort')}, 'source': 'jev',
+            **({'tie_break': answer['choice']} if chosen['id'] != answer['choice'] else {}),
             'probabilities': {f"{c['agent']} {c['model']} {c['effort']}": answer['probabilities'][c['id']] for c in candidates},
             'usage': response.get('usage') or {}}
 
@@ -109,22 +118,13 @@ def document_options(repo):
             options[d['id']] = safe_text(f"{label}: {d['summary']}" if d['summary'] else label, 300)
         except ValueError:
             options[d['id']] = label
-    if options:
-        options[NONE] = 'No deliverable document needs to change for this request.'
     return options
 
 
-def picked(answer):
-    """확률 높은 산출물부터 누적 DOC_TOTAL까지, 개별 DOC 이상, 최대 DOC_MAX개. none이 가장 높으면 없음."""
-    if not answer or answer['choice'] == NONE:
-        return []
-    result, total = [], 0.0
-    for option, probability in sorted(answer['probabilities'].items(), key=lambda kv: -kv[1]):
-        if option == NONE or probability < DOC or len(result) >= DOC_MAX or total >= DOC_TOTAL:
-            break
-        result.append(option)
-        total += probability
-    return result
+def picked(probabilities):
+    """{산출물 ID: 갱신 필요 확률}에서 DOC 이상인 것을 높은 순으로 최대 DOC_MAX개."""
+    ranked = sorted((probabilities or {}).items(), key=lambda kv: -kv[1])
+    return [doc for doc, probability in ranked if probability >= DOC][:DOC_MAX]
 
 
 def route(repo, key, text, call):
@@ -145,7 +145,7 @@ def model_only(repo, key, role, call, text=None):
 
 def classify(repo, key, text, call):
     roles = list(json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8'))['roles'])
-    result = {'version': 'jev-route-v2', 'task_key': key, 'requested_model': MODEL, 'route': None, 'role': None,
+    result = {'version': 'jev-route-v3', 'task_key': key, 'requested_model': MODEL, 'route': None, 'role': None,
               'deliverables': [], 'thresholds': {'simple': SIMPLE, 'role': ROLE, 'deliverable': DOC},
               'answers': None, 'usage': None, 'error': None}
     try:
@@ -164,18 +164,17 @@ def classify(repo, key, text, call):
                  'role': {'type': 'choice', 'criteria': workers, 'instructions':
                           'Using the repository routing `guide`, which role owns most of the work in `request`?'}}
     docs = document_options(repo)
-    if docs:
-        questions['docs'] = {'type': 'choice', 'criteria': docs, 'instructions':
-                             'Which project deliverable document must be written or updated because of `request`? '
-                             'Choose none when no deliverable document changes.'}
+    for doc in docs:
+        questions[f'doc_{doc}'] = {'type': 'noul', 'instructions':
+                                   f'Must the project deliverable `deliverables.{doc}` be written or updated because of `request`?'}
     try:
-        response, elapsed = call({'model': MODEL, 'state': {'guide': safe_text(body), 'request': safe_text(text)},
-                                  'questions': questions})
+        state = {'guide': safe_text(body), 'request': safe_text(text), **({'deliverables': docs} if docs else {})}
+        response, elapsed = call({'model': MODEL, 'state': state, 'questions': questions})
         answers = {q: checked_answer(response['answers'][q], questions[q]['criteria']) for q in ('scope', 'role')}
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
         return {**result, 'route': 'design', 'error': f'Jev 생략: {error}'}
     try:  # 산출물 답이 이상해도 역할 라우팅은 유지한다
-        answers['docs'] = checked_answer(response['answers']['docs'], docs) if docs else None
+        answers['docs'] = {doc: checked_noul(response['answers'][f'doc_{doc}']) for doc in docs} if docs else None
     except (ValueError, KeyError, TypeError):
         answers['docs'] = None
     scope, role = answers['scope'], answers['role']

@@ -203,6 +203,22 @@
   } else h.push('<p class="empty">아직 리뷰 기록이 없습니다.</p>');
   h.push('</section></div>');
 
+  var tests = B.tests || [];
+  if (tests.length) {
+    var failed = tests.filter(function (t) { return !t.passed; }).length;
+    h.push('<section><div class="head"><h2>테스트 결과</h2><span class="count">시나리오 ' + tests.length + '개' + (failed ? ' · 실패 ' + failed : '') + '</span></div>');
+    h.push('<div class="scroll cap"><table><thead><tr><th>날짜 · 과제</th><th>시나리오</th><th>결과</th><th>스텝 · 비용</th><th>covers</th></tr></thead><tbody>');
+    tests.forEach(function (t) {
+      var name = (t.scenario || '').split('/').pop() || '-';
+      h.push('<tr><td><span class="mono soft">' + esc(t.date) + '</span><br><span class="mono">' + esc(t.key) + '</span></td>' +
+             '<td><span class="mono soft">' + esc(t.kind) + '</span> ' + esc(name) + (t.runs > 1 ? '<span class="soft"> · ' + t.runs + '회</span>' : '') + '</td>' +
+             '<td class="' + (t.passed ? '' : 'bad') + '">' + (t.passed ? '통과' : '실패 · ' + esc(t.result)) + '</td>' +
+             '<td class="num">' + esc(t.steps == null ? '-' : t.steps) + '<span class="soft"> · $' + esc(t.cost == null ? '-' : t.cost) + '</span></td>' +
+             '<td class="soft">' + esc((t.covers || []).join(', ')) + '</td></tr>');
+    });
+    h.push('</tbody></table></div></section>');
+  }
+
   var hist = B.history || [], deliv = B.deliverables || [];
   var approved = deliv.filter(function (d) { return delivClass(d.status) === 'is-done'; }).length;
   var inScope = deliv.filter(function (d) { return delivClass(d.status) !== 'is-skip'; }).length;

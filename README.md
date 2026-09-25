@@ -20,13 +20,14 @@ Orca에서 여러 AI 코딩 에이전트(Claude Code·Codex·grok·agy)를 한 �
 | coordinator | 저렴한 모델 | 요청을 분류해 배정하고, 완료 보고와 질문을 받고, 병합한다 |
 | 설계 역할 (예: `architecture`) | 고급 모델 | 설계가 필요할 때만 띄운다. 설계 문서와 역할별 지시서를 쓰고 코드는 고치지 않는다 |
 | worker (예: `dev`·`art`·`ops`) | 저렴한 모델 | 지시서대로 구현·검증한다 |
+| tester (선택) | 저렴한 모델 | 구현된 동작을 시나리오로 검증한다. 제품 코드는 고치지 않는다 |
 
-각 역할은 자기 워크트리와 `fullops/<역할>` 브랜치를 씁니다.
+각 역할은 자기 워크트리와 `fullops/<역할>` 브랜치를 씁니다. 설계 역할·coordinator·tester는 `orca-agents.md` 라우팅 기준의 `- 설계 역할:`, `- coordinator 역할:`, `- tester 역할:` 줄로 지정합니다.
 
 **요청 흐름**
 1. coordinator가 `jev_route.py`로 요청을 분류합니다. Jev는 선택지마다 확률을 돌려주는 작은 판단 모델입니다.
 2. simple이면 coordinator가 짧은 지시서를 써서 담당 역할에 바로 보냅니다. design이거나 확신이 낮으면 설계 역할이 설계와 지시서를 쓴 뒤 worker에게 넘깁니다. 이 요청으로 갱신할 산출물도 함께 고릅니다.
-3. 배정할 역할이 정해지면 사용자가 `orca-agents.md`의 `## 모델 후보`에 적어 둔 그 역할의 후보(에이전트·모델·effort) 중 작업 난이도에 맞는 것을 Jev가 고릅니다. 쉬운 일은 싼 모델로, 판단이 필요한 일은 강한 모델로 띄웁니다.
+3. 배정할 역할이 정해지면 사용자가 `orca-agents.md`의 `## 모델 후보`에 약한 것부터 강한 순으로 적어 둔 그 역할의 후보(에이전트·모델·effort) 중 작업 난이도에 맞는 것을 Jev가 고릅니다. 쉬운 일은 싼 모델로, 판단이 필요한 일은 강한 모델로 띄웁니다.
 4. worker는 `orchestration worker-start --run`으로 띄워 작업합니다. 설계·범위 판단이 필요하면 `ask`로 묻고, coordinator가 설계 역할에게 전달해 답을 그대로 돌려줍니다.
 5. worker가 `worker_done`으로 보고하면 coordinator가 delegate 리뷰와 lint 결과를 확인해 병합합니다.
 
@@ -41,6 +42,7 @@ hook은 셸 리다이렉션 같은 우회까지는 막지 못하고, hook 자체
 **검증 관문**
 - `scripts/lint.py`: 바뀐 파일에 레포의 lint 명령과 기본 검사(줄 수 증가, 범위 없는 억제, `eval`/`exec`, 하드코딩 비밀값, 산출물 front matter 형식)를 실행합니다. 기존 위반은 소급하지 않습니다. [lint 규약](plugins/fullops-squad/assets/repository/.fullops-squad/lint/README.md)
 - `fullops-review`: SHA를 고정하고 Open Code Review(OCR) delegate로 파일·규칙을 준비한 뒤 호스트 AI가 리뷰합니다. 별도 OCR API 키는 필요 없습니다. 미해결 critical/high나 lint ERROR가 있으면 수락하지 않습니다.
+- 동작 검증(`fullops-test`): 코드로 판정할 수 있는 것은 테스트 코드로, 사람이 조작해야 드러나는 흐름은 Jev 조작 테스트로 먼저 돌립니다. 웹은 `jev_test_web.py`가 Orca 내장 브라우저에서, Unity는 `jev_test_unity.py`가 플레이어 빌드에서 실행합니다. Unity 게임에는 `unity_bridge.py install`로 테스트 전용 브리지 패키지를 심습니다. 큰 모델이 화면을 한 단계씩 보며 조작하지 않아 비용이 적습니다. 시나리오는 `docs/evaluations/scenarios/`에 두고 회귀 테스트로 재사용하며, 결과는 `qa-reports/<과제 키>-test/`와 현황판에 남습니다.
 - 공통 코딩·테스트·보안 기준은 [공통 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/README.md)으로 제공하며 프로젝트 기준이 우선합니다.
 
 **작업 현황판**. 서비스 레포의 `.fullops-squad/board/index.html`을 브라우저로 열면 프로젝트 단계, 역할별 현재 과제, `PLANS.md`, 최근 완료, 리뷰 결과, 산출물 진행이 보입니다. 60초마다 새로고침하고 화이트·블랙 테마를 전환할 수 있습니다.
@@ -209,9 +211,10 @@ setup은 선택한 레포에 `.fullops-squad/`를 만듭니다.
   contexts/<role>.md           # 역할별 결정·교훈 요약
   lint/lint.json, README.md    # lint 명령·기본 검사 설정과 규약
   review/                      # OCR 규칙과 리뷰 보고서 템플릿
+  test/unity-play.json         # (Unity 테스트를 쓰면) 게임별 브리지 설정
   docs/
     planning/, design-docs/, exec-plans/, operations/, generated/
-    evaluations/               # Jev 분류·QA·리뷰 기록
+    evaluations/               # Jev 분류·QA·리뷰·테스트 기록, 테스트 시나리오(scenarios/)
     deliverables/              # 산출물 13종 인덱스
     agents/                    # 외부 엔지니어링 스킬의 레포 설정
 ```

@@ -1,6 +1,12 @@
 {
   "include": ["**/*.md", "**/*.test.{js,jsx,ts,tsx}", "**/*.spec.{js,jsx,ts,tsx}", "**/*_test.{py,go,rs}", "**/__tests__/**"],
-  "exclude": [],
+  "exclude": [
+    ".fullops-squad/docs/evaluations/qa-reports/**/*.{png,jpg,jpeg,gif,webp,mp4,mov}",
+    ".fullops-squad/docs/evaluations/qa-reports/**/*.log",
+    ".fullops-squad/docs/evaluations/qa-reports/*-test/*/play/state-*.json",
+    ".fullops-squad/docs/evaluations/qa-reports/*-test/*/play/action-*.json",
+    "**/*.bak"
+  ],
   "rules": [
     {
       "path": "**/*.md",

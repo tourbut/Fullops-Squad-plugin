@@ -20,11 +20,12 @@ import deps
 import env_link
 from orca_wait import find_orca
 from done_gate import CODE, field, git
-from jev_route import coordinator_role, guide
+from jev_route import coordinator_role, guide, marked_role
 
 DISPATCH = re.compile(r'--dispatch-id[ =]+([A-Za-z0-9_.:-]+)')
 SETTLE = re.compile(r'orchestration\s+send\b.*--type[ =]+(?:worker_done|escalation)\b', re.S)  # ask는 턴을 끝내지 않는다
 INJECT = re.compile(r'\bterminal\s+send\b.*handovers/|\bdispatch\b.*--inject\b', re.S)
+SEND_LIMIT = 20  # coordinator가 terminal send로 보낼 수 있는 글자 수. 확인 프롬프트 응답(y, 1)은 허용하고 작업 지시는 막는다
 HANDOVER = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
 TITLE = re.compile(r'#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—')
 STARTED = re.compile(r'\borchestration\s+worker-start\b.*?--run[ =]+["\']?([A-Za-z0-9_-]+)', re.S)
@@ -110,6 +111,22 @@ def run_state(run):
     return unread, active
 
 
+def sent_text(command):
+    """`orca terminal send`로 보내는 글자. 없으면 빈 문자열."""
+    if not re.search(r'\bterminal\s+send\b', command):
+        return ''
+    try:
+        words = shlex.split(command, posix=True)
+    except ValueError:
+        return command  # 따옴표가 깨진 명령은 길이로만 본다
+    for n, word in enumerate(words):
+        if word == '--text' and n + 1 < len(words):
+            return words[n + 1]
+        if word.startswith('--text='):
+            return word[len('--text='):]
+    return ''
+
+
 def handled(root, key):
     """과제 키가 인박스·작업 로그·PLANS.md 어딘가에 있으면 배정했거나 보류를 기록한 것으로 본다."""
     base = root / '.fullops-squad'
@@ -156,6 +173,10 @@ def tool_denial(root, event, state):
     if INJECT.search(command):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
     asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?:\s|$)', command)  # 사용법 확인은 배정이 아니다
+    if role == 'coordinator' and not asking_help and len(sent_text(command)) > SEND_LIMIT:
+        return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
+                '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
+                '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
     starting = re.search(r'\borchestration\s+worker-start\b', command) and not asking_help
     creating = re.search(r'\borchestration\s+task-create\b', command) and not asking_help
     if starting and '--run' not in command:
@@ -195,6 +216,9 @@ BRIEF = {
                     '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다.'),
     'designer': ('FullOps 설계 역할: 설계 문서와 역할별 지시서만 쓰고 코드는 고치지 않는다. 끝나면 preamble의 `worker_done`으로 '
                  '`[설계] <과제 키> | 지시서: … | 역할: … | SHA …`를 보낸다.'),
+    'tester': ('FullOps tester: 동작 검증을 맡는다. 제품 코드는 고치지 않고 테스트 코드·시나리오·검증 증거만 만든다. '
+               '검증은 `fullops-test` 스킬의 도구와 순서를 따르고, 결과는 `qa-reports/<과제 키>-test/`에 남긴다. '
+               '실패는 재현 절차와 증거로 보고하고 직접 고치지 않는다. 끝나면 preamble의 `worker_done`을 한 번 보낸다.'),
     'worker': ('FullOps worker: 설계·범위 판단이 필요하면 preamble의 `ask`로 묻고 추측하지 않는다. 끝나면 preamble의 '
                '`worker_done`을 한 번 보낸다. 보내지 않고 끝내면 hook이 한 번 막는다.'),
 }
@@ -217,7 +241,8 @@ def main():
     output = {}
     if mode == 'start':
         role, designer = context(root)
-        kind = 'coordinator' if role == 'coordinator' else 'designer' if role == designer else 'worker'
+        kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
+                else 'tester' if role == marked_role(root, 'tester') else 'worker')
         brief = BRIEF[kind]
         try:  # 워크트리에 빠진 .env*를 원본 체크아웃에서 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)

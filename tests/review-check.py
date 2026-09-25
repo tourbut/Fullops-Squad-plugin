@@ -22,6 +22,10 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     base = git('rev-parse', 'HEAD')
     for name in ['sample.py', 'guide.md', 'sample.test.ts', 'scene.tscn']:
         (repo / name).write_text('sample\n')
+    evidence = repo / '.fullops-squad/docs/evaluations/qa-reports/K-evidence'
+    evidence.mkdir(parents=True)
+    (evidence / 'frame.png').write_bytes(b'png')
+    (evidence / 'manifest.json').write_text('{}\n')
     git('add', '.')
     commit()
     lint_out = repo / '.git/fullops-lint.json'
@@ -35,13 +39,17 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     directory = repo / '.fullops-squad/docs/evaluations/qa-reports/REVIEW-1-review'
     path = directory / 'result.json'
     preview = json.loads((directory / 'preview.json').read_text())
-    assert {f['path'] for f in preview['reviewable_files']} == {'sample.py', 'guide.md', 'sample.test.ts'}
-    assert [f['path'] for f in preview['excluded_files']] == ['scene.tscn']
+    assert {f['path'] for f in preview['reviewable_files']} == {'sample.py', 'guide.md', 'sample.test.ts', '.fullops-squad/docs/evaluations/qa-reports/K-evidence/manifest.json'}
+    assert sorted(f['path'] for f in preview['excluded_files']) == [
+        '.fullops-squad/docs/evaluations/qa-reports/K-evidence/frame.png', 'scene.tscn']  # 증거 이미지는 기본 exclude
     before = path.read_bytes()
     assert run('prepare').returncode != 0 and path.read_bytes() == before
     assert run('check').returncode != 0  # pending
     data = json.loads(path.read_text())
-    assert len(data['files']) == 4  # OCR 제외 파일도 최종 체크리스트에 포함한다.
+    assert len(data['files']) == 6  # OCR 제외 파일도 최종 체크리스트에 포함한다.
+    status = {f['path'].split('/')[-1]: f['review_status'] for f in data['files']}
+    assert status['frame.png'] == 'skipped' and status['scene.tscn'] == 'pending'  # 제외된 증거만 미리 채운다
+    assert status['manifest.json'] == 'pending'  # 증거 요약은 리뷰 대상
     for item in data['files']:
         item.update(review_status='reviewed', reason='diff와 관련 요구사항 확인')
     data.update(reviewer='test reviewer', conclusion='verified')

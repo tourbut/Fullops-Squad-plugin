@@ -1,0 +1,10 @@
+{
+  "name": "com.fullops.jevplay",
+  "version": "0.1.0",
+  "displayName": "FullOps Jev Play",
+  "description": "Test-only bridge for FullOps jev_test_unity.py. With --jev-play <dir> it freezes the game at each decision, writes the game state, waits for an action and plays it through queued Input System keys. Without the flag it does nothing.",
+  "unity": "2022.3",
+  "dependencies": {
+    "com.unity.inputsystem": "1.7.0"
+  }
+}

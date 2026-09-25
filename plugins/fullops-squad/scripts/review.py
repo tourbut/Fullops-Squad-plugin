@@ -26,6 +26,16 @@ def rule_hash(rule):
     return hashlib.sha256(rule.read_bytes()).hexdigest()
 
 
+EVIDENCE = '.fullops-squad/docs/evaluations/qa-reports/'
+EVIDENCE_REASON = ('검증 증거(rule.json exclude). 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 '
+                   '존재와 무결성을 확인한다.')
+
+
+def evidence(path):
+    """OCR이 제외한 파일 중 검증 증거. 리뷰어가 수백 개에 같은 사유를 적지 않게 prepare가 미리 채운다."""
+    return path.startswith(EVIDENCE) or path.endswith('.bak')
+
+
 def prepare(repo, key, base, head):
     rule = safe_file(repo, '.fullops-squad/review/rule.json')
     destination = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review')
@@ -49,8 +59,9 @@ def prepare(repo, key, base, head):
     version = subprocess.check_output([ocr_command(), '--version'], text=True, env=env).strip()
     result = {'base': base, 'head': head, 'rule_sha256': digest, 'ocr_version': version,
               'reviewer': '', 'conclusion': '',
-              'files': [{**item, 'review_status': 'pending', 'reason': ''}
-                        for item in preview['reviewable_files'] + preview['excluded_files']],
+              'files': [{**item, 'review_status': 'pending', 'reason': ''} for item in preview['reviewable_files']] +
+                       [{**item, 'review_status': 'skipped', 'reason': EVIDENCE_REASON} if evidence(item['path']) else
+                        {**item, 'review_status': 'pending', 'reason': ''} for item in preview['excluded_files']],
               'findings': []}
     destination.mkdir(parents=True)
     for name, data in [('preview', preview), ('rules', rules), ('result', result)]:

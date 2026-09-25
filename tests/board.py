@@ -69,6 +69,13 @@ def main():
         (review / 'result.json').write_text(json.dumps({'head': 'a' * 40, 'reviewer': 'coordinator', 'conclusion': '수락',
             'findings': [{'severity': 'high', 'resolved': True}, {'severity': 'critical', 'resolved': False},
                          {'severity': 'low', 'resolved': False}]}), encoding='utf-8')
+        for folder_name, passed in (('web-20260924-101010', False), ('web-20260925-090000', True), ('unity-20260925-080000', False)):
+            folder = fo / f'docs/evaluations/qa-reports/JUMP-1-test/{folder_name}'
+            folder.mkdir(parents=True)
+            scenario = 'scenarios/unity/jump.json' if folder_name.startswith('unity') else 'scenarios/web/login.json'
+            (folder / 'result.json').write_text(json.dumps({'result': 'passed' if passed else 'stalled', 'passed': passed, 'steps': 4,
+                'cost': 0.0002, 'scenario': scenario, 'covers': ['REQ-1']}), encoding='utf-8')
+        (fo / 'docs/evaluations/qa-reports/JUMP-1-test/web-20260925-090000/report.md').write_text('# r', encoding='utf-8')
         (review / 'lint.json').write_text(json.dumps({'summary': {'errors': 0, 'warnings': 2}}), encoding='utf-8')
         index = fo / 'docs/deliverables/README.md'
         index.write_text(index.read_text(encoding='utf-8').replace('| D01 | 착수 | 사업계획서 | `docs/planning/business-plan.md` | 미작성 |',
@@ -95,6 +102,10 @@ def main():
             'model': {'agent': 'claude', 'provider': None, 'model': 'claude-sonnet-5', 'effort': 'medium', 'source': 'jev'}}}
         assert full['models'] == {'ART-9|art': {'agent': 'codex', 'provider': None, 'model': 'gpt-6-sol', 'effort': 'low', 'source': 'only'}}
         rv, = full['reviews']
+        web_test, unity_test = full['tests']  # 과제·시나리오마다 최신 실행 하나
+        assert (web_test['kind'], web_test['passed'], web_test['runs'], web_test['date']) == ('web', True, 2, '2026-09-25'), web_test
+        assert web_test['report'].endswith('web-20260925-090000/report.md') and web_test['covers'] == ['REQ-1']
+        assert (unity_test['kind'], unity_test['result'], unity_test['report']) == ('unity', 'stalled', '')
         assert (rv['key'], rv['blocking'], rv['findings'], rv['lint_errors'], rv['lint_warnings'], rv['head']) == ('ART-2', 1, 3, 0, 2, 'a' * 12)
         d01 = full['deliverables'][0]
         assert (d01['status'], d01['index_status'], d01['name'], d01['updated'], d01['owner'], d01['has_meta']) == (

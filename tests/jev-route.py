@@ -16,7 +16,7 @@ spec.loader.exec_module(jev)
 
 
 def stub(sent, simple, role, role_p=0.9, docs=None):
-    """docs: {산출물 ID 또는 'none': 확률}. 나머지 선택지가 남은 확률을 나눠 갖는다. None이면 답하지 않는다."""
+    """docs: {산출물 ID: 갱신 필요 확률}. 적지 않은 산출물은 0.05. None이면 산출물 질문에 답하지 않는다."""
     def call(payload):
         sent.append(payload)
         roles = list(payload['questions']['role']['criteria'])
@@ -25,12 +25,10 @@ def stub(sent, simple, role, role_p=0.9, docs=None):
                              'probabilities': {'simple': simple, 'design': 1 - simple}},
                    'role': {'type': 'choice', 'choice': role, 'confidence': 0.9,
                             'probabilities': {r: role_p if r == role else rest for r in roles}}}
-        if docs is not None and 'docs' in payload['questions']:
-            options = list(payload['questions']['docs']['criteria'])
-            left = (1 - sum(docs.values())) / max(len(options) - len(docs), 1)
-            probabilities = {o: docs.get(o, left) for o in options}
-            answers['docs'] = {'type': 'choice', 'choice': max(probabilities, key=probabilities.get), 'confidence': 0.8,
-                               'probabilities': probabilities}
+        if docs is not None:
+            for qid in payload['questions']:
+                if qid.startswith('doc_'):
+                    answers[qid] = {'type': 'noul', 'noul': docs.get(qid[4:], 0.05)}
         return {'model': 'typesafe/jev-test', 'answers': answers, 'usage': {'cost': 0.0001}}, 0.1
     return call
 
@@ -70,13 +68,14 @@ def main():
         (fo / 'docs/design-docs/architecture.md').write_text(
             '---\nid: D03\ntitle: 점프 시스템 설계\nstatus: draft\nupdated: 2026-09-24\nsummary: 점프 물리와 입력 처리 구조\n---\n', encoding='utf-8')
         sent = []
-        result = jev.route(repo, 'T-7', '점프 물리 구조를 바꿔줘', stub(sent, 0.3, 'dev', docs={'D03': 0.55, 'D10': 0.3}))
-        docs = sent[0]['questions']['docs']['criteria']
-        assert 'D08' not in docs and 'none' in docs and docs['D03'] == 'D03 점프 시스템 설계 (설계): 점프 물리와 입력 처리 구조'
-        assert (result['route'], result['deliverables']) == ('design', ['D03', 'D10']), result
-        result = jev.route(repo, 'T-8', '문구 오타 수정', stub([], 0.95, 'dev', docs={'none': 0.7}))
+        result = jev.route(repo, 'T-7', '점프 물리 구조를 바꿔줘', stub(sent, 0.3, 'dev', docs={'D03': 0.8, 'D10': 0.6, 'D04': 0.45}))
+        docs = sent[0]['state']['deliverables']
+        assert 'D08' not in docs and 'doc_D08' not in sent[0]['questions'] and docs['D03'] == 'D03 점프 시스템 설계 (설계): 점프 물리와 입력 처리 구조'
+        assert sent[0]['questions']['doc_D03']['type'] == 'noul'  # 산출물마다 독립된 예/아니오
+        assert (result['route'], result['deliverables']) == ('design', ['D03', 'D10']), result  # 0.5 미만은 빠진다
+        result = jev.route(repo, 'T-8', '문구 오타 수정', stub([], 0.95, 'dev', docs={}))
         assert (result['route'], result['deliverables']) == ('simple', []), result
-        result = jev.route(repo, 'T-9', '전체 개편', stub([], 0.9, 'dev', docs={'D02': 0.3, 'D03': 0.25, 'D04': 0.2, 'D05': 0.2}))
+        result = jev.route(repo, 'T-9', '전체 개편', stub([], 0.9, 'dev', docs={'D02': 0.95, 'D03': 0.9, 'D04': 0.85, 'D05': 0.8}))
         assert result['deliverables'] == ['D02', 'D03', 'D04'], result  # 최대 3개
         assert result['model'] is None  # 모델 후보가 없으면 고르지 않는다
 
@@ -106,6 +105,15 @@ def main():
         criteria = seen[-1]['questions']['model']['criteria']
         assert criteria['m1'].startswith('level 1/2: openai gpt-6-sol via codex') and criteria['m2'].startswith('level 2/2: anthropic')
         assert simple_fix['model']['provider'] == 'openai' and '단순 수정' in criteria['m1'] and seen[-1]['state']['role'] == 'dev'
+        def close_call(route_stub):
+            def call(payload):
+                if 'model' in payload['questions']:
+                    return {'model': 'jev-test', 'answers': {'model': {'type': 'choice', 'choice': 'm1', 'confidence': 0.5,
+                            'probabilities': {'m1': 0.52, 'm2': 0.48}}}, 'usage': {}}, 0.1
+                return route_stub(payload)
+            return call
+        tie = jev.route(repo, 'M-1b', '점프 수치를 1.5로', close_call(stub([], 0.95, 'dev')))
+        assert tie['model']['model'] == 'claude-opus-5-5' and tie['model']['tie_break'] == 'm1', tie['model']  # 접전이면 강한 쪽
         seen.clear()
         broken = jev.route(repo, 'M-2', '점프 수치', two_calls(stub([], 0.95, 'dev'), 'mX'))  # 잘못된 답
         assert broken['model']['source'] == 'fallback' and broken['model']['model'] == 'claude-opus-5-5'  # 가장 강한 후보

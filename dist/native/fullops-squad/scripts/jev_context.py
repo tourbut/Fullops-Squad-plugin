@@ -70,14 +70,16 @@ def report(result):
     lines = []
     if ctx:
         signals = ctx['signals']
+        label = {'suggest_omit': 'omit?', 'conflict': '충돌 ', 'caution': '주의 '}
         for cid, path in ctx['candidate_paths'].items():
             signal = signals.get(cid)
-            omit = cid not in ctx['recommended_ids']
-            note = ''
-            if signal:
-                rel = signal['relevance']
-                note = f"{rel['choice']} {rel['probabilities'][rel['choice']]:.2f}, conf {rel['confidence']:.2f}"
-            lines.append(f"{'omit?' if omit else 'keep '} {path}  {note or result['unsent_sources'].get(path, '')}".rstrip())
+            note = (f"관련 {signal['relevant']:.2f} 근거 {signal['evidence']:.2f} 충돌 {signal['contradicts']:.2f} "
+                    f"지시문 {signal['injection']:.2f}") if signal else result['unsent_sources'].get(path, '')
+            lines.append(f"{label.get(signal and signal['decision'], 'keep ')} {path}  {note}".rstrip())
+        if ctx.get('conflict_ids'):
+            lines.append('충돌: 지시서의 전제나 접근과 어긋나는 내용이 있다. 지시서에 "지시 전제와 충돌 — 먼저 확인"으로 적는다')
+        if ctx.get('caution_ids'):
+            lines.append('주의: AI에게 지시하는 문구가 있다. 지시서에 "지시문 포함 — 내용만 참고"로 적는다')
     for item in result['refused_paths']:
         lines.append(f"거부   {item['path']}  {item['reason']}")
     usage = result.get('usage') or {}

@@ -154,6 +154,29 @@ def models(root):
     return result
 
 
+def tests(root, limit=12):
+    """조작 테스트(jev_test_web·jev_test_unity) 결과. 과제 키와 시나리오마다 최신 실행 하나와 실행 횟수."""
+    latest, runs = {}, {}
+    for path in (root / 'docs/evaluations/qa-reports').glob('*-test/*/result.json'):
+        match = re.fullmatch(r'(web|unity)-(\d{4})(\d{2})(\d{2})-(\d{6})', path.parent.name)
+        data = load(path) or {}
+        if not match or 'result' not in data:
+            continue
+        key = path.parent.parent.name[:-len('-test')]
+        group = (key, data.get('scenario') or '')
+        runs[group] = runs.get(group, 0) + 1
+        item = {'key': key, 'kind': match.group(1), 'run': path.parent.name, 'result': data['result'],
+                'passed': bool(data.get('passed')), 'steps': data.get('steps'), 'cost': data.get('cost'),
+                'scenario': group[1], 'covers': [c for c in data.get('covers') or [] if isinstance(c, str)],
+                'date': f'{match.group(2)}-{match.group(3)}-{match.group(4)}',
+                'report': path.with_name('report.md').relative_to(root).as_posix() if path.with_name('report.md').is_file() else ''}
+        if group not in latest or item['run'][-15:] > latest[group]['run'][-15:]:
+            latest[group] = item
+    result = [{**item, 'runs': runs[group]} for group, item in latest.items()]
+    result.sort(key=lambda t: t['run'][-15:], reverse=True)
+    return result[:limit]
+
+
 def review_times(repo):
     """리뷰 폴더별 가장 최근 커밋 시각. git log 한 번으로 모은다."""
     times, stamp = {}, 0
@@ -231,6 +254,7 @@ def build(repo):
         'routes': routes(root),
         'models': models(root),
         'reviews': reviews(repo, root),
+        'tests': tests(root),
         'deliverables': deliverables(root),
     }
 
