@@ -25,6 +25,8 @@ flow-gate hook이 route 기록, `worker-start --run`, 설계 역할의 코드 �
 
 coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 않는다. `orca-agents.md`의 `## 라우팅 기준`을 읽는다. coordinator를 역할 워크트리에서 운영하면 라우팅 기준에 `- coordinator 역할: `<역할>`` 줄이 있어야 flow-gate가 coordinator로 판정하고 현황판을 갱신한다.
 
+운영 작업은 분류하지 않고 coordinator가 직접 처리한다. 플러그인·`setup-fullops` 갱신, 기본 브랜치를 워크트리에 반영하는 동기화·병합, worker 브랜치 병합, 현황판·PLANS.md 정리가 여기에 속한다. 코드·산출물 내용을 새로 만들거나 바꾸는 요청만 아래 절차로 분류한다.
+
 1. 과제 키를 정한다. 이 스킬 기준 `../../scripts/jev_route.py`로 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --request "<요청 원문>"`을 실행한다. 비밀값이 섞인 요청은 원문 대신 요약을 넘긴다. 결과는 `docs/evaluations/jev/<과제 키>-route.json`에 남는다.
 출력의 `모델`(route.json의 `model`)은 `## 모델 후보`에서 배정할 역할에 맞게 고른 에이전트·모델·effort다. 후보가 없으면 배정표의 기본값을 쓴다. 출력의 `갱신할 산출물`(route.json의 `deliverables`)은 이 요청으로 쓰거나 고쳐야 할 D01–D13이다. 추천일 뿐이며 판단으로 더하거나 뺄 수 있다.
 2. `route: simple → <역할>`이면 `fullops-work`로 그 역할 인박스에 짧은 지시서를 쓰고 dispatch한다. 지시서의 `갱신할 산출물`에 route 결과를 옮긴다. 지시서를 쓰다가 파일 소유권·완료 기준·검증 명령 중 하나라도 정할 수 없으면 design으로 바꾼다. Jev 결과보다 이 판단이 우선한다.

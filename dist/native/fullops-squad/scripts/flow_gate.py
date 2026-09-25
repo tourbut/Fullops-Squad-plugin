@@ -190,7 +190,7 @@ def tool_denial(root, event, state):
 
 
 BRIEF = {
-    'coordinator': ('FullOps coordinator: 새 요청은 과제 키를 정하고 `jev_route.py`로 먼저 분류한다. simple이면 그 역할 지시서를, '
+    'coordinator': ('FullOps coordinator: 새 개발 요청은 과제 키를 정하고 `jev_route.py`로 먼저 분류한다. 플러그인·setup 갱신, 워크트리 동기화·병합, 현황판 정리 같은 운영 작업은 분류하지 않고 직접 처리한다. simple이면 그 역할 지시서를, '
                     'design이면 설계 역할을 `worker-start --run`으로 띄운다. 설계·범위 질문은 직접 답하지 않고 설계 역할에게 넘긴다. '
                     '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다.'),
     'designer': ('FullOps 설계 역할: 설계 문서와 역할별 지시서만 쓰고 코드는 고치지 않는다. 끝나면 preamble의 `worker_done`으로 '
