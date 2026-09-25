@@ -26,10 +26,10 @@ flow-gate hook이 route 기록, `worker-start --run`, 설계 역할의 코드 �
 coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 않는다. `orca-agents.md`의 `## 라우팅 기준`을 읽는다. coordinator를 역할 워크트리에서 운영하면 라우팅 기준에 `- coordinator 역할: `<역할>`` 줄이 있어야 flow-gate가 coordinator로 판정하고 현황판을 갱신한다.
 
 1. 과제 키를 정한다. 이 스킬 기준 `../../scripts/jev_route.py`로 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --request "<요청 원문>"`을 실행한다. 비밀값이 섞인 요청은 원문 대신 요약을 넘긴다. 결과는 `docs/evaluations/jev/<과제 키>-route.json`에 남는다.
-출력의 `갱신할 산출물`(route.json의 `deliverables`)은 이 요청으로 쓰거나 고쳐야 할 D01–D13이다. 추천일 뿐이며 판단으로 더하거나 뺄 수 있다.
+출력의 `모델`(route.json의 `model`)은 `## 모델 후보`에서 배정할 역할에 맞게 고른 에이전트·모델·effort다. 후보가 없으면 배정표의 기본값을 쓴다. 출력의 `갱신할 산출물`(route.json의 `deliverables`)은 이 요청으로 쓰거나 고쳐야 할 D01–D13이다. 추천일 뿐이며 판단으로 더하거나 뺄 수 있다.
 2. `route: simple → <역할>`이면 `fullops-work`로 그 역할 인박스에 짧은 지시서를 쓰고 dispatch한다. 지시서의 `갱신할 산출물`에 route 결과를 옮긴다. 지시서를 쓰다가 파일 소유권·완료 기준·검증 명령 중 하나라도 정할 수 없으면 design으로 바꾼다. Jev 결과보다 이 판단이 우선한다.
 3. `route: design → <설계 역할>`이면(오류·키 없음 포함) 설계 역할을 dispatch한다. spec에는 과제 키, 요청 원문 파일 경로, 대상 역할 인박스(`handovers/to_<역할>.md`), route의 갱신할 산출물을 넣는다. 설계 역할은 산출물 목록을 확정해 각 지시서의 `갱신할 산출물`에 나눠 적는다. 설계 역할은 설계 문서와 역할별 지시서를 쓰고 커밋한다. 그다음 `worker_done` body에 `[설계] <과제 키> | 지시서: <경로들> | 역할: … | SHA …`를 보낸다. 코드는 구현하지 않는다.
-4. 설계 `worker_done`을 받으면 설계 역할을 `worker-retain`으로 남긴다. 이어서 적힌 지시서마다 해당 역할을 dispatch한다. 설계 역할은 그 과제의 병합이 끝나면 `worker-release`한다. 다음 설계는 새 세션에서 시작해 컨텍스트가 과제 단위로 끊기게 한다.
+4. 설계 `worker_done`을 받으면 설계 역할을 `worker-retain`으로 남긴다. 적힌 지시서마다 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --model-only --role <역할>`로 그 지시서에 맞는 모델을 고른 뒤 해당 역할을 dispatch한다. 설계 역할은 그 과제의 병합이 끝나면 `worker-release`한다. 다음 설계는 새 세션에서 시작해 컨텍스트가 과제 단위로 끊기게 한다.
 
 ## dispatch
 
@@ -37,7 +37,7 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 2. coordinator와 worker의 실제 repo id·워크트리·터미널 핸들을 조회해 지시서에 넣는다. 과거 핸들을 재사용하지 않는다.
 3. worker가 지시서와 원천 문서를 읽을 수 있는 버전을 전달하고 과제 키·내용을 확인한다. `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙과 지시서가 지정한 프로젝트 정본도 같은 버전으로 전달하고 실제 경로·기준 커밋 또는 스냅샷을 확인한다. 누락·불일치를 해소하기 전 착수시키지 않는다. 워크트리는 파일을 자동 공유하지 않는다. 기본은 준비 커밋을 worker에 반영하는 방식이며, 미커밋 지시서는 명시한 절대경로의 스냅샷으로 제공한다. 진행 중 변경을 덮어쓰지 않는다.
 4. 보고를 받을 Run을 정한다. 내 세션에 Task·Dispatch ID가 든 preamble이 있으면 나도 dispatched worker다. 이때 상위 Run에 하위 worker를 띄우면 완료 보고가 상위 coordinator에게 간다. 먼저 `orchestration run-create`로 내 Run을 만들고 그 run id를 쓴다. preamble이 없으면 내가 최상위 coordinator다. 별도 coordinator 없이 한 역할(예: 아키텍처)이 다른 역할 worker를 띄우는 구성도 같다. 이 경우 기존 Run을 쓰거나 `run-create`로 새로 만든다. `nested_worker_depth_exceeded`면 하위 worker를 띄우지 말고 상위에 `escalation`으로 알린다.
-5. 대상 역할이 grok이면 `grok_trust.py --check`로 원본 레포 신뢰를 먼저 확인한다(bootstrap 규칙). `orchestration worker-start --run <run id> --spec "<한 문단>" --worktree <worker 워크트리> --agent <CLI>`로 현재 작업과 분리된 새 세션을 시작한다. 한 문단에는 과제 키·지시서 실제 경로·worker 경로를 넣고, 긴 내용은 파일로 제공한다. Orca가 넣는 preamble이 `worker_done` 복귀 경로다. 터미널 주입(`terminal send`, `dispatch --inject`)으로 착수시키면 worker가 `worker_done`을 보낼 수 없으므로 쓰지 않는다. 읽을 범위는 지시서의 `먼저 읽을 문서`로 한정하고, 원천 문서 전체를 붙이지 않는다. 권한 모드는 임의로 완화하지 않는다. 진행 중인 세션을 임의로 중단하지 않는다.
+5. 고른 모델을 적용한다. Claude·Codex는 `worker-start --agent <에이전트> --model <모델> --effort <effort>`로 띄운다. `--model`을 받지 않는 CLI(grok 등)는 `terminal create --command`로 해당 CLI의 모델·effort 인자를 넣어 띄우고 준비를 확인한 뒤 `worker-start --terminal <핸들>`로 감독한다. 대상 역할이 grok이면 `grok_trust.py --check`로 원본 레포 신뢰를 먼저 확인한다(bootstrap 규칙). `orchestration worker-start --run <run id> --spec "<한 문단>" --worktree <worker 워크트리> --agent <CLI>`로 현재 작업과 분리된 새 세션을 시작한다. 한 문단에는 과제 키·지시서 실제 경로·worker 경로를 넣고 "신중히 생각해" 같은 사고 지시는 넣지 않는다. 긴 내용은 파일로 제공한다. Orca가 넣는 preamble이 `worker_done` 복귀 경로다. 터미널 주입(`terminal send`, `dispatch --inject`)으로 착수시키면 worker가 `worker_done`을 보낼 수 없으므로 쓰지 않는다. 읽을 범위는 지시서의 `먼저 읽을 문서`로 한정하고, 원천 문서 전체를 붙이지 않는다. 권한 모드는 임의로 완화하지 않는다. 진행 중인 세션을 임의로 중단하지 않는다.
 6. 반환된 run id·task id·dispatch id·worker 핸들을 지시서의 복귀 항목과 카드에 남긴다. terminal read로 worker가 지시서를 읽고 착수했는지 확인한다. send 성공이나 idle 상태만으로 판단하지 않는다.
 7. 착수를 확인하면 아래 대기 규칙대로 `--run <run id>`를 지정해 기다린다. 호스트에 따라 백그라운드(Claude Code) 또는 포그라운드(Codex·grok)로 기다린다.
 
@@ -50,7 +50,7 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 - 분류(`jev_route.py`)한 과제는 같은 세션에서 배정하거나 PLANS.md에 보류 사유를 적는다. flow-gate Stop hook이 배정되지 않은 route를 한 번 막는다. 대화가 요약된 뒤에는 route 기록을 다시 읽고 이어서 진행한다.
 - `idle_timeout`(기본 45분)은 실패가 아니다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
 - orchestration을 쓰지 않는 터미널 전달은 `terminal wait`을 긴 타임아웃으로 백그라운드에서 한 번 건다.
-- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. 완료 판정은 worker의 `worker_done`·`[완료]` 보고, 보고된 브랜치·SHA, 산출물 파일로 한다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
+- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. 완료 판정은 worker의 `worker_done`·`[완료]` 보고, 보고된 브랜치·SHA, 산출물 파일로 한다. 보고 내용을 그대로 믿지 않는다. 받은 SHA가 브랜치에 있는지, 검증 명령의 종료코드와 산출물 파일이 실제로 있는지 확인한다. 여러 worker 결과는 과제 키·역할·SHA·검증·남은 일 표로 모아 PLANS.md에 남긴다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
 
 ## 질문 — coordinator가 전달
 
@@ -61,6 +61,7 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 
 ## 메시지 — worker
 
+- 지시서 범위 안의 비파괴 작업은 묻지 않고 완료 기준까지 진행한다. 진행 확인을 받으려고 멈추지 않는다.
 - 작업 중 설계·범위·공유 계약 판단이 필요하면 추측하지 말고 preamble의 `ask`로 묻는다. 질문에는 과제 키, 막힌 지점, 선택지와 각각의 영향을 적는다. 답은 설계 역할이 하지만 경로는 항상 coordinator다. 형제 worker에게 직접 보내지 않는다. timeout이 나면 같은 message id로 다시 기다린다.
 - coordinator에게는 `worker_done`, 결정이 필요한 `question`(`ask`), 막힘을 알리는 `escalation`만 보낸다. 진행 상황은 완료 보고와 산출물에 남기고, 진행 알림용 status는 보내지 않는다. `send`는 `--type`을 생략하면 status가 되므로 항상 타입을 명시한다.
 - heartbeat는 preamble이 정한 주기를 따른다. coordinator 쪽 `orca_wait.py`가 흡수하므로 줄이려고 규칙을 어기지 않는다.

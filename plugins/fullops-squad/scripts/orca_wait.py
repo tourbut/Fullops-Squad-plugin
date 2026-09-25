@@ -6,10 +6,29 @@
 """
 import argparse
 import json
+import os
+from pathlib import Path
 import shutil
 import subprocess
 import sys
 import time
+
+
+def find_orca():
+    """Orca CLI 경로: ORCA_CLI_COMMAND → PATH(orca, orca-ide) → OS별 기본 설치 위치. 못 찾으면 None.
+
+    Windows 샌드박스 셸처럼 사용자 PATH를 물려받지 않는 환경에서도 설치 위치로 찾는다."""
+    for name in (os.environ.get('ORCA_CLI_COMMAND'), 'orca', 'orca-ide'):
+        if name and shutil.which(name):
+            return shutil.which(name)
+    home = Path.home()
+    for path in (Path(os.environ.get('LOCALAPPDATA') or home / 'AppData/Local') / 'Programs/orca/resources/bin/orca.exe',
+                 Path('/Applications/Orca.app/Contents/Resources/bin/orca'),
+                 home / 'Applications/Orca.app/Contents/Resources/bin/orca',
+                 Path('/opt/Orca/resources/bin/orca')):
+        if path.is_file():
+            return str(path)
+    return None
 
 
 def check(args, ack):
@@ -40,7 +59,7 @@ def summarize(absorbed):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--orca', default='orca', help='skills get에 사용한 Orca 실행 파일')
+    parser.add_argument('--orca', default=None, help='skills get에 사용한 Orca 실행 파일. 없으면 자동으로 찾는다')
     parser.add_argument('--run')
     parser.add_argument('--terminal')
     parser.add_argument('--ack', help='처리를 마친 이전 delivery id')
@@ -48,6 +67,7 @@ def main():
     parser.add_argument('--wait-ms', type=int, default=900000)
     parser.add_argument('--max-minutes', type=float, default=45, help='이 시간 동안 처리할 메시지가 없으면 반환한다')
     args = parser.parse_args()
+    args.orca = args.orca or find_orca() or 'orca'
     quiet = {t.strip() for t in args.quiet_types.split(',') if t.strip()}
     deadline = time.monotonic() + args.max_minutes * 60
     absorbed, ack = [], args.ack

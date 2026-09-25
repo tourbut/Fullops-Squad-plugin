@@ -18,6 +18,7 @@ import sys
 import board
 import deps
 import env_link
+from orca_wait import find_orca
 from done_gate import CODE, field, git
 from jev_route import coordinator_role, guide
 
@@ -89,7 +90,7 @@ def handover_denial(root, designer, role, key):
 
 def orca(*args):
     """Orca CLI를 JSON으로 호출한다. 실패하면 None. hook은 coordinator 터미널 환경에서 돌아 호출자가 그 터미널로 식별된다."""
-    exe = os.environ.get('FULLOPS_ORCA_CLI') or os.environ.get('ORCA_CLI_COMMAND') or 'orca'
+    exe = os.environ.get('FULLOPS_ORCA_CLI') or find_orca() or 'orca'
     try:
         done = subprocess.run([shutil.which(exe) or exe, *args, '--json'], capture_output=True, text=True,
                               encoding='utf-8', timeout=15)
@@ -233,6 +234,8 @@ def main():
         if absent:
             brief += (f" FullOps 필수 CLI가 없다: {', '.join(absent)}. 사용자에게 알리고 승인받아 "
                       f"`python3 {Path(__file__).resolve().parent / 'deps.py'} --host <지금 CLI>`로 의존성을 설치한다.")
+        # 샌드박스 셸이 사용자 PATH를 물려받지 않으면 python3·orca를 못 찾는다. hook 환경에서 찾은 경로를 알린다
+        brief += f' 셸에서 python3나 orca를 찾지 못하면 전체 경로를 쓴다: python3={sys.executable}, orca={find_orca() or "찾지 못함"}.'
         output = {'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': brief}}
     elif mode == 'prompt':
         match = DISPATCH.search(str(field(event, 'prompt') or ''))

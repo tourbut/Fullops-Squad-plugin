@@ -170,9 +170,11 @@
   h.push('<section><div class="head"><h2>역할별 현재 과제</h2><span class="count">' + busy + ' / ' + roles.length + ' 작업 중</span></div><div class="roles">');
   roles.forEach(function (r) {
     var t = r.task, s = t ? (TASK[t.status] || TASK.ready) : null, route = t && (B.routes || {})[t.key];
+    var model = t && ((B.models || {})[t.key + '|' + r.role] || (route && route.role === r.role ? route.model : null));
     h.push('<div class="role' + (t && t.status === 'running' ? ' is-active' : '') + '"><div class="top"><span class="name">' + esc(r.role) + '</span>' +
            (t ? st(s[0], s[1]) : st('is-todo', '대기')) + '</div><span class="mono soft">' + esc(r.branch) + '</span>' +
-           (t ? '<div class="goal"><span class="mono">' + esc(t.key) + '</span><br>' + esc(t.goal) + '</div>' + (route ? '<span class="mono soft">route · ' + esc(route.route) + ((route.deliverables || []).length ? ' · 산출물 ' + esc(route.deliverables.join(' ')) : '') + '</span>' : '')
+           (t ? '<div class="goal"><span class="mono">' + esc(t.key) + '</span><br>' + esc(t.goal) + '</div>' + (model ? '<span class="mono soft">model · ' + esc(model.agent + ' ' + model.model + ' ' + model.effort) + '</span>' : '') +
+              (route ? '<span class="mono soft">route · ' + esc(route.route) + ((route.deliverables || []).length ? ' · 산출물 ' + esc(route.deliverables.join(' ')) : '') + '</span>' : '')
               : '<p class="idle">진행 중인 과제 없음</p>') + '</div>');
   });
   h.push('</div></section>');

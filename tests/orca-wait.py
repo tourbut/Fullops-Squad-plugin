@@ -41,7 +41,29 @@ def run(tmp, responses, *extra):
     return done.returncode, json.loads(done.stdout), json.loads(state.read_text())
 
 
+def lookup():
+    """PATH에 Orca가 없어도 OS별 기본 설치 위치에서 찾는다(샌드박스 셸 대비)."""
+    sys.path.insert(0, str(SCRIPT.parent))
+    import orca_wait
+    with tempfile.TemporaryDirectory(prefix='fullops-orca-find-') as tmp:
+        exe = Path(tmp) / 'Programs/orca/resources/bin/orca.exe'
+        exe.parent.mkdir(parents=True)
+        exe.write_text('', encoding='utf-8')
+        saved = {k: os.environ.get(k) for k in ('PATH', 'LOCALAPPDATA', 'ORCA_CLI_COMMAND')}
+        try:
+            os.environ.update({'PATH': tmp, 'LOCALAPPDATA': tmp})
+            os.environ.pop('ORCA_CLI_COMMAND', None)
+            assert orca_wait.find_orca() == str(exe), orca_wait.find_orca()
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+
 def main():
+    lookup()
     with tempfile.TemporaryDirectory(prefix='fullops-orca-wait-') as tmp:
         fake = Path(tmp) / 'orca'
         fake.write_text(FAKE)

@@ -60,7 +60,10 @@ def main():
         (fo / 'handovers/logs/2026-09-20_to_art.md').write_text(
             '\n## ART-1 — 2026-09-20\n\n# ART-1 — 캐릭터 교체\n\n본문\n\n## ART-2 — 2026-09-22\n\n# ART-2 — UI 아이콘\n', encoding='utf-8')
         (fo / 'docs/evaluations/jev').mkdir(parents=True, exist_ok=True)
-        (fo / 'docs/evaluations/jev/JUMP-1-route.json').write_text(json.dumps({'route': 'simple', 'role': 'dev', 'deliverables': ['D03']}), encoding='utf-8')
+        (fo / 'docs/evaluations/jev/JUMP-1-route.json').write_text(json.dumps({'route': 'simple', 'role': 'dev', 'deliverables': ['D03'],
+            'model': {'agent': 'claude', 'model': 'claude-sonnet-5', 'effort': 'medium', 'source': 'jev', 'usage': {}}}), encoding='utf-8')
+        (fo / 'docs/evaluations/jev/ART-9-model-art.json').write_text(json.dumps({'task_key': 'ART-9', 'role': 'art',
+            'model': {'agent': 'codex', 'model': 'gpt-6-sol', 'effort': 'low', 'source': 'only'}}), encoding='utf-8')
         review = fo / 'docs/evaluations/qa-reports/ART-2-review'
         review.mkdir(parents=True)
         (review / 'result.json').write_text(json.dumps({'head': 'a' * 40, 'reviewer': 'coordinator', 'conclusion': '수락',
@@ -88,7 +91,9 @@ def main():
         assert dev['task'] == {'key': 'JUMP-1', 'goal': '점프 높이 조정', 'status': 'running'}, dev
         assert [(e['key'], e['role']) for e in full['history']] == [('ART-2', 'art'), ('ART-1', 'art')]
         assert full['history'][0]['goal'] == 'UI 아이콘'
-        assert full['routes'] == {'JUMP-1': {'route': 'simple', 'role': 'dev', 'deliverables': ['D03']}}
+        assert full['routes'] == {'JUMP-1': {'route': 'simple', 'role': 'dev', 'deliverables': ['D03'],
+            'model': {'agent': 'claude', 'provider': None, 'model': 'claude-sonnet-5', 'effort': 'medium', 'source': 'jev'}}}
+        assert full['models'] == {'ART-9|art': {'agent': 'codex', 'provider': None, 'model': 'gpt-6-sol', 'effort': 'low', 'source': 'only'}}
         rv, = full['reviews']
         assert (rv['key'], rv['blocking'], rv['findings'], rv['lint_errors'], rv['lint_warnings'], rv['head']) == ('ART-2', 1, 3, 0, 2, 'a' * 12)
         d01 = full['deliverables'][0]

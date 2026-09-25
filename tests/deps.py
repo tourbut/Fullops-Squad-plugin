@@ -56,6 +56,7 @@ def main():
                                input=json.dumps({'session_id': 's', 'cwd': str(repo), 'source': 'startup'}))
         brief = json.loads(start.stdout).get('hookSpecificOutput', {}).get('additionalContext', '')
         assert 'deps.py' in brief and '필수 CLI가 없다' in brief, (brief, start.stderr)
+        assert 'python3=' in brief and sys.executable.split(os.sep)[-1] in brief  # 셸 PATH가 달라도 쓸 전체 경로
     print('PASS: deps plan excludes fullops itself, skips registered marketplaces, --check, dry-run, SessionStart hint')
 
 

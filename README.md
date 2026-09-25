@@ -26,8 +26,9 @@ Orca에서 여러 AI 코딩 에이전트(Claude Code·Codex·grok·agy)를 한 �
 **요청 흐름**
 1. coordinator가 `jev_route.py`로 요청을 분류합니다. Jev는 선택지마다 확률을 돌려주는 작은 판단 모델입니다.
 2. simple이면 coordinator가 짧은 지시서를 써서 담당 역할에 바로 보냅니다. design이거나 확신이 낮으면 설계 역할이 설계와 지시서를 쓴 뒤 worker에게 넘깁니다. 이 요청으로 갱신할 산출물도 함께 고릅니다.
-3. worker는 `orchestration worker-start --run`으로 띄워 작업합니다. 설계·범위 판단이 필요하면 `ask`로 묻고, coordinator가 설계 역할에게 전달해 답을 그대로 돌려줍니다.
-4. worker가 `worker_done`으로 보고하면 coordinator가 delegate 리뷰와 lint 결과를 확인해 병합합니다.
+3. 배정할 역할이 정해지면 사용자가 `orca-agents.md`의 `## 모델 후보`에 적어 둔 그 역할의 후보(에이전트·모델·effort) 중 작업 난이도에 맞는 것을 Jev가 고릅니다. 쉬운 일은 싼 모델로, 판단이 필요한 일은 강한 모델로 띄웁니다.
+4. worker는 `orchestration worker-start --run`으로 띄워 작업합니다. 설계·범위 판단이 필요하면 `ask`로 묻고, coordinator가 설계 역할에게 전달해 답을 그대로 돌려줍니다.
+5. worker가 `worker_done`으로 보고하면 coordinator가 delegate 리뷰와 lint 결과를 확인해 병합합니다.
 
 **자동 규칙 (flow-gate hook)**. Claude Code·Codex·grok build에서 같은 스크립트가 행동 직전과 종료 직전에 검사합니다.
 - 지시서를 터미널로 주입하는 배정, `--run` 없는 `worker-start`, Jev 분류 기록 없는 배정을 막습니다.
@@ -110,7 +111,7 @@ grok plugin marketplace update && grok plugin update fullops-squad
 1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘. Jev API 키가 없으면 Jev 없이 진행된다고 알려줘.
 2. 레포의 코드·에셋·배포 구조를 보고 필요한 worker 역할을 제안해. 역할마다 책임과 담당 경로를 한 줄씩 적고, 내가 확정하면 설계 역할 architecture와 함께 그 역할로 setup-fullops를 실행해. 먼저 --dry-run으로 계획을 보여주고 실행해. 원격이 없으면 연결 정보만 물어봐.
 3. project.md에 기술 기준·검증 명령을 채우고, 레포에 있는 lint 도구를 lint.json에 등록해. review/rule.json도 이 레포에 맞게 구성해.
-4. orca-agents.md 배정표에 역할별 CLI·모델을 적어. coordinator는 <하위 모델>, architecture는 <상위 모델>, worker는 <하위 모델>이다. 미정인 것만 물어봐.
+4. orca-agents.md 배정표에 역할별 CLI를 적고, "## 모델 후보"에 역할마다 쓸 에이전트·모델·effort 후보를 약한 것부터 강한 순으로, 각각 어떤 작업에 쓸지와 함께 적어. 후보는 내가 정한다. 미정인 것만 물어봐.
 5. orca-agents.md의 "## 라우팅 기준"에서 설계 역할 줄과 역할별 책임 줄을 실제 역할에 맞게 고쳐.
 6. board/board.json에 이 레포의 제목과 실제 진행 단계를 적어.
 7. setup으로 생긴 파일을 기본 브랜치에 커밋하고 원격에 push해.

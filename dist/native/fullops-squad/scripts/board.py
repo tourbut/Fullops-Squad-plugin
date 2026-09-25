@@ -134,8 +134,23 @@ def routes(root):
     for path in sorted((root / 'docs/evaluations/jev').glob('*-route.json')):
         data = load(path) or {}
         if data.get('route') in ('simple', 'design'):
-            result[path.name[:-len('-route.json')]] = {'route': data['route'], 'role': data.get('role'),
+            result[path.name[:-len('-route.json')]] = {'route': data['route'], 'role': data.get('role'), 'model': model_of(data),
                                                         'deliverables': [d for d in data.get('deliverables') or [] if isinstance(d, str)]}
+    return result
+
+
+def model_of(data):
+    model = data.get('model') if isinstance(data, dict) else None
+    return {k: model.get(k) for k in ('agent', 'provider', 'model', 'effort', 'source')} if isinstance(model, dict) else None
+
+
+def models(root):
+    """설계 뒤 worker용 모델 선택 기록. {'<과제 키>|<역할>': 모델}"""
+    result = {}
+    for path in sorted((root / 'docs/evaluations/jev').glob('*-model-*.json')):
+        data = load(path) or {}
+        if data.get('task_key') and data.get('role') and model_of(data):
+            result[f"{data['task_key']}|{data['role']}"] = model_of(data)
     return result
 
 
@@ -214,6 +229,7 @@ def build(repo):
         'plans': plans(root),
         'history': history(root),
         'routes': routes(root),
+        'models': models(root),
         'reviews': reviews(repo, root),
         'deliverables': deliverables(root),
     }

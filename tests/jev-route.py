@@ -78,6 +78,51 @@ def main():
         assert (result['route'], result['deliverables']) == ('simple', []), result
         result = jev.route(repo, 'T-9', '전체 개편', stub([], 0.9, 'dev', docs={'D02': 0.3, 'D03': 0.25, 'D04': 0.2, 'D05': 0.2}))
         assert result['deliverables'] == ['D02', 'D03', 'D04'], result  # 최대 3개
+        assert result['model'] is None  # 모델 후보가 없으면 고르지 않는다
+
+        # 모델 후보: 역할마다 사용자가 정한 후보 중 작업 난이도에 맞는 것을 고른다
+        guide_path = repo / '.fullops-squad/orca-agents.md'
+        guide_path.write_text(guide_path.read_text(encoding='utf-8').replace('## 모델 후보\n', '## 모델 후보\n\n'
+            '- `dev` `codex` `gpt-6-sol` `low`: 문구·수치 같은 단순 수정\n'
+            '- `dev` `claude` `claude-opus-5-5` `high`: 여러 모듈에 걸친 구현\n'
+            '- `art` `codex` `gpt-6-sol` `medium`: 에셋 교체\n', 1), encoding='utf-8')
+        candidates = jev.model_candidates(repo)
+        assert [c['model'] for c in candidates['dev']][:2] == ['gpt-6-sol', 'claude-opus-5-5'], candidates
+        seen = []
+
+        def two_calls(route_stub, prefer):
+            def call(payload):
+                if 'model' in payload['questions']:
+                    seen.append(payload)
+                    labels = list(payload['questions']['model']['criteria'])
+                    probabilities = {l: (0.8 if l == prefer else 0.2 / (len(labels) - 1)) for l in labels}
+                    return {'model': 'jev-test', 'answers': {'model': {'type': 'choice', 'choice': prefer, 'confidence': 0.9,
+                                                                        'probabilities': probabilities}}, 'usage': {}}, 0.1
+                return route_stub(payload)
+            return call
+
+        simple_fix = jev.route(repo, 'M-1', '점프 수치를 1.5로', two_calls(stub([], 0.95, 'dev'), 'm1'))
+        assert (simple_fix['role'], simple_fix['model']['model'], simple_fix['model']['effort']) == ('dev', 'gpt-6-sol', 'low'), simple_fix
+        criteria = seen[-1]['questions']['model']['criteria']
+        assert criteria['m1'].startswith('level 1/2: openai gpt-6-sol via codex') and criteria['m2'].startswith('level 2/2: anthropic')
+        assert simple_fix['model']['provider'] == 'openai' and '단순 수정' in criteria['m1'] and seen[-1]['state']['role'] == 'dev'
+        seen.clear()
+        broken = jev.route(repo, 'M-2', '점프 수치', two_calls(stub([], 0.95, 'dev'), 'mX'))  # 잘못된 답
+        assert broken['model']['source'] == 'fallback' and broken['model']['model'] == 'claude-opus-5-5'  # 가장 강한 후보
+        seen.clear()
+        only = jev.route(repo, 'M-3', '캐릭터 스프라이트 교체', two_calls(stub([], 0.95, 'art'), 'm1'))
+        assert only['model'] == {'agent': 'codex', 'provider': 'openai', 'model': 'gpt-6-sol', 'effort': 'medium', 'source': 'only'} and not seen
+        design = jev.route(repo, 'M-4', '저장 구조 개편', two_calls(stub([], 0.2, 'dev'), 'm1'))
+        assert design['role'] == 'architecture' and design['model'] is None  # 설계 역할은 후보가 없다
+        (repo / '.fullops-squad/handovers/to_dev.md').write_text('# M-4-DEV — 저장 구조 개편 구현\n여러 모듈 변경\n', encoding='utf-8')
+        picked_after = jev.model_only(repo, 'M-4-DEV', 'dev', two_calls(None, 'm2'))
+        assert picked_after['model']['model'] == 'claude-opus-5-5' and 'M-4-DEV' in seen[-1]['state']['request']
+        (repo / '.fullops-squad/handovers/to_dev.md').write_text('', encoding='utf-8')
+        try:
+            jev.model_only(repo, 'M-5', 'dev', two_calls(None, 'm1'))
+            raise AssertionError('빈 지시서 허용')
+        except ValueError:
+            pass
 
         for simple, role_p in ((0.6, 0.9), (0.95, 0.4)):  # scope나 role 확신이 낮으면 설계로
             result = jev.route(repo, 'T-2', '저장 형식을 바꿔줘', stub([], simple, 'dev', role_p))
