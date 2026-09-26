@@ -67,6 +67,7 @@ def main():
                         '--goal', '로그인 실패 시 세션을 만들지 않게 수정'], check=True, capture_output=True)
 
         mapped = dict(jev.code_map(repo, base))
+        assert not [p for p in mapped if p.startswith('.fullops-squad/')]  # 하네스 문서는 코드 지도에 넣지 않는다
         assert mapped['src/auth/login.py'] == '로그인 요청 검증과 세션 발급.' and mapped['docs/guide.md'] == '운영 가이드'
         assert not {'.env', 'node_modules/dep/index.js', 'logo.png', 'link.py'} & set(mapped), set(mapped)
 
@@ -78,6 +79,20 @@ def main():
         assert result['usage']['cost'] == 0.0001 and result['passes'] == [{'level': 'file', 'options': len(mapped)}]
         assert jev.find(repo, 'dev', 'F-1', stub([], ['auth/login'], found=0.1))['existence']['status'] == 'absent'
         assert jev.find(repo, 'dev', 'F-1', stub([], ['auth/login'], found=0.5))['existence']['status'] == 'unclear'
+        side = repo / '.fullops-squad/handovers/F-1-dev.md'
+        side.write_text('# F-1 — 사이드 지시서\n로그인만 고친다.\n', encoding='utf-8')
+        (repo / '.fullops-squad/handovers/to_dev.md').write_text('# OTHER — 다른 과제\n', encoding='utf-8')
+        try:
+            jev.find(repo, 'dev', 'F-1', stub([], ['auth/login']))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('wrong inbox')
+        sent.clear()
+        side_result = jev.find(repo, 'dev', 'F-1', stub(sent, ['auth/login']), handover='.fullops-squad/handovers/F-1-dev.md')
+        assert side_result['candidates'][0]['path'] == 'src/auth/login.py' and '사이드 지시서' in sent[-1]['state']['task']
+        (repo / '.fullops-squad/handovers/to_dev.md').write_text(
+            '# F-1 — 로그인 실패 시 세션을 만들지 않게 수정\n', encoding='utf-8')
 
         def broken(payload):
             raise RuntimeError('OpenRouter request failed')

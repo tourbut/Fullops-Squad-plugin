@@ -8,7 +8,7 @@ import re
 import subprocess
 
 from jev_observe import api_key, digest, excerpt, local_file, observe, request
-from work import KEY, active_repo, safe_file, validate_role
+from work import KEY, active_repo, instruction, safe_file
 
 SPAN_LINES, SPAN_CHARS, MAX_SOURCE = 34, 3500, 65536
 
@@ -36,12 +36,8 @@ def candidate(repo, head, rel, n):
     return item, None
 
 
-def context(repo, role, key, paths, call, required=()):
-    validate_role(repo, role)
-    inbox = safe_file(repo, f'.fullops-squad/handovers/to_{role}.md')
-    text = inbox.read_text() if inbox.is_file() else ''
-    if not text.startswith(f'# {key} — '):
-        raise ValueError('인박스에 같은 과제 키의 지시서를 먼저 작성하세요')
+def context(repo, role, key, paths, call, required=(), handover=None):
+    inbox, text = instruction(repo, role, key, handover)
     if len(paths) > 20:
         raise ValueError('후보는 20개 이하로 좁히세요')
     head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
@@ -95,6 +91,7 @@ def main():
     parser.add_argument('--key', required=True)
     parser.add_argument('--paths', nargs='+', required=True, help='그래프·검색으로 좁힌 후보 20개 이하')
     parser.add_argument('--required', nargs='*', default=[], help='항상 유지할 추가 경로')
+    parser.add_argument('--handover', help='인박스 대신 읽을 지시서. .fullops-squad/handovers/ 아래 상대 경로')
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     args = parser.parse_args()
     try:
@@ -107,7 +104,7 @@ def main():
 
         def call(payload):
             return request(payload, api_key(args.env_file, repo))
-        result = context(repo, args.role, args.key, args.paths, call, args.required)
+        result = context(repo, args.role, args.key, args.paths, call, args.required, args.handover)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'Jev 문맥 분류 실패: {error}\n')
     output.parent.mkdir(parents=True, exist_ok=True)

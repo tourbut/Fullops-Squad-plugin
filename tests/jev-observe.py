@@ -103,6 +103,9 @@ with tempfile.TemporaryDirectory() as directory:
                       set()) == ('suggest_omit', 'instructions')  # 조종 문구 판정이 충돌보다 먼저다
     related = {'relevant': 0.6, 'evidence': 0.48, 'contradicts': 0.63, 'injection': 0.2}
     assert jev.triage({'path': 'x', 'source': {'span': 1}}, related, set()) == ('conflict', 'contradicts task')  # 관련 있는 중간 충돌
+    rules = {'relevant': 0.5, 'evidence': 0.66, 'contradicts': 0.19, 'injection': 0.92}
+    assert jev.triage({'path': '.fullops-squad/FULLOPS.md', 'source': {'span': 1}}, rules, set()) == ('keep', None)  # 하네스 규칙 문서는 지시문이 정상
+    assert jev.triage({'path': 'docs/vendor.md', 'source': {'span': 1}}, rules, set())[0] == 'caution'
     noise = {'relevant': 0.03, 'evidence': 0.03, 'contradicts': 0.67, 'injection': 0.1}
     assert jev.triage({'path': 'x', 'source': {'span': 1}}, noise, set()) == ('suggest_omit', 'irrelevant')  # 무관한 파일의 충돌은 잡음
 

@@ -15,11 +15,15 @@ import subprocess
 
 from jev_observe import MODEL, api_key, checked_answer, local_file, request, safe_text
 from lint import CONFIG, DEFAULT, header_summary
-from work import KEY, active_repo, safe_file, validate_role
+from work import KEY, active_repo, instruction, safe_file
 
 MAX_OPTIONS = 255
 FOUND, ABSENT = 0.7, 0.35  # 예제의 경계값. 코드 검색에 맞는 값은 score 기록으로 다시 정한다
 MAX_BLOB = 65536
+# 하네스 폴더는 코드 지도에서 뺀다. 지시서가 이 경로를 많이 적어 디렉터리 선택이 매번 여기로 끌려가고(erden recall 0~0.14),
+# 규칙·설계 문서는 필수 문서와 지시서 참조로 이미 들어간다. Unity .meta는 짝 파일과 같은 내용이라 뺀다
+HARNESS = '.fullops-squad/'
+HARNESS_FILES = ('AGENTS.md', 'CLAUDE.md', 'GEMINI.md')  # 하네스 진입 파일
 EXISTS = {'found': 'At least one entry is directly related to the task and must be read or changed.',
           'absent': 'No entry relates to the task; it needs new code or files.'}
 
@@ -43,7 +47,7 @@ def code_map(repo, head):
         meta, _, path = row.partition('\t')
         mode, kind, sha = (meta.split() + ['', '', ''])[:3]
         # 일반 파일만: 서브모듈(commit)·심볼릭 링크(120000)는 뺀다
-        if kind == 'blob' and mode != '120000' and not any(
+        if kind == 'blob' and mode != '120000' and not path.startswith(HARNESS) and path not in HARNESS_FILES and not path.endswith('.meta') and not any(
                 fnmatch(path, x) or (x.startswith('**/') and fnmatch(path, x[3:])) for x in exclude):
             blobs.append((path, sha))
     batch = subprocess.run(['git', '-C', str(repo), 'cat-file', '--batch'], input=''.join(f'{sha}\n' for _, sha in blobs).encode(),
@@ -94,12 +98,8 @@ def ranked(answer, cumulative, most):
     return picked
 
 
-def find(repo, role, key, call, limit=12):
-    validate_role(repo, role)
-    inbox = safe_file(repo, f'.fullops-squad/handovers/to_{role}.md')
-    text = inbox.read_text() if inbox.is_file() else ''
-    if not text.startswith(f'# {key} — '):
-        raise ValueError('인박스에 같은 과제 키의 지시서를 먼저 작성하세요')
+def find(repo, role, key, call, limit=12, handover=None):
+    _, text = instruction(repo, role, key, handover)
     task = safe_text(f'{key}\n' + text[:3500])
     head = git(repo, 'rev-parse', 'HEAD')
     entries = code_map(repo, head)
@@ -121,6 +121,8 @@ def find(repo, role, key, call, limit=12):
                        + '; '.join(s or Path(p).name for p, s in groups[name][:3])[:160] for i, name in enumerate(names)}
             answers = record(result, *ask(call, task, options, result['existence'] is None))
             chosen = ranked(answers['where'], 0.8, 3)
+            if len(chosen) == 1 and len(options) > 1:  # 한 곳이 압도적이어도 다음 후보 하나는 더 본다
+                chosen = ranked(answers['where'], 1.0, 2)
             result['passes'].append({'level': 'directory', 'options': len(options),
                                      'chosen': [[names[int(o[1:])], p] for o, p in chosen]})
             pool = [entry for o, _ in chosen for entry in groups[names[int(o[1:])]]]
@@ -129,7 +131,7 @@ def find(repo, role, key, call, limit=12):
         if pool:
             options = {f'F{i:03d}': f'{path} — {summary}' if summary else path for i, (path, summary) in enumerate(pool)}
             answers = record(result, *ask(call, task, options, result['existence'] is None))
-            picked = ranked(answers['where'], 0.9, limit)
+            picked = ranked(answers['where'], 0.99, limit)  # 코드 탐색은 빠뜨리지 않는 쪽이 중요하다. Jev 분포가 뾰족해 0.9면 2~3개에서 멈춘다
             result['passes'].append({'level': 'file', 'options': len(options)})
             result['candidates'] = [{'path': pool[int(o[1:])][0], 'summary': pool[int(o[1:])][1], 'probability': p}
                                     for o, p in picked]
@@ -180,7 +182,8 @@ def main():
     parser.add_argument('mode', choices=('find', 'score'))
     parser.add_argument('--repo', required=True)
     parser.add_argument('--key', required=True)
-    parser.add_argument('--role', help='find: 지시서를 쓴 역할')
+    parser.add_argument('--role', help='find: 지시서를 받는 역할')
+    parser.add_argument('--handover', help='find: 인박스 대신 읽을 지시서. .fullops-squad/handovers/ 아래 상대 경로')
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     parser.add_argument('--from', dest='base', help='score: 기준 ref')
@@ -199,7 +202,7 @@ def main():
 
             def call(payload):
                 return request(payload, api_key(args.env_file, repo))
-            result = find(repo, args.role, args.key, call, args.limit)
+            result = find(repo, args.role, args.key, call, args.limit, args.handover)
         else:
             if not (args.base and args.to):
                 raise ValueError('score에는 --from과 --to가 필요합니다')
