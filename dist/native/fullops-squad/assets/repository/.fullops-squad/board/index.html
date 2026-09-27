@@ -34,12 +34,15 @@
   .head { display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:20px; }
   h2 { font:400 24px/1.2 var(--serif); margin:0; }
   .count { font:400 12px var(--mono); color:var(--soft); }
-  .cols { display:grid; grid-template-columns:1fr 1fr; gap:0 48px; }
+  .cols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 48px; align-items:start; }
   .cols > section { min-width:0; }
   @media (max-width:880px) { .cols { grid-template-columns:1fr; } }
   .mono { font-family:var(--mono); font-size:12px; color:var(--muted); }
   .soft { color:var(--soft); }
   .empty { color:var(--soft); margin:0; }
+  table.fixed { table-layout:fixed; }
+  .key { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .clip { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .notice { margin:24px 0 0; padding:12px 16px; border:1px dashed var(--accent); border-radius:6px; color:var(--ink); }
 
   /* status: dot + label */
@@ -54,19 +57,19 @@
 
   /* phases */
   .progress { font:400 12px var(--mono); color:var(--soft); }
-  .timeline { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(var(--n), minmax(150px,1fr)); overflow-x:auto; }
-  .step { position:relative; padding:0 20px 4px 0; }
-  .step::before { content:''; position:absolute; left:0; right:0; top:5px; height:1px; background:var(--rule-strong); }
-  .step:last-child::before { right:auto; width:0; }
-  .step.is-done::before { background:var(--ink); }
-  .node { position:relative; display:block; width:11px; height:11px; border-radius:50%; background:var(--paper); border:1.5px solid var(--soft); margin-bottom:14px; }
-  .step.is-done .node { background:var(--ink); border-color:var(--ink); }
-  .step.is-active .node { background:var(--accent); border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
-  .step.is-blocked .node { border-color:var(--accent); }
-  .step .idx { font:400 11px var(--mono); color:var(--soft); }
-  .step .name { font-weight:600; margin:2px 0 4px; color:var(--ink); }
-  .step.is-active .name { color:var(--accent); }
-  .step .note { color:var(--muted); font-size:13px; margin:6px 0 0; }
+  .phases { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px; }
+  .phase { width:100%; height:132px; display:flex; flex-direction:column; gap:6px; padding:14px 16px; text-align:left; cursor:pointer;
+    font:inherit; color:inherit; background:var(--card); border:1px solid var(--rule); border-radius:6px; }
+  .phase:hover { border-color:var(--rule-strong); }
+  .phase:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .phase.is-active { border-color:var(--accent); }
+  .phase.is-done { background:color-mix(in srgb, var(--card) 92%, var(--ink)); }
+  .phase .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .phase .idx { font:400 11px var(--mono); color:var(--soft); }
+  .phase .name { font-weight:600; line-height:1.4; }
+  .phase.is-active .name { color:var(--accent); }
+  .phase .foot { margin-top:auto; display:flex; justify-content:space-between; gap:8px; font:400 11px var(--mono); color:var(--soft); }
+  .phase .long { color:var(--accent); }
   .refs { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:8px; }
   .ref { display:inline-flex; align-items:center; gap:4px; font:400 11px var(--mono); color:var(--muted); }
   .ref .dot { width:6px; height:6px; }
@@ -90,6 +93,8 @@
   .bad { color:var(--accent); font-weight:600; }
   .notes { list-style:none; margin:0 0 20px; padding:0 0 0 14px; border-left:2px solid var(--accent); display:grid; gap:6px; }
   .notes li { color:var(--muted); font-size:13px; }
+  .more { font:500 11px var(--mono); letter-spacing:0.06em; color:var(--link); background:none; border:0; padding:0; cursor:pointer; margin:-12px 0 20px; }
+  .more:hover { text-decoration:underline; }
   .notes li:first-child { color:var(--ink); }
   .cap { max-height:440px; overflow:auto; }
   tr.grp td { padding-top:18px; font:500 10px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); border-bottom:1px solid var(--rule-strong); }
@@ -109,6 +114,14 @@
     border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; cursor:pointer; }
   .theme:hover { border-color:var(--ink); }
   .theme:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  dialog.detail { width:min(640px, calc(100% - 32px)); max-height:80vh; padding:28px; background:var(--card); color:var(--ink);
+    border:1px solid var(--rule-strong); border-radius:8px; }
+  dialog.detail::backdrop { background:rgba(20,22,30,0.45); }
+  .detail h3 { font:400 24px/1.25 var(--serif); margin:4px 0 12px; }
+  .detail .body { white-space:pre-wrap; color:var(--ink); margin:16px 0 0; }
+  .detail ul { margin:16px 0 0; padding-left:18px; display:grid; gap:6px; }
+  .detail .close { float:right; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); background:transparent;
+    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; cursor:pointer; }
   footer { padding-top:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font:400 11px var(--mono); letter-spacing:0.06em; color:var(--soft); }
 </style>
 <script>try { var t = localStorage.getItem('fullops-board-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}</script>
@@ -150,16 +163,15 @@
 
   h.push('<section><div class="head"><h2>프로젝트 단계</h2>' + (phases.length ? '<span class="progress">' + done + ' / ' + phases.length + ' 완료</span>' : '') + '</div>');
   if (phases.length) {
-    h.push('<ol class="timeline" style="--n:' + phases.length + '">');
+    h.push('<ol class="phases">');
     phases.forEach(function (p, i) {
       var s = PHASE[p.status] || PHASE.todo;
-      var refs = (p.deliverables || []).map(function (id) {
-        var d = byId[id];
-        return '<span class="ref ' + delivClass(d && d.status) + '" title="' + esc(d ? d.name + ' · ' + d.status : '산출물 표에 없음') + '"><span class="dot"></span>' + esc(id) + '</span>';
-      }).join('');
-      h.push('<li class="step ' + s[0] + '"><span class="node"></span><div class="idx">' + String(i + 1).padStart(2, '0') + '</div>' +
-             '<div class="name">' + esc(p.name) + '</div>' + st(s[0], s[1]) +
-             (p.note ? '<p class="note">' + esc(p.note) + '</p>' : '') + (refs ? '<div class="refs">' + refs + '</div>' : '') + '</li>');
+      var refs = (p.deliverables || []).length;
+      h.push('<li><button type="button" class="phase ' + s[0] + '" data-phase="' + i + '" title="' + esc(p.note || p.name) + '">' +
+             '<span class="top"><span class="idx">' + String(i + 1).padStart(2, '0') + '</span>' + st(s[0], s[1]) + '</span>' +
+             '<span class="name clip">' + esc(p.name) + '</span>' +
+             '<span class="foot"><span>' + (refs ? '산출물 ' + refs : '') + '</span>' +
+             (p.note_long ? '<span class="long">설명이 김</span>' : (p.note ? '<span>상세 보기</span>' : '')) + '</span></button></li>');
     });
     h.push('</ol>');
   } else h.push('<p class="empty">board.json에 단계가 없습니다. coordinator가 프로젝트 단계를 추가하면 여기에 표시됩니다.</p>');
@@ -181,22 +193,26 @@
 
   var plans = B.plans || [], reviews = B.reviews || [], notes = B.notes || [];
   h.push('<div class="cols"><section><div class="head"><h2>현재 작업</h2><span class="count">PLANS.md</span></div>');
-  if (notes.length) h.push('<ul class="notes">' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>');
+  if (notes.length) h.push('<ul class="notes">' + notes.slice(0, 3).map(function (n) { return '<li class="clip">' + esc(n) + '</li>'; }).join('') + '</ul>' +
+                           '<button type="button" class="more" data-notes="1">요약 전체 보기 (' + notes.length + ')</button>');
   if (plans.length) {
-    h.push('<div class="scroll cap"><table><thead><tr><th>과제</th><th>목표</th><th>담당</th><th>상태</th></tr></thead><tbody>');
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:52%"><col style="width:12%"><col style="width:36%"></colgroup>' +
+           '<thead><tr><th>과제 · 목표</th><th>담당</th><th>상태</th></tr></thead><tbody>');
     var group = null;
     plans.forEach(function (p) {
-      if (p.group && p.group !== group) { group = p.group; h.push('<tr class="grp"><td colspan="4">' + esc(group) + '</td></tr>'); }
-      h.push('<tr><td class="mono">' + esc(p.key) + '</td><td>' + esc(p.goal) + '</td><td>' + esc(p.owner) + '</td><td class="soft">' + esc(p.status) + '</td></tr>');
+      if (p.group && p.group !== group) { group = p.group; h.push('<tr class="grp"><td colspan="3">' + esc(group) + '</td></tr>'); }
+      h.push('<tr><td><span class="key" title="' + esc(p.key) + '">' + esc(p.key) + '</span>' + (p.goal ? '<span class="clip" title="' + esc(p.goal) + '">' + esc(p.goal) + '</span>' : '') + '</td><td>' + esc(p.owner) + '</td>' +
+             '<td class="soft"><span class="clip" title="' + esc(p.status) + '">' + esc(p.status) + '</span></td></tr>');
     });
     h.push('</tbody></table></div>');
   } else if (!notes.length) h.push('<p class="empty">PLANS.md에 등록된 과제가 없습니다.</p>');
   h.push('</section><section><div class="head"><h2>리뷰 결과</h2><span class="count">최근 ' + reviews.length + '건</span></div>');
   if (reviews.length) {
-    h.push('<div class="scroll cap"><table><thead><tr><th>날짜 · 과제</th><th>결론</th><th>차단</th><th>lint E/W</th></tr></thead><tbody>');
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:36%"><col style="width:44%"><col style="width:8%"><col style="width:12%"></colgroup>' +
+           '<thead><tr><th>날짜 · 과제</th><th>결론</th><th>차단</th><th>lint E/W</th></tr></thead><tbody>');
     reviews.forEach(function (r) {
       var lint = r.lint_errors == null ? '<span class="soft">-</span>' : '<span class="' + (r.lint_errors ? 'bad' : '') + '">' + r.lint_errors + '</span><span class="soft"> / ' + (r.lint_warnings == null ? '-' : r.lint_warnings) + '</span>';
-      h.push('<tr><td><span class="mono soft">' + esc(r.date || '') + '</span><br><span class="mono">' + esc(r.key) + '</span></td><td>' + esc(r.conclusion || '작성 전') + '</td>' +
+      h.push('<tr><td><span class="mono soft">' + esc(r.date || '') + '</span><span class="key" title="' + esc(r.key) + '">' + esc(r.key) + '</span></td><td><span class="clip" title="' + esc(r.conclusion) + '">' + esc(r.conclusion || '작성 전') + '</span></td>' +
              '<td class="num' + (r.blocking ? ' bad' : '') + '">' + r.blocking + '</td><td class="num">' + lint + '</td></tr>');
     });
     h.push('</tbody></table></div>');
@@ -207,14 +223,15 @@
   if (tests.length) {
     var failed = tests.filter(function (t) { return !t.passed; }).length;
     h.push('<section><div class="head"><h2>테스트 결과</h2><span class="count">시나리오 ' + tests.length + '개' + (failed ? ' · 실패 ' + failed : '') + '</span></div>');
-    h.push('<div class="scroll cap"><table><thead><tr><th>날짜 · 과제</th><th>시나리오</th><th>결과</th><th>스텝 · 비용</th><th>covers</th></tr></thead><tbody>');
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:24%"><col style="width:20%"><col style="width:14%"><col style="width:12%"><col style="width:30%"></colgroup>' +
+           '<thead><tr><th>날짜 · 과제</th><th>시나리오</th><th>결과</th><th>스텝 · 비용</th><th>covers</th></tr></thead><tbody>');
     tests.forEach(function (t) {
       var name = (t.scenario || '').split('/').pop() || '-';
-      h.push('<tr><td><span class="mono soft">' + esc(t.date) + '</span><br><span class="mono">' + esc(t.key) + '</span></td>' +
+      h.push('<tr><td><span class="mono soft">' + esc(t.date) + '</span><span class="key" title="' + esc(t.key) + '">' + esc(t.key) + '</span></td>' +
              '<td><span class="mono soft">' + esc(t.kind) + '</span> ' + esc(name) + (t.runs > 1 ? '<span class="soft"> · ' + t.runs + '회</span>' : '') + '</td>' +
              '<td class="' + (t.passed ? '' : 'bad') + '">' + (t.passed ? '통과' : '실패 · ' + esc(t.result)) + '</td>' +
              '<td class="num">' + esc(t.steps == null ? '-' : t.steps) + '<span class="soft"> · $' + esc(t.cost == null ? '-' : t.cost) + '</span></td>' +
-             '<td class="soft">' + esc((t.covers || []).join(', ')) + '</td></tr>');
+             '<td class="soft"><span class="clip" title="' + esc((t.covers || []).join(', ')) + '">' + esc((t.covers || []).join(', ')) + '</span></td></tr>');
     });
     h.push('</tbody></table></div></section>');
   }
@@ -224,8 +241,9 @@
   var inScope = deliv.filter(function (d) { return delivClass(d.status) !== 'is-skip'; }).length;
   h.push('<div class="cols"><section><div class="head"><h2>최근 완료</h2><span class="count">' + hist.length + '건</span></div>');
   if (hist.length) {
-    h.push('<div class="scroll cap"><table><thead><tr><th>날짜</th><th>과제</th><th>역할</th><th>목표</th></tr></thead><tbody>');
-    hist.forEach(function (e) { h.push('<tr><td class="num soft">' + esc(e.date) + '</td><td class="mono">' + esc(e.key) + '</td><td>' + esc(e.role) + '</td><td>' + esc(e.goal) + '</td></tr>'); });
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:22%"><col style="width:34%"><col style="width:12%"><col style="width:32%"></colgroup>' +
+           '<thead><tr><th>날짜</th><th>과제</th><th>역할</th><th>목표</th></tr></thead><tbody>');
+    hist.forEach(function (e) { h.push('<tr><td class="num soft">' + esc(e.date) + '</td><td><span class="key" title="' + esc(e.key) + '">' + esc(e.key) + '</span></td><td>' + esc(e.role) + '</td><td><span class="clip" title="' + esc(e.goal) + '">' + esc(e.goal) + '</span></td></tr>'); });
     h.push('</tbody></table></div>');
   } else h.push('<p class="empty">완료된 과제가 없습니다.</p>');
   h.push('</section><section><div class="head"><h2>산출물</h2><span class="count">' + approved + ' / ' + inScope + ' 승인' + (inScope < deliv.length ? ' · 범위 밖 ' + (deliv.length - inScope) : '') + '</span></div>');
@@ -242,7 +260,32 @@
   h.push('</section></div>');
 
   h.push('<footer><span>FullOps Squad · 60초마다 새로고침</span><span>board.json · board-data.js</span></footer>');
+  h.push('<dialog class="detail" id="detail"><button type="button" class="close" id="close">닫기</button><div id="detail-body"></div></dialog>');
   app.innerHTML = h.join('');
+
+  var dialog = document.getElementById('detail'), body = document.getElementById('detail-body');
+  function open(html) {
+    body.innerHTML = html;
+    if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+  }
+  document.getElementById('close').addEventListener('click', function () { dialog.close(); });
+  dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });  // 바깥을 누르면 닫는다
+  app.addEventListener('click', function (e) {
+    var card = e.target.closest('[data-phase]'), more = e.target.closest('[data-notes]');
+    if (card) {
+      var i = Number(card.dataset.phase), p = phases[i], s = PHASE[p.status] || PHASE.todo;
+      var refs = (p.deliverables || []).map(function (id) {
+        var d = byId[id];
+        return '<li><span class="mono">' + esc(id) + '</span> ' + esc(d ? d.name : '산출물 표에 없음') + ' ' + (d ? st(delivClass(d.status), d.status) : '') + '</li>';
+      }).join('');
+      open('<p class="eyebrow">단계 ' + String(i + 1).padStart(2, '0') + '</p><h3>' + esc(p.name) + '</h3>' + st(s[0], s[1]) +
+           (p.note ? '<p class="body">' + esc(p.note) + '</p>' : '<p class="body soft">설명이 없습니다.</p>') +
+           (p.note_long ? '<p class="notice">설명이 80자를 넘습니다. board.json의 note는 지금 상태 한 줄로 두고 경위는 PLANS.md에 적습니다.</p>' : '') +
+           (refs ? '<ul>' + refs + '</ul>' : ''));
+    } else if (more) {
+      open('<p class="eyebrow">PLANS.md</p><h3>현재 작업 요약</h3><ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>');
+    }
+  });
 
   var root = document.documentElement, button = document.getElementById('theme');
   function current() { return root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }

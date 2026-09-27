@@ -15,6 +15,9 @@ from deliverables import meta_for
 
 BOARD = '.fullops-squad/board'
 STATUSES = ('done', 'active', 'blocked', 'todo')
+ALIASES = {'in_progress': 'active', 'in-progress': 'active', 'doing': 'active', 'running': 'active',
+           'complete': 'done', 'completed': 'done', 'pending': 'todo', 'planned': 'todo'}  # coordinator가 흔히 쓰는 다른 표현
+NOTE_LIMIT = 80  # board.json 단계 note는 현재 상태 한 줄. 경위는 PLANS.md에 둔다
 TITLE = re.compile(r'^#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—\s+(.+?)\s*$', re.M)
 SEPARATOR = re.compile(r'\|?[\s:|-]+\|?')
 
@@ -69,10 +72,12 @@ def phases(board):
     result = []
     for item in (board or {}).get('phases') or []:
         if isinstance(item, dict) and isinstance(item.get('name'), str) and item['name'].strip():
-            status = item.get('status') if item.get('status') in STATUSES else 'todo'
+            status = ALIASES.get(item.get('status'), item.get('status'))
+            status = status if status in STATUSES else 'todo'
             refs = [d for d in item.get('deliverables') or [] if isinstance(d, str)]
+            note = plain(item['note']) if isinstance(item.get('note'), str) else ''  # 마크다운 강조·링크 표시는 걷어 낸다
             result.append({'name': item['name'].strip(), 'status': status, 'deliverables': refs,
-                           'note': item.get('note') if isinstance(item.get('note'), str) else ''})
+                           'note': note, 'note_long': len(note) > NOTE_LIMIT})
     return result
 
 
@@ -265,6 +270,11 @@ def write(repo):
     text = 'window.FULLOPS_BOARD = ' + json.dumps(build(repo), ensure_ascii=False, indent=1) + ';\n'
     if read(output).split('\n', 3)[3:] != text.split('\n', 3)[3:]:  # 변경 시각만 다르면 다시 쓰지 않는다
         output.write_text(text, encoding='utf-8', newline='\n')
+    # index.html은 플러그인이 소유한 고정 양식이다. setup은 기존 파일을 덮지 않으므로 여기서 새 양식으로 맞춘다
+    page = output.with_name('index.html')
+    template = Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/board/index.html'
+    if template.is_file() and not page.is_symlink() and read(page).replace('\r\n', '\n') != read(template):
+        page.write_text(read(template), encoding='utf-8', newline='\n')
     return output
 
 

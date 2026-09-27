@@ -6,6 +6,7 @@
 coordinator 세션이 끝날 때마다 작업 현황판 데이터(board/board-data.js)를 다시 만든다.
 Claude Code·Codex(snake_case)와 grok(camelCase) 입력을 함께 읽는다. 셸 우회까지 막지는 못하며, 어떤 오류도 작업을 막지 않는다.
 """
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -125,6 +126,30 @@ def sent_text(command):
         if word.startswith('--text='):
             return word[len('--text='):]
     return ''
+
+
+def fingerprint(path):
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def board_reminder(root, state, again):
+    """coordinator가 PLANS.md를 바꿨는데 board.json 단계는 그대로면 한 번 알린다. 내용 지문으로 비교해 호스트와 커밋 여부에 상관없다."""
+    plans, phases = fingerprint(root / '.fullops-squad/PLANS.md'), fingerprint(root / '.fullops-squad/board/board.json')
+    if 'plans_seen' not in state or phases != state.get('board_seen'):
+        state['plans_seen'], state['board_seen'] = plans, phases  # 첫 확인이거나 board.json을 고쳤다
+        return None
+    if plans == state['plans_seen']:
+        return None
+    if again and state.get('board_blocked') == plans:
+        state['plans_seen'] = plans  # 단계가 바뀌지 않았다고 보고 넘어간다
+        return None
+    state['board_blocked'] = plans
+    return ('FullOps: 이 세션에서 PLANS.md는 바뀌었는데 board/board.json의 프로젝트 단계는 그대로입니다. '
+            '단계가 시작·완료·막힘·추가됐으면 board.json의 status와 note(80자 이내 한 줄)를 고치세요. '
+            '단계가 바뀌지 않았으면 그대로 끝내도 됩니다.')
 
 
 def handled(root, key):
@@ -313,6 +338,9 @@ def main():
                           '지금 사용자와 다른 일을 해야 하면 그 이유를 말하고 다시 끝내면 됩니다.'}
             break
         if context(root)[0] == 'coordinator':
+            reminder = None if 'decision' in output else board_reminder(root, state, field(event, 'stop_hook_active'))
+            if reminder:
+                output = {'decision': 'block', 'reason': reminder}
             try:
                 board.write(root)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다
             except Exception:  # noqa: BLE001

@@ -40,6 +40,18 @@ def main():
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'setup')
         roles = json.loads((repo / '.fullops-squad/fullops.json').read_text(encoding='utf-8'))['roles']
 
+        # 현황판: coordinator가 PLANS.md만 바꾸고 board.json을 그대로 두면 한 번 확인을 요청한다
+        plans, phases = repo / '.fullops-squad/PLANS.md', repo / '.fullops-squad/board/board.json'
+        assert hook('stop', session_id='b') == {}  # 첫 종료는 기준만 기억한다
+        plans.write_text(plans.read_text(encoding='utf-8') + '\n- 진행 기록\n', encoding='utf-8')
+        assert 'board.json' in hook('stop', session_id='b')['reason']
+        assert hook('stop', session_id='b', stop_hook_active=True) == {}  # 두 번째는 통과
+        assert hook('stop', session_id='b') == {}  # 같은 내용으로 다시 묻지 않는다
+        plans.write_text(plans.read_text(encoding='utf-8') + '- 또 기록\n', encoding='utf-8')
+        phases.write_text(phases.read_text(encoding='utf-8') + '\n', encoding='utf-8')
+        assert hook('stop', session_id='b') == {}  # board.json도 고쳤으면 묻지 않는다
+        git('checkout', '-q', '--', '.fullops-squad/PLANS.md', '.fullops-squad/board/board.json')
+
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
         bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash', tool_input={'command': command}, **kw)

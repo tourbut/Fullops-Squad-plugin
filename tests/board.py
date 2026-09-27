@@ -50,7 +50,8 @@ def main():
         (fo / 'board/board.json').write_text(json.dumps({'title': '점프 게임', 'phases': [
             {'name': '기획', 'status': 'done', 'deliverables': ['D01', 'D02']},
             {'name': '구현', 'status': 'active', 'note': '1차'},
-            {'name': '출시 준비', 'status': 'weird'}]}, ensure_ascii=False), encoding='utf-8')
+            {'name': '출시 준비', 'status': 'weird'},
+            {'name': 'M4', 'status': 'in_progress', 'note': '**긴** 설명 ' + '가' * 90}]}, ensure_ascii=False), encoding='utf-8')
         subprocess.run([sys.executable, str(SCRIPTS / 'work.py'), 'new', '--repo', tmp, '--role', 'dev', '--key', 'JUMP-1',
                         '--goal', '점프 높이 조정'], check=True, capture_output=True)
         inbox = fo / 'handovers/to_dev.md'
@@ -93,7 +94,8 @@ def main():
         run()
         full = data(repo)
         assert full['title'] == '점프 게임'
-        assert [(p['name'], p['status']) for p in full['phases']] == [('기획', 'done'), ('구현', 'active'), ('출시 준비', 'todo')]
+        assert [(p['name'], p['status']) for p in full['phases']] == [('기획', 'done'), ('구현', 'active'), ('출시 준비', 'todo'), ('M4', 'active')]
+        assert full['phases'][3]['note_long'] and full['phases'][3]['note'].startswith('긴 설명') and not full['phases'][1]['note_long']  # 별칭·강조 표시 정리·긴 설명 표시
         dev = next(r for r in full['roles'] if r['role'] == 'dev')
         assert dev['task'] == {'key': 'JUMP-1', 'goal': '점프 높이 조정', 'status': 'running'}, dev
         assert [(e['key'], e['role']) for e in full['history']] == [('ART-2', 'art'), ('ART-1', 'art')]
@@ -122,6 +124,12 @@ def main():
         assert [(p['key'], p['goal'], p['owner'], p['status'], p['group']) for p in full['plans']] == [
             ('ART-9', '배경 교체', 'art', '예정', '후속 — 2026-09-24'), ('JUMP-1', '점프 높이 조정', 'dev', '진행 중', '현재 작업')]
         assert full['notes'] == ['최신 착수: JUMP-1 지시서']
+
+        page = fo / 'board/index.html'
+        page.write_text('<html>옛 양식</html>', encoding='utf-8')
+        run()
+        template = SCRIPTS.parent / 'assets/repository/.fullops-squad/board/index.html'
+        assert page.read_text(encoding='utf-8') == template.read_text(encoding='utf-8')  # 옛 양식은 새 양식으로 맞춘다
 
         # 내용이 같으면 다시 쓰지 않는다
         output = fo / 'board/board-data.js'

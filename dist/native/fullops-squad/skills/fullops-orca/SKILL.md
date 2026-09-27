@@ -96,8 +96,8 @@ preamble이 없으면 오케스트레이션 없이 착수한 것이다. `worker_
 
 ## 현황판 — coordinator
 
-사람이 진행 상황을 눈으로 보는 `.fullops-squad/board/index.html`은 플러그인이 제공하는 고정 양식이다. 고치지 않는다.
-coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summary`와 `phases`(각 항목 `name`, `status`: done/active/blocked/todo, `deliverables`: D01–D13 ID 목록, `note`)를 적는다. 프로젝트 단계가 시작·완료·추가되면 바로 고치고 기본 브랜치에 커밋한다. 산출물 상태는 `docs/deliverables/README.md`에서 읽으므로 board.json에 중복해서 적지 않는다.
+사람이 진행 상황을 눈으로 보는 `.fullops-squad/board/index.html`은 플러그인이 제공하는 고정 양식이다. 고치지 않는다. 플러그인이 양식을 바꾸면 board.py가 현황판을 갱신할 때 새 양식으로 맞추니, 그 변경은 board.json과 함께 커밋한다.
+coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summary`와 `phases`(각 항목 `name`, `status`: done/active/blocked/todo, `deliverables`: D01–D13 ID 목록, `note`)를 적는다. `note`는 지금 상태를 80자 이내 한 줄로 적고 경위·근거는 PLANS.md에 둔다. 길면 현황판 카드에 표시된다. 세션에서 PLANS.md를 바꾸고 board.json을 그대로 두면 flow-gate Stop hook이 한 번 확인을 요청한다. 프로젝트 단계가 시작·완료·추가되면 바로 고치고 기본 브랜치에 커밋한다. 산출물 상태는 `docs/deliverables/README.md`에서 읽으므로 board.json에 중복해서 적지 않는다.
 역할별 과제, PLANS.md, 완료 이력, route, 리뷰 결과, 산출물은 이 스킬 기준 `../../scripts/board.py`가 레포 기록에서 모아 `board/board-data.js`를 만든다. coordinator 세션이 끝날 때 flow-gate hook이 자동으로 실행하고, 즉시 보려면 `python3 <board.py> --repo <레포 루트>`를 실행한다. board-data.js는 커밋하지 않는다.
 
 ## merge — 병합 책임자
