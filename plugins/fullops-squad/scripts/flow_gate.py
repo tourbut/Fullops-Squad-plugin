@@ -269,7 +269,7 @@ def main():
         kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')
         brief = BRIEF[kind]
-        try:  # 워크트리에 빠진 .env*를 원본 체크아웃에서 연결한다. 실패해도 세션을 막지 않는다
+        try:  # 워크트리에 빠진 .fullops-squad/.env*를 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)
         except Exception:  # noqa: BLE001
             linked = []

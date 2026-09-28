@@ -175,20 +175,20 @@ Jev는 OpenRouter를 거쳐 호출하며 세 곳에서 씁니다. 키가 없어�
 | `jev_find.py` | 지시서를 쓸 때 관련 코드 위치 탐색 | 검색으로 후보를 정함 |
 | `jev_context.py` | worker가 먼저 읽을 문서 선별 | 후보를 모두 유지 |
 
-[OpenRouter](https://openrouter.ai/) 키를 쓰며 `--env-file`로 지정한 파일 → 환경 변수 `OPENROUTER_API_KEY` → 레포 루트 `.env`의 `OPENROUTER_API_KEY=` 줄 순서로 찾습니다. **레포 루트 `.env`에 넣는 방법이 가장 간단합니다.** 워크트리에도 자동으로 링크됩니다. 환경 변수로 쓰려면 Windows는 `setx OPENROUTER_API_KEY "sk-or-..."`, macOS·Linux는 셸 설정 파일에 `export`를 추가하고 Orca를 다시 시작합니다.
+[OpenRouter](https://openrouter.ai/) 키를 쓰며 `--env-file`로 지정한 파일 → 환경 변수 `OPENROUTER_API_KEY` → `.fullops-squad/.env`의 `OPENROUTER_API_KEY=` 줄 순서로 찾습니다. **원본 체크아웃의 `.fullops-squad/.env`에 넣는 방법이 가장 간단합니다.** 워크트리에도 자동으로 링크됩니다. 기존 레포 루트 `.env`를 쓰고 있다면 파일을 이 경로로 옮깁니다. 환경 변수로 쓰려면 Windows는 `setx OPENROUTER_API_KEY "sk-or-..."`, macOS·Linux는 셸 설정 파일에 `export`를 추가하고 Orca를 다시 시작합니다.
 
 키를 레포에 커밋하거나 지시서·`orca-agents.md`에 적지 않습니다. 비밀값처럼 보이는 문자열이 섞인 요청은 Jev에 보내지 않고, 같은 요청의 응답은 `~/.cache/fullops-squad/jev`에 캐시해 다시 과금되지 않습니다.
 
 ### Orca 워크트리
 
-**`.env` 연결**. git은 `.env`를 새 워크트리로 옮기지 않습니다. FullOps의 SessionStart hook이 워크트리에서 시작하는 모든 세션마다 원본 체크아웃 루트의 `.env*`(git 미추적) 중 빠진 것을 링크합니다. Orca 레포 설정의 설정 스크립트에도 아래 한 줄을 넣어 두면 워크트리를 만들 때 바로 연결됩니다. Windows(cmd.exe)·macOS·Linux에서 같은 줄을 씁니다.
+**`.env` 연결**. git은 `.fullops-squad/.env`를 새 워크트리로 옮기지 않습니다. FullOps의 SessionStart hook이 워크트리에서 시작하는 모든 세션마다 원본 체크아웃의 `.fullops-squad/.env*`(git 미추적) 중 빠진 것을 링크합니다. Orca 레포 설정의 설정 스크립트에도 아래 한 줄을 넣어 두면 워크트리를 만들 때 바로 연결됩니다. Windows(cmd.exe)·macOS·Linux에서 같은 줄을 씁니다.
 
 ```text
-python3 -c "import os,pathlib as p;r=p.Path(os.environ['ORCA_ROOT_PATH']);w=p.Path(os.environ['ORCA_WORKTREE_PATH']);[(w/f.name).symlink_to(f) for f in r.glob('.env*') if f.is_file() and not (w/f.name).exists() and not (w/f.name).is_symlink()]"
+python3 -c "import os,pathlib as p;r=p.Path(os.environ['ORCA_ROOT_PATH'])/'.fullops-squad';w=p.Path(os.environ['ORCA_WORKTREE_PATH'])/'.fullops-squad';[(w/f.name).symlink_to(f) for f in r.glob('.env*') if f.is_file() and not (w/f.name).exists() and not (w/f.name).is_symlink()]"
 ```
 
 - Windows는 개발자 모드(설정 → 시스템 → 개발자용)가 켜져 있어야 심볼릭 링크를 만들 수 있습니다. `python3`가 Microsoft Store 스텁이면 `py -3`로 바꿉니다.
-- 서비스 레포의 `.gitignore`에 `.env`와 `.env.local`이 있는지 확인합니다.
+- 새 setup은 `.fullops-squad/.gitignore`로 `.env*`를 제외합니다. 기존 서비스 레포에도 같은 규칙을 추가하고 키 파일이 Git에 추적되지 않는지 확인합니다.
 
 **grok worker**. grok은 워크트리에서도 원본 레포 경로의 폴더 신뢰를 요구하고, 신뢰되지 않으면 착수 전에 멈춥니다. 원본 레포를 한 번 신뢰하면 모든 워크트리에 적용됩니다. grok에서 `/hooks-trust`를 실행하거나 `python3 <플러그인>/scripts/grok_trust.py --repo <레포> --add`로 추가합니다. coordinator는 grok을 배정하기 전에 `--check`로 확인하고 필요하면 사용자에게 묻습니다.
 

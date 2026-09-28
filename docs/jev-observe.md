@@ -6,7 +6,7 @@
 python3 tests/jev-observe.py             # npm test에도 포함, 외부 호출 없음
 python3 plugins/fullops-squad/scripts/jev_observe.py \
   --repo /path/to/active-service-repo --input /path/to/input.json \
-  --output /path/to/new-observation.json --env-file /path/to/project/.env
+  --output /path/to/new-observation.json --env-file /path/to/project/.fullops-squad/.env
 ```
 
 CLI는 OpenRouter `https://openrouter.ai/api/v1/systemone`에 `~typesafe/jev-latest`를 요청한다. `OPENROUTER_API_KEY` 환경변수도 지원한다. env 파일은 코드 실행 없이 키만 읽고, 입력 검증이 통과해 호출할 때까지 열지 않는다. [OpenRouter 연동](https://openrouter.ai/docs/guides/community/typesafe-sdk)과 [Jev 튜토리얼](https://openrouter.ai/docs/guides/community/jev-tutorial)을 따른다.

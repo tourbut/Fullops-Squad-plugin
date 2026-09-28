@@ -19,7 +19,7 @@ flow-gate hook이 route 기록, `worker-start --run`, 설계 역할의 코드 �
 
 ## bootstrap
 
-앱·런타임 도달 여부와 현재 레포 등록 상태를 확인한다. `fullops.json`의 등록 역할·원격·브랜치를 읽고 미정 CLI 배정을 해결한다. 기존 워크트리·브랜치를 조회한 뒤 필요한 역할의 상설 워크트리를 해당 원격 역할 브랜치에서 생성하고 추적 관계를 확인한다. 로컬 전용 setup이면 역할 브랜치를 합의된 기준에서 만든다. coordinator 체크아웃은 중복 생성하지 않는다. setup 이후 추가한 하네스 파일은 worker 브랜치에 자동 포함되지 않으므로 dispatch 전에 준비 커밋을 반영한다. grok을 배정한 역할이 있으면 이 스킬 기준 `../../scripts/grok_trust.py`로 `python3 <grok_trust.py> --repo <레포 루트> --check`를 실행한다. grok은 워크트리에서도 원본 레포 경로의 폴더 신뢰를 요구해, 신뢰되지 않으면 worker가 착수 전에 확인 화면에서 멈춘다. 신뢰되지 않았으면 사용자에게 한 번 확인받은 뒤 `--add`로 추가한다. 승인 없이 추가하지 않는다. 워크트리를 만든 뒤 이 스킬 기준 `../../scripts/env_link.py`로 `python3 <env_link.py> --all <레포 루트>`를 실행해 원본 체크아웃 루트의 `.env*`(git 미추적)를 각 워크트리에 링크한다. 워크트리에서 시작하는 세션마다 flow-gate SessionStart hook도 빠진 파일을 연결한다. 각 터미널 출력을 읽어 실제 CLI 프롬프트와 작업 경로를 확인한다.
+앱·런타임 도달 여부와 현재 레포 등록 상태를 확인한다. `fullops.json`의 등록 역할·원격·브랜치를 읽고 미정 CLI 배정을 해결한다. 기존 워크트리·브랜치를 조회한 뒤 필요한 역할의 상설 워크트리를 해당 원격 역할 브랜치에서 생성하고 추적 관계를 확인한다. 로컬 전용 setup이면 역할 브랜치를 합의된 기준에서 만든다. coordinator 체크아웃은 중복 생성하지 않는다. setup 이후 추가한 하네스 파일은 worker 브랜치에 자동 포함되지 않으므로 dispatch 전에 준비 커밋을 반영한다. grok을 배정한 역할이 있으면 이 스킬 기준 `../../scripts/grok_trust.py`로 `python3 <grok_trust.py> --repo <레포 루트> --check`를 실행한다. grok은 워크트리에서도 원본 레포 경로의 폴더 신뢰를 요구해, 신뢰되지 않으면 worker가 착수 전에 확인 화면에서 멈춘다. 신뢰되지 않았으면 사용자에게 한 번 확인받은 뒤 `--add`로 추가한다. 승인 없이 추가하지 않는다. 워크트리를 만든 뒤 이 스킬 기준 `../../scripts/env_link.py`로 `python3 <env_link.py> --all <레포 루트>`를 실행해 원본 체크아웃의 `.fullops-squad/.env*`(git 미추적)를 각 워크트리에 링크한다. 워크트리에서 시작하는 세션마다 flow-gate SessionStart hook도 빠진 파일을 연결한다. 각 터미널 출력을 읽어 실제 CLI 프롬프트와 작업 경로를 확인한다.
 
 ## route — coordinator가 요청을 받을 때
 
@@ -69,7 +69,7 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 - 분류(`jev_route.py`)한 과제는 같은 세션에서 배정하거나 PLANS.md에 보류 사유를 적는다. flow-gate Stop hook이 배정되지 않은 route를 한 번 막는다. 대화가 요약된 뒤에는 route 기록을 다시 읽고 이어서 진행한다.
 - `idle_timeout`(기본 45분)은 실패가 아니다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
 - orchestration을 쓰지 않는 터미널 전달은 `terminal wait`을 긴 타임아웃으로 백그라운드에서 한 번 건다.
-- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. 완료 판정은 worker의 `worker_done`·`[완료]` 보고, 보고된 브랜치·SHA, 산출물 파일로 한다. 보고 내용을 그대로 믿지 않는다. 받은 SHA가 브랜치에 있는지, 검증 명령의 종료코드와 산출물 파일이 실제로 있는지 확인한다. 여러 worker 결과는 과제 키·역할·SHA·검증·남은 일 표로 모아 PLANS.md에 남긴다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
+- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. `worker_done`의 과제 키·결과·브랜치·SHA·검증 요약·남은 일로 다음 배정을 결정하고 PLANS.md에 기록한다. 매 완료마다 QA 전문을 읽거나 lint·테스트를 재실행하지 않는다. 보고가 빠졌거나 서로 충돌하거나 실패했을 때만 근거를 더 확인한다. 수락·병합 게이트는 아래 `merge` 절차에서 한 번 확인한다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
 
 ## 질문 — coordinator가 전달
 

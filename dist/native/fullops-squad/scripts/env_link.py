@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""원본 체크아웃의 .env* 파일을 워크트리에 심볼릭 링크로 연결한다. git이 추적하는 파일과 이미 있는 파일은 건드리지 않는다.
+"""원본 체크아웃의 .fullops-squad/.env*를 워크트리에 연결한다. 추적 파일과 기존 파일은 건드리지 않는다.
 
 Orca 설정 스크립트는 워크트리를 만드는 방식에 따라 실행되지 않을 수 있어서, flow-gate SessionStart hook이
 워크트리에서 시작하는 모든 세션마다 이 연결을 확인한다. 링크를 만들 수 없으면(Windows 개발자 모드 꺼짐) 복사한다.
@@ -33,11 +33,11 @@ def link(worktree):
         return []
     top = Path(git(worktree, 'rev-parse', '--show-toplevel')).resolve()
     done = []
-    for source in sorted(root.glob('.env*')):
-        target = top / source.name
+    for source in sorted((root / '.fullops-squad').glob('.env*')):
+        target = top / '.fullops-squad' / source.name
         if not source.is_file() or target.exists() or target.is_symlink():
             continue
-        if git(root, 'ls-files', '--', source.name):  # .env.example 같은 추적 파일은 git이 옮긴다
+        if git(root, 'ls-files', '--', f'.fullops-squad/{source.name}'):
             continue
         try:
             target.symlink_to(source)

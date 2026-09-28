@@ -204,12 +204,12 @@ def key_from_file(path):
 
 
 def api_key(env_file=None, repo=None):
-    """--env-file → 환경 변수 → 레포 루트 .env 순으로 키를 찾는다. 없으면 빈 문자열(Jev 없이 진행)."""
+    """--env-file → 환경 변수 → .fullops-squad/.env 순으로 키를 찾는다. 없으면 빈 문자열."""
     if env_file:
         return key_from_file(env_file)
     if os.environ.get('OPENROUTER_API_KEY'):
         return os.environ['OPENROUTER_API_KEY']
-    local = Path(repo) / '.env' if repo else None
+    local = Path(repo) / '.fullops-squad' / '.env' if repo else None
     if local and local.is_file():
         try:
             return key_from_file(local)

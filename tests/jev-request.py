@@ -36,20 +36,23 @@ def main():
         finally:
             jev.subprocess.run = original
 
-        # 키 찾는 순서: --env-file → 환경 변수 → 레포 루트 .env
+        # 키 찾는 순서: --env-file → 환경 변수 → .fullops-squad/.env
         repo = Path(tmp) / 'repo'
-        repo.mkdir()
+        (repo / '.fullops-squad').mkdir(parents=True)
         saved = os.environ.pop('OPENROUTER_API_KEY', None)
         try:
             assert jev.api_key(None, repo) == ''
             (repo / '.env').write_text('OTHER=1\nOPENROUTER_API_KEY="sk-or-from_dotenv"\n', encoding='utf-8')
+            assert jev.api_key(None, repo) == ''  # 옛 레포 루트 파일은 읽지 않는다
+            local = repo / '.fullops-squad' / '.env'
+            local.write_text('OTHER=1\nOPENROUTER_API_KEY="sk-or-from_dotenv"\n', encoding='utf-8')
             assert jev.api_key(None, repo) == 'sk-or-from_dotenv'
             os.environ['OPENROUTER_API_KEY'] = 'sk-or-from_env'
             assert jev.api_key(None, repo) == 'sk-or-from_env'
             other = Path(tmp) / 'keys.env'
             other.write_text('OPENROUTER_API_KEY=sk-or-from_file\n', encoding='utf-8')
             assert jev.api_key(str(other), repo) == 'sk-or-from_file'
-            (repo / '.env').write_text('OTHER=1\n', encoding='utf-8')
+            local.write_text('OTHER=1\n', encoding='utf-8')
             del os.environ['OPENROUTER_API_KEY']
             assert jev.api_key(None, repo) == ''  # 키 줄이 없으면 Jev 없이 진행
         finally:
