@@ -64,6 +64,37 @@ def lookup():
 
 def main():
     lookup()
+    import orca_wait
+    with tempfile.TemporaryDirectory(prefix='fullops-wait-config-') as tmp:
+        saved = os.environ.pop('FULLOPS_WORKER_CHECK_MINUTES', None)
+        try:
+            assert orca_wait.settings(tmp) == {'check_minutes': 60, 'ready_timeout_seconds': 90, 'log_limit': 30}
+            path = Path(tmp) / '.fullops-squad/.env'
+            path.parent.mkdir()
+            path.write_text('OPENROUTER_API_KEY=private\nFULLOPS_WORKER_CHECK_MINUTES="120" # minutes\n'
+                            'FULLOPS_WORKER_READY_TIMEOUT_SECONDS=180\nFULLOPS_WORKER_LOG_LIMIT=20\n', encoding='utf-8')
+            assert orca_wait.settings(tmp) == {'check_minutes': 120, 'ready_timeout_seconds': 180, 'log_limit': 20}
+            done = subprocess.run([sys.executable, str(SCRIPT), '--repo', tmp, '--settings'], capture_output=True, text=True)
+            assert done.returncode == 0 and 'private' not in done.stdout and json.loads(done.stdout)['log_limit'] == 20
+            os.environ['FULLOPS_WORKER_CHECK_MINUTES'] = '90'
+            assert orca_wait.settings(tmp)['check_minutes'] == 90
+            os.environ.pop('FULLOPS_WORKER_CHECK_MINUTES')
+            for value in ('0', '-1', 'nan', 'inf', 'private'):
+                path.write_text(f'FULLOPS_WORKER_CHECK_MINUTES={value}\n', encoding='utf-8')
+                try:
+                    orca_wait.settings(tmp)
+                    raise AssertionError('invalid interval accepted')
+                except ValueError:
+                    pass
+            path.write_text('FULLOPS_WORKER_LOG_LIMIT=1.5\n', encoding='utf-8')
+            try:
+                orca_wait.settings(tmp)
+                raise AssertionError('fractional log limit accepted')
+            except ValueError:
+                pass
+        finally:
+            if saved is not None:
+                os.environ['FULLOPS_WORKER_CHECK_MINUTES'] = saved
     with tempfile.TemporaryDirectory(prefix='fullops-orca-wait-') as tmp:
         fake = Path(tmp) / 'orca'
         fake.write_text(FAKE)
@@ -87,8 +118,12 @@ def main():
         code, out, calls = run(tmp, [batch('d1', 'heartbeat'), empty], '--max-minutes', '0')
         assert code == 0 and out['status'] == 'idle_timeout', out
         assert calls[-1][calls[-1].index('--ack') + 1] == 'd1' and len(calls) == 2
-        code, out, calls = run(tmp, [empty], '--max-minutes', '0')
+        settings = Path(tmp) / '.fullops-squad/.env'
+        settings.parent.mkdir()
+        settings.write_text('FULLOPS_WORKER_CHECK_MINUTES=invalid\n', encoding='utf-8')
+        code, out, calls = run(tmp, [empty], '--repo', tmp, '--max-minutes', '0')
         assert out['status'] == 'idle_timeout' and len(calls) == 1 and '--ack' not in calls[0]
+        assert out['check_minutes'] == 0  # 명령행이 잘못된 레포 설정보다 우선한다.
 
         # quiet 타입은 바꿀 수 있다: status를 빼면 status가 곧바로 반환된다.
         code, out, _ = run(tmp, [batch('d1', 'status')], '--quiet-types', 'heartbeat')

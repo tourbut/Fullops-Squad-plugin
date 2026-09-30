@@ -52,7 +52,7 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 
 ## dispatch
 
-1. 역할 인박스의 과제, 권한, 선행 조건을 확인한다.
+1. 역할 인박스의 과제, 권한, 선행 조건을 확인한다. `python3 <orca_wait.py> --repo <레포 루트> --settings`로 비밀값 없이 운영 설정 세 개를 조회한다. `ready_timeout_seconds`를 1000배 한 값을 `worker-start --timeout-ms`에 넣고, 로그 조회의 `--limit`은 `log_limit` 이하로 지정한다(명령별 메시지/줄 단위).
 2. coordinator와 worker의 실제 repo id·워크트리·터미널 핸들을 조회해 지시서에 넣는다. 과거 핸들을 재사용하지 않는다.
 3. worker가 지시서와 원천 문서를 읽을 수 있는 버전을 전달하고 과제 키·내용을 확인한다. `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙과 지시서가 지정한 프로젝트 정본도 같은 버전으로 전달하고 실제 경로·기준 커밋 또는 스냅샷을 확인한다. 누락·불일치를 해소하기 전 착수시키지 않는다. 워크트리는 파일을 자동 공유하지 않는다. 기본은 준비 커밋을 worker에 반영하는 방식이며, 미커밋 지시서는 명시한 절대경로의 스냅샷으로 제공한다. 진행 중 변경을 덮어쓰지 않는다.
 4. 보고를 받을 Run을 정한다. 내 세션에 Task·Dispatch ID가 든 preamble이 있으면 나도 dispatched worker다. 이때 상위 Run에 하위 worker를 띄우면 완료 보고가 상위 coordinator에게 간다. 먼저 `orchestration run-create`로 내 Run을 만들고 그 run id를 쓴다. preamble이 없으면 내가 최상위 coordinator다. 별도 coordinator 없이 한 역할(예: 아키텍처)이 다른 역할 worker를 띄우는 구성도 같다. 이 경우 기존 Run을 쓰거나 `run-create`로 새로 만든다. `nested_worker_depth_exceeded`면 하위 worker를 띄우지 말고 상위에 `escalation`으로 알린다.
@@ -63,13 +63,14 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 ## 대기 — coordinator
 
 - Orca는 `--types`가 붙은 대기가 받지 않는 메시지(heartbeat·status)마다 idle 터미널에 "You have N orchestration message" 알림을 넣어 세션을 깨운다. worker heartbeat는 Orca가 5분마다 보내므로 `check --wait --types …`를 직접 걸지 않는다.
-- orchestration Run을 기다릴 때는 이 스킬 기준 `../../scripts/orca_wait.py`를 사용한다: `python3 <orca_wait.py> --orca <실행 파일> --run <dispatch에서 쓴 run id> [--ack <처리한 delivery id>]`. 자기 Run을 만든 dispatched worker가 `--run`을 빼면 상위 Run을 보게 되어 하위 보고를 받지 못한다. `--types` 없이 대기해 알림을 막고, heartbeat·status만 있는 묶음은 모델을 부르지 않고 ack한다. 처리할 메시지가 오면 ack하지 않은 묶음과 흡수한 내용 요약을 반환한다.
+- orchestration Run을 기다릴 때는 이 스킬 기준 `../../scripts/orca_wait.py`를 사용한다: `python3 <orca_wait.py> --orca <실행 파일> --repo <레포 루트> --run <dispatch에서 쓴 run id> [--ack <처리한 delivery id>]`. 자기 Run을 만든 dispatched worker가 `--run`을 빼면 상위 Run을 보게 되어 하위 보고를 받지 못한다. `--types` 없이 대기해 알림을 막고, heartbeat·status만 있는 묶음은 모델을 부르지 않고 ack한다. 처리할 메시지가 오면 ack하지 않은 묶음과 흡수한 내용 요약을 반환한다.
+- 운영 설정은 `.fullops-squad/.env`에서 관리한다. 예시는 setup이 보존·생성하는 `.env.example`에 있다. 확인 주기 `FULLOPS_WORKER_CHECK_MINUTES=60`(분), 시작 대기 `FULLOPS_WORKER_READY_TIMEOUT_SECONDS=90`(초), 로그 조회량 `FULLOPS_WORKER_LOG_LIMIT=30`을 지원한다. 주기는 양의 유한한 숫자, 나머지는 양의 정수다. 우선순위는 명령행 `--max-minutes`(확인 주기만) → 같은 이름의 프로세스 환경 변수 → 레포 `.env` → 기본값이다. 스크립트가 설정을 읽으므로 coordinator가 비밀값이 든 `.env` 전문을 읽지 않는다. 설정 변경은 다음 조회·대기 실행부터 반영된다.
 - Claude Code처럼 백그라운드 명령이 끝나면 세션을 다시 깨우는 호스트에서만 백그라운드로 한 번 걸고 턴을 끝낸다. Codex·grok은 백그라운드 명령이 끝나도 세션을 깨우지 않으므로 포그라운드로 실행해 결과가 올 때까지 턴을 유지한다. heartbeat는 스크립트가 흡수하므로 모델 비용이 들지 않는다. Orca의 "You have N orchestration message" 알림은 보장되지 않으니 알림에 기대고 턴을 끝내지 않는다. flow-gate Stop hook이 결과를 받지 않은 Run을 한 번 막는다. 반환된 `actionable` 묶음은 오케스트레이션 규칙대로 모두 처리한 뒤, 다음 대기를 `--ack <deliveryId>`로 이어 건다. `absorbed`의 status도 확인한다.
 - 새 coordinator 세션(재시작·플러그인 갱신 후)은 터미널이 바뀌어 기존 Run 연결이 끊긴다. `orchestration check`가 "no longer bound"를 반환하면 PLANS.md·현황판에 기록한 run id로 `orchestration run-use --id <run id>`를 실행해 다시 연결한다.
 - 분류(`jev_route.py`)한 과제는 같은 세션에서 배정하거나 PLANS.md에 보류 사유를 적는다. flow-gate Stop hook이 배정되지 않은 route를 한 번 막는다. 대화가 요약된 뒤에는 route 기록을 다시 읽고 이어서 진행한다.
-- `idle_timeout`(기본 45분)은 실패가 아니다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
+- 설정 주기 뒤의 `idle_timeout`은 실패가 아니다. 반환된 `check_minutes`가 이번 확인 주기다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한 뒤 다시 대기한다. task 목록 조회는 배정·재개·완료 상태 파악에 사용한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
 - orchestration을 쓰지 않는 터미널 전달은 `terminal wait`을 긴 타임아웃으로 백그라운드에서 한 번 건다.
-- 짧은 타임아웃 반복, sleep 루프, 주기적인 terminal read로 폴링하지 않는다. `worker_done`의 과제 키·결과·브랜치·SHA·검증 요약·남은 일로 다음 배정을 결정하고 PLANS.md에 기록한다. 매 완료마다 QA 전문을 읽거나 lint·테스트를 재실행하지 않는다. 보고가 빠졌거나 서로 충돌하거나 실패했을 때만 근거를 더 확인한다. 수락·병합 게이트는 아래 `merge` 절차에서 한 번 확인한다. terminal read는 착수 확인과 오류 진단에만 쓰고, 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 필요한 최근 출력만 읽는다.
+- 착수를 한 번 확인한 뒤 정상 작업 중에는 완료 메시지를 기다린다. 장시간 진행 확인이 필요해도 `worker-read`·`terminal read`는 worker별 마지막 착수·로그 확인에서 설정 주기(기본 60분)가 지난 뒤에만 필요한 최근 출력으로 제한한다. 오류·질문·escalation·실패 상태를 받거나 사용자가 진단을 요청하면 즉시 필요한 근거를 확인한다. 그 사이 `worker_done`이 오면 주기와 관계없이 결과를 처리하고, 과제 키·결과·브랜치·SHA·검증 요약·남은 일로 다음 배정을 결정해 PLANS.md에 기록한다. 매 완료마다 전체 작업 로그·QA 전문을 읽거나 lint·테스트를 재실행하지 않는다. 보고가 빠졌거나 서로 충돌하거나 실패했을 때만 근거를 더 확인한다. 수락·병합 게이트는 아래 `merge` 절차에서 한 번 확인한다. 로그 조회는 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 한정한다.
 
 ## 질문 — coordinator가 전달
 

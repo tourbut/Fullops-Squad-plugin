@@ -6,9 +6,11 @@
 """
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 import time
@@ -57,16 +59,62 @@ def summarize(absorbed):
                        for m in absorbed if m.get('type') != 'heartbeat']}
 
 
+def settings(repo, check_override=None):
+    """운영 설정 세 개만 읽는다. 프로세스 환경 변수 → 레포 .env → 기본값."""
+    defaults = {'check_minutes': 60, 'ready_timeout_seconds': 90, 'log_limit': 30}
+    names = {f'FULLOPS_WORKER_{key.upper()}': key for key in defaults}
+    values = {}
+    path = Path(repo) / '.fullops-squad/.env'
+    if path.is_file():
+        for line in path.read_text(encoding='utf-8-sig').splitlines():
+            key, separator, raw = line.partition('=')
+            key = key.strip().removeprefix('export ').strip()
+            if separator and key in names:
+                if key in os.environ or (names[key] == 'check_minutes' and check_override is not None):
+                    continue
+                try:
+                    tokens = shlex.split(raw, comments=True)
+                except ValueError:
+                    raise ValueError(f'{key}: 설정값의 따옴표를 확인하세요') from None
+                values[key] = tokens[0] if len(tokens) == 1 else ''
+    result = {}
+    for name, key in names.items():
+        try:
+            number = float(check_override if key == 'check_minutes' and check_override is not None else
+                           os.environ.get(name, values.get(name, defaults[key])))
+            if not math.isfinite(number) or number <= 0:
+                if not (key == 'check_minutes' and check_override == 0):
+                    raise ValueError()
+            if key != 'check_minutes' and not number.is_integer():
+                raise ValueError()
+            result[key] = number if key == 'check_minutes' else int(number)
+        except ValueError:
+            raise ValueError(f'{name}: 양의 유한한 {"숫자" if key == "check_minutes" else "정수"}를 설정하세요') from None
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--orca', default=None, help='skills get에 사용한 Orca 실행 파일. 없으면 자동으로 찾는다')
     parser.add_argument('--run')
+    parser.add_argument('--repo', default='.', help='설정 파일을 읽을 레포 루트. 기본은 현재 디렉터리')
+    parser.add_argument('--settings', action='store_true', help='비밀값 없이 운영 설정만 JSON으로 출력하고 종료한다')
     parser.add_argument('--terminal')
     parser.add_argument('--ack', help='처리를 마친 이전 delivery id')
     parser.add_argument('--quiet-types', default='heartbeat,status', help='모델을 깨우지 않고 흡수할 타입')
     parser.add_argument('--wait-ms', type=int, default=900000)
-    parser.add_argument('--max-minutes', type=float, default=45, help='이 시간 동안 처리할 메시지가 없으면 반환한다')
+    parser.add_argument('--max-minutes', type=float, help='설정된 확인 주기를 이번 실행에서 덮어쓴다(분)')
     args = parser.parse_args()
+    try:
+        configured = settings(args.repo, args.max_minutes)
+    except OSError:
+        parser.error('.fullops-squad/.env 설정 파일을 읽을 수 없습니다')
+    except ValueError as error:
+        parser.error(str(error))
+    args.max_minutes = configured['check_minutes']
+    if args.settings:
+        print(json.dumps(configured))
+        return 0
     args.orca = args.orca or find_orca() or 'orca'
     quiet = {t.strip() for t in args.quiet_types.split(',') if t.strip()}
     deadline = time.monotonic() + args.max_minutes * 60
@@ -86,7 +134,8 @@ def main():
             if time.monotonic() >= deadline:
                 if ack:
                     check(argparse.Namespace(**{**vars(args), 'wait_ms': 1}), ack)  # 흡수한 마지막 묶음을 ack
-                print(json.dumps({'status': 'idle_timeout', 'absorbed': summarize(absorbed)}, ensure_ascii=False, indent=1))
+                print(json.dumps({'status': 'idle_timeout', 'check_minutes': args.max_minutes,
+                                  'absorbed': summarize(absorbed)}, ensure_ascii=False, indent=1))
                 return 0
     except (OSError, RuntimeError, KeyError) as error:
         print(json.dumps({'status': 'error', 'error': str(error), 'pending_ack': ack,
