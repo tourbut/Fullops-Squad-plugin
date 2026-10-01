@@ -32,12 +32,24 @@ def main():
         subprocess.run([sys.executable, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'dev', '--local-only'],
                        check=True, capture_output=True)
         (repo / 'app.py').write_text('x = 1\n')
+        config_path = repo / '.fullops-squad/lint/lint.json'
+        config = json.loads(config_path.read_text())
+        config['exclude'] = []  # 기존 레포의 사용자 설정에 보드 제외가 없는 경우
+        config_path.write_text(json.dumps(config))
+        (repo / '.fullops-squad/board/index.html').write_text('old template\n')
         base = commit('base')
 
         brief = hook('start', source='startup')['hookSpecificOutput']
         assert brief['hookEventName'] == 'SessionStart' and 'lint.py' in brief['additionalContext']
         assert hook('start', session='s1', source='resume') == {}  # 시작 지점은 처음 것을 유지한다
         assert hook('stop') == {}  # 변경 없음
+
+        subprocess.run([sys.executable, str(SCRIPTS / 'board.py'), '--repo', tmp],
+                       check=True, capture_output=True)
+        git('add', '-f', '.fullops-squad/board/board-data.js')
+        assert hook('stop') == {}, '자동 생성 보드 파일은 코드 변경이 아니다'
+        commit('refresh board')
+        assert hook('stop') == {}, '보드 갱신 커밋도 lint 종료 게이트에서 제외한다'
 
         (repo / 'notes.md').write_text('문서만 바꿨다\n')
         assert hook('stop') == {}  # 코드가 아니다

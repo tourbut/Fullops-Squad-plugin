@@ -46,6 +46,9 @@ def code_changes(root, state):
     skip = excluded(root)
 
     def code(path):
+        # board.py가 자동 관리하는 파일은 레포별 lint 제외 설정과 무관하게 개발 코드가 아니다.
+        if path in ('.fullops-squad/board/board-data.js', '.fullops-squad/board/index.html'):
+            return False
         return Path(path).suffix.lower() in CODE and not any(
             fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in skip)
     entries = reflog(root)
