@@ -75,7 +75,7 @@ class CommonRulesTests(unittest.TestCase):
         directory = ASSETS / 'rules/common'
         self.assertEqual({p.name for p in directory.iterdir()}, BUNDLE_NAMES)
         readme = (directory / 'README.md').read_text()
-        self.assertIn('fullops-common-0.3.1', readme)
+        self.assertIn('fullops-common-0.3.2', readme)
         self.assertIn('934195f955cf0da847d59fcd6f68856bce112d8b', readme)
         license_text = (directory / 'ECC-LICENSE.txt').read_text()
         self.assertIn('Copyright (c) 2026 Affaan Mustafa', license_text)
