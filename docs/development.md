@@ -41,7 +41,10 @@ python3 scripts/install.py --host codex
 1. `npm run test:installer`를 실행합니다. 설치·업데이트·실패 처리와 Windows 인자 전달을 확인합니다.
 2. `npm pack`을 실행합니다. `fullops-squad-<버전>.tgz`가 생성됩니다.
 3. `npm exec --yes --package ./fullops-squad-<버전>.tgz -- fullops-squad --help`를 실행합니다. 설치기 도움말이 출력됩니다.
-4. npm 배포 계정에서 패키지를 게시합니다. 게시 후 `npx fullops-squad install|update|check`를 사용할 수 있습니다.
+4. npm 배포 계정에서 `npm publish --access public`을 실행합니다. 게시 후 `npx --yes fullops-squad@latest install|update|check`를 사용할 수 있습니다.
+
+게시에는 npm 인증이 필요합니다. `npm whoami`로 계정을 확인합니다. 인증이 없으면 `npm login --auth-type=web`을 실행합니다.
+게시 후 `npm view fullops-squad version`으로 공개 버전을 확인합니다.
 
 설치기 버전은 루트 `package.json`에서 관리합니다. GitHub 플러그인의 버전은 `plugins/fullops-squad/plugin.json`에서 관리합니다.
 `--repo`는 설치된 플러그인의 `update.py`로 적용 안내를 출력합니다. 에이전트가 이후 레포 변경을 수행합니다.
