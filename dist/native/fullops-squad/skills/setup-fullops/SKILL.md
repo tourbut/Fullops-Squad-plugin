@@ -5,6 +5,8 @@ description: 사용자가 현재 레포에 FullOps Squad 하네스 setup 또는 
 
 # 레포별 setup
 
+기존 레포에서 FullOps 업데이트를 요청하면 `update-fullops`를 먼저 적용한다. 설치 전 버전과 레포 적용 버전 이후의 릴리스 내용을 확인해 필요한 변경까지 수행한다. setup 재실행은 이 과정의 없는 파일 추가 단계이며 기존 문서 적용을 대신하지 않는다.
+
 재실행의 remote·기준 브랜치는 명시적 옵션 → 저장된 `fullops.json` 설정 → 최초 origin/원격 HEAD 순으로 선택한다. 원격 연결된 레포에서 `--local-only`는 기존 역할의 파일 유지에만 사용한다. 새 역할은 원격 setup으로 추가해야 하며 로컬 전용 추가는 변경 전에 실패한다. `--local-only`와 `--remote/--base`는 함께 사용하지 않는다.
 
 setup 후 `.fullops-squad/review/rule.json`을 제품별로 구성한다. 기본 문서·일부 테스트 패턴에 더해 레포의 테스트 경로와 게임 씬·셰이더 등 필요한 자산을 include하고 실제 생성물만 exclude한다. 기존 OCR 규칙이 있으면 명시적으로 통합한다. `fullops-review`가 항상 이 파일을 --rule로 전달한다. 기존 setup 재실행 시 추가된 리뷰 파일은 생성되고 기존 규칙과 기록은 보존된다.

@@ -27,6 +27,8 @@ python3 scripts/install.py --host codex
 
 GitHub 마켓플레이스가 커밋된 `dist/native/fullops-squad`를 가리킨다. 원본을 고치면 `python3 scripts/build.py`로 `dist/`를 다시 만들어 함께 커밋한다. CI는 빌드 결과가 커밋된 `dist/`와 다르면 실패한다. 버전을 올리고 `docs/releases/<버전>.md`에 변경 범위와 기존 레포 적용 방법을 적는다.
 
+빌드는 README.md를 패키지의 INSTALL.md로, docs/releases/ 전체를 releases/로 포함한다. 각 릴리스의 `기존 레포 적용`에는 에이전트가 수행할 변경·검증·선택 조건을 적는다. `update-fullops`는 업데이트 전 설치 버전과 레포 적용 버전 중 오래된 기준 이후의 내용을 읽고 적용하므로 별도 버전별 지시문을 사용자에게 요구하지 않는다.
+
 ## 검증
 
 ```bash
