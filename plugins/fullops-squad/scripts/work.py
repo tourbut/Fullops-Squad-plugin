@@ -31,12 +31,12 @@ def safe_file(repo, relative):
 
 
 def instruction(repo, role, key, handover=None):
-    """분류에 넣을 지시서와 그 경로. handover가 없으면 역할 인박스다. 본문 첫 줄은 `# <키> — `."""
+    """현재 과제의 역할 인박스와 본문을 읽는다. 이력·대기 파일을 현재 지시서로 사용하지 않는다."""
     validate_role(repo, role)
     relative = (handover or f'.fullops-squad/handovers/to_{role}.md').replace('\\', '/')
-    if handover and (Path(relative).is_absolute() or '..' in Path(relative).parts
-                     or not relative.startswith('.fullops-squad/handovers/')):
-        raise ValueError('handover는 .fullops-squad/handovers/ 아래 상대 경로로 지정하세요')
+    if Path(relative).as_posix() != f'.fullops-squad/handovers/to_{role}.md':
+        raise ValueError(f'현재 지시서는 역할 인박스 .fullops-squad/handovers/to_{role}.md를 사용하세요. '
+                         '다음 과제는 PLANS.md에 대기시키고 완료 뒤 로그를 보존한 다음 인박스를 재사용하세요')
     path = safe_file(repo, relative)
     text = path.read_text(encoding='utf-8') if path.is_file() else ''
     if not deliverables.split(text)[1].lstrip().startswith(f'# {key} — '):

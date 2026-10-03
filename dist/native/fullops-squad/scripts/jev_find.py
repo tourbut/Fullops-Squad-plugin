@@ -192,7 +192,7 @@ def main():
     parser.add_argument('--repo', required=True)
     parser.add_argument('--key', required=True)
     parser.add_argument('--role', help='find: 지시서를 받는 역할')
-    parser.add_argument('--handover', help='find: 인박스 대신 읽을 지시서. .fullops-squad/handovers/ 아래 상대 경로')
+    parser.add_argument('--handover', help='find: 현재 역할 인박스의 상대 경로. .fullops-squad/handovers/to_<역할>.md만 허용')
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--scope', choices=('code', 'documents'), default='code', help='documents: 하네스 문서를 포함한 Markdown의 title·summary로 탐색')
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')

@@ -54,7 +54,8 @@ def main():
 
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
-        bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash', tool_input={'command': command}, **kw)
+        bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash',
+            tool_input={'command': command + f' --worktree \"{tmp}\"' if 'worker-start' in command else command}, **kw)
         assert 'worker-start' in denied(bash('orca terminal send --terminal t1 --text "handovers/to_dev.md 읽고 착수"'))
         assert '새 세션' in denied(bash('orca terminal send --terminal t1 --text "F 버튼 겹침을 다시 판단하고 설계를 고쳐 커밋해"'))  # 경로 없는 지시도 막는다
         assert bash('orca terminal send --terminal t1 --text "y"') == {}  # 확인 프롬프트 응답은 허용
@@ -182,7 +183,7 @@ def main():
         done_rows = [{'dispatchId': 'ctx_1', 'projection': {'outcome': 'succeeded'}}]
         route('W-9', 'simple', 'dev')
         git('checkout', '-q', 'main')
-        start = 'orca orchestration worker-start --run run_9 --spec "W-9 작업" --agent grok'
+        start = f'orca orchestration worker-start --run run_9 --spec "W-9 작업" --agent grok --worktree "{tmp}"'
         assert hook('tool', session_id='wt', tool_name='Bash', tool_input={'command': start}) == {}
         scenario([], live)
         waiting = hook('stop', session_id='wt')

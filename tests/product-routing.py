@@ -86,7 +86,7 @@ with tempfile.TemporaryDirectory(prefix='fullops-product-') as tmp:
     assert hook(content='# PRODUCT — 제품 결정\n')
     assert hook(content='# ART — 다른 역할\n')
     assert '미확정' in hook('orca orchestration worker-start --run r1 --spec "BLOCKED 작업"')
-    assert not hook('orca orchestration worker-start --run r1 --spec "IMPLEMENT 작업"')
+    assert not hook(f'orca orchestration worker-start --run r1 --worktree "{tmp}" --spec "IMPLEMENT 작업"')
     patch = ('*** Begin Patch\n*** Update File: .fullops-squad/handovers/to_dev.md\n@@\n'
              '+# IMPLEMENT — 구현\n+orca orchestration worker-start --spec "본문 예시"\n*** End Patch\n')
     assert not hook(patch)  # 지시서 안의 실행 예시는 실제 배정 명령이 아니다.

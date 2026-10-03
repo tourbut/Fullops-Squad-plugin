@@ -20,6 +20,7 @@ import board
 import deps
 import env_link
 import deliverables
+import integration
 from orca_wait import find_orca
 from done_gate import CODE, field, git
 from jev_route import coordinator_role, guide, marked_role, product_roles
@@ -68,7 +69,10 @@ def targets(tool):
     if command.lstrip().startswith('*** Begin Patch'):  # 패치 본문은 실행 명령이 아니다
         chunks = re.split(r'^\*\*\* (?:Add|Update) File: (.+)$', command, flags=re.M)
         for name, body in zip(chunks[1::2], chunks[2::2]):
-            files.append((name.strip(), '\n'.join(line[1:] for line in body.splitlines() if line.startswith('+'))))
+            moved = re.search(r'^\*\*\* Move to: (.+)$', body, flags=re.M)
+            added = [line[1:] for line in body.splitlines() if line.startswith('+')]
+            files.append(((moved.group(1) if moved else name).strip(),
+                          '\n'.join(added) if added else None))
         command = ''
     return command, files
 
@@ -78,6 +82,41 @@ def key_in(root, text, path=None):
     if not match and path and path.is_file():
         match = TITLE.search(deliverables.split(path.read_text(encoding='utf-8'))[1].lstrip().split('\n', 1)[0])
     return match and match.group(1)
+
+
+def inbox_denial(root, name, content):
+    """과제명 파일 생성과 진행 중 인박스의 다른 과제 덮어쓰기를 막는다."""
+    path = Path(name.replace('\\', '/'))
+    path = path if path.is_absolute() else root / path
+    try:
+        relative = path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return None
+    parent, _, filename = relative.rpartition('/')
+    if parent != '.fullops-squad/handovers' or not filename.lower().endswith('.md') or filename == '_TEMPLATE.md':
+        return None
+    if not HANDOVER.fullmatch(relative):
+        return ('현재 지시서는 역할 인박스 `handovers/to_<역할>.md`에 작성하세요. '
+                '다음 과제는 PLANS.md에 대기시키고 완료 기록은 handovers/logs/에 보존하세요. '
+                '기존 미완료 추가 자료는 handovers/pending/에서 참조하세요.')
+    old = board.read(path)
+    if old.strip() and isinstance(content, str) and not content.strip():
+        return '역할 인박스를 직접 비우지 마세요. work.py finish로 지시서·완료 보고 전문을 로그에 보존한 뒤 비우세요.'
+    current, incoming = key_in(root, old), key_in(root, content, path)
+    if old.strip() and incoming and current != incoming:
+        return (f'진행 중 역할 인박스({current or filename})를 다른 과제({incoming})로 덮어쓸 수 없습니다. '
+                '후속 과제는 PLANS.md에 대기시키세요. 같은 과제의 수정은 현재 인박스에 반영하고, '
+                '완료하면 work.py finish로 로그를 보존한 뒤 다음 과제를 만드세요.')
+    return None
+
+
+def dispatch_inbox_denial(command):
+    """추가 자료만으로 착수하지 않고 현재 역할 인박스를 전달하게 한다."""
+    paths = re.findall(r'handovers[/\\][^\s\'"`]+\.md', command)
+    if paths and not any(re.fullmatch(r'handovers[/\\]to_[a-z][a-z0-9_-]*\.md', path) for path in paths):
+        return ('dispatch의 현재 지시서는 역할 인박스 `handovers/to_<역할>.md`를 지정하세요. '
+                '과제명 파일·pending·logs는 참조 자료입니다. 역할 인박스가 사용 중이면 다음 과제는 PLANS.md에 대기시키세요.')
+    return None
 
 
 def handover_denial(root, designer, role, key):
@@ -110,11 +149,13 @@ def orca(*args):
     return data.get('result') if isinstance(data, dict) and data.get('ok') else None
 
 
-def run_state(run):
+def run_state(run, root=None):
     """(처리하지 않은 worker_done·question·escalation 수, 아직 결과가 없는 Dispatch ID들). 확인할 수 없으면 None."""
     inbox, workers = orca('orchestration', 'check', '--run', run, '--peek'), orca('orchestration', 'worker-list', '--run', run)
     if inbox is None or workers is None:
         return None
+    if root is not None:
+        integration.record(root, inbox.get('messages') or [])
     unread = sum(1 for m in inbox.get('messages') or [] if m.get('type') in ('worker_done', 'question', 'escalation'))
     active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if not (w.get('projection') or {}).get('outcome'))
     return unread, active
@@ -207,6 +248,15 @@ def tool_denial(root, event, state):
     for key in ROUTED.findall(command):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
         state['routed'] = sorted(set(state.get('routed', [])) | {key})
     role, designer = context(root)
+    for name, content in files:
+        denial = inbox_denial(root, name, content)
+        if denial:
+            return denial
+    if role == 'coordinator' and re.search(r'\borchestration\s+check\b', command):
+        run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
+        inbox = orca('orchestration', 'check', *(['--run', run.group(1)] if run else []), '--peek')
+        if inbox is not None:
+            integration.record(root, inbox.get('messages') or [])
     if INJECT.search(command):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
     asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?:\s|$)', command)  # 사용법 확인은 배정이 아니다
@@ -219,12 +269,30 @@ def tool_denial(root, event, state):
     if starting and '--run' not in command:
         return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
     if role == 'coordinator' and (starting or creating):
+        integration_spec = command
+        task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command)
+        if task:
+            run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
+            listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
+            if listing is not None:
+                found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
+                integration_spec += ' ' + str(found.get('spec') or '')
+        denial = dispatch_inbox_denial(integration_spec)
+        if denial:
+            return denial
+        denial = integration.denial(root, integration_spec)
+        if denial:
+            return denial
         denial = route_key_denial(root, command)
         if denial:
             return denial
+        if starting:
+            denial = integration.baseline_denial(root, command)
+            if denial:
+                return denial
     if role == 'coordinator' and designer:
         new = re.search(r'\bwork\.py\b.*\bnew\b', command)
-        if new:
+        if new and not asking_help:
             try:
                 words = shlex.split(command, posix=True)
             except ValueError:
@@ -292,6 +360,12 @@ def main():
         kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')
         brief = PRODUCT_BRIEF.get(kind, BRIEF[kind]) if product_roles(root) else BRIEF[kind]
+        brief += (' 현재 작업은 역할별 handovers/to_<역할>.md 한 곳에 쓴다. 다음 과제는 PLANS.md에 대기시키고, '
+                  '완료하면 work.py finish로 지시서·결과 전문을 로그에 보존한 뒤 인박스를 재사용한다. '
+                  '과제명 파일·pending·logs를 현재 지시서로 dispatch하지 않는다.')
+        if kind == 'coordinator':
+            brief += (' 완료 보고마다 현재 SHA의 리뷰·기본 브랜치 병합·원격 push·하위 워크트리 동기화를 '
+                      '바로 처리한다. 절차는 fullops-orca의 merge 절을 따른다. coordinator 역할 브랜치만 push하지 않는다.')
         try:  # 워크트리에 빠진 .fullops-squad/.env*를 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)
         except Exception:  # noqa: BLE001
@@ -340,7 +414,7 @@ def main():
                           '대화 요약 뒤라면 route 기록(docs/evaluations/jev/<키>-route.json)을 다시 읽고 지시서 작성과 dispatch를 이어서 하세요. '
                           '배정하지 않을 이유가 있으면 PLANS.md에 과제 키와 보류 사유를 적고 끝내세요.'}
         for run in state.get('runs', []):
-            status = None if 'decision' in output else run_state(run)
+            status = None if 'decision' in output else run_state(run, root)
             if not status or not (status[0] or status[1]):
                 continue
             unread, active = status
@@ -361,6 +435,9 @@ def main():
                           '지금 사용자와 다른 일을 해야 하면 그 이유를 말하고 다시 끝내면 됩니다.'}
             break
         if context(root)[0] == 'coordinator':
+            denial = integration.denial(root)
+            if denial and 'decision' not in output:
+                output = {'decision': 'block', 'reason': 'FullOps: ' + denial}
             reminder = None if 'decision' in output else board_reminder(root, state, field(event, 'stop_hook_active'))
             if reminder:
                 output = {'decision': 'block', 'reason': reminder}

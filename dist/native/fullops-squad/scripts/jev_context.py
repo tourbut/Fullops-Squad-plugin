@@ -91,7 +91,7 @@ def main():
     parser.add_argument('--key', required=True)
     parser.add_argument('--paths', nargs='+', required=True, help='그래프·검색으로 좁힌 후보 20개 이하')
     parser.add_argument('--required', nargs='*', default=[], help='항상 유지할 추가 경로')
-    parser.add_argument('--handover', help='인박스 대신 읽을 지시서. .fullops-squad/handovers/ 아래 상대 경로')
+    parser.add_argument('--handover', help='현재 역할 인박스의 상대 경로. .fullops-squad/handovers/to_<역할>.md만 허용')
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     args = parser.parse_args()
     try:

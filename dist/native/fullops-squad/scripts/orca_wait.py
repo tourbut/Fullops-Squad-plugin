@@ -15,6 +15,8 @@ import subprocess
 import sys
 import time
 
+import integration
+
 
 def find_orca():
     """Orca CLI 경로: ORCA_CLI_COMMAND → PATH(orca, orca-ide) → OS별 기본 설치 위치. 못 찾으면 None.
@@ -117,6 +119,7 @@ def main():
         return 0
     args.orca = args.orca or find_orca() or 'orca'
     quiet = {t.strip() for t in args.quiet_types.split(',') if t.strip()}
+    quiet -= {'worker_done', 'question', 'escalation'}
     deadline = time.monotonic() + args.max_minutes * 60
     absorbed, ack = [], args.ack
     try:
@@ -125,8 +128,10 @@ def main():
             ack = None  # 전달한 ack는 이번 호출에서 처리됐다
             messages = result.get('messages') or []
             if messages and not all(m.get('type') in quiet for m in messages):
+                integration.record(Path(args.repo).resolve(), messages)
                 print(json.dumps({'status': 'actionable', 'deliveryId': result.get('deliveryId'),
-                                  'messages': messages, 'absorbed': summarize(absorbed)}, ensure_ascii=False, indent=1))
+                                  'messages': messages, 'absorbed': summarize(absorbed),
+                                  'integration': integration.pending(Path(args.repo).resolve())}, ensure_ascii=False, indent=1))
                 return 0
             if messages:
                 absorbed += messages
