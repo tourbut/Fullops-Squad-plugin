@@ -3,9 +3,11 @@ from datetime import date
 import importlib.util
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
 
 
 def load(name, path):
@@ -88,7 +90,7 @@ def main():
         assert (repo / setup.MARKER).exists()
         work.new(repo, 'backend_dev', 'TEST-1', '기록 검증')
         inbox = repo / '.fullops-squad/handovers/to_backend_dev.md'
-        assert inbox.read_text().startswith('# TEST-1 — 기록 검증')
+        assert work.deliverables.split(inbox.read_text())[1].lstrip().startswith('# TEST-1 — 기록 검증')
         try:
             work.new(repo, 'backend_dev', 'TEST-2', '덮어쓰기 검증')
         except ValueError:
@@ -181,7 +183,7 @@ def main():
         setup.setup(service, roles=['mobile'], remote='origin')
         assert git('ls-remote', 'origin', 'refs/heads/fullops/gameplay').split()[0] == old_sha
         assert git('ls-remote', 'origin', 'refs/heads/fullops/mobile').split()[0] == git('rev-parse', 'HEAD')
-        assert (service / '.fullops-squad/handovers/to_gameplay.md').read_text().startswith('# GAME-1')
+        assert work.deliverables.split((service / '.fullops-squad/handovers/to_gameplay.md').read_text())[1].lstrip().startswith('# GAME-1')
         # A later CLI invocation must reuse the saved non-default remote/base.
         git('branch', 'release', old_sha)
         git('push', 'origin', 'release')

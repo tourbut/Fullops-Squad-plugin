@@ -2,6 +2,7 @@
 
 현재 레포 루트의 `.fullops-squad/fullops.json`이 있을 때만 이 규약을 적용한다.
 규약은 한국어로 관리하고 식별자·코드베이스의 기존 언어 규칙은 유지한다.
+문서를 새로 쓰거나 수정할 때는 [문서 작성 규칙](docs/agents/document-writing.md)을 읽고 front matter와 한국어 STE 작성 원칙을 적용한다. 검토자는 같은 규칙으로 문서를 확인한다.
 
 | 작업 | 먼저 읽을 문서 (`.fullops-squad/` 기준) |
 |---|---|

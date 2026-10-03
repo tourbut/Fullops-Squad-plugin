@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from deliverables import meta_for
+from deliverables import meta_for, split
 
 BOARD = '.fullops-squad/board'
 STATUSES = ('done', 'active', 'blocked', 'todo')
@@ -112,7 +112,7 @@ def notes(root, limit=5):
     """PLANS.md 첫 제목 아래, 첫 표나 소제목 전까지의 요약 문단. 최신 상황 요약으로 보여 준다."""
     template = set(read(Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/PLANS.md').splitlines())
     result = []
-    for line in read(root / 'PLANS.md').splitlines()[1:]:
+    for line in split(read(root / 'PLANS.md'))[1].lstrip().splitlines()[1:]:
         if line.lstrip().startswith(('#', '|')):
             break
         if line.strip() and line not in template:  # 템플릿 안내 문장은 요약이 아니다

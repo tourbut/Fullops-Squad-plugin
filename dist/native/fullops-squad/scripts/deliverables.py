@@ -5,6 +5,7 @@ front matter는 모델이 손으로 쓰지 않고 --stamp로만 쓴다. 필드 �
 lint의 DOC-002 규칙이 바뀐 원천 문서의 형식을 이 스크립트의 출력과 글자 그대로 비교한다.
 """
 import argparse
+import json
 from datetime import date
 from pathlib import Path
 import re
@@ -26,11 +27,21 @@ def split(text):
     for n, line in enumerate(lines[1:], 1):
         if line.strip() == "---":
             return meta, "".join(lines[n + 1:])
-        match = re.match(r"^([A-Za-z_][\w-]*)\s*:\s*(.*?)\s*(?:\s#.*)?$", line.rstrip("\r\n"))
+        match = re.match(r"^([A-Za-z_][\w-]*)\s*:\s*(.*?)\s*$", line.rstrip("\r\n"))
         if match:
             key, value = match.groups()
+            if not value.startswith(('"', '[')):
+                value = re.split(r'\s+#', value, maxsplit=1)[0].rstrip()
             if value.startswith("[") and value.endswith("]"):
-                meta[key] = [v.strip().strip("'\"") for v in value[1:-1].split(",") if v.strip()]
+                try:
+                    meta[key] = json.loads(value)
+                except ValueError:
+                    meta[key] = [v.strip().strip("'\"") for v in value[1:-1].split(",") if v.strip()]
+            elif value.startswith('"') and value.endswith('"'):
+                try:
+                    meta[key] = json.loads(value)
+                except ValueError:
+                    return None, text
             else:
                 meta[key] = value.strip("'\"")
     return None, text
@@ -44,23 +55,29 @@ def render(meta):
     """정해진 필드 순서와 표기로 front matter를 만든다. 알 수 없는 키는 뒤에 이름순으로 둔다."""
     keys = [k for k in ORDER if k in meta] + sorted(k for k in meta if k not in ORDER)
     lines = []
+    def scalar(value):
+        value = str(value)
+        return json.dumps(value, ensure_ascii=False) if (not value or re.search(r'[:#\[\]{},\n\r"\x27]', value)
+                or value[0] in '-?&*!|>@`%' or value.strip() != value
+                or value.lower() in ('true', 'false', 'yes', 'no', 'null', '~')) else value
     for key in keys:
         value = meta[key]
         if key in LISTS or isinstance(value, list):
             items = value if isinstance(value, list) else [value]
-            lines.append(f"{key}: [{', '.join(items)}]")
+            lines.append(f"{key}: " + (json.dumps(items, ensure_ascii=False) if any(scalar(item) != str(item) for item in items)
+                                       else f"[{', '.join(items)}]"))
         else:
-            lines.append(f"{key}: {value}")
+            lines.append(f"{key}: {scalar(value)}")
     return "---\n" + "\n".join(lines) + "\n---\n"
 
 
-def problems(text, doc_id, index_status=None):
+def problems(text, doc_id=None, index_status=None):
     """원천 문서 front matter의 규칙 위반 목록. 빈 목록이면 통과."""
     meta, _ = split(text)
     if meta is None:
         return ["front matter 없음"]
-    found = [f"필수 필드 없음: {k}" for k in REQUIRED if not str(meta.get(k, "")).strip()]
-    if meta.get("id") and meta["id"] != doc_id:
+    found = [f"필수 필드 없음: {k}" for k in REQUIRED if (k != 'id' or doc_id) and not str(meta.get(k, "")).strip()]
+    if doc_id and meta.get("id") and meta["id"] != doc_id:
         found.append(f"id가 {doc_id}가 아님: {meta['id']}")
     if meta.get("status") and meta["status"] not in STATUSES:
         found.append(f"status는 {'/'.join(STATUSES)} 중 하나: {meta['status']}")
@@ -124,19 +141,27 @@ def active_base(repo):
     return base
 
 
-def stamp(repo, doc_id, task=None, status=None, owner=None, summary=None, title=None,
+def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, title=None,
           upstream=None, downstream=None, path=None, today=None):
     """원천 문서에 front matter를 정해진 형식으로 쓰고, 인덱스 표의 상태를 같은 값으로 맞춘다."""
     base = active_base(repo)
     index = base / INDEX
     rows = index_rows(index.read_text(encoding="utf-8"))
-    if doc_id not in rows:
+    if doc_id and doc_id not in rows:
         raise ValueError(f"없는 산출물 ID: {doc_id}")
-    name, sources, index_status = rows[doc_id]
+    name, sources, index_status = rows[doc_id] if doc_id else (title, [], None)
+    if not doc_id and not path:
+        raise ValueError("일반 문서는 --path가 필요합니다")
     if path:
         target = (base / path).resolve() if not Path(path).is_absolute() else Path(path).resolve()
         relative = target.relative_to(base.resolve()).as_posix()
-        if not owner_of(sources, relative):
+        if not relative.endswith('.md'):
+            raise ValueError("Markdown 문서만 지정하세요")
+        if not doc_id:
+            mapped = next((key for key, (_, paths, _) in rows.items() if owner_of(paths, relative)), None)
+            if mapped:
+                raise ValueError(f"원천 문서는 --id {mapped}를 함께 지정하세요")
+        elif not owner_of(sources, relative):
             raise ValueError(f"{relative}은 {doc_id}의 원천 경로가 아닙니다: {', '.join(sources)}")
     else:
         files = [f for s in sources for f in source_files(base, s)]
@@ -153,8 +178,9 @@ def stamp(repo, doc_id, task=None, status=None, owner=None, summary=None, title=
     for key, value in (("title", title), ("owner", owner), ("summary", summary)):
         if value:
             meta[key] = value.strip()
-    meta["id"] = doc_id
-    meta.setdefault("title", name)
+    if doc_id:
+        meta["id"] = doc_id
+    meta.setdefault("title", name or next((line[2:].strip() for line in body.splitlines() if line.startswith('# ')), target.stem))
     meta["status"] = status or (meta.get("status") if meta.get("status") in STATUSES else None) or \
         (index_status if index_status in STATUSES else "draft")
     meta["updated"] = (today or date.today()).isoformat()
@@ -174,7 +200,7 @@ def stamp(repo, doc_id, task=None, status=None, owner=None, summary=None, title=
     body = body if body.strip() else f"\n# {meta['title']}\n"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(render(meta) + (body if body.startswith("\n") else "\n" + body), encoding="utf-8", newline="\n")
-    if index_status != meta["status"]:
+    if doc_id and index_status != meta["status"]:
         lines = index.read_text(encoding="utf-8").splitlines(keepends=True)
         for n, line in enumerate(lines):
             if line.startswith(f"| {doc_id} |"):
@@ -233,7 +259,7 @@ def main():
     parser.add_argument("--repo", required=True)
     parser.add_argument("--id", help="산출물 ID (D01–D13)")
     parser.add_argument("--strict", action="store_true", help="front matter 문제도 오류로 처리")
-    parser.add_argument("--stamp", action="store_true", help="--id 산출물의 원천 문서에 front matter를 쓴다")
+    parser.add_argument("--stamp", action="store_true", help="산출물(--id) 또는 일반 문서(--path)에 front matter를 쓴다")
     parser.add_argument("--task", help="--stamp: 이 문서를 바꾼 과제 키 (tasks에 추가)")
     parser.add_argument("--status", choices=STATUSES)
     parser.add_argument("--owner", help="담당 역할")
@@ -246,8 +272,6 @@ def main():
     ids = lambda v: None if v is None else [x.strip() for x in v.split(",") if x.strip()]
     try:
         if args.stamp:
-            if not args.id:
-                raise ValueError("--stamp에는 --id가 필요합니다")
             target = stamp(args.repo, args.id, args.task, args.status, args.owner, args.summary, args.title,
                            ids(args.upstream), ids(args.downstream), args.path)
             print(target.relative_to(active_base(args.repo).parent).as_posix())

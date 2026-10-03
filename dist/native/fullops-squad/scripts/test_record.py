@@ -1,4 +1,6 @@
 """jev_test_web·jev_test_unity 실행 결과를 사람이 읽는 report.md로 남긴다. 판정 근거는 result.json·events.jsonl이다."""
+from datetime import date
+from deliverables import render
 
 
 def cell(value):
@@ -34,4 +36,6 @@ def write(out, summary, rows, header):
     lines += ['', '## 진행', '', '| ' + ' | '.join(header) + ' |', '|' + '---|' * len(header)]
     lines += ['| ' + ' | '.join(cell(v) for v in row) + ' |' for row in rows]
     lines += ['', '원본: `result.json`(판정), `events.jsonl`(스텝별 선택·확률·비용).', '']
-    (out / 'report.md').write_text('\n'.join(lines), encoding='utf-8')
+    meta = {'title': lines[0][2:], 'status': 'draft', 'updated': date.today().isoformat(),
+            'owner': 'tester', 'tasks': [out.parent.name[:-len('-test')]], 'summary': summary['goal']}
+    (out / 'report.md').write_text(render(meta) + '\n' + '\n'.join(lines), encoding='utf-8')

@@ -5,6 +5,8 @@ description: FullOps 활성 레포에서 worker 구현 완료 후 병합 전 OCR
 
 # 병합 전 delegate 리뷰
 
+문서를 작성하거나 검토할 때 `.fullops-squad/docs/agents/document-writing.md`의 front matter와 한국어 STE 작성 원칙을 적용한다. 기존 레포에 이 파일이 없으면 `setup-fullops` 갱신으로 추가한다.
+
 현재 Git 레포 루트의 `.fullops-squad/fullops.json`으로 활성화를 확인한다. 없으면 `setup-fullops`를 안내하고 멈춘다.
 `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙, `project.md`의 정본과 지시서의 `적용 기준과 예외`를 직접 읽는다. 이전 FULLOPS.md에 링크가 없어도 확인한다. 규칙이 없거나 worker가 사용한 버전과 다르면 setup 갱신 또는 준비 커밋·명시적인 스냅샷으로 일치시키고 재검토 범위를 정하기 전 수락하지 않는다.
 공통 규칙은 OCR의 `review/rule.json`을 자동 대체하지 않는다. report.md에 규칙 식별자·문서 경로·기준 커밋 또는 스냅샷·예외·검증 근거를 남긴다. `review.py check`는 공통 Markdown의 내용·버전이나 테스트 성공을 자동 검증하지 않으며 미해결 critical/high 차단은 그대로 유지한다.

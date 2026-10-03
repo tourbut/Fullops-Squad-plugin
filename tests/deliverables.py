@@ -34,6 +34,19 @@ def main():
         subprocess.run([sys.executable, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'arch', 'dev', '--local-only'],
                        check=True, capture_output=True)
         base = commit('setup')
+        general = fo / 'docs/agents/notes.md'
+        general.write_text('# 운영 결정\n\n본문 보존.\n', encoding='utf-8')
+        done = cli('--stamp', '--path', 'docs/agents/notes.md', '--owner', 'dev', '--summary', '조건: A # 근거', '--task', 'T-0')
+        assert done.returncode == 0, done.stderr
+        metadata, body = deliverables.split(general.read_text(encoding='utf-8'))
+        assert metadata['summary'] == '조건: A # 근거' and '본문 보존.' in body
+        assert not deliverables.problems(general.read_text(encoding='utf-8'))
+        assert cli('--stamp', '--path', '../outside.md', '--owner', 'dev', '--summary', 'x').returncode == 1
+        import lint
+        assert lint.deliverable_violations('.fullops-squad/contexts/dev.md', '# 결정\n', {})[0]['code'] == 'DOC-003'
+        assert not lint.deliverable_violations('.fullops-squad/handovers/to_dev.md', '', {})
+        assert not lint.deliverable_violations('.fullops-squad/docs/agents/notes.md', general.read_text(encoding='utf-8'), {})
+        general.unlink()
 
         # 처음 쓰는 front matter는 owner·summary가 필요하다
         missing = cli('--id', 'D03', '--stamp', '--task', 'T-1')
@@ -91,6 +104,15 @@ def main():
         assert lint_out.returncode == 1 and len(doc_errors) == 1, (lint_out.stdout, doc_errors)
         assert doc_errors[0]['path'] == '.fullops-squad/docs/design-docs/architecture.md' and 'D03' in doc_errors[0]['message']
         (repo / 'lint.json').unlink()
+        context = fo / 'contexts/dev.md'
+        context.write_text('# 개발 결정\n\n새 기록.\n', encoding='utf-8')
+        commit('context without metadata')
+        report = lint.lint(repo, base)
+        assert any(v['code'] == 'DOC-003' and v['path'] == '.fullops-squad/contexts/dev.md'
+                   for v in report['violations']), report
+        assert cli('--stamp', '--path', 'contexts/dev.md', '--owner', 'dev', '--summary', '개발 결정').returncode == 0
+        commit('context stamp')
+        assert not [v for v in lint.lint(repo, base)['violations'] if v['code'] == 'DOC-003']
         assert cli('--id', 'D03', '--stamp').returncode == 0
         commit('restamp')
         fixed = subprocess.run([sys.executable, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base, '--out', str(repo / 'lint.json')],

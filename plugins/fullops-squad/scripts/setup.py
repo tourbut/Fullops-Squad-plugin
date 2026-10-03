@@ -6,6 +6,9 @@ from pathlib import Path
 import re
 import subprocess
 
+from datetime import date
+import deliverables
+
 PLUGIN = Path(__file__).resolve().parents[1]
 MARKER = ".fullops-squad/fullops.json"
 ENTRYPOINTS = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
@@ -85,6 +88,12 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     for role in assigned:
         files[f".fullops-squad/handovers/to_{role}.md"] = b""
         files[f".fullops-squad/contexts/{role}.md"] = f"# {role} 컨텍스트\n\n결정·교훈을 항목당 3줄 이내로 기록한다.\n".encode()
+    for name, content in files.items():
+        if name.endswith('.md') and content and '/rules/common/' not in name and '/_' not in name:
+            body = content.decode('utf-8')
+            title = next((line[2:].strip() for line in body.splitlines() if line.startswith('# ')), Path(name).stem)
+            files[name] = (deliverables.render({'title': title, 'status': 'draft', 'updated': date.today().isoformat(),
+                           'owner': Path(name).stem if '/contexts/' in name else 'coordinator', 'summary': title}) + '\n' + body).encode('utf-8')
     for relative in [*files, *ENTRYPOINTS, MARKER]:
         path = repo / relative
         if any(p.is_symlink() for p in [path, *path.parents] if p != repo and repo in p.parents):

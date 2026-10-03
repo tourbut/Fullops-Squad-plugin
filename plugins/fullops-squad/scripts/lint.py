@@ -220,6 +220,10 @@ def deliverable_violations(path, text, index):
                 found.append({'code': 'DOC-002', 'severity': 'ERROR', 'line': None, 'path': path,
                               'message': f'{doc_id} front matter: {problem}. '
                                          f'`deliverables.py --stamp --id {doc_id}`로 다시 쓴다'})
+    if not any(deliverables.owner_of(sources, relative) for _, sources, _ in index.values()) and path.endswith('.md') and text.strip() and not relative.startswith('rules/common/') and not Path(path).name.startswith('_'):
+        found += [{'code': 'DOC-003', 'severity': 'ERROR', 'line': None, 'path': path,
+                   'message': f'front matter: {problem}. `deliverables.py --stamp --path {relative}`로 다시 쓴다'}
+                  for problem in deliverables.problems(text)]
     return found
 
 
@@ -252,6 +256,10 @@ def lint(repo, base_ref):
     index = deliverables.index_rows(blob(repo, head, '.fullops-squad/' + deliverables.INDEX) or '')
     for old_path, path in changed(repo, merge_base, head):
         target = path or old_path
+        if path:
+            new = blob(repo, head, path)
+            if new is not None:
+                violations += deliverable_violations(path, new, index)
         if any(fnmatch(target, p) or (p.startswith('**/') and fnmatch(target, p[3:])) for p in config['exclude']):
             continue
         if path is None:
@@ -266,7 +274,6 @@ def lint(repo, base_ref):
         files += 1
         violations += [dict(zip(('code', 'severity', 'line', 'message'), v), path=path)
                        for v in check_file(path, old, new, config)]
-        violations += deliverable_violations(path, new, index)
     commands = [run_command(repo, c, config['timeout_seconds']) for c in config['commands']]
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,

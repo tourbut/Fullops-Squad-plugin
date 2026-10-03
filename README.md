@@ -1,161 +1,206 @@
+---
+title: FullOps Squad
+status: draft
+updated: 2026-10-03
+owner: maintainer
+summary: Orca에서 AI worker의 배정, 문서, 검증, 리뷰를 관리하는 하네스 플러그인
+---
+
 # FullOps Squad
 
-Orca에서 여러 AI 코딩 에이전트(Claude Code·Codex·grok·agy)를 한 팀으로 운영하는 하네스 플러그인입니다.
+Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는 플러그인입니다.
+작업 지시서와 결과를 Git 레포에 기록하고, 구현 결과를 lint와 독립 리뷰로 확인합니다.
 
-- **일정한 품질**: 어떤 모델이 작업해도 같은 지시서 형식, 같은 lint 관문, 같은 리뷰 기준을 거칩니다. 규칙은 hook이 강제합니다.
-- **산출물이 남음**: 작업마다 지시서·검증 결과·리뷰·기획부터 이행까지의 산출물(D01–D13)이 레포에 기록됩니다.
-- **비용 절감**: 저렴한 모델의 coordinator가 요청을 나누고, 비싼 모델은 설계가 필요할 때만 씁니다.
+**Orca IDE가 필요합니다.** 플러그인은 Orca 앱을 설치하지 않습니다.
+설치는 CLI 사용자 범위에 적용됩니다. 서비스 레포의 `.fullops-squad/`를 만드는 setup은 별도로 요청합니다.
 
-**Orca IDE가 필수입니다.** worker의 워크트리·터미널·메시지 전달과 완료 보고를 Orca가 맡습니다.
-플러그인 설치와 레포 적용은 분리돼 있습니다. 설치만으로 다른 레포에 파일을 만들지 않습니다.
+## 작업 흐름
 
-전체 구조는 [구조 다이어그램](docs/diagrams/fullops-overview.html)에서 볼 수 있습니다.
+1. coordinator가 요청과 과제 키를 받습니다. 운영 작업은 직접 처리합니다.
+2. 코드·산출물 작업은 Jev가 `simple` 또는 `design`으로 분류합니다. 담당 역할, 모델·effort, 갱신할 산출물도 추천합니다.
+3. `simple`은 coordinator가 지시서를 씁니다. `design`은 설계 역할이 문서와 역할별 지시서를 씁니다.
+4. worker는 자기 워크트리에서 구현·검증합니다. 질문은 coordinator에게 보내고 완료는 `worker_done`으로 보고합니다.
+5. 병합 책임자는 고정 SHA의 lint·테스트·delegate 리뷰를 확인한 뒤 허가된 병합을 수행합니다.
 
-## 동작 방식
+역할은 레포마다 정합니다. 아래 ID는 예시입니다.
 
-**역할**. 레포마다 setup에서 정합니다. 고정된 worker 세트는 없고, 아래 이름은 예시입니다.
+| 역할 | 책임 |
+|---|---|
+| coordinator (`coor`) | 배정, 질문 전달, 완료 보고 처리, 운영과 병합 |
+| 설계 역할 (`architecture`) | 요구사항·공유 계약과 지시서 작성. 현재 hook은 제품 코드 수정을 차단함 |
+| 구현 역할 (`dev`) | 지시서 범위의 기술 계획, 구현, 테스트와 문서 갱신 |
+| 아트·운영 역할 (`art`, `ops`) | 지정한 파일과 결과물 관리 |
+| 검증 역할 (`tester`, 선택) | 테스트와 증거 작성. 제품 코드는 수정하지 않음 |
 
-| 역할 | 모델 | 하는 일 |
-|---|---|---|
-| coordinator | 저렴한 모델 | 요청을 분류해 배정하고, 완료 보고와 질문을 받고, 병합한다 |
-| 설계 역할 (예: `architecture`) | 고급 모델 | 설계가 필요할 때만 띄운다. 설계 문서와 역할별 지시서를 쓰고 코드는 고치지 않는다 |
-| worker (예: `dev`·`art`·`ops`) | 저렴한 모델 | 지시서대로 구현·검증한다 |
-| tester (선택) | 저렴한 모델 | 구현된 동작을 시나리오로 검증한다. 제품 코드는 고치지 않는다 |
+역할·브랜치는 `fullops.json`, 책임·CLI·모델 후보는 `orca-agents.md`에 등록합니다.
+모델 후보는 약한 것부터 강한 순서로 적습니다. Jev는 등록된 후보에서 선택합니다.
+설계·coordinator·tester 역할은 라우팅 기준의 해당 줄로 지정합니다. 기본 coordinator는 기본 브랜치 체크아웃입니다.
+역할 워크트리에서 coordinator를 운영하면 `- coordinator 역할: <역할 ID>`를 등록합니다.
 
-각 역할은 자기 워크트리와 `fullops/<역할>` 브랜치를 씁니다. 설계 역할·coordinator·tester는 `orca-agents.md` 라우팅 기준의 `- 설계 역할:`, `- coordinator 역할:`, `- tester 역할:` 줄로 지정합니다.
+### 대기와 검증
 
-**요청 흐름**
-1. coordinator가 `jev_route.py`로 요청을 분류합니다. Jev는 선택지마다 확률을 돌려주는 작은 판단 모델입니다.
-2. simple이면 coordinator가 짧은 지시서를 써서 담당 역할에 바로 보냅니다. design이거나 확신이 낮으면 설계 역할이 설계와 지시서를 쓴 뒤 worker에게 넘깁니다. 이 요청으로 갱신할 산출물도 함께 고릅니다.
-3. 배정할 역할이 정해지면 사용자가 `orca-agents.md`의 `## 모델 후보`에 약한 것부터 강한 순으로 적어 둔 그 역할의 후보(에이전트·모델·effort) 중 작업 난이도에 맞는 것을 Jev가 고릅니다. 쉬운 일은 싼 모델로, 판단이 필요한 일은 강한 모델로 띄웁니다.
-4. worker는 `orchestration worker-start --run`으로 띄워 작업합니다. 설계·범위 판단이 필요하면 `ask`로 묻고, coordinator가 설계 역할에게 전달해 답을 그대로 돌려줍니다.
-5. worker가 `worker_done`으로 보고하면 coordinator가 delegate 리뷰와 lint 결과를 확인해 병합합니다.
+착수를 확인한 뒤 coordinator는 `orca_wait.py`로 완료·질문·오류 메시지를 기다립니다.
+heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 확인은 기본 60분 간격입니다.
+`worker_done`과 오류·질문은 주기와 관계없이 처리합니다. 완료 보고의 과제 키·SHA·검증 요약·남은 일을 우선 확인합니다.
+보고가 누락되거나 충돌·실패가 있으면 추가 근거를 읽습니다. 수락과 병합에서는 검증 게이트를 확인합니다.
 
-**자동 규칙 (flow-gate hook)**. Claude Code·Codex·grok build에서 같은 스크립트가 행동 직전과 종료 직전에 검사합니다.
-- 지시서를 터미널로 주입하는 배정, `--run` 없는 `worker-start`, Jev 분류 기록 없는 배정을 막습니다.
-- 설계 역할의 코드 파일 수정을 막습니다.
-- worker가 `worker_done` 없이, coordinator가 분류한 과제를 배정하지 않거나 worker 결과를 받지 않은 채 끝내려 하면 한 번 막습니다.
-- 코드를 바꾸고 lint를 통과하지 않은 채 끝내려 하면 한 번 막습니다(done-gate).
+| 도구 | 확인하는 것 |
+|---|---|
+| `fullops-test` | 코드 테스트와 웹·Unity 조작 테스트. 조작 테스트의 통과 판정은 시나리오 `checks`가 담당 |
+| `fullops-review` | OCR CLI가 준비한 파일·규칙을 호스트 AI가 리뷰. 별도 OCR LLM API 키는 불필요 |
+| `lint.py` | 프로젝트 검사 명령, 코드 헤더, 줄 수, 범위 없는 억제, 비밀값 의심, 문서 메타데이터 |
+| flow-gate | route 기록, `worker-start --run`, 역할별 행동과 완료 보고. 터미널 주입으로 배정하는 행동 차단 |
+| done-gate | 이 세션의 코드 변경에 현재 HEAD의 lint 통과 기록이 없으면 종료를 한 번 차단 |
 
-hook은 셸 리다이렉션 같은 우회까지는 막지 못하고, hook 자체의 오류는 작업을 막지 않습니다.
+미해결 critical/high와 lint ERROR는 수락을 막습니다. 생성 현황판 파일은 done-gate의 코드 검사에서 제외합니다.
+hook은 셸 우회까지 차단하지 않으며 hook 자체의 오류는 작업을 막지 않습니다.
+자동 검사는 구현의 정확성을 보증하지 않습니다. 프로젝트 기준이 [공통 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/README.md)보다 우선합니다.
 
-**검증 관문**
-- `scripts/lint.py`: 바뀐 파일에 레포의 lint 명령과 기본 검사(줄 수 증가, 범위 없는 억제, `eval`/`exec`, 하드코딩 비밀값, 산출물 front matter 형식)를 실행합니다. 기존 위반은 소급하지 않습니다. [lint 규약](plugins/fullops-squad/assets/repository/.fullops-squad/lint/README.md)
-- `fullops-review`: SHA를 고정하고 Open Code Review(OCR) delegate로 파일·규칙을 준비한 뒤 호스트 AI가 리뷰합니다. 별도 OCR API 키는 필요 없습니다. 미해결 critical/high나 lint ERROR가 있으면 수락하지 않습니다.
-- 동작 검증(`fullops-test`): 코드로 판정할 수 있는 것은 테스트 코드로, 사람이 조작해야 드러나는 흐름은 Jev 조작 테스트로 먼저 돌립니다. 웹은 `jev_test_web.py`가 Orca 내장 브라우저에서, Unity는 `jev_test_unity.py`가 플레이어 빌드에서 실행합니다. Unity 게임에는 `unity_bridge.py install`로 테스트 전용 브리지 패키지를 심습니다. 큰 모델이 화면을 한 단계씩 보며 조작하지 않아 비용이 적습니다. 시나리오는 `docs/evaluations/scenarios/`에 두고 회귀 테스트로 재사용하며, 결과는 `qa-reports/<과제 키>-test/`와 현황판에 남습니다.
-- 공통 코딩·테스트·보안 기준은 [공통 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/README.md)으로 제공하며 프로젝트 기준이 우선합니다.
+## 문서와 검색
 
-**작업 현황판**. 서비스 레포의 `.fullops-squad/board/index.html`을 브라우저로 열면 프로젝트 단계, 역할별 현재 과제, `PLANS.md`, 최근 완료, 리뷰 결과, 산출물 진행이 보입니다. 60초마다 새로고침하고 화이트·블랙 테마를 전환할 수 있습니다.
-- coordinator는 `board/board.json`에 단계(완료·진행 중·막힘·예정)와 단계별 산출물 ID만 적습니다. 나머지는 `scripts/board.py`가 레포 기록에서 모읍니다.
-- coordinator 세션이 끝날 때마다 자동 갱신됩니다. 바로 보려면 `python3 <플러그인>/scripts/board.py --repo .`를 실행합니다. 생성 파일 `board-data.js`는 커밋하지 않습니다.
+FullOps가 작성하는 기획·설계·실행 계획·핸드오버·컨텍스트·QA·리뷰 문서에 front matter를 등록합니다.
+일반 문서는 `title`, `status`, `updated`, `owner`, `summary`를 사용합니다. 과제 문서는 `tasks`를 연결합니다.
+D01–D13 원천 문서에는 `id`를 추가합니다. 필요하면 `upstream`·`downstream`을 연결합니다.
 
-**산출물**. 기획부터 이행까지 13종(D01–D13)을 `fullops-deliverables`가 관리합니다. 원천 문서 맨 위의 front matter(`id`·`title`·`status`·`updated`·`owner`·`tasks`·`upstream`·`downstream`·`summary`)는 모델이 손으로 쓰지 않고 `deliverables.py --stamp`로만 씁니다. 형식이 다르면 lint가 막습니다.
+문서는 **한국어**로 작성합니다. ASD-STE100의 짧은 문장, 명확한 주체, 일관된 용어, 실행 순서와 확인 가능한 결과 원칙을 적용합니다.
+영어 통제 언어 표준의 공식 준수를 뜻하지 않습니다. 상세 기준은 [문서 작성 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/docs/agents/document-writing.md)에 있습니다.
+
+front matter는 설치된 플러그인의 도구로 씁니다. `--path`는 `.fullops-squad/` 기준입니다.
+
+```bash
+# 일반 문서: 기존 본문을 보존한다.
+python3 <플러그인>/scripts/deliverables.py --repo . --stamp --path docs/exec-plans/phases/TASK-1.md --owner dev --summary "로그인 실패 처리와 검증 결과" --task TASK-1
+# D01–D13 원천: 인덱스 상태도 맞춘다.
+python3 <플러그인>/scripts/deliverables.py --repo . --stamp --id D03 --owner architecture --summary "인증 모듈의 책임과 연결" --task TASK-1
+```
+
+`work.py new`는 핸드오버의 메타데이터를 생성합니다. 본문 첫 줄은 `# <과제 키> — <목표>`입니다.
+기존 문서는 다음 수정 때 적용합니다. 빈 인박스·외부 원본 규칙·도구 로그는 보존합니다.
+변경된 원천 문서는 lint `DOC-002`, 일반 FullOps 문서는 `DOC-003`으로 검사합니다. 코드 lint의 제외 설정과 별도로 검사합니다.
+
+### 필요한 파일 찾기
+
+`jev_find.py`는 커밋된 HEAD의 파일 지도에서 후보를 고릅니다.
+문서는 front matter의 `title`·`summary`를 사용합니다. 메타데이터가 없는 기존 Markdown은 본문 제목을 사용합니다.
+비밀 경로·심볼릭 링크·바이너리는 후보에서 제외합니다.
+
+```bash
+# 코드 검색: 하네스 파일은 제외한다.
+python3 <플러그인>/scripts/jev_find.py find --repo . --role dev --key TASK-1
+# 문서 검색: .fullops-squad 문서도 포함한다.
+python3 <플러그인>/scripts/jev_find.py find --repo . --role dev --key TASK-1 --scope documents
+```
+
+결과는 각각 `<과제 키>-find.json`과 `<과제 키>-documents-find.json`에 남습니다.
+별도 지시서에는 `--handover .fullops-squad/handovers/<파일>.md`를 지정합니다.
+필요한 후보를 합친 뒤 `jev_context.py`가 관련성·근거·충돌·AI 지시문을 분류합니다. 추천이므로 필수 문서는 유지합니다.
+코드와 문서 검색을 분리해 문서 후보가 코드 후보를 밀어내는 것을 방지합니다.
 
 ## 설치
 
-필요 환경: Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 에이전트 CLI, **Orca IDE**. Orca는 따로 설치합니다.
+필요 환경: Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 AI CLI, Orca IDE.
+일반 설치는 GitHub 마켓플레이스를 사용합니다. 개발 체크아웃·agy 설치는 [개발 문서](docs/development.md)를 따릅니다.
 
-GitHub 마켓플레이스로 설치합니다. 레포를 내려받을 필요는 없습니다.
+### Claude Code
 
-**Claude Code**
+Claude Code 세션에서 실행합니다. 이미 등록된 마켓플레이스는 건너뜁니다.
+
 ```text
 /plugin marketplace add DietrichGebert/ponytail
 /plugin marketplace add anthropics/claude-plugins-official
 /plugin marketplace add tourbut/Fullops-Squad-plugin
 /plugin install fullops-squad@fullops-squad
 ```
-의존 플러그인(ponytail, mattpocock-skills)이 두 마켓플레이스에 있어 먼저 등록합니다. 이미 등록돼 있으면 건너뜁니다.
 
-**Codex**
+### Codex
+
 ```bash
 codex plugin marketplace add tourbut/Fullops-Squad-plugin
 codex plugin add fullops-squad@fullops-squad
 ```
 
-**grok**
+### grok
+
 ```bash
 grok plugin marketplace add tourbut/Fullops-Squad-plugin
 grok plugin install fullops-squad@fullops-squad --trust
 ```
 
-**의존성**. 마켓플레이스 설치는 npm 도구(Open Code Review CLI, Context7 MCP)와 사용자 범위 스킬(caveman, typesafe-ai, open-code-review-delegate, diagram-design 등)을 넣지 않습니다. 설치 뒤 새 세션을 열면 빠진 도구를 알려 주고, 레포 setup(`setup-fullops`)의 첫 단계에서 승인을 받아 설치합니다. 직접 설치하려면 설치된 플러그인 안의 스크립트를 실행합니다.
+### 외부 의존성
+
+설치 뒤 OCR CLI·Context7 MCP와 외부 스킬을 설치합니다. `dependencies.json`이 설치 목록의 정본입니다.
+FullOps의 Context7은 라이브러리 문서 조회용 MCP입니다. OCR은 delegate 준비용 CLI입니다.
 
 ```bash
-python3 <플러그인 경로>/scripts/deps.py --host codex      # claude-code, grok, agy
-python3 <플러그인 경로>/scripts/deps.py --check           # 빠진 필수 CLI만 확인
+python3 <설치된 플러그인>/scripts/deps.py --host codex  # claude-code, grok, agy
+python3 <설치된 플러그인>/scripts/deps.py --check
 ```
 
-에이전트에게 맡기려면 설치할 CLI에서 아래 프롬프트를 붙여 넣습니다.
+에이전트에게 설치를 맡길 때는 다음 지시를 사용합니다.
 
 ```text
-FullOps Squad 플러그인을 GitHub 마켓플레이스 tourbut/Fullops-Squad-plugin 에서 설치해줘. https://github.com/tourbut/Fullops-Squad-plugin 의 README "설치" 절에서 지금 쓰는 CLI 부분을 따라 마켓플레이스를 등록하고 플러그인을 설치한 뒤, 설치된 플러그인의 scripts/deps.py로 의존성을 설치하고 확인해줘. 서비스 레포의 setup은 내가 별도로 요청할 때 진행해줘.
+FullOps Squad를 GitHub 마켓플레이스 tourbut/Fullops-Squad-plugin에서 설치해줘.
+README의 설치 절에서 현재 CLI 명령을 따르고 설치된 scripts/deps.py로 의존성을 설치·확인해줘.
+설치 버전과 실패한 명령을 보고해줘. 서비스 레포 setup은 내가 별도로 요청할 때 실행해줘.
 ```
 
-설치하거나 업데이트한 뒤에는 새 에이전트 세션을 열어야 스킬과 hook이 적용됩니다. agy와 개발 중인 체크아웃 설치는 [개발 문서](docs/development.md)를 봅니다.
+설치 후 새 에이전트 세션을 엽니다. 설치만으로 서비스 레포를 활성화하지 않습니다.
 
-**업데이트**
+### 업데이트
+
+현재 CLI에 해당하는 명령을 실행합니다.
+
 ```bash
-claude plugin marketplace update fullops-squad && claude plugin update fullops-squad@fullops-squad
-codex plugin marketplace upgrade fullops-squad && codex plugin add fullops-squad@fullops-squad
-grok plugin marketplace update && grok plugin update fullops-squad
+claude plugin marketplace update fullops-squad
+claude plugin update fullops-squad@fullops-squad
+
+codex plugin marketplace upgrade fullops-squad
+codex plugin add fullops-squad@fullops-squad
+
+grok plugin marketplace update
+grok plugin update fullops-squad
 ```
-실행 중인 세션은 옛 버전의 hook 경로를 쓰므로 업데이트 뒤 모든 세션을 새로 엽니다.
+
+업데이트 후 설치 버전과 `deps.py --check`를 확인합니다.
+실행 중인 세션은 이전 hook 경로를 사용할 수 있습니다. 작업을 정리한 뒤 새 세션으로 전환합니다.
+다른 PC와 Orca가 별도로 사용하는 CLI 홈도 갱신해야 합니다.
 
 ## 레포에 적용
 
-서비스 레포의 **기본 브랜치(main) 체크아웃**에서 Orca로 새 세션을 열고 아래 프롬프트를 붙여 넣습니다. `<>` 부분은 레포에 맞게 바꿉니다.
+기본 브랜치 체크아웃에서 시작합니다. 역할·모델·원격이 정해졌으면 그 설정을 사용합니다.
+setup은 기존 문서를 덮어쓰지 않습니다. 필요한 기존 문서 변경은 템플릿과 비교해 반영합니다.
 
 ### 새 레포
 
 ```text
-이 레포에 FullOps Squad를 처음 setup하고 Orca 워크트리까지 구성해줘. 지금 체크아웃은 기본 브랜치이고, 이 세션이 coordinator다.
-
-1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘. Jev API 키가 없으면 Jev 없이 진행된다고 알려줘.
-2. 레포의 코드·에셋·배포 구조를 보고 필요한 worker 역할을 제안해. 역할마다 책임과 담당 경로를 한 줄씩 적고, 내가 확정하면 설계 역할 architecture와 함께 그 역할로 setup-fullops를 실행해. 먼저 --dry-run으로 계획을 보여주고 실행해. 원격이 없으면 연결 정보만 물어봐.
-3. project.md에 기술 기준·검증 명령을 채우고, 레포에 있는 lint 도구를 lint.json에 등록해. review/rule.json도 이 레포에 맞게 구성해.
-4. orca-agents.md 배정표에 역할별 CLI를 적고, "## 모델 후보"에 역할마다 쓸 에이전트·모델·effort 후보를 약한 것부터 강한 순으로, 각각 어떤 작업에 쓸지와 함께 적어. 후보는 내가 정한다. 미정인 것만 물어봐.
-5. orca-agents.md의 "## 라우팅 기준"에서 설계 역할 줄과 역할별 책임 줄을 실제 역할에 맞게 고쳐.
-6. board/board.json에 이 레포의 제목과 실제 진행 단계를 적어.
-7. setup으로 생긴 파일을 기본 브랜치에 커밋하고 원격에 push해.
-8. fullops-orca bootstrap으로 확정한 worker 역할마다 상설 워크트리를 fullops/<역할> 브랜치에서 만들어. 각 역할 브랜치에 방금 커밋한 setup을 반영해. architecture 워크트리도 만들되 세션은 띄우지 마. 설계가 필요할 때 worker-start로 띄운다.
-9. 이번 작업에 쓸 orchestration Run을 만들고 run id를 PLANS.md에 적어.
-10. 만든 워크트리·브랜치·run id·미정 사항을 보고하고 첫 요청을 기다려.
+이 레포에 FullOps Squad를 setup하고 Orca 워크트리를 구성해줘.
+1. 기본 브랜치와 작업 트리를 확인하고 기존 변경을 보존해.
+2. 역할·책임·파일 소유권을 제안해. 미정 역할과 모델 후보만 나에게 확인해.
+3. setup-fullops의 dry-run을 확인한 뒤 확정한 역할로 실행해.
+4. project.md에 기술 기준과 검증 명령을 적고 기존 lint 도구와 review 규칙을 연결해.
+5. orca-agents.md에 CLI·모델 후보·라우팅 기준을 등록하고 board.json에 실제 단계를 적어.
+6. 문서 작성 규칙을 적용하고 준비 파일을 커밋·push해.
+7. fullops-orca bootstrap으로 역할 워크트리를 만들고 준비 커밋과 .env 연결을 확인해.
+8. orchestration Run을 만들고 PLANS.md에 run id를 남겨.
+9. 역할·워크트리·브랜치·run id·미정 사항을 보고하고 첫 요청을 기다려.
 ```
 
-### 기존 레포
+### 기존 레포·플러그인 업데이트
+
+업데이트 전용 세션에서 실행합니다. 이 세션은 coordinator로 이어 쓰지 않습니다.
 
 ```text
-이 레포는 이미 FullOps Squad를 쓰고 있다. 최신 플러그인 기준으로 setup을 갱신하고 Orca 워크트리를 맞춰줘. 지금 체크아웃은 기본 브랜치이고, 이 세션이 coordinator다.
-
-1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
-2. fullops.json의 기존 역할을 읽어. 모든 역할의 인박스(handovers/to_<역할>.md)와 PLANS.md에서 진행 중인 과제를 찾아 보고해. 진행 중 작업은 건드리지 마.
-3. setup-fullops를 기존 역할로 다시 실행해. 먼저 --dry-run으로 보여주고, 새로 생기는 파일만 추가해. 사용자 문서와 기록은 보존해.
-4. setup이 바꾸지 않는 기존 문서(handovers/_TEMPLATE.md, lint/lint.json, FULLOPS.md, docs/deliverables/README.md, orca-agents.md의 라우팅 기준)를 플러그인 템플릿과 비교해 빠진 절만 더해. 설계 역할은 <architecture>로 하고, 역할별 책임은 기존 배정표와 contexts/에서 가져와.
-5. deliverables.py --repo . --strict의 경고가 없어질 때까지 원천 문서마다 deliverables.py --stamp로 front matter를 써. front matter를 손으로 쓰지 마.
-6. board/board.json에 실제 진행 단계를 적고 board.py로 현황판을 만들어.
-7. 변경을 기본 브랜치에 커밋하고 push해.
-8. fullops-orca bootstrap으로 기존 워크트리를 조회해. 없는 역할의 워크트리만 만들어. 쉬고 있고 작업 트리가 깨끗한 역할 브랜치에만 기본 브랜치를 반영하고, 작업 중인 역할은 반영을 예약해.
-9. orchestration Run을 만들거나 PLANS.md의 기존 run id를 확인해.
-10. 워크트리·브랜치·run id·예약된 동기화·미정 사항을 보고하고 요청을 기다려.
+FullOps Squad를 최신으로 업데이트하고 이 레포에 적용해줘.
+1. README의 현재 CLI 업데이트 명령으로 설치 버전과 의존성을 확인해.
+2. 기본 브랜치, 기존 변경, 진행 중 worker와 인박스를 확인해. 진행 중 작업을 보존해.
+3. plugin_version 이후 릴리스의 '기존 레포 적용'을 읽어.
+4. 새 플러그인의 setup을 기존 역할로 dry-run한 뒤 실행해. 기존 문서는 필요한 절만 반영해.
+5. 수정한 문서에 front matter와 한국어 STE 원칙을 적용해. 진행 중 지시서의 일괄 변환은 보류해.
+6. 변경을 커밋·push해. 쉬고 있고 깨끗한 역할 브랜치에만 동기화해.
+7. 반영 내용, 설치 버전, 예약된 동기화를 보고하고 새 coordinator 세션을 열도록 안내해.
 ```
 
-### 플러그인 업데이트
-
-새 버전이 나오면 기본 브랜치에서 **업데이트 전용 세션**을 열어 붙여 넣습니다. 이 세션은 시작할 때 읽은 옛 스킬·hook을 쓰므로 coordinator로 이어 쓰지 않습니다. 버전별로 레포에 반영할 내용은 [변경 이력](docs/releases/)에 있습니다.
-
-```text
-FullOps Squad 플러그인을 최신으로 올리고 이 레포에 적용해줘. 지금 체크아웃은 서비스 레포의 기본 브랜치다. 이 세션은 업데이트만 하는 세션이고 coordinator가 아니다. 요청을 받거나 worker를 dispatch하지 마.
-0. README "설치 → 업데이트"의 명령으로 지금 쓰는 CLI의 FullOps 플러그인을 최신으로 올리고 설치된 버전을 확인해. 새 버전의 scripts/deps.py --check로 의존성을 확인하고 빠진 것은 --host로 설치해. 이후 단계의 스크립트와 템플릿은 새로 설치된 플러그인 경로에서 직접 실행하고 읽어.
-1. 기본 브랜치이고 작업 트리가 깨끗한지 확인해. 아니면 멈추고 알려줘.
-2. docs/releases/에서 이 레포의 plugin_version 이후 변경을 읽고 "기존 레포 적용" 항목을 정리해 보여줘.
-3. setup-fullops를 기존 역할로 다시 실행해 새 파일만 추가하고, 정리한 항목 중 기존 문서에 직접 반영할 것을 반영해. 진행 중인 과제와 기록은 건드리지 마.
-4. 변경을 기본 브랜치에 커밋하고 push해. 쉬고 있고 깨끗한 역할 브랜치에만 기본 브랜치를 반영해.
-5. 반영한 내용과 미정 사항을 보고하고, 이 세션을 닫고 새 세션을 열어 coordinator로 쓰라고 안내해. 다른 PC와 실행 중인 worker 세션도 플러그인을 갱신하고 새 세션을 열어야 한다고 알려줘.
-```
-
-### 요청하기
-
-setup 뒤에는 coordinator 세션에 이렇게 요청합니다. 분류·배정·대기는 스킬과 hook이 이어서 처리합니다.
+### 개발 요청
 
 ```text
 요청: <기능 또는 수정 내용>
@@ -165,62 +210,65 @@ fullops-orca route로 분류하고 dispatch해줘.
 
 ## 설정
 
-### Jev API 키
+원본 체크아웃의 `.fullops-squad/.env.example`을 `.fullops-squad/.env`로 복사합니다.
+`.env`와 API 키는 커밋하지 않습니다. 기존 레포에서도 ignore와 추적 여부를 확인합니다.
 
-Jev는 OpenRouter를 거쳐 호출하며 세 곳에서 씁니다. 키가 없어도 동작하지만 모든 요청이 설계 역할로 가서 고급 모델 비용이 늘어납니다.
-
-| 스크립트 | 쓰는 곳 | 키가 없거나 실패하면 |
+| 설정 | 기본값 | 의미 |
 |---|---|---|
-| `jev_route.py` | 요청을 simple·design으로 분류하고 갱신할 산출물을 고름 | 설계 역할로 보냄 |
-| `jev_find.py` | 지시서를 쓸 때 관련 코드 위치 탐색 | 검색으로 후보를 정함 |
-| `jev_context.py` | worker가 먼저 읽을 문서 선별 | 후보를 모두 유지 |
+| `OPENROUTER_API_KEY` | 빈 값 | Jev 호출용 OpenRouter 키 |
+| `FULLOPS_WORKER_CHECK_MINUTES` | `60` | 정상 작업 확인 주기, 분 |
+| `FULLOPS_WORKER_READY_TIMEOUT_SECONDS` | `90` | worker 시작 준비 대기, 초 |
+| `FULLOPS_WORKER_LOG_LIMIT` | `30` | 한 번 조회할 최근 메시지·줄 상한 |
 
-[OpenRouter](https://openrouter.ai/) 키를 쓰며 `--env-file`로 지정한 파일 → 환경 변수 `OPENROUTER_API_KEY` → `.fullops-squad/.env`의 `OPENROUTER_API_KEY=` 줄 순서로 찾습니다. **원본 체크아웃의 `.fullops-squad/.env`에 넣는 방법이 가장 간단합니다.** 워크트리에도 자동으로 링크됩니다. 기존 레포 루트 `.env`를 쓰고 있다면 파일을 이 경로로 옮깁니다. 환경 변수로 쓰려면 Windows는 `setx OPENROUTER_API_KEY "sk-or-..."`, macOS·Linux는 셸 설정 파일에 `export`를 추가하고 Orca를 다시 시작합니다.
+운영 설정은 명령행(확인 주기만) → 프로세스 환경 변수 → 레포 `.env` → 기본값 순서입니다.
+`orca_wait.py --repo . --settings`는 운영 설정만 출력합니다. API 키를 보려고 `.env` 전문을 읽지 않습니다.
 
-키를 레포에 커밋하거나 지시서·`orca-agents.md`에 적지 않습니다. 비밀값처럼 보이는 문자열이 섞인 요청은 Jev에 보내지 않고, 같은 요청의 응답은 `~/.cache/fullops-squad/jev`에 캐시해 다시 과금되지 않습니다.
+### Jev
 
-### Orca 워크트리
+기본 모델은 `~typesafe/jev-latest`입니다. OpenRouter의 System One API를 사용합니다.
+키는 `--env-file` → `OPENROUTER_API_KEY` 환경 변수 → `.fullops-squad/.env` 순서로 찾습니다.
+동일 요청은 `~/.cache/fullops-squad/jev`에 캐시합니다. 비밀값으로 보이는 입력은 보내지 않습니다.
 
-**`.env` 연결**. git은 `.fullops-squad/.env`를 새 워크트리로 옮기지 않습니다. FullOps의 SessionStart hook이 워크트리에서 시작하는 모든 세션마다 원본 체크아웃의 `.fullops-squad/.env*`(git 미추적) 중 빠진 것을 링크합니다. Orca 레포 설정의 설정 스크립트에도 아래 한 줄을 넣어 두면 워크트리를 만들 때 바로 연결됩니다. Windows(cmd.exe)·macOS·Linux에서 같은 줄을 씁니다.
+| 용도 | 실패·키 없음 처리 |
+|---|---|
+| 요청·역할·모델·산출물 라우팅 | 설계 역할과 보수적인 모델 후보로 폴백. stderr 경고 확인 |
+| 코드·문서 위치 탐색 | 검색으로 후보 보완 |
+| 문서 관련성 분류 | 후보 유지 |
+| 웹·Unity 조작 테스트 | 실패 근거 확인. 성공으로 처리하지 않음 |
 
-```text
-python3 -c "import os,pathlib as p;r=p.Path(os.environ['ORCA_ROOT_PATH'])/'.fullops-squad';w=p.Path(os.environ['ORCA_WORKTREE_PATH'])/'.fullops-squad';[(w/f.name).symlink_to(f) for f in r.glob('.env*') if f.is_file() and not (w/f.name).exists() and not (w/f.name).is_symlink()]"
-```
+`jev_route.py --strict`는 폴백 시 결과를 쓰지 않고 종료합니다.
+재선정은 `--force`로 이전 결과를 보존합니다. simple 역할 수정은 `--override-role <역할> --reason <근거>`를 사용합니다.
+Solar Decide로의 기본 모델 교체는 포함하지 않습니다.
 
-- Windows는 개발자 모드(설정 → 시스템 → 개발자용)가 켜져 있어야 심볼릭 링크를 만들 수 있습니다. `python3`가 Microsoft Store 스텁이면 `py -3`로 바꿉니다.
-- 새 setup은 `.fullops-squad/.gitignore`로 `.env*`를 제외합니다. 기존 서비스 레포에도 같은 규칙을 추가하고 키 파일이 Git에 추적되지 않는지 확인합니다.
+### 워크트리와 grok
 
-**grok worker**. grok은 워크트리에서도 원본 레포 경로의 폴더 신뢰를 요구하고, 신뢰되지 않으면 착수 전에 멈춥니다. 원본 레포를 한 번 신뢰하면 모든 워크트리에 적용됩니다. grok에서 `/hooks-trust`를 실행하거나 `python3 <플러그인>/scripts/grok_trust.py --repo <레포> --add`로 추가합니다. coordinator는 grok을 배정하기 전에 `--check`로 확인하고 필요하면 사용자에게 묻습니다.
+`env_link.py --all <원본 레포>`와 SessionStart hook이 미추적 `.fullops-squad/.env*`를 워크트리에 연결합니다.
+기존 파일은 덮어쓰지 않습니다. Windows의 심볼릭 링크에는 개발자 모드 또는 필요한 권한이 있어야 합니다.
+grok worker는 원본 레포의 폴더 신뢰가 필요합니다. `grok_trust.py --repo <레포> --check`로 확인합니다.
+사용자가 허가하면 `/hooks-trust` 또는 `--add`로 등록합니다.
 
-**coordinator를 역할 워크트리에서 운영할 때**. 기본은 기본 브랜치 체크아웃이 coordinator입니다. `coor` 같은 역할 워크트리에서 운영하려면 `orca-agents.md` 라우팅 기준에 `- coordinator 역할: `coor`` 줄을 둡니다. 그 브랜치의 세션이 coordinator 규칙과 현황판 갱신을 받고 배정 후보에서 빠집니다.
+## 기록과 현황판
 
-## 레포에 생기는 파일
+| 경로 (`.fullops-squad/` 기준) | 내용 |
+|---|---|
+| `FULLOPS.md`, `project.md`, `orca-agents.md` | 규약 지도, 프로젝트 기준, 역할·모델 배정 |
+| `PLANS.md`, `board/board.json` | 과제와 프로젝트 단계 |
+| `handovers/`, `contexts/` | 지시서·완료 기록, 역할별 결정과 교훈 |
+| `docs/agents/document-writing.md` | front matter와 한국어 문장 규칙 |
+| `docs/planning/`, `docs/design-docs/`, `docs/exec-plans/` | 기획·설계·실행 계획 |
+| `docs/evaluations/` | Jev 결과, 테스트 시나리오, QA·리뷰 증거 |
+| `docs/deliverables/README.md` | D01–D13 원천 매핑과 상태 |
+| `lint/`, `review/` | 검사 명령·규칙과 리뷰 템플릿 |
 
-setup은 선택한 레포에 `.fullops-squad/`를 만듭니다.
-
-```text
-.fullops-squad/
-  fullops.json                 # 이 레포의 활성화 표식, 역할·브랜치 정본
-  FULLOPS.md                   # 규약 지도
-  project.md, orca-agents.md   # 프로젝트 기준, 역할 배정과 라우팅 기준
-  PLANS.md                     # 현재 할 일
-  board/                       # 작업 현황판(index.html 고정, board.json은 coordinator가 관리)
-  rules/common/                # 공통 코딩·테스트·보안 기준
-  handovers/to_<role>.md       # 역할별 지금 할 일
-  handovers/logs/              # 지시서·완료 보고 전문
-  contexts/<role>.md           # 역할별 결정·교훈 요약
-  lint/lint.json, README.md    # lint 명령·기본 검사 설정과 규약
-  review/                      # OCR 규칙과 리뷰 보고서 템플릿
-  test/unity-play.json         # (Unity 테스트를 쓰면) 게임별 브리지 설정
-  docs/
-    planning/, design-docs/, exec-plans/, operations/, generated/
-    evaluations/               # Jev 분류·QA·리뷰·테스트 기록, 테스트 시나리오(scenarios/)
-    deliverables/              # 산출물 13종 인덱스
-    agents/                    # 외부 엔지니어링 스킬의 레포 설정
-```
+`board/index.html`에 단계·과제·완료 이력·리뷰·테스트·산출물이 표시됩니다.
+coordinator는 `board.json`을 관리하고 `board.py`는 기록에서 `board-data.js`를 생성합니다.
+coordinator 종료 때 자동 갱신됩니다. 즉시 갱신하려면 `board.py --repo .`를 실행합니다.
+`board-data.js`는 커밋하지 않습니다. HTML 양식은 플러그인이 관리합니다.
 
 ## 참고
 
 - [구조 다이어그램](docs/diagrams/fullops-overview.html)
-- [변경 이력](docs/releases/): 버전별 변경 범위와 기존 레포 적용 방법
-- [개발 문서](docs/development.md): 플러그인 구조, 빌드와 검증
+- [변경 이력과 기존 레포 적용](docs/releases/)
+- [개발·빌드·검증](docs/development.md)
+- [문서 작성 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/docs/agents/document-writing.md)
+- [lint 규약](plugins/fullops-squad/assets/repository/.fullops-squad/lint/README.md)

@@ -19,6 +19,7 @@ import sys
 import board
 import deps
 import env_link
+import deliverables
 from orca_wait import find_orca
 from done_gate import CODE, field, git
 from jev_route import coordinator_role, guide, marked_role
@@ -72,7 +73,7 @@ def targets(tool):
 def key_in(root, text, path=None):
     match = TITLE.search(text or '')
     if not match and path and path.is_file():
-        match = TITLE.search(path.read_text(encoding='utf-8').split('\n', 1)[0])
+        match = TITLE.search(deliverables.split(path.read_text(encoding='utf-8'))[1].lstrip().split('\n', 1)[0])
     return match and match.group(1)
 
 
@@ -80,7 +81,7 @@ def handover_denial(root, designer, role, key):
     if role == designer:
         return None
     if not key:
-        return '지시서 첫 줄을 `# <과제 키> — <목표>`로 쓰세요.'
+        return '지시서 본문 첫 줄을 `# <과제 키> — <목표>`로 쓰세요.'
     route = route_of(root, key)
     if not route:
         return f'{key}의 route 기록이 없습니다. 먼저 `jev_route.py --key {key}`를 실행하세요.'
@@ -165,9 +166,9 @@ def route_key_denial(root, command):
     routes = sorted(jev.glob('*-route.json'), key=lambda p: p.stat().st_mtime, reverse=True) if jev.is_dir() else []
     keys = [p.name[:-len('-route.json')] for p in routes]
     text = command
-    for path in re.findall(r'[^\s\'"`]*handovers[/\\]to_[a-z][a-z0-9_-]*\.md', command):  # 지시서 경로를 넘기면 그 첫 줄의 키
+    for path in re.findall(r'[^\s\'"`]*handovers[/\\]to_[a-z][a-z0-9_-]*\.md', command):  # 지시서 경로를 넘기면 본문 첫 줄의 키
         handover = Path(path) if Path(path).is_absolute() else root / re.sub(r'^\.[/\\]', '', path)
-        text += ' ' + board.read(handover).split('\n', 1)[0]
+        text += ' ' + (key_in(root, None, handover) or '')
     task, run = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command), re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
     if task:
         listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))

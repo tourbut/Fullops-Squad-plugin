@@ -70,6 +70,14 @@ def main():
         assert not [p for p in mapped if p.startswith('.fullops-squad/')]  # 하네스 문서는 코드 지도에 넣지 않는다
         assert mapped['src/auth/login.py'] == '로그인 요청 검증과 세션 발급.' and mapped['docs/guide.md'] == '운영 가이드'
         assert not {'.env', 'node_modules/dep/index.js', 'logo.png', 'link.py'} & set(mapped), set(mapped)
+        guide = repo / '.fullops-squad/docs/agents/domain.md'
+        guide.write_text('---\ntitle: 전투 용어\nsummary: 냉기 효과의 재생 시점과 완료 조건\n---\n\n# 숨긴 제목\n', encoding='utf-8')
+        commit('document metadata')
+        documents = dict(jev.code_map(repo, 'HEAD', 'documents'))
+        assert documents['.fullops-squad/docs/agents/domain.md'] == '전투 용어 — 냉기 효과의 재생 시점과 완료 조건'
+        assert documents['docs/guide.md'] == '운영 가이드' and not any(p.endswith('.py') for p in documents)
+        doc_result = jev.find(repo, 'dev', 'F-1', stub([], ['냉기 효과']), scope='documents')
+        assert doc_result['candidates'][0]['path'] == '.fullops-squad/docs/agents/domain.md'
 
         sent = []
         result = jev.find(repo, 'dev', 'F-1', stub(sent, ['auth/login', 'auth/token']))

@@ -16,6 +16,7 @@ import subprocess
 from jev_observe import MODEL, api_key, checked_answer, local_file, request, safe_text
 from lint import CONFIG, DEFAULT, header_summary
 from work import KEY, active_repo, instruction, safe_file
+from deliverables import split
 
 MAX_OPTIONS = 255
 FOUND, ABSENT = 0.7, 0.35  # 예제의 경계값. 코드 검색에 맞는 값은 score 기록으로 다시 정한다
@@ -36,7 +37,7 @@ def result_path(repo, key, suffix):
     return safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{key}-{suffix}.json')
 
 
-def code_map(repo, head):
+def code_map(repo, head, scope='code'):
     """(path, summary) 목록. 제외·민감·바이너리 파일은 넣지 않는다."""
     try:
         exclude = json.loads(git(repo, 'show', f'{head}:{CONFIG}')).get('exclude', DEFAULT['exclude'])
@@ -47,8 +48,12 @@ def code_map(repo, head):
         meta, _, path = row.partition('\t')
         mode, kind, sha = (meta.split() + ['', '', ''])[:3]
         # 일반 파일만: 서브모듈(commit)·심볼릭 링크(120000)는 뺀다
-        if kind == 'blob' and mode != '120000' and not path.startswith(HARNESS) and path not in HARNESS_FILES and not path.endswith('.meta') and not any(
-                fnmatch(path, x) or (x.startswith('**/') and fnmatch(path, x[3:])) for x in exclude):
+        document = path.endswith('.md')
+        eligible = document if scope == 'documents' else not path.startswith(HARNESS) and path not in HARNESS_FILES
+        # 하네스 문서는 코드 lint 제외와 무관하다. 나머지 경로의 의존성·빌드 제외는 유지한다.
+        excluded = any(fnmatch(path, x) or (x.startswith('**/') and fnmatch(path, x[3:])) for x in exclude)
+        if kind == 'blob' and mode != '120000' and eligible and not path.endswith('.meta') and (
+                scope == 'documents' and path.startswith(HARNESS) or not excluded):
             blobs.append((path, sha))
     batch = subprocess.run(['git', '-C', str(repo), 'cat-file', '--batch'], input=''.join(f'{sha}\n' for _, sha in blobs).encode(),
                            capture_output=True, check=True).stdout
@@ -65,7 +70,11 @@ def code_map(repo, head):
             continue
         if b'\0' in data[:8000]:
             continue
-        summary = header_summary(text, Path(path).suffix.lower())[:100]
+        meta, body = split(text) if path.endswith('.md') else (None, text)
+        summary = ((' — '.join(str(meta.get(k, '')) for k in ('title', 'summary') if meta.get(k)) if meta else '')
+                   or header_summary(body, Path(path).suffix.lower()))[:240]
+        if not text.strip():
+            continue
         try:
             safe_text(summary)
         except ValueError:
@@ -98,13 +107,13 @@ def ranked(answer, cumulative, most):
     return picked
 
 
-def find(repo, role, key, call, limit=12, handover=None):
+def find(repo, role, key, call, limit=12, handover=None, scope='code'):
     _, text = instruction(repo, role, key, handover)
     task = safe_text(f'{key}\n' + text[:3500])
     head = git(repo, 'rev-parse', 'HEAD')
-    entries = code_map(repo, head)
+    entries = code_map(repo, head, scope)
     result = {'version': 'jev-find-v1', 'task_key': key, 'head': head, 'requested_model': MODEL, 'files': len(entries),
-              'passes': [], 'candidates': [], 'existence': None, 'truncated': False,
+              'scope': scope, 'passes': [], 'candidates': [], 'existence': None, 'truncated': False,
               'usage': {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}, 'latency_seconds': 0.0, 'error': None}
     pool, depth = entries, 0
     try:
@@ -153,10 +162,10 @@ def record(result, answers, usage, elapsed, model):
     return answers
 
 
-def score(repo, key, base, head):
-    found = json.loads(result_path(repo, key, 'find').read_text())
+def score(repo, key, base, head, scope='code'):
+    found = json.loads(result_path(repo, key, 'documents-find' if scope == 'documents' else 'find').read_text())
     head, merge_base = git(repo, 'rev-parse', head), git(repo, 'merge-base', base, head)
-    mapped = {path for path, _ in code_map(repo, found['head'])}
+    mapped = {path for path, _ in code_map(repo, found['head'], found.get('scope', 'code'))}
     changed = set(git(repo, 'diff', '--name-only', '--no-renames', merge_base, head).splitlines())
     existing = changed & mapped
     new = {p for p in changed - mapped if not p.startswith('.fullops-squad/')}
@@ -185,6 +194,7 @@ def main():
     parser.add_argument('--role', help='find: 지시서를 받는 역할')
     parser.add_argument('--handover', help='find: 인박스 대신 읽을 지시서. .fullops-squad/handovers/ 아래 상대 경로')
     parser.add_argument('--limit', type=int, default=12)
+    parser.add_argument('--scope', choices=('code', 'documents'), default='code', help='documents: 하네스 문서를 포함한 Markdown의 title·summary로 탐색')
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     parser.add_argument('--from', dest='base', help='score: 기준 ref')
     parser.add_argument('--to', help='score: worker 결과 ref')
@@ -193,7 +203,8 @@ def main():
         if not KEY.fullmatch(args.key):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
-        output = result_path(repo, args.key, 'find' if args.mode == 'find' else 'find-score')
+        suffix = 'find' if args.mode == 'find' else 'find-score'
+        output = result_path(repo, args.key, ('documents-' if args.scope == 'documents' else '') + suffix)
         if output.exists():
             raise ValueError(f'기존 결과를 보존합니다: {output.relative_to(repo)}')
         if args.mode == 'find':
@@ -202,11 +213,11 @@ def main():
 
             def call(payload):
                 return request(payload, api_key(args.env_file, repo))
-            result = find(repo, args.role, args.key, call, args.limit, args.handover)
+            result = find(repo, args.role, args.key, call, args.limit, args.handover, args.scope)
         else:
             if not (args.base and args.to):
                 raise ValueError('score에는 --from과 --to가 필요합니다')
-            result = score(repo, args.key, args.base, args.to)
+            result = score(repo, args.key, args.base, args.to, args.scope)
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'Jev 탐색 실패: {error}\n')
     output.parent.mkdir(parents=True, exist_ok=True)

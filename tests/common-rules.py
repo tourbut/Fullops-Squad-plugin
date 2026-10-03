@@ -8,11 +8,13 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
 PLUGIN = ROOT / 'plugins/fullops-squad'
 ASSETS = PLUGIN / 'assets/repository/.fullops-squad'
 RULES = Path('.fullops-squad/rules/common')

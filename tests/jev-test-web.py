@@ -108,7 +108,7 @@ def main():
         test_record.write(out, {**summary, 'scenario': 'scenarios/web/a.json', 'covers': ['REQ | 1']},
                           [(1, 'fill', 'e3', 'milk', '0.90', 'ok')], ['스텝', '동작', '대상', '값', '확신', '결과'])
         report = (out / 'report.md').read_text(encoding='utf-8')
-        assert report.startswith('# K-1 조작 테스트 — 통과 (passed)') and '| 1 | fill | e3 | milk | 0.90 | ok |' in report, report
+        assert report.startswith('---\n') and '# K-1 조작 테스트 — 통과 (passed)' in report and '| 1 | fill | e3 | milk | 0.90 | ok |' in report, report
         assert '`scenarios/web/a.json`' in report and '| 통과 |' in report
     print('PASS: jev web loop element context, fan-out questions, pass/risk/stall/premature-done, records')
 

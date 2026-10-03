@@ -5,6 +5,8 @@ description: FullOps setup이 완료된 레포에서 기획·설계·구현·이
 
 # 개발 산출물
 
+문서를 작성하거나 검토할 때 `.fullops-squad/docs/agents/document-writing.md`의 front matter와 한국어 STE 작성 원칙을 적용한다. 기존 레포에 이 파일이 없으면 `setup-fullops` 갱신으로 추가한다.
+
 현재 Git 레포 루트의 `.fullops-squad/fullops.json`이 없으면 생성하지 않고 setup을 안내한다.
 `.fullops-squad/FULLOPS.md`를 읽는다. 원천 매핑은 `.fullops-squad/docs/deliverables/README.md`가 정본이다. 이 스킬의 `../../scripts/deliverables.py`가 원천 파일과 조립 문서의 로컬 링크를 검사한다.
 

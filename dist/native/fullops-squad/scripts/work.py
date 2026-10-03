@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import subprocess
 
+import deliverables
+
 KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 TEMPLATE = Path(__file__).resolve().parents[1] / "assets/repository/.fullops-squad/handovers/_TEMPLATE.md"
 
@@ -29,7 +31,7 @@ def safe_file(repo, relative):
 
 
 def instruction(repo, role, key, handover=None):
-    """분류에 넣을 지시서와 그 경로. handover가 없으면 역할 인박스다. 첫 줄은 `# <키> — `."""
+    """분류에 넣을 지시서와 그 경로. handover가 없으면 역할 인박스다. 본문 첫 줄은 `# <키> — `."""
     validate_role(repo, role)
     relative = (handover or f'.fullops-squad/handovers/to_{role}.md').replace('\\', '/')
     if handover and (Path(relative).is_absolute() or '..' in Path(relative).parts
@@ -37,8 +39,8 @@ def instruction(repo, role, key, handover=None):
         raise ValueError('handover는 .fullops-squad/handovers/ 아래 상대 경로로 지정하세요')
     path = safe_file(repo, relative)
     text = path.read_text(encoding='utf-8') if path.is_file() else ''
-    if not text.startswith(f'# {key} — '):
-        raise ValueError('지시서 첫 줄을 `# <과제 키> — <목표>`로 쓰세요')
+    if not deliverables.split(text)[1].lstrip().startswith(f'# {key} — '):
+        raise ValueError('지시서 본문 첫 줄을 `# <과제 키> — <목표>`로 쓰세요')
     return path, text
 
 
@@ -50,7 +52,9 @@ def new(repo, role, key, goal):
     if not goal.strip() or "\n" in goal:
         raise ValueError("목표는 한 줄로 지정하세요")
     content = TEMPLATE.read_text().replace("<과제 키>", key, 1).replace("<목표>", goal.strip(), 1)
-    inbox.write_text(content)
+    meta = {'title': f'{key} — {goal.strip()}', 'status': 'draft', 'updated': date.today().isoformat(),
+            'owner': role, 'tasks': [key], 'summary': goal.strip()}
+    inbox.write_text(deliverables.render(meta) + '\n' + content, encoding='utf-8')
     print(inbox.relative_to(repo))
 
 
@@ -60,7 +64,7 @@ def finish(repo, role, key):
     if not inbox.is_file():
         raise ValueError(f"없는 역할 인박스: {inbox}")
     content = inbox.read_text()
-    if not content.startswith(f"# {key} — "):
+    if not deliverables.split(content)[1].lstrip().startswith(f"# {key} — "):
         raise ValueError("인박스 과제 키가 다릅니다")
     report = content.partition("## 완료 보고\n")[2].strip()
     placeholder = TEMPLATE.read_text().partition("## 완료 보고\n")[2].strip()
@@ -73,6 +77,9 @@ def finish(repo, role, key):
         raise ValueError("이미 아카이브된 과제입니다. 기록을 확인하세요")
     entry = ("\n" + marker + "\n" + content.rstrip() + "\n").encode()
     log.parent.mkdir(parents=True, exist_ok=True)
+    if not log.exists():
+        log.write_text(deliverables.render({'title': f'{role} 완료 기록', 'status': 'draft',
+                       'updated': date.today().isoformat(), 'owner': role, 'summary': '지시서와 완료 보고를 보존한다.'}), encoding='utf-8')
     with log.open("ab") as output:
         output.write(entry)
         output.flush()
