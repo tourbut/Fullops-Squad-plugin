@@ -1,3 +1,11 @@
+---
+title: FullOps Squad 개발
+status: draft
+updated: 2026-10-03
+owner: maintainer
+summary: 플러그인 원본 수정, 통합 설치기 패키징과 배포 검증 절차
+---
+
 # FullOps Squad 개발
 
 플러그인 자체를 고치는 사람을 위한 문서다. 사용법은 [README](../README.md)를 본다.
@@ -24,6 +32,21 @@ python3 scripts/install.py --host codex
 설치기는 빌드한 뒤 플러그인 안의 `scripts/deps.py`와 같은 의존성 목록으로 의존성을 설치하고, 체크아웃을 로컬 마켓플레이스로 등록해 플러그인을 설치한다.
 
 ## 배포
+
+### npm 통합 설치기
+
+`bin/fullops-squad.cjs`는 Node.js 기본 모듈만 사용합니다. AI CLI 자체는 설치하지 않습니다.
+플러그인은 GitHub 마켓플레이스에서 받습니다. npm 패키지는 설치기와 의존성 목록을 포함합니다.
+
+1. `npm run test:installer`를 실행합니다. 설치·업데이트·실패 처리와 Windows 인자 전달을 확인합니다.
+2. `npm pack`을 실행합니다. `fullops-squad-<버전>.tgz`가 생성됩니다.
+3. `npm exec --yes --package ./fullops-squad-<버전>.tgz -- fullops-squad --help`를 실행합니다. 설치기 도움말이 출력됩니다.
+4. npm 배포 계정에서 패키지를 게시합니다. 게시 후 `npx fullops-squad install|update|check`를 사용할 수 있습니다.
+
+설치기 버전은 루트 `package.json`에서 관리합니다. GitHub 플러그인의 버전은 `plugins/fullops-squad/plugin.json`에서 관리합니다.
+`--repo`는 설치된 플러그인의 `update.py`로 적용 안내를 출력합니다. 에이전트가 이후 레포 변경을 수행합니다.
+
+### GitHub 마켓플레이스
 
 GitHub 마켓플레이스가 커밋된 `dist/native/fullops-squad`를 가리킨다. 원본을 고치면 `python3 scripts/build.py`로 `dist/`를 다시 만들어 함께 커밋한다. CI는 빌드 결과가 커밋된 `dist/`와 다르면 실패한다. 버전을 올리고 `docs/releases/<버전>.md`에 변경 범위와 기존 레포 적용 방법을 적는다.
 

@@ -92,7 +92,7 @@ class UpdateTests(unittest.TestCase):
                                  '--from', '0.9.9', '--json'], capture_output=True, text=True,
                                 encoding='utf-8', check=True)
         report = json.loads(result.stdout)
-        self.assertEqual([n['version'] for n in report['releases']], ['0.9.9', '0.9.10'])
+        self.assertEqual([n['version'] for n in report['releases']], ['0.9.9', '0.9.10', '0.9.11'])
         self.assertTrue(report['steps'])
         self.assertIn('담당과 반복 범위', (package / 'assets/repository/.fullops-squad/rules/common/testing.md').read_text(encoding='utf-8'))
 
