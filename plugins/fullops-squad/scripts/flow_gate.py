@@ -12,7 +12,6 @@ import os
 from pathlib import Path
 import re
 import shlex
-import shutil
 import subprocess
 import sys
 
@@ -139,14 +138,28 @@ def handover_denial(root, designer, role, key):
 
 def orca(*args):
     """Orca CLI를 JSON으로 호출한다. 실패하면 None. hook은 coordinator 터미널 환경에서 돌아 호출자가 그 터미널로 식별된다."""
-    exe = os.environ.get('FULLOPS_ORCA_CLI') or find_orca() or 'orca'
+    return integration.orca(*args)
+
+
+def operation_commands(command, operation, group='orchestration'):
+    """인용된 spec의 단어를 제외하고 셸 구분자별 실제 Orca 작업을 선택한다."""
+    lexer = shlex.shlex(command, posix=False, punctuation_chars=';&|\n')
+    lexer.whitespace_split = True
+    lexer.commenters = ''
+    chunks, words = [], []
     try:
-        done = subprocess.run([shutil.which(exe) or exe, *args, '--json'], capture_output=True, text=True,
-                              encoding='utf-8', timeout=15)
-        data = json.loads(done.stdout)
-    except (OSError, ValueError, subprocess.TimeoutExpired):
-        return None
-    return data.get('result') if isinstance(data, dict) and data.get('ok') else None
+        for word in lexer:
+            if word and all(c in ';&|\n' for c in word):
+                chunks.append(words)
+                words = []
+            else:
+                words.append(word)
+    except ValueError:
+        return [command] if re.search(rf'\b{group}\s+{operation}\b', command) else []
+    chunks.append(words)
+    return [' '.join(words) for words in chunks if any(
+        words[i:i + 2] == [group, operation] for i in range(len(words) - 1))
+        and not any(word in ('--help', '-h') for word in words)]
 
 
 def run_state(run, root=None):
@@ -202,10 +215,23 @@ def board_reminder(root, state, again):
 
 
 def handled(root, key):
-    """과제 키가 인박스·작업 로그·PLANS.md 어딘가에 있으면 배정했거나 보류를 기록한 것으로 본다."""
+    """현재 체크아웃과 정본 기본 브랜치의 인박스·로그·PLANS에서 처리 근거를 찾는다."""
     base = root / '.fullops-squad'
-    places = [*base.glob('handovers/to_*.md'), *base.glob('handovers/logs/*.md'), base / 'PLANS.md']
-    return any(key in board.read(path) for path in places)
+    places = [*base.glob('handovers/to_*.md'), *base.glob('handovers/logs/**/*.md'), base / 'PLANS.md']
+    if any(integration.key_present(key, board.read(path)) for path in places):
+        return True
+    settings = integration.config(root)
+    if settings is None:
+        return False
+    try:
+        ref, _ = integration.references(root, settings)
+        done = subprocess.run(['git', '-C', str(root), 'grep', '-h', '-F', '--', key, ref, '--',
+                               '.fullops-squad/PLANS.md', ':(glob).fullops-squad/handovers/to_*.md',
+                               ':(glob).fullops-squad/handovers/logs/**/*.md'],
+                              capture_output=True, text=True, encoding='utf-8', timeout=10)
+    except (OSError, ValueError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return False
+    return done.returncode == 0 and bool(integration.key_present(key, done.stdout))
 
 
 def route_key_denial(root, command):
@@ -225,7 +251,7 @@ def route_key_denial(root, command):
         found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
         text += ' ' + str(found.get('spec') or '') + ' ' + str(found.get('task_title') or '')
     for key in keys:
-        if re.search(rf'(?<![A-Za-z0-9._-]){re.escape(key)}(?![A-Za-z0-9._-])', text):
+        if integration.key_present(key, text):
             route = route_of(root, key) or {}
             if route.get('route') == 'unresolved':
                 return f'{key}의 담당 역할이 미확정입니다. 근거와 함께 재분류한 뒤 배정하세요.'
@@ -252,27 +278,39 @@ def tool_denial(root, event, state):
         denial = inbox_denial(root, name, content)
         if denial:
             return denial
-    if role == 'coordinator' and re.search(r'\borchestration\s+check\b', command):
-        run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
-        inbox = orca('orchestration', 'check', *(['--run', run.group(1)] if run else []), '--peek')
-        if inbox is not None:
-            integration.record(root, inbox.get('messages') or [])
+    if role == 'coordinator':
+        for check in operation_commands(command, 'check'):
+            flags = []
+            for flag in ('--run', '--terminal'):
+                value = re.search(rf'{flag}[ =]+["\']?([A-Za-z0-9_-]+)', check)
+                if value:
+                    flags += [flag, value.group(1)]
+            inbox = orca('orchestration', 'check', *flags, '--peek')
+            if inbox is not None:
+                integration.record(root, inbox.get('messages') or [])
     if INJECT.search(command):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
-    asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?:\s|$)', command)  # 사용법 확인은 배정이 아니다
-    if role == 'coordinator' and not asking_help and len(sent_text(command)) > SEND_LIMIT:
+    asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?=\s|[;&|]|$)', command)
+    if role == 'coordinator' and any(len(sent_text(send)) > SEND_LIMIT for send in
+                                     operation_commands(command, 'send', group='terminal')):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
                 '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
-    starting = re.search(r'\borchestration\s+worker-start\b', command) and not asking_help
-    creating = re.search(r'\borchestration\s+task-create\b', command) and not asking_help
-    if starting and '--run' not in command:
-        return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
-    if role == 'coordinator' and (starting or creating):
-        integration_spec = command
-        task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command)
+    starting = operation_commands(command, 'worker-start')
+    creating = operation_commands(command, 'task-create')
+    for dispatch in starting:
+        if '--run' not in dispatch:
+            return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
+    for dispatch in (starting + creating if role == 'coordinator' else []):
+        integration_spec = dispatch
+        variable = re.search(r'--spec\s+(\$[A-Za-z_][A-Za-z0-9_]*)\b', dispatch)
+        if variable:
+            assignment = re.search(rf'{re.escape(variable.group(1))}\s*=\s*(?:@\'([\s\S]*?)\'@|@"([\s\S]*?)"@|\'([^\']*)\'|"([^"]*)")', command)
+            if assignment:
+                integration_spec += ' ' + next(value for value in assignment.groups() if value is not None)
+        task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
         if task:
-            run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
+            run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
             listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
             if listing is not None:
                 found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
@@ -283,11 +321,11 @@ def tool_denial(root, event, state):
         denial = integration.denial(root, integration_spec)
         if denial:
             return denial
-        denial = route_key_denial(root, command)
+        denial = route_key_denial(root, integration_spec)
         if denial:
             return denial
-        if starting:
-            denial = integration.baseline_denial(root, command)
+        if dispatch in starting:
+            denial = integration.baseline_denial(root, dispatch)
             if denial:
                 return denial
     if role == 'coordinator' and designer:

@@ -3,11 +3,31 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 
 from done_gate import git
+
+
+def orca(*args, cwd=None):
+    """공유 읽기 전용 Orca 조회. 실패하면 None을 반환한다."""
+    from orca_wait import find_orca
+    exe = os.environ.get('FULLOPS_ORCA_CLI') or find_orca() or 'orca'
+    try:
+        done = subprocess.run([shutil.which(exe) or exe, *args, '--json'], cwd=cwd,
+                              capture_output=True, text=True, encoding='utf-8', timeout=15)
+        data = json.loads(done.stdout)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+    return data.get('result') if isinstance(data, dict) and data.get('ok') else None
+
+
+def key_present(key, text):
+    # 문장 끝 마침표는 구분자지만 K1.2 같은 실제 키의 일부는 구분자가 아니다.
+    return re.search(rf'(?<![A-Za-z0-9._-]){re.escape(key)}(?![A-Za-z0-9_-]|\.[A-Za-z0-9._-])', text)
 
 
 def config(root):
@@ -24,6 +44,7 @@ def record(root, messages):
     """ACK 전에 저장한다. 메시지별 파일로 워크트리·세션 사이의 상태를 보존한다."""
     if config(root) is None:
         return
+    tasks = {}
     for message in messages:
         if message.get('type') != 'worker_done':
             continue
@@ -33,15 +54,50 @@ def record(root, messages):
         identifier = str(message.get('id') or hashlib.sha256(body.encode()).hexdigest())
         path = directory(root) / (hashlib.sha256(identifier.encode()).hexdigest() + '.json')
         path.parent.mkdir(parents=True, exist_ok=True)
-        sha = re.search(r'\bSHA\s*[:=]?\s*([0-9a-fA-F]{7,40})\b', body)
+        label = r'(?:SHA|commit|커밋)(?:는|은|:|=)?\s*([0-9a-fA-F]{7,40})(?![0-9a-fA-F])'
+        final = re.findall(r'(?:최종(?:\s+로컬)?|final(?:\s+local)?|local)\s+' + label, body, re.I)
+        candidates = re.findall(r'(?<![A-Za-z])' + label, body, re.I)
+        hashes = set(final or candidates)
+        sha = next(iter(hashes)) if len(hashes) == 1 else None
         key = re.search(r'\[(?:완료|설계)\]\s*([A-Za-z0-9][A-Za-z0-9._-]*)', body)
-        data = {'message': identifier, 'key': key.group(1) if key else '',
-                'sha': sha.group(1) if sha else None}
+        payload = message.get('payload') or {}
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except ValueError:
+                payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        task_id = payload.get('taskId')
+        task_key = key.group(1) if key else ''
+        if not task_key and task_id:
+            run = message.get('run_id')
+            if run not in tasks:
+                listing = orca('orchestration', 'task-list', *(['--run', run] if run else []), cwd=root)
+                tasks[run] = (listing or {}).get('tasks') or []
+            task = next((t for t in tasks[run] if t.get('id') == task_id), {})
+            spec = str(task.get('spec') or '')
+            keys = [p.name.removesuffix('-route.json') for p in
+                    (Path(root) / '.fullops-squad/docs/evaluations/jev').glob('*-route.json')]
+            explicit = re.search(r'\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)', spec, re.I)
+            named = explicit.group(1).rstrip('.') if explicit else None
+            found = [named] if named in keys else [k for k in keys if key_present(k, spec)]
+            if len(found) == 1:
+                task_key = found[0]
+        data = {'message': identifier, 'key': task_key,
+                'sha': sha}
         try:
             with path.open('x', encoding='utf-8') as stream:
                 json.dump(data, stream, ensure_ascii=False)
         except FileExistsError:
-            pass  # 재전달은 기존 보류 기록을 덮어쓰지 않는다.
+            saved = json.loads(path.read_text(encoding='utf-8'))
+            changed = False
+            for field in ('key', 'sha'):
+                if not saved.get(field) and data.get(field):
+                    saved[field] = data[field]
+                    changed = True
+            if changed:
+                path.write_text(json.dumps(saved, ensure_ascii=False), encoding='utf-8')
 
 
 def ancestor(root, source, target):
@@ -84,8 +140,7 @@ def denial(root, command=None):
     items = pending(root)
     if command is not None:
         # 같은 과제의 리뷰·수정 배정은 통합 선행 조건을 해결한다.
-        items = [item for item in items if not item['key'] or not re.search(
-            rf'(?<![A-Za-z0-9._-]){re.escape(item["key"])}(?![A-Za-z0-9._-])', command)]
+        items = [item for item in items if not item['key'] or not key_present(item['key'], command)]
     if not items:
         return None
     labels = ', '.join(f'{item["key"] or item["message"]}: {item["action"]}' for item in items[:5])
@@ -98,7 +153,17 @@ def baseline_denial(root, command):
     match = re.search(r'--worktree(?:=|\s+)(?:"([^"]+)"|\'([^\']+)\'|(\S+))', command)
     if not match:
         return '`worker-start`에 --worktree <실제 워크트리 경로>를 넣어 최신 기본 브랜치 동기화를 확인하세요.'
-    worker = Path(next(value for value in match.groups() if value is not None))
+    selector = next(value for value in match.groups() if value is not None)
+    if selector.startswith('path:'):
+        selector = selector.removeprefix('path:')
+    elif selector.startswith('id:') and '::' in selector:
+        selector = selector.split('::', 1)[1]
+    elif selector == 'active' or selector == 'current' or selector.startswith(('name:', 'branch:')):
+        selected = orca('worktree', 'show', '--worktree', selector, cwd=root)
+        selector = ((selected or {}).get('worktree') or {}).get('path')
+        if not selector:
+            return '워크트리 선택자를 확인할 수 없습니다. --worktree path:<실제 경로>를 지정하세요.'
+    worker = Path(selector)
     if not worker.is_absolute():
         worker = Path(root) / worker
     settings = config(root)
@@ -133,12 +198,23 @@ def main():
     parser.add_argument('--reason')
     parser.add_argument('--owner')
     parser.add_argument('--resume')
+    parser.add_argument('--run', help='누락된 완료 메시지를 다시 조회할 Run')
+    parser.add_argument('--terminal', help='완료 메시지를 받은 coordinator 터미널')
     args = parser.parse_args()
     root = Path(git(args.repo, 'rev-parse', '--show-toplevel'))
     if args.action != 'status':
         if not args.message:
             parser.error('--message가 필요합니다')
         path = directory(root) / (hashlib.sha256(args.message.encode()).hexdigest() + '.json')
+        if not path.exists():
+            flags = [flag for name, value in (('--run', args.run), ('--terminal', args.terminal))
+                     if value for flag in (name, value)]
+            inbox = orca('orchestration', 'check', *flags, '--peek', cwd=root)
+            if inbox:
+                record(root, inbox.get('messages') or [])
+        if not path.exists():
+            parser.error('완료 기록이 없습니다. --run <Run> --terminal <coordinator 핸들>로 다시 조회하세요. '
+                         '이미 ACK한 보고는 원본 완료 메시지를 다시 수집한 뒤 재시도하세요.')
         item = json.loads(path.read_text(encoding='utf-8'))
         if args.action == 'hold':
             if not all(value and value.strip() for value in (args.reason, args.owner, args.resume)):
