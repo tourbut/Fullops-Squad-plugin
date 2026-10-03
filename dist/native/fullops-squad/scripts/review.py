@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 
 import jev_find
+from jev_route import product_roles
 from work import active_repo, safe_file, KEY
 
 
@@ -63,12 +64,39 @@ def prepare(repo, key, base, head):
                        [{**item, 'review_status': 'skipped', 'reason': EVIDENCE_REASON} if evidence(item['path']) else
                         {**item, 'review_status': 'pending', 'reason': ''} for item in preview['excluded_files']],
               'findings': []}
+    if product_roles(repo):
+        preview['fullops_review_schema_version'] = 2
+        result.update(review_schema_version=2, independence={'implementer_session': '', 'reviewer_session': '',
+                      'snapshot_path': '', 'snapshot_head': head, 'read_only': True})
     destination.mkdir(parents=True)
     for name, data in [('preview', preview), ('rules', rules), ('result', result)]:
         (destination / f'{name}.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
     template = Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/review/_REPORT.md'
     (destination / 'report.md').write_text(template.read_text().replace('<과제 키>', key, 1))
     print(destination.relative_to(repo))
+
+
+def check_independence(repo, result):
+    """새 책임 구조의 리뷰 기록: 독립 세션과 깨끗한 고정 SHA detached snapshot을 확인한다."""
+    if result.get('review_schema_version') is None:
+        return  # 전환 전 고정 리뷰 원본은 보존한다
+    if result['review_schema_version'] != 2:
+        raise ValueError('지원하지 않는 FullOps 리뷰 스키마')
+    record = result.get('independence') or {}
+    author, reviewer = record.get('implementer_session'), record.get('reviewer_session')
+    if not isinstance(author, str) or not author.strip() or not isinstance(reviewer, str) or not reviewer.strip() or author.strip() == reviewer.strip():
+        raise ValueError('구현자와 독립 검토자의 서로 다른 세션 ID를 기록하세요')
+    if not record.get('snapshot_path') or record.get('read_only') is not True:
+        raise ValueError('읽기 전용 snapshot 경로와 read_only를 기록하세요')
+    snapshot = Path(record['snapshot_path']).resolve(strict=True)
+    if snapshot == Path(repo).resolve() or record.get('snapshot_head') != result['head'] or sha(snapshot, 'HEAD') != result['head']:
+        raise ValueError('별도 snapshot의 고정 head가 리뷰와 다릅니다')
+    if Path(subprocess.check_output(['git', '-C', str(snapshot), 'rev-parse', '--show-toplevel'], text=True).strip()).resolve() != snapshot:
+        raise ValueError('snapshot_path는 Git 체크아웃 루트여야 합니다')
+    if subprocess.run(['git', '-C', str(snapshot), 'symbolic-ref', '-q', 'HEAD'], capture_output=True).returncode != 1:
+        raise ValueError('snapshot은 detached HEAD여야 합니다')
+    if subprocess.check_output(['git', '-C', str(snapshot), 'status', '--porcelain']).strip():
+        raise ValueError('읽기 전용 snapshot에 변경이 있습니다')
 
 
 def check(repo, key, base, head, task_key=None):
@@ -91,6 +119,9 @@ def check(repo, key, base, head, task_key=None):
             raise ValueError('모든 파일에 검토 상태와 근거/생략 사유를 기록하세요')
     if not result['reviewer'].strip() or not result['conclusion'].strip():
         raise ValueError('검토자와 결론을 기록하세요')
+    if preview.get('fullops_review_schema_version') == 2 and result.get('review_schema_version') != 2:
+        raise ValueError('독립 리뷰 스키마를 유지하세요')
+    check_independence(repo, result)
     for finding in result['findings']:
         if finding.get('severity') not in ('critical', 'high', 'medium', 'low') or type(finding.get('resolved')) is not bool:
             raise ValueError('발견 사항에 severity와 resolved(boolean)를 기록하세요')

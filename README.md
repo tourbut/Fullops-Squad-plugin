@@ -37,6 +37,28 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 설계·coordinator·tester 역할은 라우팅 기준의 해당 줄로 지정합니다. 기본 coordinator는 기본 브랜치 체크아웃입니다.
 역할 워크트리에서 coordinator를 운영하면 `- coordinator 역할: <역할 ID>`를 등록합니다.
 
+### 제품 기획과 기술 계획 분리
+
+제품 기획자가 목표·제품 규칙을 정하고, DEV가 기술 계획·구현·테스트를 함께 맡을 수 있습니다.
+`orca-agents.md`의 `## 라우팅 기준`에 다음 줄을 추가합니다. 역할 ID는 `fullops.json`의 등록 역할을 사용합니다.
+
+```text
+- 설계 역할: `designer`
+- 제품 기획 역할: `designer`
+- 기술 계획 역할: `dev`
+```
+
+제품 기획 역할과 기술 계획 역할은 서로 달라야 합니다. coordinator와도 분리합니다.
+기술 난도가 높은 작업도 확정된 제품 요구 안에 있으면 `implementation`으로 담당 worker에 배정합니다.
+제품 규칙 결정·범위 확대·불명확한 공유 제품 기준은 `product`로 기획자에게 배정합니다.
+호출 실패·낮은 확신은 `unresolved`로 보류합니다. 담당 책임을 확인한 뒤 `--override-role`과 `--reason`으로 근거를 남깁니다.
+기존 기록의 재선정은 `--force`로 원본을 보존합니다. 위 두 marker가 없으면 기존 `simple/design` 구조를 유지합니다.
+
+역할을 바꿀 때 기존 `fullops/*` 브랜치를 재사용할 수 있습니다. 역할별 브랜치는 고유해야 합니다.
+독립 리뷰는 별도 세션과 고정 SHA의 깨끗한 detached snapshot에서 진행합니다.
+새 리뷰 기록은 구현자·검토자 세션 ID와 snapshot 경로를 검증합니다. 기존 리뷰 원본은 보존합니다.
+ART 직접 검수, 독립 동작 QA와 미해결 critical/high 차단도 유지합니다.
+
 ### 대기와 검증
 
 착수를 확인한 뒤 coordinator는 `orca_wait.py`로 완료·질문·오류 메시지를 기다립니다.
@@ -231,7 +253,7 @@ fullops-orca route로 분류하고 dispatch해줘.
 
 | 용도 | 실패·키 없음 처리 |
 |---|---|
-| 요청·역할·모델·산출물 라우팅 | 설계 역할과 보수적인 모델 후보로 폴백. stderr 경고 확인 |
+| 요청·역할·모델·산출물 라우팅 | 기존 구조는 설계 역할로 폴백. 제품/기술 분리 구조는 unresolved로 보류. 모델 폴백은 stderr 경고 확인 |
 | 코드·문서 위치 탐색 | 검색으로 후보 보완 |
 | 문서 관련성 분류 | 후보 유지 |
 | 웹·Unity 조작 테스트 | 실패 근거 확인. 성공으로 처리하지 않음 |

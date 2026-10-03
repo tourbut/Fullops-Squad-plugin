@@ -80,8 +80,10 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     if not assigned:
         raise ValueError("레포에 필요한 역할을 --roles로 지정하세요")
     for role, branch in assigned.items():
-        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", role) or branch != f"fullops/{role}":
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", role) or not isinstance(branch, str) or not re.fullmatch(r"fullops/[a-z][a-z0-9_-]{0,63}", branch):
             raise ValueError(f"잘못된 역할/브랜치: {role}")
+    if len(set(assigned.values())) != len(assigned):
+        raise ValueError("역할별 브랜치는 중복될 수 없습니다")
     templates = PLUGIN / "assets/repository"
     files = {p.relative_to(templates).as_posix(): p.read_bytes()
              for p in sorted(templates.rglob("*")) if p.is_file()}

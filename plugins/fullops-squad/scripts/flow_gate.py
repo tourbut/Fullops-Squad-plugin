@@ -22,7 +22,7 @@ import env_link
 import deliverables
 from orca_wait import find_orca
 from done_gate import CODE, field, git
-from jev_route import coordinator_role, guide, marked_role
+from jev_route import coordinator_role, guide, marked_role, product_roles
 
 DISPATCH = re.compile(r'--dispatch-id[ =]+([A-Za-z0-9_.:-]+)')
 SETTLE = re.compile(r'orchestration\s+send\b.*--type[ =]+(?:worker_done|escalation)\b', re.S)  # ask는 턴을 끝내지 않는다
@@ -65,8 +65,11 @@ def targets(tool):
     path = tool.get('file_path') or tool.get('path') or tool.get('target_file')
     if isinstance(path, str):
         files.append((path, tool.get('content')))
-    for name in re.findall(r'^\*\*\* (?:Add|Update) File: (.+)$', command, re.M):  # Codex apply_patch
-        files.append((name.strip(), None))
+    if command.lstrip().startswith('*** Begin Patch'):  # 패치 본문은 실행 명령이 아니다
+        chunks = re.split(r'^\*\*\* (?:Add|Update) File: (.+)$', command, flags=re.M)
+        for name, body in zip(chunks[1::2], chunks[2::2]):
+            files.append((name.strip(), '\n'.join(line[1:] for line in body.splitlines() if line.startswith('+'))))
+        command = ''
     return command, files
 
 
@@ -85,6 +88,10 @@ def handover_denial(root, designer, role, key):
     route = route_of(root, key)
     if not route:
         return f'{key}의 route 기록이 없습니다. 먼저 `jev_route.py --key {key}`를 실행하세요.'
+    if product_roles(root):
+        if route.get('route') == 'implementation' and route.get('role') == role:
+            return None
+        return f'{key}는 {route.get("route")} → {route.get("role")}입니다. 담당 역할·제품 범위를 확인하고 근거를 남겨 재분류하세요.'
     if route.get('route') != 'simple' or route.get('role') != role:
         return (f'{key}는 {route.get("route")} → {route.get("role")}로 분류됐습니다. '
                 f'{role} 지시서는 설계 역할({designer})이 씁니다. 설계 역할을 dispatch하세요.')
@@ -176,8 +183,12 @@ def route_key_denial(root, command):
             return None  # 과제 내용을 확인할 수 없으면 막지 않는다
         found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
         text += ' ' + str(found.get('spec') or '') + ' ' + str(found.get('task_title') or '')
-    if any(re.search(rf'(?<![A-Za-z0-9._-]){re.escape(k)}(?![A-Za-z0-9._-])', text) for k in keys):
-        return None
+    for key in keys:
+        if re.search(rf'(?<![A-Za-z0-9._-]){re.escape(key)}(?![A-Za-z0-9._-])', text):
+            route = route_of(root, key) or {}
+            if route.get('route') == 'unresolved':
+                return f'{key}의 담당 역할이 미확정입니다. 근거와 함께 재분류한 뒤 배정하세요.'
+            return None
     where = f"`--task {task.group(1)}` 과제의 spec" if task else 'dispatch 명령의 spec'
     recent = ', '.join(keys[:5]) or '없음'
     return (f'{where}에 Jev로 분류한 과제 키가 보이지 않습니다. 모든 배정은 `jev_route.py --key <과제 키>`로 먼저 분류하고, '
@@ -249,6 +260,17 @@ BRIEF = {
                '`worker_done`을 한 번 보낸다. 보내지 않고 끝내면 hook이 한 번 막는다.'),
 }
 
+PRODUCT_BRIEF = {
+    'coordinator': ('FullOps coordinator: 제품 규칙/범위/공유 제품 기준 결정만 기획자에게 배정한다. 기술 계획·분석·구현·테스트는 담당 worker의 같은 과제다. '
+                    '`jev_route.py`의 implementation은 목표·규칙·범위·완료 조건·정본 링크로 짧게 인계하고, product는 기획자에게, unresolved는 배정 근거를 확인한다. '
+                    '정상 worker는 worker_done 중심으로 기다리고 로그 재독은 설정된 간격을 따른다. 운영 작업은 직접 처리하고 PLANS/board 상태를 함께 갱신한다.'),
+    'designer': ('FullOps 제품 기획자: 플레이/제품 목표·규칙/수치·화면/아트 방향·우선순위·사용자 완료 조건과 모호한 공유 제품 기준을 결정한다. '
+                 '기술 계획·구조/API·버그 수정 방법은 DEV 책임이다. 제품 코드는 고치지 않는다. 완료하면 preamble의 worker_done으로 고정 SHA·결정·인계 링크를 보낸다.'),
+    'worker': ('FullOps worker: 기존 요구 안의 코드 파악→짧은 기술 계획→구현→테스트·기술 문서 갱신을 같은 과제에서 수행한다. '
+               '기술 판단은 직접 해결하고 제품 규칙 변경·범위 확대·공유 제품 기준 불명확성만 coordinator에게 ask한다. '
+               '좁은 DEV/ART 규격은 담당자끼리 coordinator 경유 조율한다. 완료하면 preamble의 worker_done을 보낸다. 독립 코드 리뷰·직접 시각 검수·미해결 high 차단은 유지한다.'),
+}
+
 
 def main():
     mode = sys.argv[1]
@@ -269,7 +291,7 @@ def main():
         role, designer = context(root)
         kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')
-        brief = BRIEF[kind]
+        brief = PRODUCT_BRIEF.get(kind, BRIEF[kind]) if product_roles(root) else BRIEF[kind]
         try:  # 워크트리에 빠진 .fullops-squad/.env*를 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)
         except Exception:  # noqa: BLE001

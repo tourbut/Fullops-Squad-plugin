@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 
 
-with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
+with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.TemporaryDirectory(prefix='fullops-snapshot-') as snapshots:
     repo = Path(tmp)
     def git(*args):
         return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
@@ -31,9 +31,9 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     lint_out = repo / '.git/fullops-lint.json'
     subprocess.run(['python3', str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base, '--out', str(lint_out)],
                    capture_output=True)
-    def run(mode):
+    def run(mode, key='REVIEW-1'):
         return subprocess.run(['python3', str(SCRIPTS / 'review.py'), mode, '--repo', tmp,
-                               '--key', 'REVIEW-1', '--from', base, '--to', 'HEAD'], capture_output=True, text=True)
+                               '--key', key, '--from', base, '--to', 'HEAD'], capture_output=True, text=True)
     result = run('prepare')
     assert result.returncode == 0, result.stderr
     directory = repo / '.fullops-squad/docs/evaluations/qa-reports/REVIEW-1-review'
@@ -76,4 +76,58 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp:
     rule.write_bytes(original)
     commit()
     assert run('check').returncode != 0  # new head
+    agents = repo / '.fullops-squad/orca-agents.md'
+    agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
+                      '- 설계 역할: `designer`\n- 제품 기획 역할: `designer`\n- 기술 계획 역할: `implementer`'), encoding='utf-8')
+    marker = repo / '.fullops-squad/fullops.json'
+    config = json.loads(marker.read_text(encoding='utf-8'))
+    config['roles']['designer'] = 'fullops/architecture'
+    marker.write_text(json.dumps(config), encoding='utf-8')
+    assert run('prepare', 'REVIEW-2').returncode == 0
+    directory = repo / '.fullops-squad/docs/evaluations/qa-reports/REVIEW-2-review'
+    path = directory / 'result.json'
+    data = json.loads(path.read_text())
+    assert data['review_schema_version'] == 2 and data['independence']['snapshot_head'] == git('rev-parse', 'HEAD')
+    for item in data['files']:
+        item.update(review_status='reviewed', reason='diff와 요구사항 확인')
+    data.update(reviewer='independent reviewer', conclusion='verified')
+    snapshot = Path(snapshots) / 'review'
+    git('worktree', 'add', '--detach', str(snapshot), 'HEAD')
+    lint_result = subprocess.run(['python3', str(SCRIPTS / 'lint.py'), '--repo', str(snapshot), '--from', base,
+                                 '--out', str(directory / 'lint.json')], capture_output=True, text=True)
+    assert (directory / 'lint.json').is_file(), lint_result.stderr
+    save()
+    assert '세션 ID' in run('check', 'REVIEW-2').stderr
+    independence = data['independence']
+    independence.update(implementer_session='author-1', reviewer_session='author-1', snapshot_path=str(snapshot))
+    save()
+    assert '세션 ID' in run('check', 'REVIEW-2').stderr
+    independence['reviewer_session'] = 'reviewer-2'
+    save()
+    checked = run('check', 'REVIEW-2')
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    data.pop('review_schema_version')
+    save()
+    assert '스키마' in run('check', 'REVIEW-2').stderr
+    data['review_schema_version'] = 2
+    independence['snapshot_path'] = str(repo)
+    save()
+    assert '고정 head' in run('check', 'REVIEW-2').stderr
+    independence['snapshot_path'] = str(snapshot)
+    subprocess.run(['git', '-C', str(snapshot), 'checkout', '-q', '-b', 'review-branch'], check=True)
+    save()
+    assert 'detached' in run('check', 'REVIEW-2').stderr
+    subprocess.run(['git', '-C', str(snapshot), 'checkout', '-q', '--detach'], check=True)
+    (snapshot / 'unexpected.txt').write_text('change')
+    assert '변경' in run('check', 'REVIEW-2').stderr
+    (snapshot / 'unexpected.txt').unlink()
+    independence['snapshot_head'] = base
+    save()
+    assert '고정 head' in run('check', 'REVIEW-2').stderr
+    independence['snapshot_head'] = git('rev-parse', 'HEAD')
+    save()
+    checked = run('check', 'REVIEW-2')
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    git('worktree', 'remove', str(snapshot))
     print('PASS: real OCR prepare, document/test inclusion, record preservation, pending/missing/high/rule/SHA/lint gates')
+    print('PASS: independent sessions, schema preservation, separate clean detached snapshot, fixed SHA')

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""coordinator가 받은 요청을 Jev로 분류해 simple이면 담당 역할로, 아니면 설계 역할로 보낸다.
+"""레포의 라우팅 기준으로 담당 역할·산출물·모델을 고른다.
 
-`orca-agents.md`의 `## 라우팅 기준`을 Jev의 state로 보내 레포 기준으로 판단하게 한다. 확신이 낮거나
-기준·키가 없거나 호출이 실패하면 항상 설계 역할로 보낸다. 잘못된 simple은 재작업이고 잘못된 design은 비용뿐이다.
-같은 요청으로 갱신할 산출물(D01–D13)도 고른다. 산출물 front matter의 title·summary가 선택지 설명이 된다.
-배정할 역할이 정해지면 `## 모델 후보`에서 그 역할의 후보 중 작업 난이도에 맞는 에이전트·모델·effort를 고른다.
-설계를 거친 worker는 `--model-only --role <역할>`이 그 역할의 지시서를 읽고 고른다.
+기존 구조는 simple/design을 사용하고 불확실한 요청을 설계 역할로 보낸다.
+제품 기획/기술 계획 역할을 명시한 레포는 implementation/product를 사용한다.
+이 구조에서 호출 실패나 낮은 확신은 unresolved로 보류한다.
+산출물 front matter의 title·summary와 역할별 모델 후보를 판단에 사용한다.
 """
 import argparse
 import hashlib
@@ -32,6 +31,8 @@ MODEL_HINT = ('Candidates are ordered by level: level 1 is the cheapest and weak
               'level only when the work needs design judgment, touches many files or modules, or is risky.')
 SCOPE = {'simple': 'Files, acceptance and checks are clear from the request and it stays inside one role.',
          'design': 'Needs design decisions, changes a shared contract, spans several roles, or is ambiguous.'}
+PRODUCT_SCOPE = {'implementation': 'Implement, analyze or fix within agreed product requirements. The worker owns technical planning, API/structure choices and tests, even across many modules.',
+                 'product': 'Requires a product-rule decision, scope expansion, user acceptance criteria or unresolved shared product rules. Technical complexity alone is not product planning.'}
 
 
 def guide(repo):
@@ -62,6 +63,19 @@ def marked_role(repo, label):
     section = re.search(r'^## 라우팅 기준\n(.*?)(?=^## |\Z)', text, re.M | re.S)
     match = section and re.search(rf'^- {re.escape(label)} 역할: `([a-z][a-z0-9_-]*)`', section.group(1), re.M)
     return match.group(1) if match else None
+
+
+def product_roles(repo):
+    """제품 기획/기술 계획 책임 분리의 명시적 opt-in. 기존 설계 라우팅은 유지한다."""
+    planner, developer = marked_role(repo, '제품 기획'), marked_role(repo, '기술 계획')
+    if not planner and not developer:
+        return None
+    roles = json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8'))['roles']
+    if not planner or not developer or planner == developer or any(r not in roles for r in (planner, developer)):
+        raise ValueError('제품 기획/기술 계획 역할을 서로 다른 등록 역할로 지정하세요')
+    if coordinator_role(repo) in (planner, developer) or marked_role(repo, '설계') != planner:
+        raise ValueError('제품 기획 역할은 설계 역할과 같고 coordinator와 분리돼야 합니다')
+    return planner, developer
 
 
 def model_candidates(repo):
@@ -154,11 +168,17 @@ def route(repo, key, text, call, override_role=None, reason=None):
     result = classify(repo, key, text, call)
     if override_role:
         roles = json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8'))['roles']
-        if result['route'] != 'simple':
+        split = product_roles(repo)
+        if not split and result['route'] != 'simple':
             raise ValueError('역할 변경은 simple 분류에서만 허용합니다. design 결과는 설계 역할에 배정하세요')
-        if override_role not in roles or override_role in (coordinator_role(repo), marked_role(repo, '설계')):
+        if override_role not in roles or override_role == coordinator_role(repo) or (not split and override_role == marked_role(repo, '설계')):
             raise ValueError(f'배정할 수 없는 역할: {override_role}')
+        if not reason or not reason.strip():
+            raise ValueError('역할 변경 근거를 기록하세요')
         result['original_role'], result['role'] = result['role'], override_role
+        if split:
+            result['original_route'] = result['route']
+            result['route'] = 'product' if override_role == split[0] else 'implementation'
         result['override_reason'] = reason
     result['model'] = pick_model(repo, result['role'], text, call) if result.get('role') else None
     result['candidate_hash'] = candidate_hash(repo, result['role'])
@@ -181,10 +201,13 @@ def classify(repo, key, text, call):
     result = {'version': 'jev-route-v3', 'task_key': key, 'requested_model': MODEL, 'route': None, 'role': None,
               'deliverables': [], 'thresholds': {'simple': SIMPLE, 'role': ROLE, 'deliverable': DOC},
               'answers': None, 'usage': None, 'error': None}
+    split = None
     try:
+        split = product_roles(repo)
         body, designer, described = guide(repo)
     except (OSError, ValueError) as error:
-        return {**result, 'route': 'design', 'error': str(error)}
+        opted = marked_role(repo, '제품 기획') or marked_role(repo, '기술 계획')
+        return {**result, 'route': 'unresolved' if opted else 'design', 'error': str(error)}
     result['role'] = designer
     if designer not in roles:
         return {**result, 'route': 'design', 'error': f'설계 역할 {designer}이 fullops.json에 없습니다'}
@@ -192,8 +215,12 @@ def classify(repo, key, text, call):
     workers = {r: f'{r}: {described.get(r, r)}' for r in roles if r not in (designer, coordinator)}
     if not workers:
         return {**result, 'route': 'design', 'error': '설계 역할 외 worker 역할이 없습니다'}
-    questions = {'scope': {'type': 'choice', 'criteria': SCOPE, 'instructions':
-                           'Using the repository routing `guide`, can a worker do `request` directly without a design step?'},
+    if split:
+        result.update(version='jev-route-v4', role=None)
+    fallback = 'unresolved' if split else 'design'
+    questions = {'scope': {'type': 'choice', 'criteria': PRODUCT_SCOPE if split else SCOPE, 'instructions':
+                           ('Does request need a product-rule/scope decision, or can its owner plan and implement under agreed requirements? Technical complexity is implementation.' if split else
+                            'Using the repository routing `guide`, can a worker do `request` directly without a design step?')},
                  'role': {'type': 'choice', 'criteria': workers, 'instructions':
                           'Using the repository routing `guide`, which role owns most of the work in `request`?'}}
     docs = document_options(repo)
@@ -205,12 +232,19 @@ def classify(repo, key, text, call):
         response, elapsed = call({'model': MODEL, 'state': state, 'questions': questions})
         answers = {q: checked_answer(response['answers'][q], questions[q]['criteria']) for q in ('scope', 'role')}
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
-        return {**result, 'route': 'design', 'error': f'Jev 생략: {error}'}
+        return {**result, 'route': fallback, 'error': f'Jev 생략: {error}'}
     try:  # 산출물 답이 이상해도 역할 라우팅은 유지한다
         answers['docs'] = {doc: checked_noul(response['answers'][f'doc_{doc}']) for doc in docs} if docs else None
     except (ValueError, KeyError, TypeError):
         answers['docs'] = None
     scope, role = answers['scope'], answers['role']
+    if split:
+        product = scope['probabilities']['product'] >= SIMPLE
+        implementation = scope['probabilities']['implementation'] >= SIMPLE and role['probabilities'][role['choice']] >= ROLE
+        return {**result, 'route': 'product' if product else 'implementation' if implementation else 'unresolved',
+                'role': designer if product else role['choice'] if implementation else None,
+                'deliverables': picked(answers['docs']), 'answers': answers, 'usage': response.get('usage') or {},
+                'latency_seconds': elapsed, 'response_model': response.get('model')}
     simple = scope['probabilities']['simple'] >= SIMPLE and role['probabilities'][role['choice']] >= ROLE
     return {**result, 'route': 'simple' if simple else 'design', 'role': role['choice'] if simple else designer,
             'deliverables': picked(answers['docs']), 'answers': answers, 'usage': response.get('usage') or {}, 'latency_seconds': elapsed,
@@ -224,7 +258,7 @@ def main():
     parser.add_argument('--request', help='사용자 요청 원문 (4000자 이하, 비밀값 금지). --model-only면 생략 시 지시서를 읽는다')
     parser.add_argument('--model-only', action='store_true', help='분류 없이 --role의 모델만 고른다(설계 뒤 worker 배정용)')
     parser.add_argument('--role', help='--model-only 대상 역할')
-    parser.add_argument('--override-role', help='simple 분류의 담당 역할 변경(사유와 함께 기록)')
+    parser.add_argument('--override-role', help='담당 역할 변경(사유 기록; 제품/기술 책임 분리 레포에서는 unresolved도 명시 배정)')
     parser.add_argument('--reason', help='--override-role의 근거(500자 이하)')
     parser.add_argument('--force', action='store_true', help='기존 결과를 백업하고 같은 키로 재선정')
     parser.add_argument('--strict', action='store_true', help='Jev 폴백이 발생하면 결과를 기록하지 않고 오류로 종료')
@@ -294,7 +328,8 @@ def main():
         print(output.relative_to(repo))
         return
     answers = result['answers']
-    detail = (f" (simple {answers['scope']['probabilities']['simple']:.2f}, "
+    scope_label = 'simple' if not answers or 'simple' in answers['scope']['probabilities'] else 'implementation'
+    detail = (f" ({scope_label} {answers['scope']['probabilities'][scope_label]:.2f}, "
               f"{answers['role']['choice']} {answers['role']['probabilities'][answers['role']['choice']]:.2f})") if answers else ''
     print(f"route: {result['route']} → {result['role'] or '-'}{detail} / {result['error'] or '정상'}")
     print(f"갱신할 산출물: {', '.join(result['deliverables']) or '없음'}")
