@@ -297,7 +297,8 @@ def main():
                         warning = ' 기록된 모델이 현재 후보에 없습니다.'
             except (OSError, ValueError, TypeError, AttributeError):
                 pass
-            raise ValueError(f'기존 결과를 보존합니다: {output.relative_to(repo)}.{warning} 다시 고르려면 --force를 사용하세요')
+            parser.exit(1, f'이미 결과가 있어 호출하지 않았습니다: {output.relative_to(repo)}. '
+                           f'기존 결과는 보존합니다.{warning} 다시 고르려면 --force를 사용하세요\n')
     except (OSError, ValueError) as error:
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
 

@@ -5,7 +5,8 @@
   "size": {
     "severity": "WARNING",
     "max_code_lines": 300,
-    "max_doc_lines": 500
+    "max_doc_lines": 500,
+    "max_diff_added": 400
   },
   "exclude": [
     "**/node_modules/**",
@@ -20,5 +21,43 @@
     ".fullops-squad/docs/evaluations/**",
     ".fullops-squad/board/**"
   ],
-  "rules": []
+  "rules": [
+    {
+      "code": "SLOP-001",
+      "description": "any로 타입 검사를 우회하는 표현",
+      "pattern": "\\bas\\s+any\\b|:\\s*any\\b",
+      "file_extensions": [".ts", ".tsx", ".vue", ".svelte"],
+      "severity": "WARNING",
+      "suggestion": "정확한 타입 또는 unknown과 입력 검증을 사용한다",
+      "enabled": true
+    },
+    {
+      "code": "SLOP-002",
+      "description": "조건부 객체 스프레드",
+      "pattern": "\\.\\.\\.\\s*\\([^\\n]*?\\?",
+      "file_extensions": [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".svelte"],
+      "severity": "WARNING",
+      "suggestion": "명시적 분기보다 읽기 쉬운지 검토한다",
+      "enabled": true
+    },
+    {
+      "code": "SLOP-003",
+      "description": "광범위한 예외를 pass로 숨김",
+      "pattern": "except\\s+(?:Exception|BaseException)(?:\\s+as\\s+\\w+)?\\s*:(?:[ \\t]*#[^\\n]*)?\\s*pass\\b",
+      "file_extensions": [".py"],
+      "multiline": true,
+      "severity": "WARNING",
+      "suggestion": "구체적 예외를 처리하거나 의도적 무시의 근거를 기록한다",
+      "enabled": true
+    },
+    {
+      "code": "SLOP-004",
+      "description": "디버그 출력 잔재 의심",
+      "pattern": "\\bconsole\\.log\\s*\\(|\\bprint\\s*\\(",
+      "file_extensions": [".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".svelte"],
+      "severity": "WARNING",
+      "suggestion": "필요한 사용자 출력인지 확인하고 디버그 잔재는 제거한다",
+      "enabled": true
+    }
+  ]
 }

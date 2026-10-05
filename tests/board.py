@@ -7,6 +7,46 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
+sys.path.insert(0, str(SCRIPTS))
+from board_documents import documents, markdown
+
+
+def document_checks():
+    with tempfile.TemporaryDirectory(prefix='fullops-board-docs-') as tmp:
+        root = Path(tmp) / '.fullops-squad'
+        root.mkdir()
+        folder = root / 'docs'
+        folder.mkdir()
+        (folder / 'one.md').write_text('---\nid: D03\ntitle: 첫 문서\nstatus: draft\n---\n# 제목\n내용', encoding='utf-8')
+        (folder / 'two.md').write_text('# 두 번째\n본문', encoding='utf-8')
+        (folder / 'empty.md').write_text('', encoding='utf-8')
+        (folder / 'broken.md').write_bytes(b'\xff\x00')
+        (root / '.env').write_text('secret material', encoding='utf-8')
+        outside = root.parent / 'outside.md'
+        outside.write_text('outside material', encoding='utf-8')
+        sources = documents(root, ['docs/', 'docs/one.md', 'docs/missing.md', '../outside.md', '.env'])
+        by_path = {d['path']: d for d in sources}
+        assert len(sources) == len(by_path) == 7
+        assert by_path['docs/one.md']['title'] == '첫 문서' and by_path['docs/one.md']['meta']['status'] == 'draft'
+        assert '<h1>제목</h1>' in by_path['docs/one.md']['html']
+        assert by_path['docs/empty.md']['state'] == 'unwritten'
+        assert by_path['docs/missing.md']['state'] == 'missing'
+        assert by_path['docs/broken.md']['state'] == 'unreadable'
+        assert by_path['../outside.md']['state'] == by_path['.env']['state'] == 'blocked'
+        assert 'outside material' not in json.dumps(sources) and 'secret material' not in json.dumps(sources)
+        try:
+            (folder / 'linked.md').symlink_to(outside)
+        except OSError:
+            pass  # Windows may not allow creating symlinks.
+        else:
+            assert documents(root, ['docs/linked.md'])[0]['state'] == 'blocked'
+        html = markdown('#\tHeading\n\n**bold** and `code`\n\n- first\n- second\n\n'
+                        '| Name | Value |\n|---|---|\n| x | y |\n\n```python\n<script>bad()</script>\n```\n\n'
+                        '<img src=x onerror=bad()>\n[jump](javascript:bad) [ok](https://example.com)')
+        assert '<h1>Heading</h1>' in html and '<strong>bold</strong>' in html and '<code>code</code>' in html
+        assert '<ul>' in html and '<table>' in html and '<pre><code>&lt;script&gt;' in html
+        assert '<img' not in html and '<script>' not in html and 'href="javascript:' not in html
+        assert 'href="https://example.com"' in html
 
 
 def data(repo):
@@ -161,3 +201,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    document_checks()
+    print('PASS: document bodies, multiple sources, folders, missing/empty/unreadable files, path guards, escaped Markdown')

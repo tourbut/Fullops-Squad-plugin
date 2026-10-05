@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 
 import jev_find
+from lint import load_config
 from jev_route import product_roles
 from work import active_repo, safe_file, KEY
 
@@ -137,6 +138,16 @@ def check(repo, key, base, head, task_key=None):
     if lint.get('merge_base') != merge_base or lint['config_sha256'] != (
             hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
         raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
+    settings, _ = load_config(repo, merge_base)
+    for command in (c for c in settings['commands'] if c.get('kind') == 'test'):
+        records = [c for c in lint['commands'] if c.get('kind') == 'test' and c['name'] == command['name']
+                   and c.get('run') == command['run'] and c.get('cwd', '.') == command.get('cwd', '.')]
+        if len(records) != 1:
+            raise ValueError(f'등록된 테스트 실행 증거가 없거나 중복됐습니다: {command["name"]}')
+        if records[0]['status'] == 'passed' and records[0].get('exit_code') != 0:
+            raise ValueError(f'테스트 통과 종료코드가 없습니다: {command["name"]}')
+        if records[0]['status'] not in ('passed', 'failed', 'timeout', 'unavailable'):
+            raise ValueError(f'테스트가 실행되지 않았습니다: {command["name"]}')
     if any(c['status'] == 'unavailable' and not c.get('reason', '').strip() for c in lint['commands']):
         raise ValueError('실행 불가 lint 명령에 reason을 기록하세요')
     errors = (sum(v['severity'] == 'ERROR' for v in lint['violations'])

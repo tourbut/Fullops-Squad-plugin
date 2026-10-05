@@ -42,6 +42,7 @@ SECRET = re.compile(r"""(?:password|passwd|pwd|api[_-]?key|apikey|secret(?:_key)
                     r"""db_password|database_password)\s*[:=]\s*["'][^"']+["']""", re.IGNORECASE)
 SECRET_OK = re.compile(r"""[:=]\s*["'](?:test|example|dummy|placeholder|changeme|xxx|your_|<)|"""
                        r"""os\.environ|process\.env|import\.meta\.env|settings\.""", re.IGNORECASE)
+DEPENDENCY_FILES = ('package.json', 'pyproject.toml', 'requirements*.txt', 'go.mod', 'build.gradle*')
 
 
 def git(repo, *args, data=False):
@@ -192,7 +193,16 @@ def check_file(path, old, new, config):
                f'테스트 케이스 {len(CASE.findall(old)) - len(CASE.findall(new))}개 감소. 대체 테스트나 삭제 이유를 확인한다')
     rules = [r for r in config['rules'] if r.get('enabled', True)
              and (not r.get('file_extensions') or ext in r['file_extensions'])]
-    for number, line in added_lines(old or '', new):
+    additions = list(added_lines(old or '', new))
+    numbers = {number for number, _ in additions}
+    for rule in (r for r in rules if r.get('multiline')):
+        for match in re.finditer(rule['pattern'], new):
+            start = new.count('\n', 0, match.start()) + 1
+            end = new.count('\n', 0, match.end()) + 1
+            if numbers.intersection(range(start, end + 1)) and not any(
+                    re.search(p, match.group()) for p in rule.get('exclude_patterns', [])):
+                yield rule['code'], rule.get('severity', 'WARNING'), start, f"{rule['description']}. {rule.get('suggestion', '')}".strip()
+    for number, line in additions:
         if ext in PY | HASH | C_STYLE:
             for pattern, hint in SUPPRESSIONS:
                 if pattern.search(line):
@@ -203,7 +213,7 @@ def check_file(path, old, new, config):
             yield 'ANTI-002', 'ERROR', number, 'eval()/exec() 금지'
         if SECRET.search(line) and not SECRET_OK.search(line):
             yield 'SEC-001', 'WARNING' if soft else 'ERROR', number, '하드코딩 비밀값 의심. 환경변수·설정으로 옮긴다'
-        for rule in rules:
+        for rule in (r for r in rules if not r.get('multiline')):
             if re.search(rule['pattern'], line) and not any(re.search(p, line) for p in rule.get('exclude_patterns', [])):
                 yield rule['code'], rule.get('severity', 'WARNING'), number, f"{rule['description']}. {rule.get('suggestion', '')}".strip()
 
@@ -228,7 +238,8 @@ def deliverable_violations(path, text, index):
 
 
 def run_command(repo, command, timeout):
-    entry = {'name': command['name'], 'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
+    entry = {'name': command['name'], 'kind': command.get('kind', 'lint'),
+             'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
     try:
         run = [shutil.which(command['run'][0]) or command['run'][0], *command['run'][1:]]  # Windows의 npx.cmd 등
         done = subprocess.run(run, cwd=repo / entry['cwd'], capture_output=True, text=True,
@@ -249,7 +260,7 @@ def lint(repo, base_ref):
     base = git(repo, 'rev-parse', '--verify', base_ref + '^{commit}')
     merge_base = git(repo, 'merge-base', base, head)
     config, digest = load_config(repo, merge_base)
-    violations, files = [], 0
+    violations, files, additions = [], 0, 0
     if config_blob(repo, head) != config_blob(repo, merge_base):
         violations.append({'code': 'LINT-001', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '이 브랜치의 lint 설정 변경은 적용하지 않았습니다. 병합 후 적용되니 변경 이유를 검토하세요'})
@@ -262,6 +273,9 @@ def lint(repo, base_ref):
                 violations += deliverable_violations(path, new, index)
         if any(fnmatch(target, p) or (p.startswith('**/') and fnmatch(target, p[3:])) for p in config['exclude']):
             continue
+        if any(fnmatch(Path(name).name, pattern) for name in (old_path, path) if name for pattern in DEPENDENCY_FILES):
+            violations.append({'code': 'DEP-001', 'severity': 'WARNING', 'line': None, 'path': target,
+                               'message': '의존성 선언 파일 변경. 완료 보고에 의존성 변경 여부와 필요성·표준 라이브러리 대안을 기록하세요'})
         if path is None:
             if is_test(old_path):
                 violations.append({'code': 'ANTI-005', 'severity': 'WARNING', 'line': None, 'path': old_path,
@@ -272,8 +286,13 @@ def lint(repo, base_ref):
         if new is None or old is None:
             continue
         files += 1
+        additions += sum(1 for _ in added_lines(old, new))
         violations += [dict(zip(('code', 'severity', 'line', 'message'), v), path=path)
                        for v in check_file(path, old, new, config)]
+    limit = config['size'].get('max_diff_added', DEFAULT['size']['max_diff_added'])
+    if limit and additions > limit:
+        violations.append({'code': 'SIZE-002', 'severity': 'WARNING', 'line': None, 'path': '',
+                           'message': f'변경 추가 {additions}줄 > 상한 {limit}줄. 지시서의 예상 변경 규모와 차이·분할하지 않은 이유를 검토하세요'})
     commands = [run_command(repo, c, config['timeout_seconds']) for c in config['commands']]
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
@@ -281,7 +300,7 @@ def lint(repo, base_ref):
     errors = sum(v['severity'] == 'ERROR' for v in violations) + sum(c['status'] in ('failed', 'timeout') for c in commands)
     return {'schema_version': 1, 'base': base, 'merge_base': merge_base, 'head': head, 'config_sha256': digest,
             'commands': commands, 'violations': violations,
-            'summary': {'files': files, 'errors': errors,
+            'summary': {'files': files, 'added_lines': additions, 'errors': errors,
                         'warnings': sum(v['severity'] == 'WARNING' for v in violations),
                         'unavailable': sum(c['status'] == 'unavailable' for c in commands)}}
 

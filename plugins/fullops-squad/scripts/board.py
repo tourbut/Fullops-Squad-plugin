@@ -11,7 +11,8 @@ from pathlib import Path
 import re
 import subprocess
 
-from deliverables import meta_for, split
+from board_documents import documents
+from deliverables import split
 
 BOARD = '.fullops-squad/board'
 STATUSES = ('done', 'active', 'blocked', 'todo')
@@ -213,13 +214,6 @@ def reviews(repo, root, limit=12):
     return result[:limit]
 
 
-def written(path):
-    """파일이 있거나, 폴더에 .gitkeep 말고 실제 파일이 있으면 원천 문서가 있다고 본다."""
-    if path.is_dir():
-        return any(p.is_file() and p.name != '.gitkeep' for p in path.rglob('*'))
-    return path.is_file()
-
-
 def deliverables(root):
     result = []
     for _, header, rows in tables(read(root / 'docs/deliverables/README.md')):
@@ -228,13 +222,14 @@ def deliverables(root):
         for ident, stage, name, source, status in rows:
             if re.fullmatch(r'D\d{2}', ident):
                 paths = re.findall(r'`([^`]+)`', source)
-                _, meta = meta_for(root, ident, paths)
+                sources = documents(root, paths)
+                meta = next((d.get('meta') for d in sources if d.get('meta', {}).get('id') == ident), None)
                 meta = meta or {}  # 원천 문서의 front matter가 인덱스 표보다 우선한다
                 result.append({'id': ident, 'stage': stage, 'name': meta.get('title') or name, 'source': paths,
                                'status': meta.get('status') or status, 'index_status': status,
                                'updated': meta.get('updated', ''), 'owner': meta.get('owner', ''),
                                'summary': meta.get('summary', ''), 'has_meta': bool(meta),
-                               'source_exists': any(written(root / p.split(' ')[0]) for p in paths)})
+                               'source_exists': any(d['exists'] for d in sources), 'documents': sources})
     return result
 
 

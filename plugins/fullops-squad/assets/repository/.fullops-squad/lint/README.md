@@ -16,6 +16,9 @@
 |---|---|---|
 | 프로젝트 명령 | ERROR | `commands`의 ruff·eslint·타입 검사 등. 실패하거나 시간 초과면 ERROR다. 실행 파일이 없으면 실행 불가로 기록한다. |
 | SIZE-001 | `size.severity` (기본 WARNING) | 주석·docstring·빈 줄을 뺀 코드 줄 수가 `max_code_lines`를 넘는다. `.md`는 전체 줄 수를 `max_doc_lines`와 비교한다. ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고, docstring이나 헤더를 깎아 줄 수를 맞추지 않는다. |
+| SIZE-002 | WARNING | merge-base 이후 검사 대상 텍스트 파일의 추가 줄 합계가 `size.max_diff_added`(기본 400)를 넘음. 지시서의 예상 변경 규모와 실제 차이·분할하지 않은 이유를 검토한다. exclude·삭제·바이너리는 합계에서 제외한다. |
+| DEP-001 | WARNING | `package.json`, `pyproject.toml`, `requirements*.txt`, `go.mod`, `build.gradle*` 변경. 파일 삭제·이름 변경도 포함한다. 완료 보고에서 실제 의존성 변경 여부와 필요성·표준 라이브러리 대안을 확인한다. |
+| SLOP-001–004 | WARNING | any 우회, 조건부 객체 스프레드, 광범위한 예외의 pass, 디버그 출력 의심. 정상 코드도 잡을 수 있으므로 검토자가 판단한다. |
 | ANTI-002 | ERROR | `eval()`/`exec()` (Python·JS 계열) |
 | ANTI-003 | ERROR | 범위 없는 억제: `# type: ignore`, `# noqa`, `# pyright: ignore`, `@ts-ignore`, `@ts-nocheck`, 규칙을 적지 않은 `eslint-disable`. 오류 코드나 규칙 이름을 적어 범위를 좁히면 허용한다. |
 | ANTI-004 | ERROR | 테스트 파일에 skip·only 표식 추가(`.skip(`, `.only(`, `xit(`, `@pytest.mark.skip`, `t.Skip(`, `#[ignore]`, `@Disabled` 등) |
@@ -33,14 +36,19 @@
 설정은 검사 대상 HEAD가 아니라 **merge-base 시점**의 `lint.json`을 쓴다. 브랜치가 스스로 규칙을 끄거나 `exclude`를 넓혀 통과할 수 없다. 설정 변경은 별도 과제로 병합한 뒤 적용된다.
 
 - `commands`: `[{"name": "ruff", "run": ["ruff", "check", "."], "cwd": "backend"}]` 형식이다. 셸을 거치지 않는 인자 배열이며, `cwd`는 레포 안이어야 한다. setup에서 레포에 이미 있는 도구·설정·스크립트만 연결한다. 새 도구를 설치하거나 설정 파일을 새로 만들지 않는다.
+- 프로젝트 테스트 명령도 `{"name":"test","kind":"test","run":["npm","test"]}`처럼 등록한다. 실제 프로젝트 명령과 cwd를 사용한다. lint는 각 명령의 kind·종료코드·결과를 같은 HEAD에 기록한다. 테스트 명령이 없으면 미정과 영향을 보고하고, 테스트를 실행했다고 표시하지 않는다.
+- 기존 린터가 있으면 미사용 규칙(ruff F401/F841, eslint no-unused-vars, oxlint)을 기존 설정에서 활성화해 연결한다. 기본 SLOP 규칙은 미사용 코드 분석을 대신하지 않는다.
 - `size`, `exclude`(glob), `timeout_seconds`는 프로젝트 기준에 맞게 조정한다. 기준을 낮추는 변경은 이유를 지시서에 남긴다.
 - `rules`는 반복되는 실수를 규칙으로 쌓는 곳이다. 형식은 `{"code": "CUSTOM-001", "description": "…", "pattern": "<Python 정규식>", "file_extensions": [".py"], "severity": "ERROR|WARNING", "suggestion": "…", "exclude_patterns": [], "enabled": true}`다. 규칙을 끌 때는 삭제하지 않고 `enabled: false`로 둔다. 추가·변경한 이유는 이 문서 아래에 한 줄씩 남긴다.
+- `size.max_diff_added: 0`은 추가 줄 예산 검사를 끈다. 여러 줄을 검사하는 정규식은 `multiline: true`로 등록한다. 일치한 구간에 추가 줄이 있을 때만 경고한다. 기존 레포의 사용자 rules는 자동 교체하지 않는다.
 
 ## 게이트
 
 - 세션 안: 플러그인의 Stop hook(`done_gate.py`)이 이 세션에서 코드를 바꿨는데 현재 HEAD의 `lint.py` 통과 기록(`<git dir>/fullops-gate/pass.json`)이 없으면 종료를 한 번 막는다. 아무것도 바꾸지 않고 다시 끝내면 경고만 하고 통과한다. 이 체크아웃에서 직접 만든 커밋과 미커밋 변경만 보므로 fast-forward로 받은 커밋은 해당하지 않는다. hook 오류는 종료를 막지 않는다.
 - worker는 완료 보고 전에 실행한다. ERROR를 모두 고치고, 결과 요약(HEAD·ERROR·WARNING·실행 불가와 사유)을 완료 보고의 검증 항목에 적는다.
 - 검토자는 리뷰 디렉터리에 `lint.json`을 남긴다. `review.py check`는 lint 결과가 없거나 SHA·설정이 다르거나, ERROR가 남아 있거나, 실행 불가 명령에 `reason`이 비어 있으면 실패한다.
+- 등록된 `kind: test` 명령의 실행 증거가 없거나 중복되거나 통과 종료코드가 0이 아니면 review check가 실패한다. 테스트 실패·시간 초과는 기존 ERROR 경로로 차단한다. 실행 불가는 아래 예외 기록을 따른다.
+- SIZE-002가 있으면 지시서의 예상 변경 규모와 실제 차이를 확인한다. DEP-001이 있으면 완료 보고의 의존성 변경 이유를 확인한다. 누락이면 리뷰 수정 요청으로 남기고 수락하지 않는다.
 - 실행 불가(폐쇄망·도구 미설치)는 사유를 `reason`에 적고, 대신 수행한 정적 검사와 CI·스테이징에서 실행해야 한다는 점을 보고서에 남긴다. WARNING은 보고서에 기록하고 검토자가 판단한다.
 
 ## 규칙 변경 기록

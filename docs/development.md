@@ -73,6 +73,8 @@ agy plugin validate dist/native/fullops-squad
 
 Windows에서 로컬로 돌리려면 실제 `python3` 실행 파일(Microsoft Store 스텁이 아닌 것), `PYTHONUTF8=1`, 심볼릭 링크용 개발자 모드가 필요하다.
 
+보드 문서 UI는 선택형 `python3 tests/board-browser.py [--channel chrome|msedge] [--out <캡처 디렉터리>]`로 검증한다. 테스트 환경에 Playwright Python 패키지와 해당 브라우저가 필요하다. file://·HTTP 열람, 여러 원천·누락 문서, 키보드 복귀와 상태 보존을 확인한다. 플러그인 실행 의존성에는 Playwright가 추가되지 않는다.
+
 선택형 Jev 관찰 실험의 입력 형식과 실행 방법은 [Jev 관찰 실험](jev-observe.md)에 있다.
 
 ## 참고

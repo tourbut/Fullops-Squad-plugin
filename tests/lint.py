@@ -9,6 +9,103 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 PY = sys.executable
+sys.path.insert(0, str(SCRIPTS))
+import lint as checks
+
+
+def anti_slop():
+    with tempfile.TemporaryDirectory(prefix='fullops-anti-slop-') as tmp:
+        repo = Path(tmp)
+        def git(*args):
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+        def commit():
+            git('add', '-A')
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'test')
+        git('init', '-q', '-b', 'main')
+        subprocess.run([PY, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'dev', '--local-only'],
+                       check=True, capture_output=True)
+        config_path = repo / '.fullops-squad/lint/lint.json'
+        config = json.loads(config_path.read_text())
+        config['size']['max_diff_added'] = 3
+        command = {'name': 'test', 'kind': 'test', 'run': [PY, '-c',
+                   'from pathlib import Path; import sys; sys.exit(int(Path("test-fail.py").exists()))']}
+        config['commands'] = [command]
+        config_path.write_text(json.dumps(config))
+        (repo / 'old.py').write_text('"""Existing code."""\ntry:\n    work()\nexcept Exception:\n    pass\n')
+        (repo / 'build.gradle.kts').write_text('// Existing dependencies.\n')
+        (repo / 'requirements-legacy.txt').write_text('legacy==1\n')
+        commit()
+        base = git('rev-parse', 'HEAD')
+        (repo / 'web.ts').write_text('// Application.\nlet value: any;\nvalue = value as any;\n'
+                                   'const options = {...(value ? value : {})};\nconsole.log(value);\n')
+        (repo / 'new.py').write_text('"""Application."""\ntry:\n    work()\nexcept Exception:\n    pass\nprint("debug")\n')
+        (repo / 'package.json').write_text('{"dependencies":{"example":"1"}}\n')
+        (repo / 'pyproject.toml').write_text('dependencies = ["example"]\n')
+        (repo / 'requirements-dev.txt').write_text('example==1\n')
+        (repo / 'go.mod').write_text('require example v1.0.0\n')
+        git('mv', 'build.gradle.kts', 'dependency-archive.txt')
+        (repo / 'requirements-legacy.txt').unlink()
+        (repo / 'node_modules').mkdir()
+        (repo / 'node_modules/ignored.ts').write_text('value as any;\n' * 1000)
+        commit()
+        result = checks.lint(repo, base)
+        codes = {v['code'] for v in result['violations']}
+        assert codes == {'SIZE-002', 'DEP-001', 'SLOP-001', 'SLOP-002', 'SLOP-003', 'SLOP-004'}, codes
+        assert all(v['severity'] == 'WARNING' for v in result['violations'])
+        assert not any(v['path'] == 'old.py' or v['path'].startswith('node_modules/') for v in result['violations'])
+        assert result['summary']['added_lines'] == 15 and result['summary']['errors'] == 0
+        assert {v['path'] for v in result['violations'] if v['code'] == 'DEP-001'} == {
+            'package.json', 'pyproject.toml', 'requirements-dev.txt', 'go.mod', 'dependency-archive.txt', 'requirements-legacy.txt'}
+        assert result['commands'][0]['kind'] == 'test' and result['commands'][0]['exit_code'] == 0
+        # An edit to an existing exception body is also checked; unchanged code is not.
+        assert any(v[0] == 'SLOP-003' for v in checks.check_file('old.py',
+                   'try:\n    work()\nexcept Exception:\n    recover()\n',
+                   'try:\n    work()\nexcept Exception:\n    pass\n', config))
+        # Branch-local removal of budgets and rules does not bypass baseline settings.
+        loosened = {**config, 'commands': [], 'rules': [], 'size': {**config['size'], 'max_diff_added': 0}}
+        config_path.write_text(json.dumps(loosened))
+        commit()
+        result = checks.lint(repo, base)
+        assert {'SIZE-002', 'LINT-001', 'SLOP-001'} <= {v['code'] for v in result['violations']}
+        assert result['commands'][0]['kind'] == 'test'
+        def lint_cli():
+            return subprocess.run([PY, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base],
+                                  capture_output=True, text=True)
+        def hook(mode):
+            done = subprocess.run([PY, str(SCRIPTS / 'done_gate.py'), mode], capture_output=True, text=True,
+                                  input=json.dumps({'cwd': tmp, 'session_id': 'test-gate'}))
+            return json.loads(done.stdout)
+        assert lint_cli().returncode == 0
+        hook('start')
+        (repo / 'test-fail.py').write_text('failure = True\n')
+        commit()
+        assert lint_cli().returncode == 1
+        assert json.loads((repo / '.git/fullops-gate/pass.json').read_text())['head'] != git('rev-parse', 'HEAD')
+        assert hook('stop')['decision'] == 'block'
+        (repo / 'test-fail.py').unlink()
+        commit()
+        result = checks.lint(repo, base)
+        directory = repo / '.fullops-squad/docs/evaluations/qa-reports/SLOP-review'
+        directory.mkdir(parents=True)
+        head = git('rev-parse', 'HEAD')
+        (directory / 'preview.json').write_text(json.dumps({'from': base, 'to': head,
+                                                        'reviewable_files': [], 'excluded_files': []}))
+        rule = repo / '.fullops-squad/review/rule.json'
+        (directory / 'result.json').write_text(json.dumps({'base': base, 'head': head,
+            'rule_sha256': hashlib.sha256(rule.read_bytes()).hexdigest(), 'reviewer': 'tester',
+            'conclusion': 'verified', 'files': [], 'findings': []}))
+        def review(data):
+            (directory / 'lint.json').write_text(json.dumps(data))
+            return subprocess.run([PY, str(SCRIPTS / 'review.py'), 'check', '--repo', tmp, '--key', 'SLOP',
+                                   '--from', base, '--to', head], capture_output=True, text=True)
+        assert review(result).returncode == 0
+        assert '테스트 실행 증거' in review({**result, 'commands': []}).stderr
+        record = result['commands'][0]
+        assert '종료코드' in review({**result, 'commands': [{**record, 'exit_code': 1}]}).stderr
+        assert 'ERROR' in review({**result, 'commands': [{**record, 'status': 'failed', 'exit_code': 1}]}).stderr
+        assert 'reason' in review({**result, 'commands': [{**record, 'status': 'unavailable', 'exit_code': None}]}).stderr
+        failure = checks.run_command(repo, {**command, 'run': [PY, '-c', 'import sys; sys.exit(1)']}, 10)
+        assert failure['kind'] == 'test' and failure['status'] == 'failed' and failure['exit_code'] == 1
 
 
 def main():
@@ -227,3 +324,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    anti_slop()
+    print('PASS: default slop warnings, diff budget, dependency changes, baseline settings, test evidence gate')

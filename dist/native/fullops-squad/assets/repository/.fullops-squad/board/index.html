@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="60">
 <title>FullOps 작업 현황판</title>
 <!-- FullOps 플러그인이 제공하는 고정 양식이다. 직접 고치지 않는다. 값은 board.json과 scripts/board.py가 만든 board-data.js에서 온다. -->
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
@@ -104,7 +103,10 @@
 
   /* deliverables */
   .deliv { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); border-top:1px solid var(--rule); border-left:1px solid var(--rule); }
-  .d { padding:12px 14px; border-right:1px solid var(--rule); border-bottom:1px solid var(--rule); display:grid; gap:4px; align-content:start; }
+  .d { padding:12px 14px; border:0; border-right:1px solid var(--rule); border-bottom:1px solid var(--rule); display:grid; gap:4px; align-content:start;
+    font:inherit; color:inherit; text-align:left; background:transparent; cursor:pointer; }
+  .d:hover { background:var(--card); }
+  .d:focus-visible, .doc-file:focus-visible, .detail button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .d .id { font:500 11px var(--mono); color:var(--soft); letter-spacing:0.06em; }
   .d .name { font-weight:500; }
   .d .src { font:400 11px var(--mono); color:var(--soft); }
@@ -122,6 +124,20 @@
   .detail ul { margin:16px 0 0; padding-left:18px; display:grid; gap:6px; }
   .detail .close { float:right; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); background:transparent;
     border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; cursor:pointer; }
+  dialog.detail.document { width:min(940px, calc(100% - 32px)); }
+  .doc-files { padding:0; list-style:none; }
+  .doc-file, .back { font:inherit; color:var(--link); background:none; border:1px solid var(--rule); border-radius:4px; padding:8px 12px; text-align:left; cursor:pointer; }
+  .doc-file { width:100%; }
+  .doc-file:disabled { color:var(--soft); cursor:default; }
+  .doc-file .mono { display:block; overflow-wrap:anywhere; }
+  .doc-body { line-height:1.75; overflow-wrap:anywhere; }
+  .doc-body h1, .doc-body h2, .doc-body h3 { font-family:var(--sans); font-weight:600; margin:24px 0 12px; }
+  .doc-body h1 { font-size:28px; } .doc-body h2 { font-size:23px; } .doc-body h3 { font-size:19px; }
+  .doc-body pre { white-space:pre; overflow:auto; background:var(--paper); padding:16px; border-radius:4px; }
+  .doc-body code { font:12px/1.6 var(--mono); background:var(--paper); }
+  .doc-body ul, .doc-body ol { display:block; margin:12px 0; padding-left:24px; }
+  .doc-body blockquote { border-left:3px solid var(--rule-strong); padding-left:16px; margin-left:0; color:var(--muted); }
+  .doc-body a { color:var(--link); }
   footer { padding-top:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font:400 11px var(--mono); letter-spacing:0.06em; color:var(--soft); }
 </style>
 <script>try { var t = localStorage.getItem('fullops-board-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}</script>
@@ -133,6 +149,7 @@
 (function () {
   var app = document.getElementById('app');
   var B = window.FULLOPS_BOARD;
+  setInterval(function () { var detail = document.getElementById('detail'); if (!detail || !detail.open) location.reload(); }, 60000);
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function st(cls, label) { return '<span class="st ' + cls + '"><span class="dot"></span>' + esc(label) + '</span>'; }
   var PHASE = { done:['is-done','완료'], active:['is-active','진행 중'], blocked:['is-blocked','막힘'], todo:['is-todo','예정'] };
@@ -251,39 +268,74 @@
     h.push('<div class="deliv">');
     deliv.forEach(function (d) {
       var meta = d.has_meta ? [d.updated, d.owner].filter(Boolean).join(' · ') : (d.source_exists ? '원천 있음 · 메타정보 없음' : '');
-      h.push('<div class="d ' + delivClass(d.status) + '" title="' + esc([d.summary].concat(d.source || []).filter(Boolean).join('\n')) + '"><span class="id">' + esc(d.id) + ' · ' + esc(d.stage) + '</span>' +
+      h.push('<button type="button" class="d ' + delivClass(d.status) + '" data-deliverable="' + esc(d.id) + '" title="' + esc([d.summary].concat(d.source || []).filter(Boolean).join('\n')) + '"><span class="id">' + esc(d.id) + ' · ' + esc(d.stage) + '</span>' +
              '<span class="name">' + esc(d.name) + '</span>' + st(delivClass(d.status), d.status) +
-             (meta ? '<span class="src">' + esc(meta) + '</span>' : '') + '</div>');
+             (meta ? '<span class="src">' + esc(meta) + '</span>' : '') + '</button>');
     });
     h.push('</div>');
   } else h.push('<p class="empty">docs/deliverables/README.md에서 산출물 표를 찾지 못했습니다.</p>');
   h.push('</section></div>');
 
   h.push('<footer><span>FullOps Squad · 60초마다 새로고침</span><span>board.json · board-data.js</span></footer>');
-  h.push('<dialog class="detail" id="detail"><button type="button" class="close" id="close">닫기</button><div id="detail-body"></div></dialog>');
+  h.push('<dialog class="detail" id="detail" aria-labelledby="detail-title"><button type="button" class="close" id="close">닫기</button><div id="detail-body"></div></dialog>');
   app.innerHTML = h.join('');
 
   var dialog = document.getElementById('detail'), body = document.getElementById('detail-body');
-  function open(html) {
+  var originPhase = null;
+  var DOC_STATE = { missing:'파일 없음', unwritten:'미작성', unreadable:'열람 불가', blocked:'허용되지 않는 경로' };
+  function open(html, documentView) {
+    dialog.classList.toggle('document', !!documentView);
     body.innerHTML = html;
-    if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+    if (!dialog.open) { if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', ''); }
+    dialog.scrollTop = 0;
+    document.getElementById('close').focus();
+  }
+  function back() {
+    return originPhase == null ? '' : '<p><button type="button" class="back" data-back-phase="' + originPhase + '">단계로 돌아가기</button></p>';
+  }
+  function showDeliverable(id, fileIndex) {
+    var d = byId[id];
+    if (!d) return;
+    var files = d.documents || [], selected = files[fileIndex];
+    var list = files.map(function (file, i) {
+      return '<li><button type="button" class="doc-file" data-document="' + esc(id) + '" data-file="' + i + '"' + (file.state === 'available' ? '' : ' disabled') + '>' +
+             esc(file.title) + '<span class="mono">' + esc(file.path) + (file.state === 'available' ? '' : ' · ' + esc(DOC_STATE[file.state] || '열람 불가')) + '</span></button></li>';
+    }).join('');
+    open('<p class="eyebrow">' + esc(d.id) + ' · ' + esc(d.stage) + '</p><h3 id="detail-title">' + esc(selected ? selected.title : d.name) + '</h3>' +
+         st(delivClass(d.status), d.status) + back() + (list ? '<ul class="doc-files">' + list + '</ul>' : '<p class="empty">열람할 원천 문서가 없습니다. 보드 데이터를 갱신하세요.</p>') +
+         (selected && selected.state === 'available' ? '<p class="mono">' + esc(selected.path) + '</p><article class="doc-body">' + selected.html + '</article>' : ''), true);
+  }
+  function showPhase(i) {
+    var p = phases[i], s = PHASE[p.status] || PHASE.todo;
+    var refs = (p.deliverables || []).map(function (id) {
+      var d = byId[id];
+      return '<li>' + (d ? '<button type="button" class="doc-file" data-deliverable="' + esc(id) + '"><span class="mono">' + esc(id) + '</span> ' + esc(d.name) + ' ' + st(delivClass(d.status), d.status) + '</button>' : '<span class="mono">' + esc(id) + '</span> 산출물 표에 없음') + '</li>';
+    }).join('');
+    open('<p class="eyebrow">단계 ' + String(i + 1).padStart(2, '0') + '</p><h3 id="detail-title">' + esc(p.name) + '</h3>' + st(s[0], s[1]) +
+         (p.note ? '<p class="body">' + esc(p.note) + '</p>' : '<p class="body soft">설명이 없습니다.</p>') +
+         (p.note_long ? '<p class="notice">설명이 80자를 넘습니다. board.json의 note는 지금 상태 한 줄로 두고 경위는 PLANS.md에 적습니다.</p>' : '') +
+         (refs ? '<ul>' + refs + '</ul>' : ''));
   }
   document.getElementById('close').addEventListener('click', function () { dialog.close(); });
   dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });  // 바깥을 누르면 닫는다
   app.addEventListener('click', function (e) {
     var card = e.target.closest('[data-phase]'), more = e.target.closest('[data-notes]');
+    var deliverable = e.target.closest('[data-deliverable]'), file = e.target.closest('[data-document]'), previous = e.target.closest('[data-back-phase]');
     if (card) {
-      var i = Number(card.dataset.phase), p = phases[i], s = PHASE[p.status] || PHASE.todo;
-      var refs = (p.deliverables || []).map(function (id) {
-        var d = byId[id];
-        return '<li><span class="mono">' + esc(id) + '</span> ' + esc(d ? d.name : '산출물 표에 없음') + ' ' + (d ? st(delivClass(d.status), d.status) : '') + '</li>';
-      }).join('');
-      open('<p class="eyebrow">단계 ' + String(i + 1).padStart(2, '0') + '</p><h3>' + esc(p.name) + '</h3>' + st(s[0], s[1]) +
-           (p.note ? '<p class="body">' + esc(p.note) + '</p>' : '<p class="body soft">설명이 없습니다.</p>') +
-           (p.note_long ? '<p class="notice">설명이 80자를 넘습니다. board.json의 note는 지금 상태 한 줄로 두고 경위는 PLANS.md에 적습니다.</p>' : '') +
-           (refs ? '<ul>' + refs + '</ul>' : ''));
+      originPhase = Number(card.dataset.phase);
+      showPhase(originPhase);
+    } else if (deliverable) {
+      if (!dialog.open) originPhase = null;
+      var d = byId[deliverable.dataset.deliverable];
+      var first = (d.documents || []).findIndex(function (doc) { return doc.state === 'available'; });
+      showDeliverable(d.id, first);
+    } else if (file) {
+      showDeliverable(file.dataset.document, Number(file.dataset.file));
+    } else if (previous) {
+      showPhase(Number(previous.dataset.backPhase));
     } else if (more) {
-      open('<p class="eyebrow">PLANS.md</p><h3>현재 작업 요약</h3><ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>');
+      originPhase = null;
+      open('<p class="eyebrow">PLANS.md</p><h3 id="detail-title">현재 작업 요약</h3><ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>');
     }
   });
 

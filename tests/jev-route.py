@@ -203,6 +203,7 @@ def main():
         again = subprocess.run([sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'T-6',
                                 '--request', '버그 수정'], capture_output=True, text=True)
         assert again.returncode == 1 and '보존' in again.stderr
+        assert '이미 결과가 있어 호출하지 않았습니다' in again.stderr and '실패' not in again.stderr
         assert '--force' in again.stderr
         long = subprocess.run([sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'T-7',
                                '--request', '한' * 4001], capture_output=True, text=True)
