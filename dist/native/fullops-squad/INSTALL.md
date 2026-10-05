@@ -1,7 +1,7 @@
 ---
 title: FullOps Squad
 status: draft
-updated: 2026-10-03
+updated: 2026-10-06
 owner: maintainer
 summary: Orca에서 AI worker의 배정, 문서, 검증, 리뷰를 관리하는 하네스 플러그인
 ---
@@ -70,13 +70,17 @@ heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 �
 |---|---|
 | `fullops-test` | 코드 테스트와 웹·Unity 조작 테스트. 조작 테스트의 통과 판정은 시나리오 `checks`가 담당 |
 | `fullops-review` | OCR CLI가 준비한 파일·규칙을 호스트 AI가 리뷰. 별도 OCR LLM API 키는 불필요 |
-| `lint.py` | 프로젝트 검사 명령, 코드 헤더, 줄 수, 범위 없는 억제, 비밀값 의심, 문서 메타데이터 |
+| `lint.py` | 프로젝트 검사·테스트 명령, 코드·디자인 경고, 변경 규모·의존성 선언, 억제·비밀값·문서 메타데이터 |
 | flow-gate | route 기록, `worker-start --run`, 역할별 행동과 완료 보고. 터미널 주입으로 배정하는 행동 차단 |
 | done-gate | 이 세션의 코드 변경에 현재 HEAD의 lint 통과 기록이 없으면 종료를 한 번 차단 |
 
 미해결 critical/high와 lint ERROR는 수락을 막습니다. 생성 현황판 파일은 done-gate의 코드 검사에서 제외합니다.
 hook은 셸 우회까지 차단하지 않으며 hook 자체의 오류는 작업을 막지 않습니다.
 자동 검사는 구현의 정확성을 보증하지 않습니다. 프로젝트 기준이 [공통 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/README.md)보다 우선합니다.
+
+setup은 레포의 스택·기존 설정·패키지 스크립트에 맞춰 lint를 구성하고 실행 결과를 확인합니다.
+새 설정은 기존 package.json의 대표 검사 명령을 자동 연결하며 기존 사용자 설정은 보존합니다.
+Tailwind v4 UI는 shadcn 디자인 lint를 서비스의 개발 의존성으로 연결할 수 있습니다. 상세 기준은 [lint 안내](plugins/fullops-squad/assets/repository/.fullops-squad/lint/README.md)에 있습니다.
 
 ## 문서와 검색
 

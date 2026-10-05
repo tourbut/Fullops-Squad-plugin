@@ -192,7 +192,9 @@ def check_file(path, old, new, config):
         yield ('ANTI-005', 'WARNING', None,
                f'테스트 케이스 {len(CASE.findall(old)) - len(CASE.findall(new))}개 감소. 대체 테스트나 삭제 이유를 확인한다')
     rules = [r for r in config['rules'] if r.get('enabled', True)
-             and (not r.get('file_extensions') or ext in r['file_extensions'])]
+             and (not r.get('file_extensions') or ext in r['file_extensions'])
+             and not any(fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:]))
+                         for p in r.get('exclude_paths', []))]
     additions = list(added_lines(old or '', new))
     numbers = {number for number, _ in additions}
     for rule in (r for r in rules if r.get('multiline')):

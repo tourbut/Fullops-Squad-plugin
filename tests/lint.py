@@ -13,6 +13,66 @@ sys.path.insert(0, str(SCRIPTS))
 import lint as checks
 
 
+def design_slop():
+    sample = '// UI.\nconst view = <Button className="bg-[#ff69b4] p-[13px]" style={{color: "rgb(255, 0, 128)"}} />;\n'
+    found = list(checks.check_file('src/page.tsx', '', sample, checks.DEFAULT))
+    assert {v[0] for v in found} == {'DESIGN-001', 'DESIGN-002', 'DESIGN-003'}, found
+    assert all(v[1] == 'WARNING' for v in found)
+    assert not list(checks.check_file('src/page.tsx', sample, sample + 'const done = true;\n', checks.DEFAULT))
+    css = '/* Theme. */\n  --brand: #ff69b4;\n.card { color: var(--brand); }\n'
+    assert not list(checks.check_file('src/theme.css', '', css, checks.DEFAULT))
+    for color in ('#abc', '#abcd', '#abcdef', '#abcdef12', 'hsl(320 50% 50%)', 'oklch(.6 .2 320)'):
+        assert any(v[0] == 'DESIGN-001' for v in checks.check_file('page.css', '', f'/* UI. */\na {{ color: {color}; }}', checks.DEFAULT)), color
+    for value in ('bg-[var(--brand)]', 'w-[env(safe-area-inset-left)]', 'text-[--brand]', 'bg-primary'):
+        assert not list(checks.check_file('page.tsx', '', f'// UI.\nconst view = <div className="{value}" />;', checks.DEFAULT)), value
+    config = json.loads(json.dumps(checks.DEFAULT))
+    rules = [r for r in config['rules'] if r['code'].startswith('DESIGN-')]
+    for rule in rules:
+        rule['exclude_paths'] = ['**/brand/*.tsx', 'src/theme/tokens.css']
+    # Rule-specific exceptions preserve unrelated security checks.
+    excluded = list(checks.check_file('brand/logo.tsx', '', sample + 'eval("work()");\n', config))
+    assert {v[0] for v in excluded} == {'ANTI-002'}, excluded
+    assert not list(checks.check_file('src/theme/tokens.css', '', '/* Tokens. */\na { color: #ff69b4; }', config))
+    assert {v[0] for v in checks.check_file('src/page.tsx', '', sample, config)} == {'DESIGN-001', 'DESIGN-002', 'DESIGN-003'}
+    for rule in rules:
+        rule['exclude_patterns'].append('design-approved')
+    assert not list(checks.check_file('page.tsx', '', sample.rstrip() + ' // design-approved\n', config))
+    rules[0]['severity'] = 'ERROR'
+    assert any(v[:2] == ('DESIGN-001', 'ERROR') for v in checks.check_file('page.css', '', '/* UI. */\na { color: #ff69b4; }', config))
+    rules[0]['enabled'] = False
+    assert not list(checks.check_file('page.css', '', '/* UI. */\na { color: #ff69b4; }', config))
+
+
+def setup_commands():
+    import setup
+    with tempfile.TemporaryDirectory(prefix='fullops-setup-lint-') as tmp:
+        repo = Path(tmp)
+        subprocess.run(['git', 'init', '-q', tmp], check=True)
+        manifest = repo / 'package.json'
+        for manager in ('npm', 'pnpm', 'yarn', 'bun'):
+            manifest.write_text(json.dumps({'packageManager': manager + '@1', 'scripts': {
+                'lint': 'eslint .', 'lint:design': 'eslint src', 'typecheck': 'tsc --noEmit', 'test': 'vitest run'}}))
+            commands = setup.lint_commands(repo)
+            assert [c['name'] for c in commands] == ['lint', 'typecheck', 'test']
+            assert all(c['run'][0] == manager for c in commands)
+            assert commands[-1]['kind'] == 'test'
+        manifest.write_text(json.dumps({'scripts': {'lint:design': 'eslint src', 'test': 'echo "Error: no test specified" && exit 1'}}))
+        (repo / 'pnpm-lock.yaml').write_text('lockfileVersion: 9\n')
+        before = manifest.read_bytes()
+        setup.setup(repo, dry_run=True, roles=['dev'], local_only=True)
+        assert not (repo / '.fullops-squad').exists() and manifest.read_bytes() == before
+        setup.setup(repo, roles=['dev'], local_only=True)
+        config_path = repo / '.fullops-squad/lint/lint.json'
+        config = json.loads(config_path.read_text())
+        assert config['commands'] == [{'name': 'lint:design', 'kind': 'lint', 'run': ['pnpm', 'run', 'lint:design']}]
+        config['rules'] = [{'code': 'LOCAL', 'pattern': 'local'}]
+        config_path.write_text(json.dumps(config))
+        saved = config_path.read_bytes()
+        manifest.write_text('{"scripts":{"lint":"oxlint"}}')
+        setup.setup(repo, local_only=True)
+        assert config_path.read_bytes() == saved
+
+
 def anti_slop():
     with tempfile.TemporaryDirectory(prefix='fullops-anti-slop-') as tmp:
         repo = Path(tmp)
@@ -325,4 +385,7 @@ def main():
 if __name__ == '__main__':
     main()
     anti_slop()
+    design_slop()
+    setup_commands()
     print('PASS: default slop warnings, diff budget, dependency changes, baseline settings, test evidence gate')
+    print('PASS: design warnings, token/path/content exceptions, project severity and setup command preservation')

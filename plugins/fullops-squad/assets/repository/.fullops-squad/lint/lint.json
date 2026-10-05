@@ -58,6 +58,39 @@
       "severity": "WARNING",
       "suggestion": "필요한 사용자 출력인지 확인하고 디버그 잔재는 제거한다",
       "enabled": true
+    },
+    {
+      "code": "DESIGN-001",
+      "description": "하드코딩 색 의심",
+      "pattern": "(?i)(?<![\\w#])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})(?![\\w-])|\\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\\(\\s*[+-]?(?:\\d|\\.\\d)",
+      "file_extensions": [".css", ".scss", ".less", ".html", ".svg", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte"],
+      "severity": "WARNING",
+      "suggestion": "프로젝트 테마 토큰을 사용하고 토큰 정의·브랜드 원본의 예외는 근거와 함께 좁게 설정한다",
+      "exclude_patterns": ["^\\s*--[\\w-]+\\s*:"],
+      "exclude_paths": [],
+      "enabled": true
+    },
+    {
+      "code": "DESIGN-002",
+      "description": "인라인 스타일 의심",
+      "pattern": "\\bstyle\\s*=\\s*[\"'{]",
+      "file_extensions": [".html", ".svg", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte"],
+      "severity": "WARNING",
+      "suggestion": "테마 토큰·공용 컴포넌트 variant를 우선하고 동적 값이면 필요성을 기록한다",
+      "exclude_patterns": [],
+      "exclude_paths": [],
+      "enabled": true
+    },
+    {
+      "code": "DESIGN-003",
+      "description": "임의 Tailwind 값 의심",
+      "pattern": "\\b[a-z][a-z0-9-]*-\\[(?!(?:var|env)\\(|--)[^\\]\\r\\n]+\\]",
+      "file_extensions": [".css", ".scss", ".html", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte"],
+      "severity": "WARNING",
+      "suggestion": "테마 토큰·스케일 값을 사용하고 디자인 계약은 프로젝트 디자인 린트로 확인한다",
+      "exclude_patterns": [],
+      "exclude_paths": [],
+      "enabled": true
     }
   ]
 }

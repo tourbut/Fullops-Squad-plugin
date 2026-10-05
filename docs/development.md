@@ -1,7 +1,7 @@
 ---
 title: FullOps Squad 개발
 status: draft
-updated: 2026-10-03
+updated: 2026-10-06
 owner: maintainer
 summary: 플러그인 원본 수정, 통합 설치기 패키징과 배포 검증 절차
 ---
@@ -74,6 +74,8 @@ agy plugin validate dist/native/fullops-squad
 Windows에서 로컬로 돌리려면 실제 `python3` 실행 파일(Microsoft Store 스텁이 아닌 것), `PYTHONUTF8=1`, 심볼릭 링크용 개발자 모드가 필요하다.
 
 보드 문서 UI는 선택형 `python3 tests/board-browser.py [--channel chrome|msedge] [--out <캡처 디렉터리>]`로 검증한다. 테스트 환경에 Playwright Python 패키지와 해당 브라우저가 필요하다. file://·HTTP 열람, 여러 원천·누락 문서, 키보드 복귀와 상태 보존을 확인한다. 플러그인 실행 의존성에는 Playwright가 추가되지 않는다.
+
+shadcn 연계는 선택형 `python3 tests/shadcn-lint.py --tools <검사 도구 폴더> [--out <결과.json>]`로 검증한다. 해당 폴더에 `npm install --prefix <검사 도구 폴더> --save-exact @shadcn/lint@0.2.0 eslint@9.33.0 @typescript-eslint/parser@8.40.0 tailwindcss@4.3.3`로 검증 버전을 설치한다. 이 버전은 재현용이며 서비스 레포에는 호환되는 지원 버전을 사용한다. Node.js 20.19 이상이 필요하며 샘플은 도구 폴더 안의 임시 Git 레포에 생성·삭제된다. 실제 플러그인의 위반 검출·정상 통과와 setup의 기존 스크립트 등록·FullOps 종료코드 게이트를 확인한다. FullOps 실행 의존성에는 이 패키지를 추가하지 않는다.
 
 선택형 Jev 관찰 실험의 입력 형식과 실행 방법은 [Jev 관찰 실험](jev-observe.md)에 있다.
 

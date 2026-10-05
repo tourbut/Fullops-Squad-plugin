@@ -27,6 +27,27 @@ def git(repo, *args):
     return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
 
 
+def lint_commands(repo):
+    """신규 설정에 기존 package scripts만 연결한다. 스택별 규칙 구성은 setup 스킬이 맡는다."""
+    manifest = repo / 'package.json'
+    if not manifest.is_file():
+        return []
+    package = json.loads(manifest.read_text(encoding='utf-8'))
+    if not isinstance(package, dict) or not isinstance(package.get('scripts', {}), dict) or not isinstance(package.get('packageManager', ''), str):
+        raise ValueError('package.json의 scripts·packageManager 형식을 확인하세요')
+    scripts = package.get('scripts', {})
+    manager = re.match(r'^(npm|pnpm|yarn|bun)(?:@|$)', package.get('packageManager', ''))
+    command = manager[1] if manager else next((name for file, name in (
+        ('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'), ('bun.lock', 'bun'), ('bun.lockb', 'bun'))
+        if (repo / file).is_file()), 'npm')
+    # ponytail: 루트의 대표 스크립트만 연결한다. 모노레포·다른 스택은 스킬이 실제 실행 범위를 확인한다.
+    names = ['lint' if scripts.get('lint') else 'lint:design', 'typecheck', 'test']
+    return [{'name': name, 'kind': 'test' if name == 'test' else 'lint',
+             'run': [command, 'run', name]} for name in names
+            if isinstance(scripts.get(name), str) and scripts[name].strip()
+            and 'no test specified' not in scripts[name]]
+
+
 def remote_branches(repo, remote, base, roles, dry_run):
     urls = git(repo, "remote", "get-url", "--push", "--all", remote).splitlines()
     if len(urls) != 1:
@@ -87,6 +108,11 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     templates = PLUGIN / "assets/repository"
     files = {p.relative_to(templates).as_posix(): p.read_bytes()
              for p in sorted(templates.rglob("*")) if p.is_file()}
+    lint_path = '.fullops-squad/lint/lint.json'
+    if not (repo / lint_path).exists():
+        lint_config = json.loads(files[lint_path])
+        lint_config['commands'] = lint_commands(repo)
+        files[lint_path] = (json.dumps(lint_config, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
     for role in assigned:
         files[f".fullops-squad/handovers/to_{role}.md"] = b""
         files[f".fullops-squad/contexts/{role}.md"] = f"# {role} 컨텍스트\n\n결정·교훈을 항목당 3줄 이내로 기록한다.\n".encode()

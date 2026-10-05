@@ -7,7 +7,7 @@ setup에서 이 레포를 직접 확인하고 채운다. 원본 템플릿의 기
 | 제품 목적 | 미확정 |
 | 기본 브랜치 | 미확정 — Git에서 조회 |
 | 기술 스택·아키텍처 정본 | 미확정 — 기존 문서 연결 |
-| 공통 개발 기준 | [rules/common/README.md](rules/common/README.md) — `fullops-common-0.3.2` |
+| 공통 개발 기준 | [rules/common/README.md](rules/common/README.md) — `fullops-common-0.3.3` |
 | 보안·코딩 규칙 | 미확정 — 기존 문서 연결 |
 | 테스트·린트·빌드 명령 | 미확정 — 실행 가능한 명령과 실행 위치 기록. lint 명령은 `lint/lint.json`에 등록 |
 | 문서 언어 | 한국어 |
