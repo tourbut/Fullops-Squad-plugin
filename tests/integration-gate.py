@@ -62,7 +62,7 @@ def main():
         assert hook('stop', session_id='new-session', stop_hook_active=True).get('decision') == 'block'
         route = repo / '.fullops-squad/docs/evaluations/jev/K1-route.json'
         route.parent.mkdir(parents=True, exist_ok=True)
-        route.write_text(json.dumps({'route': 'simple', 'role': 'dev'}))
+        route.write_text(json.dumps({'version': 'jev-route-v3', 'task_key': 'K1', 'route': 'simple', 'role': 'dev'}))
         review = f'orca orchestration worker-start --run run_2 --worktree "{worker}" --spec "K1 리뷰"'
         assert hook('tool', session_id='review', tool_input={'command': review}) == {}
         unrelated = hook('tool', session_id='other', tool_input={'command': review.replace('K1', 'K2')})
@@ -118,7 +118,7 @@ def main():
         git('push', '-q', 'origin', 'main')
         route = repo / '.fullops-squad/docs/evaluations/jev/K2-route.json'
         route.parent.mkdir(parents=True, exist_ok=True)
-        route.write_text(json.dumps({'route': 'simple', 'role': 'dev'}))
+        route.write_text(json.dumps({'version': 'jev-route-v3', 'task_key': 'K2', 'route': 'simple', 'role': 'dev'}))
         command = f'orca orchestration worker-start --run run_2 --worktree "{worker}" --spec "K2 작업"'
         denied = hook('tool', session_id='dispatch', tool_input={'command': command})
         assert '동기화' in denied['hookSpecificOutput']['permissionDecisionReason'], denied

@@ -30,7 +30,7 @@ def stub(sent, simple, role, role_p=0.9, docs=None):
             for qid in payload['questions']:
                 if qid.startswith('doc_'):
                     answers[qid] = {'type': 'noul', 'noul': docs.get(qid[4:], 0.05)}
-        return {'model': 'typesafe/jev-test', 'answers': answers, 'usage': {'cost': 0.0001}}, 0.1
+        return {'model': 'typesafe/jev-test', 'answers': answers, 'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.1
     return call
 
 
@@ -58,7 +58,7 @@ def main():
         assert set(sent2[0]['questions']['role']['criteria']) == {'dev', 'art'}  # coordinator 역할도 후보가 아니다
         guide_file.write_text(original, encoding='utf-8')
         assert '게임플레이' in questions['role']['criteria']['dev']
-        assert result['deliverables'] == [] and result['answers']['docs'] is None  # 산출물 답이 없어도 역할 라우팅 유지
+        assert result['deliverables'] == [] and result['answers']['docs'] == {} and result['docs_status'] == 'partial'
 
         # 산출물 라우팅: 선택지는 인덱스와 front matter에서 만들고 범위 밖은 뺀다
         fo = repo / '.fullops-squad'
@@ -97,7 +97,7 @@ def main():
                     labels = list(payload['questions']['model']['criteria'])
                     probabilities = {l: (0.8 if l == prefer else 0.2 / (len(labels) - 1)) for l in labels}
                     return {'model': 'jev-test', 'answers': {'model': {'type': 'choice', 'choice': prefer, 'confidence': 0.9,
-                                                                        'probabilities': probabilities}}, 'usage': {}}, 0.1
+                                                                        'probabilities': probabilities}}, 'model': 'typesafe/jev-test', 'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.1
                 return route_stub(payload)
             return call
 
@@ -110,7 +110,7 @@ def main():
             def call(payload):
                 if 'model' in payload['questions']:
                     return {'model': 'jev-test', 'answers': {'model': {'type': 'choice', 'choice': 'm1', 'confidence': 0.5,
-                            'probabilities': {'m1': 0.52, 'm2': 0.48}}}, 'usage': {}}, 0.1
+                            'probabilities': {'m1': 0.52, 'm2': 0.48}}}, 'model': 'typesafe/jev-test', 'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.1
                 return route_stub(payload)
             return call
         tie = jev.route(repo, 'M-1b', '점프 수치를 1.5로', close_call(stub([], 0.95, 'dev')))

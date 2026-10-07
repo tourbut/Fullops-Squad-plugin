@@ -34,8 +34,13 @@ def main():
     try:
         clis = {"all": ["codex", "claude"], "both": ["codex", "claude"], "codex": ["codex"], "claude-code": ["claude"]}.get(args.host, [])
         registered = {} if args.dry_run else {cli: deps.registered_marketplaces(cli) for cli in clis}
-        deps.run(commands(args.host, registered), args.dry_run)
-    except (ValueError, subprocess.CalledProcessError) as error:
+        plan = list(commands(args.host, registered))  # 모든 출처 충돌을 설치 전에 검사한다.
+        if args.dry_run:
+            deps.run(plan, True)
+        else:
+            for host in {'all': deps.HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host]):
+                deps.install_host(host, list(commands(host, registered)))
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     print("설치 계획 확인 완료" if args.dry_run else "설치 완료. 새 에이전트 세션에서 setup-fullops를 실행하세요.")
 

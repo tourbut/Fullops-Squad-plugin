@@ -132,16 +132,17 @@ def main():
         assert scored['recall'] == 1.0 and scored['precision'] == 0.5 and scored['existence_correct'] is True
         assert scored['context_wrong_omits'] == ['src/auth/login.py']  # 제외 추천했는데 실제로 바뀐 파일
 
-        # 파일이 255개를 넘으면 디렉터리를 먼저 고르고, 존재 질문은 한 번만 한다.
+        # 파일이 255개를 넘으면 모든 후보를 배치로 제시한다. 마지막 배치도 빠지지 않는다.
         for i in range(300):
             (repo / f'gen/part{i % 3}/file{i}.py').parent.mkdir(parents=True, exist_ok=True)
             (repo / f'gen/part{i % 3}/file{i}.py').write_text(f'"""생성 코드 {i}."""\n')
         commit('many')
         sent = []
         big = jev.find(repo, 'dev', 'F-1', stub(sent, ['src/', 'auth/login']))
-        assert big['passes'][0]['level'] == 'directory' and big['passes'][0]['chosen'][0][0] == 'src', big['passes']
+        assert all(p['level'] == 'file' for p in big['passes']) and not big['partial'], big['passes']
         assert big['candidates'][0]['path'] == 'src/auth/login.py'
-        assert 'exists' in sent[0]['questions'] and 'exists' not in sent[-1]['questions']
+        assert all('exists' in p['questions'] for p in sent)
+        assert sum(len(p['questions']['where']['criteria']) for p in sent) == big['files']
         assert all(len(p['questions']['where']['criteria']) <= 255 for p in sent)
 
         # CLI: 키가 없으면 오류를 기록하고 후보 없이 끝나며, 기존 결과는 덮어쓰지 않는다.
@@ -151,7 +152,7 @@ def main():
                'HOME': tmp, 'FULLOPS_JEV_CACHE': str(repo / '.git/jev-cache')}
         done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'paths: \n' in done.stdout + '\n' and 'API or response' in done.stdout, done.stdout + done.stderr
-        assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 1
+        assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 0
         score_cmd = [sys.executable, str(SCRIPTS / 'jev_find.py'), 'score', '--repo', tmp, '--key', 'F-1',
                      '--from', base, '--to', 'HEAD']
         done = subprocess.run(score_cmd, capture_output=True, text=True, env=env, encoding='utf-8')

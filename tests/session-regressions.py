@@ -39,7 +39,7 @@ class SessionRegressions(unittest.TestCase):
     def test_powershell_spec_variable_keeps_task_key(self):
         routes = self.root / '.fullops-squad/docs/evaluations/jev'
         routes.mkdir(parents=True)
-        (routes / 'K1-route.json').write_text('{"route":"simple"}')
+        (routes / 'K1-route.json').write_text('{"version":"jev-route-v3","task_key":"K1","route":"simple","role":"dev"}')
         with patch.object(integration, 'denial', return_value=None), \
              patch.object(integration, 'baseline_denial', return_value=None):
             self.assertIsNone(self.gate('$spec=\'Task key: K1. Read inbox\'; orca orchestration worker-start --spec $spec --run run_live --worktree path:dev'))
@@ -48,7 +48,7 @@ class SessionRegressions(unittest.TestCase):
     def test_route_sentence_punctuation_and_distinct_keys(self):
         routes = self.root / '.fullops-squad/docs/evaluations/jev'
         routes.mkdir(parents=True)
-        (routes / 'K1-route.json').write_text('{"route":"simple"}')
+        (routes / 'K1-route.json').write_text('{"version":"jev-route-v3","task_key":"K1","route":"simple","role":"dev"}')
         self.assertIsNone(flow_gate.route_key_denial(self.root, '--spec "Task key: K1. Read inbox"'))
         for key in ('K1.2', 'K1-other', 'K10'):
             self.assertIsNotNone(flow_gate.route_key_denial(self.root, f'--spec "Task key: {key}"'))

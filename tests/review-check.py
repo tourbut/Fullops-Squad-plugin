@@ -76,6 +76,18 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     rule.write_bytes(original)
     commit()
     assert run('check').returncode != 0  # new head
+    managed = subprocess.run(['python3', str(SCRIPTS / 'review.py'), 'snapshot', '--repo', tmp,
+        '--key', 'REVIEW-LEGACY', '--to', 'HEAD', '--implementer-session', 'author-legacy',
+        '--reviewer-session', 'reviewer-legacy', '--owner', 'coordinator'], check=True, capture_output=True, text=True)
+    managed_path = managed.stdout.strip()
+    try:
+        prepared = run('prepare', 'REVIEW-LEGACY')
+        assert prepared.returncode == 0, prepared.stderr
+        legacy = json.loads((repo / '.fullops-squad/docs/evaluations/qa-reports/REVIEW-LEGACY-review/result.json').read_text())
+        assert legacy['review_schema_version'] == 2 and legacy['independence']['snapshot_path'] == managed_path
+        assert legacy['independence']['reviewer_session'] == 'reviewer-legacy'
+    finally:
+        git('worktree', 'remove', managed_path)
     agents = repo / '.fullops-squad/orca-agents.md'
     agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
                       '- 설계 역할: `designer`\n- 제품 기획 역할: `designer`\n- 기술 계획 역할: `implementer`'), encoding='utf-8')
@@ -131,3 +143,4 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     git('worktree', 'remove', str(snapshot))
     print('PASS: real OCR prepare, document/test inclusion, record preservation, pending/missing/high/rule/SHA/lint gates')
     print('PASS: independent sessions, schema preservation, separate clean detached snapshot, fixed SHA')
+    print('PASS: managed snapshot prepare records independent identity in legacy coor configuration')

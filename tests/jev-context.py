@@ -95,7 +95,11 @@ def main():
         done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'keep  src/old.py' in done.stdout, done.stdout + done.stderr
         assert (repo / '.fullops-squad/docs/evaluations/jev/T-1-context.json').is_file()
+        assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 0
+        (repo / 'src/auth.py').write_text('def login():\n    return changed()\n')
         assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 1
+        assert subprocess.run([*command, '--force'], capture_output=True, text=True, env=env, encoding='utf-8').returncode == 0
+        assert list((repo / '.fullops-squad/docs/evaluations/jev/history').glob('T-1-context-*.json'))
     with tempfile.TemporaryDirectory(prefix='fullops-jev-cache-') as cache:
         os.environ['FULLOPS_JEV_CACHE'] = cache
         payload = {'model': 'm', 'state': {'task': 't'}, 'questions': {}}

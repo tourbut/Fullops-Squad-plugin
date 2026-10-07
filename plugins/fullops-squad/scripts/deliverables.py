@@ -10,11 +10,12 @@ from datetime import date
 from pathlib import Path
 import re
 import subprocess
+from storage import write_many
 
 STATUSES = ("draft", "review", "approved")
 REQUIRED = ("id", "title", "status", "updated", "owner", "summary")
 LISTS = ("tasks", "upstream", "downstream")
-ORDER = ("id", "title", "status", "updated", "owner", "tasks", "upstream", "downstream", "summary")
+ORDER = ("id", "title", "status", "statuses", "updated", "owner", "tasks", "upstream", "downstream", "summary")
 INDEX = "docs/deliverables/README.md"
 
 
@@ -30,9 +31,14 @@ def split(text):
         match = re.match(r"^([A-Za-z_][\w-]*)\s*:\s*(.*?)\s*$", line.rstrip("\r\n"))
         if match:
             key, value = match.groups()
-            if not value.startswith(('"', '[')):
+            if not value.startswith(('"', '[', '{')):
                 value = re.split(r'\s+#', value, maxsplit=1)[0].rstrip()
-            if value.startswith("[") and value.endswith("]"):
+            if value.startswith('{'):
+                try:
+                    meta[key] = json.loads(value)
+                except ValueError:
+                    return None, text
+            elif value.startswith("[") and value.endswith("]"):
                 try:
                     meta[key] = json.loads(value)
                 except ValueError:
@@ -62,7 +68,9 @@ def render(meta):
                 or value.lower() in ('true', 'false', 'yes', 'no', 'null', '~')) else value
     for key in keys:
         value = meta[key]
-        if key in LISTS or isinstance(value, list):
+        if isinstance(value, dict):
+            lines.append(f'{key}: ' + json.dumps(value, ensure_ascii=False, sort_keys=True))
+        elif key in LISTS or isinstance(value, list):
             items = value if isinstance(value, list) else [value]
             lines.append(f"{key}: " + (json.dumps(items, ensure_ascii=False) if any(scalar(item) != str(item) for item in items)
                                        else f"[{', '.join(items)}]"))
@@ -71,21 +79,39 @@ def render(meta):
     return "---\n" + "\n".join(lines) + "\n---\n"
 
 
+def identities(meta):
+    value = (meta or {}).get('id')
+    return value if isinstance(value, list) else [value] if value else []
+
+
+def document_status(meta, doc_id):
+    statuses = meta.get('statuses')
+    return statuses.get(doc_id, meta.get('status')) if isinstance(statuses, dict) else meta.get('status')
+
+
 def problems(text, doc_id=None, index_status=None):
     """원천 문서 front matter의 규칙 위반 목록. 빈 목록이면 통과."""
     meta, _ = split(text)
     if meta is None:
         return ["front matter 없음"]
     found = [f"필수 필드 없음: {k}" for k in REQUIRED if (k != 'id' or doc_id) and not str(meta.get(k, "")).strip()]
-    if doc_id and meta.get("id") and meta["id"] != doc_id:
+    if doc_id and 'id' in meta:
+        ids = identities(meta)
+        if not ids or any(not isinstance(value, str) or not re.fullmatch(r'D\d{2}', value) for value in ids) or len(set(ids)) != len(ids):
+            found.append('id는 산출물 ID 또는 중복 없는 ID 목록이어야 함')
+    if doc_id and meta.get("id") and doc_id not in identities(meta):
         found.append(f"id가 {doc_id}가 아님: {meta['id']}")
     if meta.get("status") and meta["status"] not in STATUSES:
         found.append(f"status는 {'/'.join(STATUSES)} 중 하나: {meta['status']}")
-    if meta.get("updated") and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta["updated"]):
+    if meta.get("updated") and (not isinstance(meta['updated'], str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta["updated"])):
         found.append(f"updated는 YYYY-MM-DD: {meta['updated']}")
     found += [f"{k}는 [a, b] 목록" for k in LISTS if k in meta and not isinstance(meta[k], list)]
-    if index_status in STATUSES and meta.get("status") in STATUSES and meta["status"] != index_status:
-        found.append(f"인덱스 상태({index_status})와 문서 상태({meta['status']})가 다름")
+    if 'statuses' in meta and (not isinstance(meta['statuses'], dict) or any(
+            key not in identities(meta) or value not in STATUSES for key, value in meta['statuses'].items())):
+        found.append('statuses는 소유한 산출물 ID와 draft/review/approved 상태의 객체여야 함')
+    effective = document_status(meta, doc_id)
+    if index_status in STATUSES and effective in STATUSES and effective != index_status:
+        found.append(f"인덱스 상태({index_status})와 문서 상태({effective})가 다름")
     lines = text.lstrip("﻿").splitlines(keepends=True)
     block = "".join(lines[:next(n for n, l in enumerate(lines[1:], 2) if l.strip() == "---")])
     if not found and block.replace("\r\n", "\n") != render(meta):
@@ -126,8 +152,8 @@ def meta_for(base, doc_id, sources):
     files = [f for source in sources for f in source_files(base, source)]
     for path in files:
         meta = front_matter(path.read_text(encoding="utf-8", errors="replace"))
-        if meta and meta.get("id") == doc_id:
-            return path, meta
+        if meta and doc_id in identities(meta):
+            return path, {**meta, 'id': doc_id, 'status': document_status(meta, doc_id)}
     return (files[0], None) if files else (None, None)
 
 
@@ -142,7 +168,7 @@ def active_base(repo):
 
 
 def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, title=None,
-          upstream=None, downstream=None, path=None, today=None):
+          upstream=None, downstream=None, path=None, today=None, all_sources=False):
     """원천 문서에 front matter를 정해진 형식으로 쓰고, 인덱스 표의 상태를 같은 값으로 맞춘다."""
     base = active_base(repo)
     index = base / INDEX
@@ -178,11 +204,27 @@ def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, t
     for key, value in (("title", title), ("owner", owner), ("summary", summary)):
         if value:
             meta[key] = value.strip()
+    shared = [key for key, (_, mapped, _) in rows.items() if owner_of(mapped, target.relative_to(base).as_posix())] if doc_id else []
     if doc_id:
-        meta["id"] = doc_id
+        meta['id'] = shared if len(shared) > 1 else doc_id
     meta.setdefault("title", name or next((line[2:].strip() for line in body.splitlines() if line.startswith('# ')), target.stem))
-    meta["status"] = status or (meta.get("status") if meta.get("status") in STATUSES else None) or \
+    effective = status or (document_status(meta, doc_id) if document_status(meta, doc_id) in STATUSES else None) or \
         (index_status if index_status in STATUSES else "draft")
+    if len(shared) > 1:
+        states = dict(meta.get('statuses') or {})
+        for key in shared:
+            states.setdefault(key, rows[key][2] if rows[key][2] in STATUSES else meta.get('status', 'draft'))
+        states[doc_id] = effective
+        meta['statuses'] = states
+        meta.setdefault('status', 'draft')
+    else:
+        meta['status'] = effective
+    siblings = {f for source in sources for f in source_files(base, source)} - {target} if doc_id else set()
+    if all_sources and (not doc_id or not status):
+        raise ValueError('--all-sources에는 --id와 명시적 --status가 필요합니다')
+    if doc_id and effective != index_status and not all_sources:
+        if any(document_status(front_matter(f.read_text(encoding='utf-8')) or {}, doc_id) != effective for f in siblings):
+            raise ValueError('여러 원천의 상태를 일부만 전환할 수 없습니다. 다른 원천의 상태를 검토해 일치시킨 뒤 재시도하세요')
     meta["updated"] = (today or date.today()).isoformat()
     tasks = meta.get("tasks") if isinstance(meta.get("tasks"), list) else ([meta["tasks"]] if meta.get("tasks") else [])
     if task and task not in tasks:
@@ -199,15 +241,29 @@ def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, t
         raise ValueError(f"status는 {'/'.join(STATUSES)} 중 하나")
     body = body if body.strip() else f"\n# {meta['title']}\n"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(meta) + (body if body.startswith("\n") else "\n" + body), encoding="utf-8", newline="\n")
-    if doc_id and index_status != meta["status"]:
+    changes = {target: render(meta) + (body if body.startswith("\n") else "\n" + body)}
+    if all_sources:
+        for sibling in siblings:
+            sibling_meta, sibling_body = split(sibling.read_text(encoding='utf-8'))
+            if not sibling_meta or problems(render(sibling_meta) + sibling_body, doc_id):
+                raise ValueError('전체 전환 전에 모든 원천의 메타데이터·본문 검토를 완료하세요')
+            if len(identities(sibling_meta)) > 1:
+                sibling_meta['statuses'] = {**(sibling_meta.get('statuses') or {}), doc_id: effective}
+            else:
+                sibling_meta['status'] = effective
+            sibling_meta['updated'] = meta['updated']
+            if task:
+                sibling_meta['tasks'] = list(dict.fromkeys([*sibling_meta.get('tasks', []), task]))
+            changes[sibling] = render(sibling_meta) + sibling_body
+    if doc_id and index_status != effective:
         lines = index.read_text(encoding="utf-8").splitlines(keepends=True)
         for n, line in enumerate(lines):
             if line.startswith(f"| {doc_id} |"):
                 cells = line.rstrip("\r\n").rstrip("|").split("|")
-                cells[-1] = f" {meta['status']} "
+                cells[-1] = f" {effective} "
                 lines[n] = "|".join(cells) + "|\n"
-        index.write_text("".join(lines), encoding="utf-8", newline="\n")
+        changes[index] = ''.join(lines)
+    write_many(changes)
     return target
 
 
@@ -225,10 +281,10 @@ def check(repo, selected=None, strict=False):
             continue
         if selected:
             print(f"{doc_id}: {status} / 원천: {', '.join(sources)}")
-        missing = [source for source in sources if not (base / source).exists()]
+        missing = [source for source in sources if not source_files(base, source)]
         if status == "미작성":
             unwritten += 1
-        elif missing:
+        elif status != '범위 밖' and missing:
             issue = f"{doc_id} 원천 없음: {', '.join(missing)}"
             issues.append(issue)
             errors.append(issue)
@@ -262,6 +318,7 @@ def main():
     parser.add_argument("--stamp", action="store_true", help="산출물(--id) 또는 일반 문서(--path)에 front matter를 쓴다")
     parser.add_argument("--task", help="--stamp: 이 문서를 바꾼 과제 키 (tasks에 추가)")
     parser.add_argument("--status", choices=STATUSES)
+    parser.add_argument('--all-sources', action='store_true', help='--stamp --id --status: 검토한 해당 ID의 모든 원천을 함께 전환')
     parser.add_argument("--owner", help="담당 역할")
     parser.add_argument("--summary", help="한 줄 요약")
     parser.add_argument("--title")
@@ -273,7 +330,7 @@ def main():
     try:
         if args.stamp:
             target = stamp(args.repo, args.id, args.task, args.status, args.owner, args.summary, args.title,
-                           ids(args.upstream), ids(args.downstream), args.path)
+                           ids(args.upstream), ids(args.downstream), args.path, all_sources=args.all_sources)
             print(target.relative_to(active_base(args.repo).parent).as_posix())
         elif check(args.repo, args.id, args.strict):
             parser.exit(1)

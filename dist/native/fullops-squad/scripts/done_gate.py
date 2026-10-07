@@ -13,6 +13,8 @@ import subprocess
 import sys
 
 from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY
+import deliverables
+from storage import write_json
 
 CODE = PY | HASH | C_STYLE
 LINT = Path(__file__).resolve().with_name('lint.py')
@@ -66,6 +68,18 @@ def code_changes(root, state):
     return sorted(filter(code, committed)), sorted(filter(code, dirty))
 
 
+def expected_base(root, state):
+    roles = json.loads((root / '.fullops-squad/fullops.json').read_text()).get('roles', {})
+    branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD')
+    role = next((r for r, b in roles.items() if b == branch), None)
+    inbox = root / f'.fullops-squad/handovers/to_{role}.md'
+    meta = deliverables.front_matter(inbox.read_text(encoding='utf-8')) if role and inbox.is_file() else None
+    base = (meta or {}).get('base') or state.get('base')
+    if base:
+        state['base'] = git(root, 'rev-parse', '--verify', base + '^{commit}')
+    return state.get('base')
+
+
 def main():
     mode = sys.argv[1]
     try:
@@ -81,7 +95,9 @@ def main():
     state = json.loads(session.read_text()) if session.is_file() else None
     if mode == 'start':
         if state is None:  # resume·compact는 처음 시작 지점을 유지한다
-            session.write_text(json.dumps({'reflog': len(reflog(root))}))
+            state = {'reflog': len(reflog(root))}
+        expected_base(root, state)
+        write_json(session, state)
         if (field(event, 'source') or 'startup') not in ('startup', 'clear'):
             return {}
         try:
@@ -100,8 +116,11 @@ def main():
     if not committed and not dirty:
         return {}
     head = git(root, 'rev-parse', 'HEAD')
+    expected = expected_base(root, state)
+    write_json(session, state)  # 성공 Stop 뒤 finish가 인박스를 비워도 기준을 보존한다.
     try:
-        passed = json.loads((gate / 'pass.json').read_text()).get('head') == head
+        record = json.loads((gate / 'pass.json').read_text())
+        passed = record.get('head') == head and (not expected or record.get('base') == expected)
     except (OSError, ValueError, AttributeError):
         passed = False
     if passed and not dirty:
@@ -109,7 +128,7 @@ def main():
     marker = [head, [[p, (root / p).stat().st_mtime_ns if (root / p).exists() else None] for p in dirty]]
     if field(event, 'stop_hook_active') and state.get('blocked') == marker:
         return {'systemMessage': 'FullOps: lint.py 통과 기록 없이 세션을 끝냈습니다. 완료 보고의 검증 항목을 확인하세요.'}
-    session.write_text(json.dumps({**state, 'blocked': marker}))
+    write_json(session, {**state, 'blocked': marker})
     files = (dirty or committed)[:5]
     action = '변경을 커밋하고 ' if dirty else ''
     return {'decision': 'block',

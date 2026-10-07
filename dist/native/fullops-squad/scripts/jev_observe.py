@@ -45,7 +45,7 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def local_file(repo, name):
+def local_file(repo, name, historical=False):
     if not isinstance(name, str) or not name or name.startswith('-'):
         raise ValueError('invalid path')
     path = Path(name)
@@ -60,6 +60,8 @@ def local_file(repo, name):
            re.fullmatch(r'id_(rsa|dsa|ecdsa|ed25519)(\.pub)?', part, re.I) or
            part.lower().endswith(('.pem', '.key', '.p12', '.pfx')) for part in parts):
         raise ValueError('sensitive path')
+    if historical:
+        return path  # Git mode 검사는 호출자가 맡는다. 현재 파일·symlink 상태와 독립적인 snapshot 경로다.
     if any(parent.is_symlink() for parent in (path, *path.parents) if parent != repo and parent.is_relative_to(repo)):
         raise ValueError('symlink path')
     path = path.resolve(strict=True)
@@ -143,7 +145,7 @@ def trusted(path):
 
 def triage(item, signal, required_paths):
     """순서가 곧 정책이다. 조종 문구(보안) → 과제 전제와 충돌 → 무관한 후보 제외 → 유지. 필수 후보는 제외하지 않는다."""
-    omittable = bool(item.get('source')) and not item.get('required') and item['path'] not in required_paths
+    omittable = bool(item.get('source')) and item.get('source_complete') is True and not item.get('required') and item['path'] not in required_paths
     if signal['injection'] > TRIAGE['injection'] and not trusted(item['path']):
         return ('suggest_omit', 'instructions') if omittable and signal['evidence'] < 0.5 else ('caution', 'instructions')
     if signal['contradicts'] > TRIAGE['contradicts'] or \
@@ -154,13 +156,13 @@ def triage(item, signal, required_paths):
     return 'keep', None
 
 
-def validated(result, expected):
+def validated(result, expected, partial=False):
     """응답 하나를 검증해 (answers, usage, elapsed, model)을 돌려준다. 하나라도 틀리면 전체를 fallback한다."""
     response, elapsed = result
     if not isinstance(response, dict) or type(elapsed) not in (int, float) or not math.isfinite(elapsed) or elapsed < 0:
         raise ValueError('invalid response')
     answers = response['answers']
-    if not isinstance(answers, dict) or set(answers) != set(expected):
+    if not isinstance(answers, dict) or (set(answers) - set(expected) if partial else set(answers) != set(expected)):
         raise ValueError('invalid answer IDs')
     if not isinstance(response.get('model'), str) or not response['model'].startswith('typesafe/jev-'):
         raise ValueError('invalid response model')
@@ -228,6 +230,8 @@ def request(payload, key):
     import tempfile
     cached = cache_path(payload)
     try:
+        if os.environ.get('FULLOPS_JEV_CACHE_BYPASS') == '1':
+            raise OSError('cache bypass')
         response = json.loads(cached.read_text(encoding='utf-8'))
         response['usage'] = {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}  # no new spend
         response['cached'] = True
@@ -329,6 +333,8 @@ def observe(data, repo, call):
                 source = item['source']
                 raw = verified_bytes(repo, head, path, source)
                 selected['source'] = excerpt(raw, source['span'])
+                item['source_complete'] = selected['source']['start_line'] == 1 and \
+                    selected['source']['end_line'] >= len(raw.decode('utf-8').splitlines())
             state_candidates.append(selected)
         except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.CalledProcessError):
             context['fallback'] = 'invalid candidate path'
@@ -411,30 +417,45 @@ def observe(data, repo, call):
     if not questions and not judged:
         return outcome
     started = time.monotonic()
+    total = {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}
+    outcome['calls'] = []
     try:
         with ThreadPoolExecutor(max_workers=8) as pool:  # 후보마다 따로 묻는다. 한 state에 몰면 판단이 섞이고 정확도가 떨어진다
             futures = [pool.submit(call, {'model': MODEL, 'state': {'task': data['task'], 'candidate': selected},
                                           'questions': CANDIDATE_QUESTIONS}) for _, selected in judged]
             claim_future = pool.submit(call, {'model': MODEL, 'state': state, 'questions': questions}) if questions else None
-            results = [future.result() for future in futures]
-            claim_result = claim_future.result() if claim_future else None
-        total = {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}
+            all_futures = futures + ([claim_future] if claim_future else [])
+            checked_results, failures = [], []
+            for n, future in enumerate(all_futures):
+                try:
+                    raw_result = future.result()
+                    checked_result = validated(raw_result, CANDIDATE_QUESTIONS if n < len(futures) else questions)
+                    checked_results.append(checked_result)
+                    total = {k: total[k] + checked_result[1][k] for k in total}
+                    outcome['calls'].append({'status': 'received', 'model': checked_result[3], 'elapsed': checked_result[2],
+                        'cached': raw_result[0].get('cached', False), 'usage': checked_result[1]})
+                except Exception as error:
+                    checked_results.append(None)
+                    failures.append(error)
+                    outcome['calls'].append({'status': 'error', 'cost': None, 'error': type(error).__name__})
+            if failures:
+                raise failures[0]
+            results = checked_results[:len(futures)]
+            claim_result = checked_results[-1] if claim_future else None
         slowest, model = 0.0, None
         signals = {}
         for (item, _), result in zip(judged, results):
-            answers, usage, elapsed, model = validated(result, CANDIDATE_QUESTIONS)
-            total = {k: total[k] + usage[k] for k in total}
+            answers, usage, elapsed, model = result
             slowest = max(slowest, elapsed)
             signal = {k: checked_noul(answers[k]) for k in CANDIDATE_QUESTIONS}
             decision, reason = triage(item, signal, required_paths)
             signals[item['id']] = {**signal, 'decision': decision, 'reason': reason}
         judgments = {}
         if claim_result:
-            answers, usage, elapsed, model = validated(claim_result, questions)
-            total = {k: total[k] + usage[k] for k in total}
+            answers, usage, elapsed, model = claim_result
             slowest = max(slowest, elapsed)
             judgments = {qid: checked_answer(answers[qid], question['criteria']) for qid, question in questions.items()}
-        outcome['latency_seconds'] = slowest  # 동시에 보내므로 가장 느린 요청이 걸린 시간
+        outcome['request_max_seconds'] = slowest
         outcome['response_model'] = model
         outcome['usage'] = total
         for cid, signal in signals.items():
@@ -475,7 +496,7 @@ def observe(data, repo, call):
                     continue
                 verdict['status'] = (('insufficient_evidence' if answer['choice'] == 'insufficient' else answer['choice'])
                                      if top >= 0.9 and answer['confidence'] >= 0.8 else 'uncertain')
-    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError, OSError, json.JSONDecodeError):
+    except Exception:  # noqa: BLE001 — 호출 실패는 추천을 보수적으로 유지한다.
         outcome['latency_seconds'] = round(time.monotonic() - started, 3)
         context['recommended_ids'] = baseline[:]
         context['signals'] = {}
@@ -486,6 +507,9 @@ def observe(data, repo, call):
                 verdict['status'] = 'error'
                 verdict.pop('judgment', None)
         outcome['error'] = 'API or response validation failed'
+    outcome['latency_seconds'] = round(time.monotonic() - started, 3)
+    outcome['usage'] = {**total, 'known_cost': total['cost'], 'cost': None if outcome['error'] else total['cost'],
+                        'cost_status': 'unknown' if outcome['error'] else 'complete'}
     return outcome
 
 

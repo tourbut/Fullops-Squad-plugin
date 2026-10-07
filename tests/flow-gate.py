@@ -30,7 +30,7 @@ def main():
         def route(key, kind, role):
             path = repo / f'.fullops-squad/docs/evaluations/jev/{key}-route.json'
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps({'route': kind, 'role': role}), encoding='utf-8')
+            path.write_text(json.dumps({'version': 'jev-route-v3', 'task_key': key, 'route': kind, 'role': role}), encoding='utf-8')
 
         git('init', '-q', '-b', 'main')
         assert hook('start', session_id='x') == {}  # FullOps가 아닌 레포
@@ -54,8 +54,10 @@ def main():
 
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
+        devtree = repo / '.git/dev-worktree'
+        git('worktree', 'add', '-q', '-b', roles['dev'], str(devtree))
         bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash',
-            tool_input={'command': command + f' --worktree \"{tmp}\"' if 'worker-start' in command else command}, **kw)
+            tool_input={'command': command + f' --worktree \"{devtree}\"' if 'worker-start' in command else command}, **kw)
         assert 'worker-start' in denied(bash('orca terminal send --terminal t1 --text "handovers/to_dev.md 읽고 착수"'))
         assert '새 세션' in denied(bash('orca terminal send --terminal t1 --text "F 버튼 겹침을 다시 판단하고 설계를 고쳐 커밋해"'))  # 경로 없는 지시도 막는다
         assert bash('orca terminal send --terminal t1 --text "y"') == {}  # 확인 프롬프트 응답은 허용
@@ -108,6 +110,7 @@ def main():
                     toolInput={'file_path': '.fullops-squad/handovers/to_dev.md', 'content': '# K3 — 저장 형식\n'})
         assert '설계 역할' in denied(grok)
 
+        git('worktree', 'remove', str(devtree))
         # 설계 역할
         git('checkout', '-q', '-B', roles['architecture'])
         assert '코드는 고치지 않는다' in hook('start', session_id='a', source='startup')['hookSpecificOutput']['additionalContext']
@@ -144,6 +147,10 @@ def main():
         assert hook('stop', sessionId='g')['decision'] == 'block'  # ask는 완료가 아니다
         hook('tool', sessionId='g', toolName='run_terminal_command', toolInput={'command':
              'orca orchestration send --from w --type worker_done --task-id t-1 --dispatch-id d-1 --outcome succeeded'})
+        assert hook('stop', sessionId='g')['decision'] == 'block'  # 전송 전에는 settlement하지 않는다
+        hook('post', sessionId='g', toolName='run_terminal_command', toolInput={'command':
+             'orca orchestration send --from w --type worker_done --task-id t-1 --dispatch-id d-1 --outcome succeeded'},
+             toolResponse={'exit_code': 0, 'stdout': json.dumps({'ok': True, 'result': {'message': {'id': 'msg1'}}})})
         assert hook('stop', sessionId='g') == {}
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'git status'}) == {}
         # 분류만 하고 배정하지 않은 과제는 종료를 한 번 막는다(대화 요약 뒤 배정을 잊는 경우)
@@ -183,7 +190,8 @@ def main():
         done_rows = [{'dispatchId': 'ctx_1', 'projection': {'outcome': 'succeeded'}}]
         route('W-9', 'simple', 'dev')
         git('checkout', '-q', 'main')
-        start = f'orca orchestration worker-start --run run_9 --spec "W-9 작업" --agent grok --worktree "{tmp}"'
+        git('worktree', 'add', '-q', str(devtree), roles['dev'])
+        start = f'orca orchestration worker-start --run run_9 --spec "W-9 작업" --agent grok --worktree "{devtree}"'
         assert hook('tool', session_id='wt', tool_name='Bash', tool_input={'command': start}) == {}
         scenario([], live)
         waiting = hook('stop', session_id='wt')
@@ -199,6 +207,7 @@ def main():
         assert hook('stop', session_id='wt') == {}  # Orca를 확인할 수 없으면 막지 않는다
         del os.environ['FULLOPS_ORCA_CLI']
 
+        git('worktree', 'remove', str(devtree))
         # coordinator를 역할 워크트리에서 운영: 라우팅 기준의 coordinator 역할 줄로 판정한다
         agents = repo / '.fullops-squad/orca-agents.md'
         agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',

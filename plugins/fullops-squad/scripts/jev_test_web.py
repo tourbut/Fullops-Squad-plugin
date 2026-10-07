@@ -15,7 +15,7 @@ import subprocess
 import sys
 import time
 
-from jev_observe import MODEL, api_key, checked_answer, request, safe_text
+from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text, validated
 from orca_wait import find_orca
 import test_record
 
@@ -216,12 +216,12 @@ def ask(call, scenario, page, history, step):
     state = {'goal': safe_text(scenario['goal'], 1000), 'page': {'url': page['url']},
              'elements': [{k: v for k, v in e.items()} for e in page['elements']],
              'values': values, 'history': history[-6:], 'step': step, 'steps_left': scenario.get('max_steps', 20) - step}
-    response, latency = call({'model': MODEL, 'state': state, 'questions': questions})
-    answers = response['answers']
+    raw_response = call({'model': MODEL, 'state': state, 'questions': questions})
+    answers, usage, latency, model = validated(raw_response, questions)
+    response = raw_response[0]
     decision = {'operation': checked_answer(answers['operation'], operations), 'latency_s': latency,
-                'cost': (response.get('usage') or {}).get('cost'), 'cached': bool(response.get('cached'))}
-    risky = answers.get('risky') or {}
-    decision['risk'] = next((risky[k] for k in ('noul', 'probability', 'value') if isinstance(risky.get(k), (int, float))), None)
+                'cost': usage['cost'], 'cached': bool(response.get('cached'))}
+    decision['risk'] = checked_noul(answers.get('risky'))
     operation = decision['operation']['choice']
     target = {'click': 'click_target', 'check': 'check_target', 'fill': 'fill_target', 'fill_submit': 'fill_target'}.get(operation)
     if target:
@@ -232,61 +232,78 @@ def ask(call, scenario, page, history, step):
 
 
 def run(scenario, browser, call, out, log=print):
-    browser.open(scenario['url'])
-    setup = scenario.get('setup_js') or []
-    for expression in [setup] if isinstance(setup, str) else setup:  # 저장 데이터 초기화처럼 매번 같은 출발 상태를 만든다
-        browser.run('eval', '--expression', expression)
-        browser.run('wait', '--load', 'networkidle')
-    history, events, result = [], [], None
-    repeats, last_digest, same_page = 0, None, 0
-    for step in range(1, scenario.get('max_steps', 20) + 1):
-        page = browser.snapshot()
-        same_page = same_page + 1 if page['digest'] == last_digest else 0
-        last_digest = page['digest']
-        if same_page >= STALL:
-            result = 'stalled'
-            break
-        decision = ask(call, scenario, page, history, step)
-        operation = decision['operation']['choice']
-        ref = decision.get('target', {}).get('choice')
-        key = decision.get('value', {}).get('choice')
-        entry = {'step': step, 'operation': operation, 'target': ref, 'value': key}
-        if decision['risk'] is not None and decision['risk'] >= RISK_STOP:
-            outcome, result = 'stopped: risky', 'blocked_risky'
-        elif operation == 'blocked':
-            outcome, result = 'blocked', 'blocked'
-        elif operation == 'done':
-            checks = [browser.check(c) for c in scenario.get('checks', [])]
-            outcome = 'checks passed' if checks and all(c['passed'] for c in checks) else 'done but checks failed'
-            entry['checks'] = checks
-            if outcome == 'checks passed':
-                result = 'passed'
-        else:
-            outcome = browser.act(operation, ref, scenario['values'][key] if key else None)
-        entry['outcome'] = outcome
-        repeats = repeats + 1 if history and {k: history[-1].get(k) for k in ('operation', 'target', 'value')} == \
-            {k: entry[k] for k in ('operation', 'target', 'value')} else 0
-        history.append({k: entry[k] for k in ('step', 'operation', 'target', 'value', 'outcome')})
-        events.append({**entry, 'url': page['url'], 'elements': len(page['elements']), **{
-            k: decision[k] for k in ('risk', 'latency_s', 'cost', 'cached')},
-            'confidence': decision['operation']['confidence'], 'probabilities': decision['operation']['probabilities']})
-        log(f"{step:>2} {operation:<12} {ref or '':<5} {key or '':<10} p={decision['operation']['confidence']:.2f} "
-            f"risk={decision['risk'] if decision['risk'] is None else round(decision['risk'], 2)} "
-            f"{decision['latency_s']:.2f}s → {outcome}")
-        if result or repeats >= STALL - 1:
-            result = result or 'stalled'
-            break
-    if result is None:
-        result = 'max_steps'
-    final = [browser.check(c) for c in scenario.get('checks', [])]
-    passed = result == 'passed' or (bool(final) and all(c['passed'] for c in final) and result == 'max_steps')
-    summary = {'version': 'jev-test-web-v1', 'result': result, 'passed': passed, 'steps': len(events),
-               'jev_calls': len(events), 'cost': round(sum(e['cost'] or 0 for e in events), 6),
-               'latency_s': round(sum(e['latency_s'] or 0 for e in events), 3), 'checks': final,
+    identity = test_record.begin(out, scenario)
+    calls = []
+    call = test_record.measured(call, calls)
+    history, events, result, final, error = [], [], None, None, None
+    started = time.monotonic()
+    try:
+        browser.open(scenario['url'])
+        setup = scenario.get('setup_js') or []
+        for expression in [setup] if isinstance(setup, str) else setup:  # 저장 데이터 초기화처럼 매번 같은 출발 상태를 만든다
+            browser.run('eval', '--expression', expression)
+            browser.run('wait', '--load', 'networkidle')
+        repeats, last_digest, same_page = 0, None, 0
+        for step in range(1, scenario.get('max_steps', 20) + 1):
+            page = browser.snapshot()
+            same_page = same_page + 1 if page['digest'] == last_digest else 0
+            last_digest = page['digest']
+            if same_page >= STALL:
+                result = 'stalled'
+                break
+            decision = ask(call, scenario, page, history, step)
+            operation = decision['operation']['choice']
+            ref = decision.get('target', {}).get('choice')
+            key = decision.get('value', {}).get('choice')
+            entry = {'step': step, 'operation': operation, 'target': ref, 'value': key}
+            if decision['risk'] is not None and decision['risk'] >= RISK_STOP:
+                outcome, result = 'stopped: risky', 'blocked_risky'
+            elif operation == 'blocked':
+                outcome, result = 'blocked', 'blocked'
+            elif operation == 'done':
+                checks = [browser.check(c) for c in scenario.get('checks', [])]
+                outcome = 'checks passed' if checks and all(c.get('passed') is True for c in checks) else 'done but checks failed'
+                entry['checks'] = checks
+                if outcome == 'checks passed':
+                    result, final = 'passed', checks
+            else:
+                outcome = browser.act(operation, ref, scenario['values'][key] if key else None)
+            entry['outcome'] = outcome
+            repeats = repeats + 1 if history and {k: history[-1].get(k) for k in ('operation', 'target', 'value')} == \
+                {k: entry[k] for k in ('operation', 'target', 'value')} else 0
+            history.append({k: entry[k] for k in ('step', 'operation', 'target', 'value', 'outcome')})
+            events.append({**entry, 'url': page['url'], 'elements': len(page['elements']), **{
+                k: decision[k] for k in ('risk', 'latency_s', 'cost', 'cached')},
+                'confidence': decision['operation']['confidence'], 'probabilities': decision['operation']['probabilities']})
+            test_record.append(out, events[-1])
+            log(f"{step:>2} {operation:<12} {ref or '':<5} {key or '':<10} p={decision['operation']['confidence']:.2f} "
+                f"risk={decision['risk'] if decision['risk'] is None else round(decision['risk'], 2)} "
+                f"{decision['latency_s']:.2f}s → {outcome}")
+            if result or repeats >= STALL - 1:
+                result = result or 'stalled'
+                break
+        if result is None:
+            result = 'max_steps'
+        if final is None:
+            final = [browser.check(c) for c in scenario.get('checks', [])]
+    except Exception as failure:  # noqa: BLE001 — 실행 실패를 증거로 남긴 뒤 원래 예외를 다시 던진다
+        error, result = failure, 'error'
+        final = final or []
+    passed = error is None and bool(final) and all(c.get('passed') is True for c in final) and result in ('passed', 'max_steps')
+    summary = {'version': 'jev-test-web-v1', **identity, 'result': result, 'passed': passed, 'steps': len(events),
+               'jev_calls': len(calls), 'calls': calls, **test_record.costs(calls),
+               'latency_s': round(sum(e.get('latency_s') or 0 for e in calls), 3),
+               'elapsed_s': round(time.monotonic() - started, 3), 'checks': final,
                'url': scenario['url'], 'goal': scenario['goal'], 'covers': scenario.get('covers') or []}
-    out.mkdir(parents=True, exist_ok=True)
-    (out / 'events.jsonl').write_text(''.join(json.dumps(e, ensure_ascii=False) + '\n' for e in events), encoding='utf-8')
-    (out / 'result.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    if error:
+        summary.update(error_type=type(error).__name__, evidence_unavailable='execution stopped before final evidence')
+    try:
+        test_record.finish(out, summary, events, 'web')
+    except Exception:  # noqa: BLE001 — 원래 실행 실패를 저장 오류로 가리지 않는다
+        if error is None:
+            raise
+    if error:
+        raise error
     return summary
 
 
@@ -313,7 +330,7 @@ def main():
     key = api_key(args.env_file, repo)
     if not key:
         parser.exit(2, 'OPENROUTER_API_KEY가 없어 Jev를 쓸 수 없습니다\n')
-    stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    stamp = datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     out = repo / f'.fullops-squad/docs/evaluations/qa-reports/{args.key}-test/web-{stamp}'
     browser = Browser(orca, args.worktree or f'path:{repo.as_posix()}')
     summary = run(scenario, browser, lambda payload: request(payload, key), out)

@@ -50,6 +50,8 @@ UI가 없는 작업은 해당 없음과 이유를 적는다. UI 작업은 아래
 
 `jev_route.py`가 고른 산출물 ID(D01–D13)와 설계 판단으로 더한 것을 적는다. worker는 해당 원천 문서의 본문과 front matter(`status`·`updated`·`tasks`)를 `fullops-deliverables` 규칙대로 갱신한다. 없으면 "없음"으로 적는다.
 
+탐색 패킷의 task/role/attempt·기준 SHA와 direct_edit/impact_check/document_read/document_update 경로·구간·근거·partial/unknown을 연결한다. 명시적 없음과 미확인을 구분한다. 필수·충돌·주의 후보와 budget 잔여 확인 목록을 보존한다.
+
 ## 기대 산출물
 
 코드·테스트·기획/설계/QA 원천 파일·상세 작업 로그 경로를 적는다.

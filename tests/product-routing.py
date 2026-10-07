@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory(prefix='fullops-product-') as tmp:
             assert set(questions['scope']['criteria']) == {'implementation', 'product'}
             roles = list(questions['role']['criteria'])
             assert set(roles) == {'dev', 'art'}
-            return {'answers': {
+            return {'model': 'typesafe/jev-test', 'usage': {'input_tokens': 1, 'output_tokens': 1, 'cost': 0.001}, 'answers': {
                 'scope': {'type': 'choice', 'choice': scope, 'confidence': probability,
                           'probabilities': {s: probability if s == scope else 1 - probability
                                             for s in questions['scope']['criteria']}},
@@ -81,12 +81,17 @@ with tempfile.TemporaryDirectory(prefix='fullops-product-') as tmp:
     records.mkdir(parents=True, exist_ok=True)
     for result in (implementation, product, art):
         (records / f"{result['task_key']}-route.json").write_text(json.dumps(result), encoding='utf-8')
-    (records / 'BLOCKED-route.json').write_text(json.dumps({'route': 'unresolved', 'role': None}), encoding='utf-8')
+    (records / 'BLOCKED-route.json').write_text(json.dumps({'version':'jev-route-v4', 'task_key':'BLOCKED', 'route': 'unresolved', 'role': None}), encoding='utf-8')
     assert not hook(content='---\ntitle: 구현 지시\n---\n# IMPLEMENT — 구현\n')
     assert hook(content='# PRODUCT — 제품 결정\n')
     assert hook(content='# ART — 다른 역할\n')
     assert '미확정' in hook('orca orchestration worker-start --run r1 --spec "BLOCKED 작업"')
-    assert not hook(f'orca orchestration worker-start --run r1 --worktree "{tmp}" --spec "IMPLEMENT 작업"')
+    assert 'implementation' in hook(f'orca orchestration worker-start --run r1 --worktree "{tmp}" --spec "IMPLEMENT 작업"')
+    subprocess.run(['git', '-C', tmp, 'add', '-A'], check=True)
+    subprocess.run(['git', '-C', tmp, '-c', 'user.name=t', '-c', 'user.email=t@example.test', 'commit', '-qm', 'setup'], check=True)
+    worker = repo / '.git/dev'
+    subprocess.run(['git', '-C', tmp, 'worktree', 'add', '-q', '-b', 'fullops/dev', str(worker)], check=True)
+    assert not hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')
     patch = ('*** Begin Patch\n*** Update File: .fullops-squad/handovers/to_dev.md\n@@\n'
              '+# IMPLEMENT — 구현\n+orca orchestration worker-start --spec "본문 예시"\n*** End Patch\n')
     assert not hook(patch)  # 지시서 안의 실행 예시는 실제 배정 명령이 아니다.

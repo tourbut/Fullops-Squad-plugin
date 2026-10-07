@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """명시한 Git 레포에만 FullOps를 활성화한다. 기존 문서는 보존한다."""
 import argparse
+import base64
 import json
 from pathlib import Path
 import re
@@ -8,6 +9,35 @@ import subprocess
 
 from datetime import date
 import deliverables
+from storage import atomic_write, write_json
+
+
+def apply_plan(repo, journal, plan, dry_run=False, verbose=False):
+    """최초 계획의 원본/작성 바이트를 확인해 중단된 setup을 재개한다. 사용자 변경은 보존한다."""
+    pending = []
+    for item in plan['files']:
+        name = Path(item['path'])
+        if not name.parts or name.is_absolute() or '..' in name.parts or name.parts[0] == '.git':
+            raise ValueError('잘못된 setup 복구 경로')
+        path = repo / name
+        if path.is_symlink() or any(p.is_symlink() for p in path.parents if repo in p.parents):
+            raise ValueError('setup 복구 경로에 symlink가 있습니다')
+        current = path.read_bytes() if path.exists() else None
+        before = base64.b64decode(item['before'], validate=True) if item['before'] is not None else None
+        after = base64.b64decode(item['after'], validate=True)
+        if current not in (before, after):
+            raise ValueError(f"setup 중 사용자 변경을 보존합니다. 복구 충돌: {item['path']}")
+        if current != after:
+            pending.append((path, after))
+    for path, content in pending:
+        if verbose:
+            print(('생성 예정: ' if dry_run else '작성: ') + path.relative_to(repo).as_posix())
+        if not dry_run:
+            atomic_write(path, content)
+    if not dry_run:
+        journal.unlink(missing_ok=True)
+    print(f"{'생성 예정' if dry_run else '작성'}: {len(pending)}개")
+    return [path.relative_to(repo).as_posix() for path, _ in pending]
 
 PLUGIN = Path(__file__).resolve().parents[1]
 MARKER = ".fullops-squad/fullops.json"
@@ -77,6 +107,13 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
     if root != repo:
         raise ValueError(f"레포 루트를 지정하세요: {root}")
+    journal = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-setup.json'
+    invocation = {'roles': roles, 'remote': remote, 'base': base, 'local_only': local_only}
+    if journal.is_file():
+        plan = json.loads(journal.read_text(encoding='utf-8'))
+        if plan.get('invocation') != invocation:
+            raise ValueError('중단된 setup이 있습니다. 이전과 같은 옵션으로 재시도하세요')
+        return apply_plan(repo, journal, plan, dry_run, verbose)
     marker = repo / MARKER
     if marker.is_symlink() or marker.parent.is_symlink():
         raise ValueError("심볼릭 링크 설정은 사용하지 않습니다")
@@ -160,15 +197,12 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     updated = (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode()
     if not marker.exists() or marker.read_bytes() != updated:
         changes[MARKER] = updated
-    for name, content in changes.items():
-        if verbose:
-            print(("생성 예정: " if dry_run else "작성: ") + name)
-        if not dry_run:
-            path = repo / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(content)
-    print(f"{'생성 예정' if dry_run else '작성'}: {len(changes)}개")
-    return list(changes)
+    plan = {'invocation': invocation, 'files': [{'path': name,
+            'before': base64.b64encode((repo / name).read_bytes()).decode() if (repo / name).exists() else None,
+            'after': base64.b64encode(content).decode()} for name, content in changes.items()]}
+    if not dry_run:
+        write_json(journal, plan)
+    return apply_plan(repo, journal, plan, dry_run, verbose)
 
 
 def main():

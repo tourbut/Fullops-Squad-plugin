@@ -17,7 +17,7 @@ def main():
     for host in ('codex', 'claude-code', 'grok', 'agy', 'all'):
         plan = list(deps.commands(host))
         flat = [' '.join(map(str, cmd)) for cmd in plan]
-        assert plan[0][:3] == ['npm', 'install', '--global'] and '@alibaba-group/open-code-review@latest' in plan[0]
+        assert plan[0][:3] == ['npm', 'install', '--global'] and '@alibaba-group/open-code-review@1.12.12' in plan[0]
         assert not any('fullops-squad' in line for line in flat), (host, flat)  # 자신은 마켓플레이스가 설치한다
         assert any('JuliusBrussee/caveman' in line for line in flat)
     codex = [' '.join(c) for c in deps.commands('codex')]

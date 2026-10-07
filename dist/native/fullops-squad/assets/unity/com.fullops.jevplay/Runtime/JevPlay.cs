@@ -33,6 +33,7 @@ namespace Fullops.JevPlay
     }
 
     [Serializable] public class Actor { public string name, group, direction; public float x, y, distance; public bool withinReach; }
+    [Serializable] public class ActorCount { public string group; public int count; }
     [Serializable] public class Field { public string name, value, error; }
     [Serializable] public class Choice { public string id, description; }
 
@@ -44,6 +45,7 @@ namespace Fullops.JevPlay
         public bool gamePaused;  // 게임이 스스로 멈춘 상태(레벨업 선택 등). 이때 이동은 진행되지 않고 입력만 받는다
         public Actor player;
         public Actor[] actors;
+        public ActorCount[] actorCounts;
         public Field[] fields;
         public string[] texts;
         public Choice[] actions;
@@ -178,11 +180,16 @@ namespace Fullops.JevPlay
             return result;
         }
 
-        State Snapshot(int step, List<Choice> choices) => new State
+        State Snapshot(int step, List<Choice> choices)
         {
-            step = step, gameTime = Time.time, gamePaused = gameScale == 0f, player = Player(), actors = Actors(), fields = Fields(), texts = Texts(),
-            actions = choices.ToArray(), lastAction = lastAction, lastOutcome = lastOutcome,
-        };
+            var actors = Actors(false);
+            return new State
+            {
+                step = step, gameTime = Time.time, gamePaused = gameScale == 0f, player = Player(), actors = actors.Take(24).ToArray(),
+                actorCounts = config.groups.Select(g => new ActorCount { group = g.name, count = actors.Count(a => a.group == g.name) }).ToArray(),
+                fields = Fields(), texts = Texts(), actions = choices.ToArray(), lastAction = lastAction, lastOutcome = lastOutcome,
+            };
+        }
 
         Actor Player()
         {
@@ -192,7 +199,7 @@ namespace Fullops.JevPlay
             return p == null ? null : new Actor { name = p.name, group = "player", x = p.position.x, y = p.position.y };
         }
 
-        Actor[] Actors()
+        Actor[] Actors(bool limited = true)
         {
             var player = Player();
             var result = new List<Actor>();
@@ -203,7 +210,8 @@ namespace Fullops.JevPlay
                     result.Add(new Actor { name = t.name, group = g.name, x = t.position.x, y = t.position.y, distance = d,
                         direction = Direction(dx, dy), withinReach = player != null && d <= config.reach });
                 }
-            return result.OrderBy(a => a.distance).Take(24).ToArray();
+            var ordered = result.OrderBy(a => a.distance);
+            return (limited ? ordered.Take(24) : ordered).ToArray();
         }
 
         Actor Nearest(string group) => Actors().FirstOrDefault(a => a.group == group);

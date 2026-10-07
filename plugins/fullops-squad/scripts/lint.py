@@ -6,14 +6,17 @@ from fnmatch import fnmatch
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 import tokenize
+import uuid
 
 import deliverables
 from work import active_repo, safe_file
+from storage import write_json
 
 CONFIG = '.fullops-squad/lint/lint.json'
 DEFAULT = json.loads((Path(__file__).resolve().parents[1] / 'assets/repository' / CONFIG).read_text())
@@ -256,6 +259,11 @@ def run_command(repo, command, timeout):
 
 
 def lint(repo, base_ref):
+    gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
+    gate.mkdir(exist_ok=True)
+    (gate / 'pass.json').unlink(missing_ok=True)
+    attempt = uuid.uuid4().hex
+    write_json(gate / 'lint-attempt.json', {'attempt': attempt})
     if git(repo, 'status', '--porcelain'):
         raise ValueError('작업 트리가 깨끗하지 않습니다. 커밋 후 실행하세요')
     head = git(repo, 'rev-parse', 'HEAD')
@@ -300,20 +308,22 @@ def lint(repo, base_ref):
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '프로젝트 lint 명령이 등록되지 않았습니다. setup에서 기존 도구를 연결하세요'})
     errors = sum(v['severity'] == 'ERROR' for v in violations) + sum(c['status'] in ('failed', 'timeout') for c in commands)
-    return {'schema_version': 1, 'base': base, 'merge_base': merge_base, 'head': head, 'config_sha256': digest,
+    return {'schema_version': 1, 'attempt': attempt, 'base': base, 'merge_base': merge_base, 'head': head, 'config_sha256': digest,
             'commands': commands, 'violations': violations,
             'summary': {'files': files, 'added_lines': additions, 'errors': errors,
                         'warnings': sum(v['severity'] == 'WARNING' for v in violations),
                         'unavailable': sum(c['status'] == 'unavailable' for c in commands)}}
 
 
-def stamp(repo, head):
+def stamp(repo, result):
     """done-gate(Stop hook)가 읽는 통과 기록. 체크아웃별 git 디렉터리에 둔다."""
     try:
         gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
         gate.mkdir(exist_ok=True)
-        (gate / 'pass.json').write_text(json.dumps({'head': head}) + '\n')
-    except (OSError, subprocess.CalledProcessError):
+        if json.loads((gate / 'lint-attempt.json').read_text())['attempt'] != result['attempt']:
+            return
+        write_json(gate / 'pass.json', {k: result[k] for k in ('attempt', 'head', 'base', 'merge_base', 'config_sha256')})
+    except (OSError, ValueError, KeyError, subprocess.CalledProcessError):
         pass  # 기록 실패는 lint 결과를 바꾸지 않는다
 
 
@@ -323,15 +333,26 @@ def main():
     parser.add_argument('--from', required=True, dest='base', help='기준 ref. merge-base 이후 변경만 검사')
     parser.add_argument('--out', help='결과 JSON 경로 (리뷰 디렉터리의 lint.json)')
     args = parser.parse_args()
+    lock = None
     try:
         repo = active_repo(args.repo)
+        lock = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-lint.lock'
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            lock = None
+            raise ValueError('이 체크아웃의 lint가 실행 중입니다. 종료 후 재시도하세요')
+        os.close(fd)
         result = lint(repo, args.base)
+        if args.out:
+            write_json(Path(args.out), result)
+        if not (result['summary']['errors'] or result['summary']['unavailable']):
+            stamp(repo, result)
     except (OSError, ValueError, KeyError, TypeError, re.error, subprocess.CalledProcessError) as error:
         parser.exit(2, f'lint 실패: {error}\n')
-    if args.out:
-        out = Path(args.out)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    finally:
+        if lock is not None:
+            lock.unlink(missing_ok=True)
     for c in result['commands']:
         print(f"[{c['status']}] {c['name']}: {' '.join(c['run'])}")
         if c['status'] == 'failed':
@@ -340,8 +361,6 @@ def main():
         print(f"{v['severity']} {v['code']} {v['path']}{':' + str(v['line']) if v['line'] else ''} {v['message']}")
     s = result['summary']
     print(f"head {result['head'][:12]} / 파일 {s['files']} / ERROR {s['errors']} / WARNING {s['warnings']} / 실행 불가 {s['unavailable']}")
-    if not (s['errors'] or s['unavailable']):
-        stamp(repo, result['head'])
     raise SystemExit(1 if s['errors'] or s['unavailable'] else 0)
 
 

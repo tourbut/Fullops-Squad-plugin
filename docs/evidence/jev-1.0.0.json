@@ -1,0 +1,462 @@
+{
+  "plugin_version": "1.0.0",
+  "fixture_head": "34f01d09363899fe39ca757deb772d44bfd52735",
+  "fixture_sha256": "e162237713d2d34bc8d565b4b03766709c2b43c4b01e69d5fa3eb2fbeebe360e",
+  "runner_sha256": "58b6aa9c4db706ea8422fc586e9a5cbd3d8f8667deb7f7a54deac1d94a41db1b",
+  "policy": "uncached synthetic calls plus exact-payload cache control; scores are recommendations",
+  "status": "passed",
+  "errors": [],
+  "calls": [
+    {
+      "input_sha256": "4de571e000ce79c96f5747e4569dba5b341e4b82cbd9fbaab733f0f98d64bd8a",
+      "question_sha256": "44b342bfbc5d1748dfafbac32d9d4384bf1ee714bb32cdd9c4208b279730f7ab",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 1903,
+        "output_tokens": 300,
+        "cost": 7.9926e-05
+      },
+      "elapsed_seconds": 0.777,
+      "cached": false
+    },
+    {
+      "input_sha256": "0af41e8baae6b7bbd9ba0f8c5e2d7413b066cce6129c334cc589533971acc6fa",
+      "question_sha256": "88a98295040f21caa082d454b49e50a5c9d1e25692b4648d5dd10d5d597cefd6",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2237,
+        "output_tokens": 90,
+        "cost": 9.3954e-05
+      },
+      "elapsed_seconds": 0.591,
+      "cached": false
+    },
+    {
+      "input_sha256": "0af41e8baae6b7bbd9ba0f8c5e2d7413b066cce6129c334cc589533971acc6fa",
+      "question_sha256": "f6cbb7b7231f668db8d09a8f0727bac6dc659f979b9b35dfc7df30e5c3a70f77",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2928,
+        "output_tokens": 290,
+        "cost": 0.000122976
+      },
+      "elapsed_seconds": 0.452,
+      "cached": false
+    },
+    {
+      "input_sha256": "d2bd54f3dbee096c29f6d8d8f988aa955856093b01ae229bb74ad7152328347a",
+      "question_sha256": "4c42788ccf03532ada821ce1e09bbdc7eef18a63c9ac1914d6e98a9a44cd8a06",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2248,
+        "output_tokens": 76,
+        "cost": 9.4416e-05
+      },
+      "elapsed_seconds": 0.423,
+      "cached": false
+    },
+    {
+      "input_sha256": "c7aeed9599d55adf6e0c7b1833b94aa2d025702463f5b4104a105e554df5d050",
+      "question_sha256": "4c42788ccf03532ada821ce1e09bbdc7eef18a63c9ac1914d6e98a9a44cd8a06",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2239,
+        "output_tokens": 76,
+        "cost": 9.4038e-05
+      },
+      "elapsed_seconds": 0.425,
+      "cached": false
+    },
+    {
+      "input_sha256": "66f0c404d3ffd16dadad7008b9a9c4ecbf0a4707a658f7c2aba8c39bc48cd0ba",
+      "question_sha256": "4c42788ccf03532ada821ce1e09bbdc7eef18a63c9ac1914d6e98a9a44cd8a06",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2240,
+        "output_tokens": 76,
+        "cost": 9.408e-05
+      },
+      "elapsed_seconds": 0.447,
+      "cached": false
+    },
+    {
+      "input_sha256": "ab01e3ed1b83d9878e0d22c7432d311c4f611d4ff4910e668dfe20e0e54bcb8e",
+      "question_sha256": "4c42788ccf03532ada821ce1e09bbdc7eef18a63c9ac1914d6e98a9a44cd8a06",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2262,
+        "output_tokens": 76,
+        "cost": 9.5004e-05
+      },
+      "elapsed_seconds": 0.772,
+      "cached": false
+    },
+    {
+      "input_sha256": "21dc8c16b8ac70ec795c5503cff559a53d26da4b1241b9f39e5812b869455cc8",
+      "question_sha256": "4c42788ccf03532ada821ce1e09bbdc7eef18a63c9ac1914d6e98a9a44cd8a06",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 2233,
+        "output_tokens": 76,
+        "cost": 9.3786e-05
+      },
+      "elapsed_seconds": 0.774,
+      "cached": false
+    },
+    {
+      "input_sha256": "d517d2970ecd50282bc8692afb4c89eaeaae9810293fc96a8c12d5bc0c1dd0c5",
+      "question_sha256": "39dcc795b6533be2003187228acb42dc0b80211ab352f339dd1476974a8613fe",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 690,
+        "output_tokens": 126,
+        "cost": 2.898e-05
+      },
+      "elapsed_seconds": 0.458,
+      "cached": false
+    },
+    {
+      "input_sha256": "5213b1cc98e237478f82a6b8a4147a954f4f45e4a69e9ad0f6e42bd28c1d35a4",
+      "question_sha256": "fd0eb7e9a48febb69c13ee809607fc4e72b3567af63e8b08223ee616f4a30c0d",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 506,
+        "output_tokens": 31,
+        "cost": 2.1252e-05
+      },
+      "elapsed_seconds": 0.427,
+      "cached": false
+    },
+    {
+      "input_sha256": "5213b1cc98e237478f82a6b8a4147a954f4f45e4a69e9ad0f6e42bd28c1d35a4",
+      "question_sha256": "fd0eb7e9a48febb69c13ee809607fc4e72b3567af63e8b08223ee616f4a30c0d",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 506,
+        "output_tokens": 31,
+        "cost": 2.1252e-05
+      },
+      "elapsed_seconds": 0.472,
+      "cached": false
+    },
+    {
+      "input_sha256": "5213b1cc98e237478f82a6b8a4147a954f4f45e4a69e9ad0f6e42bd28c1d35a4",
+      "question_sha256": "fd0eb7e9a48febb69c13ee809607fc4e72b3567af63e8b08223ee616f4a30c0d",
+      "requested_model": "~typesafe/jev-latest",
+      "response_model": "typesafe/jev-1.13-20260917",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost": 0
+      },
+      "elapsed_seconds": 0.0,
+      "cached": true
+    }
+  ],
+  "known_cost": 0.000839664,
+  "elapsed_seconds": 4.16585054481402,
+  "route": {
+    "route": "design",
+    "role": "architecture",
+    "deliverables": [
+      "D05",
+      "D10"
+    ]
+  },
+  "code_candidates": [
+    {
+      "path": "api.py",
+      "summary": "User lookup API.",
+      "probability": 1,
+      "probability_scope": "batch",
+      "batch_start": 0
+    }
+  ],
+  "document_candidates": [
+    {
+      "path": ".fullops-squad/docs/design-docs/interface-design.md",
+      "summary": "User lookup response contract D05",
+      "probability": 0.63,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/rules/common/README.md",
+      "summary": "FullOps 공통 개발 규칙",
+      "probability": 0.23,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "summary": "현재 작업 — 현재 작업",
+      "probability": 0.07,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/contexts/dev.md",
+      "summary": "dev 컨텍스트 — dev 컨텍스트",
+      "probability": 0.02,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/docs/deliverables/README.md",
+      "summary": "산출물 인덱스 — 산출물 인덱스",
+      "probability": 0.01,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/contexts/architecture.md",
+      "summary": "architecture 컨텍스트 — architecture 컨텍스트",
+      "probability": 0.01,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/docs/agents/domain.md",
+      "summary": "Domain docs — Domain docs",
+      "probability": 0.01,
+      "probability_scope": "batch",
+      "batch_start": 0
+    },
+    {
+      "path": ".fullops-squad/handovers/_TEMPLATE.md",
+      "summary": "<과제 키> — <목표>",
+      "probability": 0.01,
+      "probability_scope": "batch",
+      "batch_start": 0
+    }
+  ],
+  "context": {
+    "baseline_ids": [
+      "c0-api.py",
+      "c1-caller.py",
+      "c2-test_api.py",
+      "c3-notes.md",
+      "c4-interface-design.md",
+      "required_0",
+      "required_1",
+      "required_2",
+      "required_3",
+      "required_4",
+      "required_5",
+      "required_6"
+    ],
+    "recommended_ids": [
+      "c0-api.py",
+      "c1-caller.py",
+      "c2-test_api.py",
+      "c4-interface-design.md",
+      "required_0",
+      "required_1",
+      "required_2",
+      "required_3",
+      "required_4",
+      "required_5",
+      "required_6"
+    ],
+    "signals": {
+      "c0-api.py": {
+        "relevant": 0.82,
+        "evidence": 0.77,
+        "contradicts": 0.36,
+        "injection": 0.03,
+        "decision": "keep",
+        "reason": null
+      },
+      "c1-caller.py": {
+        "relevant": 0.69,
+        "evidence": 0.75,
+        "contradicts": 0.53,
+        "injection": 0.02,
+        "decision": "keep",
+        "reason": null
+      },
+      "c2-test_api.py": {
+        "relevant": 0.8,
+        "evidence": 0.77,
+        "contradicts": 0.67,
+        "injection": 0.02,
+        "decision": "conflict",
+        "reason": "contradicts task"
+      },
+      "c3-notes.md": {
+        "relevant": 0.02,
+        "evidence": 0.02,
+        "contradicts": 0.05,
+        "injection": 0.02,
+        "decision": "suggest_omit",
+        "reason": "irrelevant"
+      },
+      "c4-interface-design.md": {
+        "relevant": 0.87,
+        "evidence": 0.84,
+        "contradicts": 0.64,
+        "injection": 0.03,
+        "decision": "conflict",
+        "reason": "contradicts task"
+      }
+    },
+    "fallback": null,
+    "conflict_ids": [
+      "c2-test_api.py",
+      "c4-interface-design.md"
+    ],
+    "caution_ids": [],
+    "candidate_paths": {
+      "c0-api.py": "api.py",
+      "c1-caller.py": "caller.py",
+      "c2-test_api.py": "test_api.py",
+      "c3-notes.md": "notes.md",
+      "c4-interface-design.md": ".fullops-squad/docs/design-docs/interface-design.md",
+      "required_0": ".fullops-squad/FULLOPS.md",
+      "required_1": ".fullops-squad/handovers/to_dev.md",
+      "required_2": ".fullops-squad/project.md",
+      "required_3": ".fullops-squad/rules/common/README.md",
+      "required_4": ".fullops-squad/rules/common/coding-style.md",
+      "required_5": ".fullops-squad/rules/common/security.md",
+      "required_6": ".fullops-squad/rules/common/testing.md"
+    },
+    "required_paths": [
+      ".fullops-squad/FULLOPS.md",
+      ".fullops-squad/handovers/to_dev.md",
+      ".fullops-squad/project.md",
+      ".fullops-squad/rules/common/README.md",
+      ".fullops-squad/rules/common/coding-style.md",
+      ".fullops-squad/rules/common/security.md",
+      ".fullops-squad/rules/common/testing.md"
+    ],
+    "missing_required_paths": []
+  },
+  "packet_evaluation": {
+    "status": "evaluated",
+    "head": "34f01d09363899fe39ca757deb772d44bfd52735",
+    "input_sha256": "799dddde8d1af02ba3db7552a17b7f051219e5476725a5cdf58149a88b4cf42b",
+    "metric": "explicit labels; independent of changed-file overlap",
+    "categories": {
+      "direct_edit": {
+        "expected": [
+          "api.py"
+        ],
+        "selected": [
+          "api.py"
+        ],
+        "hits": [
+          "api.py"
+        ],
+        "missed": [],
+        "extra": [],
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "impact_check": {
+        "expected": [
+          "caller.py",
+          "test_api.py"
+        ],
+        "selected": [
+          "api.py",
+          "caller.py",
+          "test_api.py"
+        ],
+        "hits": [
+          "caller.py",
+          "test_api.py"
+        ],
+        "missed": [],
+        "extra": [
+          "api.py"
+        ],
+        "recall": 1.0,
+        "precision": 0.6666666666666666
+      },
+      "document_read": {
+        "expected": [
+          ".fullops-squad/docs/design-docs/interface-design.md"
+        ],
+        "selected": [
+          ".fullops-squad/FULLOPS.md",
+          ".fullops-squad/PLANS.md",
+          ".fullops-squad/contexts/architecture.md",
+          ".fullops-squad/contexts/dev.md",
+          ".fullops-squad/docs/agents/domain.md",
+          ".fullops-squad/docs/deliverables/README.md",
+          ".fullops-squad/docs/design-docs/interface-design.md",
+          ".fullops-squad/docs/operations/transition.md",
+          ".fullops-squad/docs/planning/business-plan.md",
+          ".fullops-squad/handovers/_TEMPLATE.md",
+          ".fullops-squad/handovers/to_dev.md",
+          ".fullops-squad/project.md",
+          ".fullops-squad/rules/common/README.md",
+          ".fullops-squad/rules/common/coding-style.md",
+          ".fullops-squad/rules/common/security.md",
+          ".fullops-squad/rules/common/testing.md",
+          "notes.md"
+        ],
+        "hits": [
+          ".fullops-squad/docs/design-docs/interface-design.md"
+        ],
+        "missed": [],
+        "extra": [
+          ".fullops-squad/FULLOPS.md",
+          ".fullops-squad/PLANS.md",
+          ".fullops-squad/contexts/architecture.md",
+          ".fullops-squad/contexts/dev.md",
+          ".fullops-squad/docs/agents/domain.md",
+          ".fullops-squad/docs/deliverables/README.md",
+          ".fullops-squad/docs/operations/transition.md",
+          ".fullops-squad/docs/planning/business-plan.md",
+          ".fullops-squad/handovers/_TEMPLATE.md",
+          ".fullops-squad/handovers/to_dev.md",
+          ".fullops-squad/project.md",
+          ".fullops-squad/rules/common/README.md",
+          ".fullops-squad/rules/common/coding-style.md",
+          ".fullops-squad/rules/common/security.md",
+          ".fullops-squad/rules/common/testing.md",
+          "notes.md"
+        ],
+        "recall": 1.0,
+        "precision": 0.058823529411764705
+      },
+      "document_update": {
+        "expected": [
+          ".fullops-squad/docs/design-docs/interface-design.md"
+        ],
+        "selected": [
+          ".fullops-squad/docs/design-docs/interface-design.md"
+        ],
+        "hits": [
+          ".fullops-squad/docs/design-docs/interface-design.md"
+        ],
+        "missed": [],
+        "extra": [],
+        "recall": 1.0,
+        "precision": 1.0
+      }
+    }
+  },
+  "web_operation": "fill_submit",
+  "web_risk": 0.05,
+  "unity_action": "blocked",
+  "cache_hit_proven": true,
+  "cache_answers_equal": true,
+  "limitations": [
+    "synthetic task only",
+    "no real browser or Unity Player",
+    "no whole-repo relevance guarantee"
+  ]
+}

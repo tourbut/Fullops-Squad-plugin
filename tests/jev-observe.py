@@ -99,7 +99,7 @@ with tempfile.TemporaryDirectory() as directory:
     injected['required_paths'] = []
     result = jev.observe(injected, repo, response)
     assert result['context']['signals']['hostile']['decision'] == 'caution'  # 근거가 높으면 제외하지 않고 주의로 둔다
-    assert jev.triage({'path': 'x', 'source': {'span': 1}}, {'relevant': 0.2, 'evidence': 0.1, 'contradicts': 0.9, 'injection': 0.9},
+    assert jev.triage({'path': 'x', 'source': {'span': 1}, 'source_complete': True}, {'relevant': 0.2, 'evidence': 0.1, 'contradicts': 0.9, 'injection': 0.9},
                       set()) == ('suggest_omit', 'instructions')  # 조종 문구 판정이 충돌보다 먼저다
     related = {'relevant': 0.6, 'evidence': 0.48, 'contradicts': 0.63, 'injection': 0.2}
     assert jev.triage({'path': 'x', 'source': {'span': 1}}, related, set()) == ('conflict', 'contradicts task')  # 관련 있는 중간 충돌
@@ -107,7 +107,8 @@ with tempfile.TemporaryDirectory() as directory:
     assert jev.triage({'path': '.fullops-squad/FULLOPS.md', 'source': {'span': 1}}, rules, set()) == ('keep', None)  # 하네스 규칙 문서는 지시문이 정상
     assert jev.triage({'path': 'docs/vendor.md', 'source': {'span': 1}}, rules, set())[0] == 'caution'
     noise = {'relevant': 0.03, 'evidence': 0.03, 'contradicts': 0.67, 'injection': 0.1}
-    assert jev.triage({'path': 'x', 'source': {'span': 1}}, noise, set()) == ('suggest_omit', 'irrelevant')  # 무관한 파일의 충돌은 잡음
+    assert jev.triage({'path': 'x', 'source': {'span': 1}, 'source_complete': True}, noise, set()) == ('suggest_omit', 'irrelevant')
+    assert jev.triage({'path': 'x', 'source': {'span': 1}}, noise, set()) == ('keep', None)  # 부분 검토로 파일 전체를 제외하지 않는다
 
     wrong = jev.observe(json.loads(json.dumps(base)), repo,
                         lambda payload: ({'answers': {'bogus': {'type': 'choice', 'choice': 'irrelevant', 'confidence': 1}}}, 0))

@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 
 from board import deliverables
-from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text
+from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text, validated
 from work import KEY, active_repo, safe_file
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
@@ -130,8 +130,8 @@ def pick_model(repo, role, text, call):
             criteria[c['id']] = label
     question = {'model': {'type': 'choice', 'criteria': criteria, 'instructions': MODEL_HINT}}
     try:
-        response, _ = call({'model': MODEL, 'state': {'role': role, 'request': safe_text(text)}, 'questions': question})
-        answer = checked_answer(response['answers']['model'], criteria)
+        values, usage, elapsed, model = validated(call({'model': MODEL, 'state': {'role': role, 'request': safe_text(text)}, 'questions': question}), question)
+        answer = checked_answer(values['model'], criteria)
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
         return {**strongest, 'source': 'fallback', 'error': f'Jev 생략: {error}'}
     top = answer['probabilities'][answer['choice']]
@@ -140,7 +140,7 @@ def pick_model(repo, role, text, call):
     return {**{k: chosen[k] for k in ('agent', 'provider', 'model', 'effort')}, 'source': 'jev',
             **({'tie_break': answer['choice']} if chosen['id'] != answer['choice'] else {}),
             'probabilities': {f"{c['agent']} {c['model']} {c['effort']}": answer['probabilities'][c['id']] for c in candidates},
-            'usage': response.get('usage') or {}}
+            'usage': usage}
 
 
 def document_options(repo):
@@ -149,11 +149,19 @@ def document_options(repo):
     for d in deliverables(Path(repo) / '.fullops-squad'):
         if '범위 밖' in d['status']:
             continue
-        label = f"{d['id']} {d['name']} ({d['stage']})"
+        if not re.fullmatch(r'D\d{2}', d['id']):
+            continue
+        fields = []
+        for value in (d['name'], d['stage'], d['summary']):
+            try:
+                fields.append(safe_text(value or '', 200))
+            except ValueError:
+                fields.append('[omitted]')
+        label = f"{d['id']} {fields[0]} ({fields[1]})" + (f': {fields[2]}' if fields[2] else '')
         try:
-            options[d['id']] = safe_text(f"{label}: {d['summary']}" if d['summary'] else label, 300)
+            options[d['id']] = safe_text(label, 300)
         except ValueError:
-            options[d['id']] = label
+            options[d['id']] = f"{d['id']} Project deliverable"
     return options
 
 
@@ -229,26 +237,32 @@ def classify(repo, key, text, call):
                                    f'Must the project deliverable `deliverables.{doc}` be written or updated because of `request`?'}
     try:
         state = {'guide': safe_text(body), 'request': safe_text(text), **({'deliverables': docs} if docs else {})}
-        response, elapsed = call({'model': MODEL, 'state': state, 'questions': questions})
-        answers = {q: checked_answer(response['answers'][q], questions[q]['criteria']) for q in ('scope', 'role')}
+        safe_text(json.dumps(state, ensure_ascii=False), 20000)
+        values, usage, elapsed, model = validated(call({'model': MODEL, 'state': state, 'questions': questions}), questions, partial=True)
+        answers = {q: checked_answer(values[q], questions[q]['criteria']) for q in ('scope', 'role')}
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
         return {**result, 'route': fallback, 'error': f'Jev 생략: {error}'}
-    try:  # 산출물 답이 이상해도 역할 라우팅은 유지한다
-        answers['docs'] = {doc: checked_noul(response['answers'][f'doc_{doc}']) for doc in docs} if docs else None
-    except (ValueError, KeyError, TypeError):
-        answers['docs'] = None
+    answers['docs'], unresolved = {}, []
+    for doc in docs:
+        try:
+            answers['docs'][doc] = checked_noul(values[f'doc_{doc}'])
+        except (ValueError, KeyError, TypeError):
+            unresolved.append(doc)
+    positive = [doc for doc, probability in answers['docs'].items() if probability >= DOC]
+    result.update(docs_status='partial' if unresolved else 'complete', unresolved_deliverables=unresolved,
+                  additional_deliverables=[doc for doc in positive if doc not in picked(answers['docs'])])
     scope, role = answers['scope'], answers['role']
     if split:
         product = scope['probabilities']['product'] >= SIMPLE
         implementation = scope['probabilities']['implementation'] >= SIMPLE and role['probabilities'][role['choice']] >= ROLE
         return {**result, 'route': 'product' if product else 'implementation' if implementation else 'unresolved',
                 'role': designer if product else role['choice'] if implementation else None,
-                'deliverables': picked(answers['docs']), 'answers': answers, 'usage': response.get('usage') or {},
-                'latency_seconds': elapsed, 'response_model': response.get('model')}
+                'deliverables': picked(answers['docs']), 'answers': answers, 'usage': usage,
+                'latency_seconds': elapsed, 'response_model': model}
     simple = scope['probabilities']['simple'] >= SIMPLE and role['probabilities'][role['choice']] >= ROLE
     return {**result, 'route': 'simple' if simple else 'design', 'role': role['choice'] if simple else designer,
-            'deliverables': picked(answers['docs']), 'answers': answers, 'usage': response.get('usage') or {}, 'latency_seconds': elapsed,
-            'response_model': response.get('model')}
+            'deliverables': picked(answers['docs']), 'answers': answers, 'usage': usage, 'latency_seconds': elapsed,
+            'response_model': model}
 
 
 def main():
@@ -310,6 +324,8 @@ def main():
     except (OSError, ValueError) as error:
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
     errors = [error for error in (result.get('error'), (result.get('model') or {}).get('error')) if error]
+    if result.get('docs_status') == 'partial':
+        errors.append('산출물 일부 미확인: ' + ', '.join(result.get('unresolved_deliverables') or []))
     if args.strict and errors:
         parser.exit(2, 'Jev 라우팅 실패: ' + ' / '.join(errors) + '\n')
     for error in errors:
@@ -334,6 +350,10 @@ def main():
               f"{answers['role']['choice']} {answers['role']['probabilities'][answers['role']['choice']]:.2f})") if answers else ''
     print(f"route: {result['route']} → {result['role'] or '-'}{detail} / {result['error'] or '정상'}")
     print(f"갱신할 산출물: {', '.join(result['deliverables']) or '없음'}")
+    if result.get('docs_status') == 'partial':
+        print('산출물 미확인: ' + ', '.join(result['unresolved_deliverables']))
+    if result.get('additional_deliverables'):
+        print('추가 확인할 산출물: ' + ', '.join(result['additional_deliverables']))
     print(model_line)
     print(output.relative_to(repo))
 

@@ -27,6 +27,7 @@ class FakeGame(threading.Thread):
         actions = ([{'id': 'approach:enemy', 'description': 'Move toward the nearest enemy.'}] if self.hp > 0 else []) + [
             {'id': 'press:attack', 'description': 'Attack whatever is within reach.'}, {'id': 'wait', 'description': 'Wait.'}]
         return {'step': step, 'player': {'name': 'Player'}, 'actors': actors,
+                'actorCounts': [{'group': 'enemy', 'count': len(actors)}],
                 'fields': [{'name': 'enemy_hp', 'value': str(self.hp)}], 'texts': ['VICTORY'] if self.hp <= 0 else [],
                 'actions': actions, 'lastAction': self.last, 'lastOutcome': self.outcome}
 
@@ -67,9 +68,9 @@ def jev(plan):
     def call(payload):
         labels = list(payload['questions']['action']['criteria'])
         pick = next(steps)
-        return {'answers': {'action': {'type': 'choice', 'choice': pick, 'confidence': 0.9,
+        return {'model': 'typesafe/jev-test', 'answers': {'action': {'type': 'choice', 'choice': pick, 'confidence': 0.9,
                                        'probabilities': {l: 0.9 if l == pick else 0.1 / (len(labels) - 1) for l in labels}}},
-                'usage': {'cost': 0.0001}}, 0.2
+                'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.2
     return call
 
 
@@ -78,6 +79,10 @@ def main():
                 'checks': [{'actor': 'enemy', 'absent': True}, {'field': 'enemy_hp', 'op': '<=', 'value': 0}, {'text': 'VICTORY'}]}
     quiet = {'log': lambda _: None}
     assert unity.problems(scenario) == []
+    absent = {'actor': 'enemy', 'absent': True}
+    assert not unity.check(absent, {'actors': [], 'actorCounts': [{'group': 'enemy', 'count': 1}]})['passed']
+    assert unity.check(absent, {'actors': [], 'actorCounts': [{'group': 'enemy', 'count': 0}]})['passed']
+    assert unity.check(absent, {'actors': []})['status'] == 'unknown'
     shown = unity.model_state({'gamePaused': True, 'actors': [], 'fields': [], 'texts': []})
     assert shown['gamePaused'] is True  # 게임이 스스로 멈춘 상태를 Jev에게 알린다(레벨업 선택 등)
     bad = unity.problems({'goal': 'x', 'checks': [{'field': 'hp', 'op': '~', 'value': 1}], 'player_args': 'x'})
