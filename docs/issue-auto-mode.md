@@ -13,7 +13,7 @@
        → insufficient/conflicting → 추가 정보 대기
 ```
 
-`status`는 설정·소유자·큐 상태·최근 event를 반환하고 lease capability/원문 본문을 출력하지 않는다. 호스트 종료는 provider session ID, Orca 소유권은 Orca session/run/terminal incarnation으로 따로 추적한다. 체크포인트는 snapshot과 allowlist를 다시 확인한다. pause는 새 수집/claim 중지, disable/종료/lease 만료는 신규 실행 차단이다. 미커밋 파일·기존 worker·질문·큐를 삭제하지 않는다.
+`status`는 설정·소유자·큐 상태·최근 event를 반환하고 lease capability/원문 본문을 출력하지 않는다. 호스트 종료는 provider session ID로 추적한다. Orca structured session은 host가 확인한 Orca session ID를 사용하며, Orca TUI terminal agent는 native SessionStart가 기록한 provider session/terminal binding을 사용한다. 최신 binding이 이전 host 세션을 대체하며, 양쪽 모두 같은 Run과 terminal incarnation을 확인한다. 체크포인트는 snapshot과 allowlist를 다시 확인한다. pause는 새 수집/claim 중지, disable/종료/lease 만료는 신규 실행 차단이다. 미커밋 파일·기존 worker·질문·큐를 삭제하지 않는다.
 
 동시 실행은 issue 하나이며 worker 병렬 wave는 기존 방식이다. 보류 이슈와의 독립성을 검토하지 않은 다음 이슈는 claim 후 실행을 보류한다. 이미 dispatch intent가 있는 과제의 답변 재개/재시도는 기존 Run의 task/worker 확정 종료를 `sync`로 확인한 뒤 queued checkpoint를 남긴다. 부재/unverifiable를 종료로 바꾸지 않는다. 새 coor의 `reconcile`도 같은 정본 조회로 인계하고 자동 재배정하지 않는다. draft PR 이후 worker의 integration receipt는 사용자 병합 판단/PR 링크로 hold한다.
 
@@ -23,10 +23,12 @@
 
 - `python3 tests/issue-mode.py`: 격리 Git 저장소, 결정적 GitHub/Orca 대역. 기본 OFF와 범위 선택, 60초 경계, remote/push 권한, stable ID, PR/과거/close 제외, FIFO/동시 claim, 네트워크 실패 cursor 보존, 질문 응답 유실 조정, 같은 계정의 질문 제외, 타인/중복 답변 제외, 충분성 판단과 새 attempt, 댓글 삭제/본문 변경 보류, native session 종료, 새 owner fencing/인계, scope/review 실패, 304 Link/외부 redirect 차단.
 - 실제 read-only GitHub: 저장소/계정 stable ID, issue #10의 GraphQL `editor`/`lastEditedAt` 조회 성공. 실제 질문/상태 댓글은 전송하지 않았다.
-- 실제 Windows Orca 1.4.222: 설치된 가이드와 status, terminal show, run-current 및 check/worker-show/task-list help 확인. 현재 외부 제어 환경에서 caller identity 미제공. 활성화는 blocked이며 다른 사용자의 terminal/Run을 임의로 선택하지 않는다.
+- 실제 Windows Orca 1.4.222: 현재 대화는 `ORCA_TERMINAL_HANDLE`이 있는 Codex TUI terminal agent이다. 설치된 CLI의 `status-caller.js`는 structured session에서만 caller를 반환하며 terminal agent에는 Orca session ID가 아직 없다고 명시한다. 따라서 TUI는 native provider session/terminal binding으로 검증한다. `terminal show` 기본값은 실제 coor와 다른 pane을 반환했으므로 소유 handle을 명시해 조회하고, 같은 handle로 run-current를 확인한다. 현재 대화는 FullOps setup/native SessionStart receipt가 없어 활성화 blocked이며 새 플러그인으로 시작한 coor 세션이 필요하다. 실환경 질문·답변 검증은 아직 미완료다.
 - 실제 Windows native Codex 0.160.1: 별도 QA `CODEX_HOME`에 로컬 빌드 1.1.0을 설치하고 app-server의 `hooks/list`에서 SessionEnd 포함 9개 hook, warnings 0/errors 0을 확인했다. native 종료 이벤트 발생 자체나 실제 coor wake 검증으로 취급하지 않는다. 종료 처리 로직은 위 격리 테스트의 실제 subprocess/stdin 경로로 검증했다.
 
 ## 실환경 수용 검증
+
+미병합 PR을 다른 서비스 레포에서 시험할 때는 **PR head의 플러그인 코드**를 사용한다. main의 GitHub 마켓플레이스 설치는 미병합 변경을 포함하지 않는다. 해당 head 체크아웃의 `docs/development.md` 설치 절차를 따르고 기존 실행 세션의 cache를 보존한다. 테스트 서비스 레포에 setup/update를 적용한 뒤 새 coor 세션을 시작하여 native SessionStart receipt를 확인한다. configure의 `owner/repo`와 새 테스트 이슈·답변·draft PR은 그 서비스 레포의 실제 GitHub remote를 기준으로 한다.
 
 연결된 coor에서 사용자가 자동 모드를 명시적으로 켠 전용 테스트 저장소/허용 작성자가 필요하다. 그 환경에서 아래 결과를 기록하기 전에는 #10 완료/wake 성공을 주장하지 않는다.
 

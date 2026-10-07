@@ -17,10 +17,10 @@ def main():
         def git(*args):
             return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
 
-        def hook(mode, **event):
+        def hook(mode, native_env=None, **event):
             event.setdefault('cwd', tmp)
             done = subprocess.run([sys.executable, str(SCRIPTS / 'flow_gate.py'), mode], text=True, capture_output=True,
-                                  input=json.dumps(event), encoding='utf-8')
+                                  input=json.dumps(event), encoding='utf-8', env={**os.environ, **(native_env or {})})
             assert done.returncode == 0, done.stderr
             return json.loads(done.stdout)
 
@@ -54,6 +54,13 @@ def main():
 
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
+        native_env = {'ORCA_TERMINAL_HANDLE': 'term-native-test'}
+        for host_session in ('native-first', 'native-next'):
+            hook('start', native_env=native_env, session_id=host_session)
+            receipt = json.loads((repo / f'.git/fullops-gate/flow-{host_session}.json').read_text())
+            binding = json.loads((repo / '.git/fullops-gate/flow-terminal-term-native-test.json').read_text())
+            assert receipt['provider_session'] == binding['provider_session'] == host_session
+            assert receipt['orca_terminal'] == binding['orca_terminal'] == native_env['ORCA_TERMINAL_HANDLE']
         devtree = repo / '.git/dev-worktree'
         git('worktree', 'add', '-q', '-b', roles['dev'], str(devtree))
         bash = lambda command, **kw: hook('tool', session_id='c', tool_name='Bash',

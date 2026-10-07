@@ -70,6 +70,32 @@ def issue(number, author=42, **changes):
 
 
 def main():
+    # 화면에서 선택된 다른 pane은 소유 identity 검증에 사용하지 않는다.
+    adapter = mode.Orca('orca')
+    caller = {'caller': {'orcaSessionId': 'coor', 'live': True}}
+    pane = {'terminal': {'handle': 'term', 'connected': True, 'incarnationId': 'incarnation'}}
+    with patch.object(adapter, 'call', side_effect=[caller, pane, {'run': {'id': 'run'}}]) as call:
+        assert adapter.identity('coor', 'run', 'term') == 'incarnation'
+        assert call.call_args_list[1].args == ('terminal', 'show', '--terminal', 'term')
+        assert call.call_args_list[2].args == ('orchestration', 'run-current', '--from', 'term')
+    for status in ({}, {'caller': {'orcaSessionId': 'coor', 'live': False}}):
+        with patch.object(adapter, 'call', return_value=status) as call:
+            fails(lambda: adapter.identity('coor', 'run', 'term'), 'identity')
+            assert call.call_count == 1
+    native = {'provider_session': 'host', 'orca_terminal': 'term'}
+    with patch.dict('os.environ', {'ORCA_TERMINAL_HANDLE': 'term', 'ORCA_AGENT_SESSION_ID': ''}):
+        with patch.object(adapter, 'call', side_effect=[{}, pane, {'run': {'id': 'run'}}]):
+            assert adapter.identity('provider_session:host', 'run', 'term', 'host', native) == 'incarnation'
+        for session, terminal, receipt in (('provider_session:other', 'term', native),
+                                           ('provider_session:host', 'other', native),
+                                           ('provider_session:host', 'term', {})):
+            with patch.object(adapter, 'call', return_value={}):
+                fails(lambda: adapter.identity(session, 'run', terminal, 'host', receipt), 'identity')
+        for status in ({'caller': {'live': False}}, {'caller': {'orcaSessionId': 'other', 'live': True}}):
+            with patch.object(adapter, 'call', return_value=status):
+                fails(lambda: adapter.identity('provider_session:host', 'run', 'term', 'host', native), 'identity')
+        with patch.dict('os.environ', {'ORCA_AGENT_SESSION_ID': 'structured'}), patch.object(adapter, 'call', return_value={}):
+            fails(lambda: adapter.identity('provider_session:host', 'run', 'term', 'host', native), 'identity')
     with tempfile.TemporaryDirectory(prefix='fullops-issue-') as temporary:
         root = Path(temporary)
         subprocess.run(['git', 'init', '-q', '-b', 'main', str(root)], check=True)
@@ -92,6 +118,12 @@ def main():
         receipt = mode.hook_path(root, 'provider')
         receipt.parent.mkdir()
         receipt.write_text(json.dumps({'provider_session': 'provider'}))
+        binding = mode.hook_path(root, 'terminal-term')
+        binding.write_text(json.dumps({'provider_session': 'old', 'orca_terminal': 'term'}))
+        tui_owner = {'session': 'provider_session:provider', 'provider_session': 'provider', 'run': 'run', 'terminal': 'term'}
+        fails(lambda: mode.owner_identity(store, Orca(), tui_owner), 'binding')
+        binding.write_text(json.dumps({'provider_session': 'provider', 'orca_terminal': 'term'}))
+        assert mode.owner_identity(store, Orca(), tui_owner) == 'incarnation'
         owner = mode.activate(store, Orca(), 'coor', 'run', 'term', 'provider')
         token = owner['token']
         fails(lambda: mode.activate(store, Orca(), 'other', 'run', 'term', 'provider'), 'lease')

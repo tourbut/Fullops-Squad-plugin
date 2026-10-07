@@ -519,6 +519,11 @@ def main():
     output = {}
     if mode == 'start':
         state['provider_session'] = field(event, 'session_id')
+        state['orca_terminal'] = os.getenv('ORCA_TERMINAL_HANDLE')
+        if state['provider_session'] and state['orca_terminal']:
+            from issue_mode import hook_path
+            write_json(hook_path(root, 'terminal-' + state['orca_terminal']),
+                       {key: state[key] for key in ('provider_session', 'orca_terminal')})
         role, designer = context(root)
         kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')

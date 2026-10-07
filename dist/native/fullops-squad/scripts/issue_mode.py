@@ -166,25 +166,45 @@ class Orca:
             result = {**result, 'caller': data['caller']}
         return result
 
-    def identity(self, session, run, terminal):
+    def identity(self, session, run, terminal, provider_session=None, hook=None):
         status = self.call('status')
-        caller = status.get('caller') or {}
-        if caller.get('orcaSessionId') != session:
+        caller = status.get('caller')
+        if caller is None and not os.getenv('ORCA_AGENT_SESSION_ID'):
+            # Orca terminal agents have no Orca session ID; their native host session is the owner.
+            valid = (provider_session and session == 'provider_session:' + provider_session and
+                     os.getenv('ORCA_TERMINAL_HANDLE') == terminal and hook and
+                     hook.get('provider_session') == provider_session and
+                     hook.get('orca_terminal') == terminal)
+        else:
+            valid = (isinstance(caller, dict) and caller.get('orcaSessionId') == session and
+                     caller.get('live') is True)
+        if not valid:
             raise ValueError('Orca가 현재 coor session identity를 증명하지 못합니다; 활성화 blocked')
-        pane = self.call('terminal', 'show')['terminal']
-        info = self.call('orchestration', 'run-current').get('run') or {}
+        pane = self.call('terminal', 'show', '--terminal', terminal)['terminal']
+        info = self.call('orchestration', 'run-current', '--from', terminal).get('run') or {}
         if (pane.get('handle') != terminal or info.get('id') != run or
                 not pane.get('connected') or pane.get('orphaned') or not pane.get('incarnationId')):
             raise ValueError('현재 Run 소유 coor와 살아 있는 같은 terminal을 확인하지 못했습니다')
         return pane['incarnationId']
 
 
+def owner_identity(store, orca, owner):
+    hook = hook_path(store.repo, owner['provider_session'])
+    receipt = json.loads(hook.read_text()) if hook.is_file() else {}
+    if receipt.get('provider_session') != owner['provider_session']:
+        raise ValueError('현재 host SessionStart receipt가 없습니다; 활성화 blocked')
+    if owner['session'].startswith('provider_session:'):
+        binding = hook_path(store.repo, 'terminal-' + owner['terminal'])
+        current = json.loads(binding.read_text()) if binding.is_file() else {}
+        if current.get('provider_session') != owner['provider_session'] or current.get('orca_terminal') != owner['terminal']:
+            raise ValueError('현재 terminal의 native SessionStart binding이 다릅니다; 활성화 blocked')
+    return orca.identity(owner['session'], owner['run'], owner['terminal'], owner['provider_session'], receipt)
+
+
 def activate(store, orca, session, run, terminal, provider_session, now=None):
     now = time.time() if now is None else now
-    hook = hook_path(store.repo, provider_session)
-    if not hook.is_file() or json.loads(hook.read_text()).get('provider_session') != provider_session:
-        raise ValueError('현재 host SessionStart receipt가 없습니다; 활성화 blocked')
-    incarnation = orca.identity(session, run, terminal)
+    incarnation = owner_identity(store, orca, {'session': session, 'run': run, 'terminal': terminal,
+                                             'provider_session': provider_session})
     with store.edit() as state:
         config = state['config']
         if not config or not config['allowed']:
@@ -830,7 +850,7 @@ def wait(store, github, orca, token):
         owner = guard(state, token)
         now = time.time()
         if now >= next_auth:
-            incarnation = orca.identity(owner['session'], owner['run'], owner['terminal'])
+            incarnation = owner_identity(store, orca, owner)
             if incarnation != owner['incarnation']:
                 raise ValueError('coor terminal incarnation이 바뀌었습니다; 명시적으로 재활성화하세요')
             with store.edit() as state:
@@ -928,7 +948,7 @@ def main():
         github = GitHub()
         if hasattr(args, 'token'):
             owner = guard(store.read(), args.token)
-            incarnation = Orca(args.orca).identity(owner['session'], owner['run'], owner['terminal'])
+            incarnation = owner_identity(store, Orca(args.orca), owner)
             if incarnation != owner['incarnation']:
                 raise ValueError('coor terminal incarnation이 바뀌었습니다')
         if args.command == 'configure':
