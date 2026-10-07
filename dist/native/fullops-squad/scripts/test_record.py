@@ -1,6 +1,69 @@
 """jev_test_web·jev_test_unity 실행 결과를 사람이 읽는 report.md로 남긴다. 판정 근거는 result.json·events.jsonl이다."""
 from datetime import date
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
 from deliverables import render
+from storage import write_json, atomic_write
+
+
+def begin(out, scenario):
+    out.mkdir(parents=True, exist_ok=True)
+    if any((out / name).exists() for name in ('events.jsonl', 'result.json', 'report.md')):
+        raise ValueError('이전 실행 증거가 있습니다. 새 실행 경로를 사용하세요')
+    (out / 'events.jsonl').touch(exist_ok=False)
+    plugin = json.loads((Path(__file__).resolve().parents[1] / 'plugin.json').read_text())
+    target = subprocess.run(['git', '-C', str(out), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    dirty = subprocess.run(['git', '-C', str(out), 'status', '--porcelain'], capture_output=True, text=True)
+    return {'plugin_version': plugin['version'], 'target_sha': target.stdout.strip() if target.returncode == 0 else None,
+            'worktree_dirty': bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
+            'executor_sha256': hashlib.sha256(Path(__file__).with_name('jev_test_' + ('web.py' if 'url' in scenario else 'unity.py')).read_bytes()).hexdigest(),
+            'scenario_sha256': hashlib.sha256(json.dumps(scenario, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}
+
+
+def append(out, event):
+    with (out / 'events.jsonl').open('a', encoding='utf-8') as output:
+        output.write(json.dumps(event, ensure_ascii=False, allow_nan=False) + '\n')
+        output.flush()
+        os.fsync(output.fileno())
+
+
+def finish(out, summary, events, kind):
+    write_json(out / 'result.json', summary)
+    if kind == 'web':
+        rows = [(e['step'], e['operation'], e['target'], e['value'], f"{e['confidence']:.2f}", e['outcome']) for e in events]
+        header = ['스텝', '동작', '대상', '입력값 키', '확신', '결과']
+    else:
+        rows = [(e['step'], e['action'], f"{e['confidence']:.2f}", e['lastOutcome'] or '-') for e in events]
+        header = ['스텝', '행동', '확신', '직전 행동 결과']
+    write(out, summary, rows, header)
+
+
+def costs(events, failed=False):
+    known = round(sum(e['cost'] for e in events if type(e.get('cost')) in (int, float)), 6)
+    unknown = failed or any(e.get('cost') is None for e in events)
+    return {'cost': None if unknown else known, 'known_cost': known, 'cost_status': 'unknown' if unknown else 'complete'}
+
+
+def measured(call, calls):
+    """응답 검증/조작이 실패해도 이미 확인한 API 비용은 보존한다. payload·키·원문은 기록하지 않는다."""
+    from jev_observe import validated
+    def invoke(payload):
+        entry = {'cost': None, 'requested_model': payload['model'],
+                 'input_sha256': hashlib.sha256(json.dumps(payload['state'], sort_keys=True).encode()).hexdigest(),
+                 'question_sha256': hashlib.sha256(json.dumps(payload['questions'], sort_keys=True).encode()).hexdigest()}
+        calls.append(entry)
+        try:
+            result = call(payload)
+            _, usage, elapsed, model = validated(result, payload['questions'])
+            entry.update(cost=usage['cost'], usage=usage, latency_s=elapsed, response_model=model, cached=result[0].get('cached', False))
+            return result
+        except Exception as error:
+            entry['error_type'] = type(error).__name__
+            raise
+    return invoke
 
 
 def cell(value):
@@ -27,15 +90,17 @@ def write(out, summary, rows, header):
              f"- 시나리오: `{summary.get('scenario', '-')}`",
              f"- covers: {', '.join(summary.get('covers') or []) or '-'}",
              f"- 목표: {summary['goal']}",
-             f"- 스텝 {summary['steps']} · Jev {summary['jev_calls']}회 · 비용 ${summary['cost']} · Jev 시간 {summary['latency_s']}초", '',
+             f"- 스텝 {summary['steps']} · Jev {summary['jev_calls']}회 · 비용 {summary['cost'] if summary['cost'] is not None else 'unknown'} · Jev 시간 {summary['latency_s']}초", '',
              '## 검증 조건', '', '| 조건 | 읽은 값 | 결과 |', '|---|---|---|']
     for check in summary.get('checks') or []:
         lines.append(f"| {cell(describe(check['condition']))} | {cell(check['value'])} | {'통과' if check['passed'] else '실패'} |")
     if not summary.get('checks'):
         lines.append('| - | - | 판정 전에 끝남 |')
+    if summary.get('error_type'):
+        lines += ['', f"오류: {summary['error_type']} / {summary.get('evidence_unavailable', '')}"]
     lines += ['', '## 진행', '', '| ' + ' | '.join(header) + ' |', '|' + '---|' * len(header)]
     lines += ['| ' + ' | '.join(cell(v) for v in row) + ' |' for row in rows]
     lines += ['', '원본: `result.json`(판정), `events.jsonl`(스텝별 선택·확률·비용).', '']
     meta = {'title': lines[0][2:], 'status': 'draft', 'updated': date.today().isoformat(),
             'owner': 'tester', 'tasks': [out.parent.name[:-len('-test')]], 'summary': summary['goal']}
-    (out / 'report.md').write_text(render(meta) + '\n' + '\n'.join(lines), encoding='utf-8')
+    atomic_write(out / 'report.md', render(meta) + '\n' + '\n'.join(lines))

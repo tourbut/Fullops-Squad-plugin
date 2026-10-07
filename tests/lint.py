@@ -140,7 +140,7 @@ def anti_slop():
         (repo / 'test-fail.py').write_text('failure = True\n')
         commit()
         assert lint_cli().returncode == 1
-        assert json.loads((repo / '.git/fullops-gate/pass.json').read_text())['head'] != git('rev-parse', 'HEAD')
+        assert not (repo / '.git/fullops-gate/pass.json').exists()
         assert hook('stop')['decision'] == 'block'
         (repo / 'test-fail.py').unlink()
         commit()
@@ -299,7 +299,7 @@ def main():
         done = lint('--out', str(out))
         found = {(v['code'], v['path']) for v in json.loads(out.read_text())['violations']}
         assert done.returncode == 1 and ('CUSTOM-009', 'todo.py') in found and ('LINT-001', '.fullops-squad/lint/lint.json') in found, found
-        assert json.loads(gate.read_text())['head'] == base  # 실패는 통과 기록을 바꾸지 않는다
+        assert not gate.exists()  # 실패는 이전 성공 기록을 무효화한다.
         git('reset', '-q', '--hard', base)
 
         # 테스트 skip 추가는 ERROR, 케이스 감소·파일 삭제는 WARNING

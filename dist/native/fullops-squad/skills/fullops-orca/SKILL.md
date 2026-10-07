@@ -49,24 +49,24 @@ FullOps update 요청은 `update-fullops`로 설치 전 버전과 레포 적용 
 출력의 `모델`(route.json의 `model`)은 `## 모델 후보`에서 배정할 역할에 맞게 고른 에이전트·모델·effort다. 후보가 없으면 배정표의 기본값을 쓴다. 출력의 `갱신할 산출물`(route.json의 `deliverables`)은 이 요청으로 쓰거나 고쳐야 할 D01–D13이다. 추천일 뿐이며 판단으로 더하거나 뺄 수 있다.
 2. `route: simple → <역할>`이면 `fullops-work`로 그 역할 인박스에 짧은 지시서를 쓰고 dispatch한다. 지시서의 `갱신할 산출물`에 route 결과를 옮긴다. 지시서를 쓰다가 파일 소유권·완료 기준·검증 명령 중 하나라도 정할 수 없으면 design으로 바꾼다. Jev 결과보다 이 판단이 우선한다.
 3. `route: design → <설계 역할>`이면(오류·키 없음 포함) 설계 역할을 dispatch한다. spec에는 과제 키, 요청 원문 파일 경로, 대상 역할 인박스(`handovers/to_<역할>.md`), route의 갱신할 산출물을 넣는다. 설계 역할은 산출물 목록을 확정해 각 지시서의 `갱신할 산출물`에 나눠 적는다. 라우팅 기준에 `- tester 역할:`이 있고 동작이 바뀌는 과제면 그 역할의 검증 지시서도 쓴다. 검증 지시서에는 확인할 동작, 통과 조건, 다시 돌릴 시나리오와 새로 만들 시나리오 경로(`docs/evaluations/scenarios/`), 구현 역할의 완료 SHA를 기다린다는 선행 조건을 적는다. coordinator는 구현 역할의 `worker_done`을 받은 뒤 tester를 dispatch한다. 설계 역할은 설계 문서와 역할별 지시서를 쓰고 커밋한다. 역할별 지시서도 `fullops-work`의 `먼저 읽을 문서` 절차(`jev_find` → `jev_context`)를 거친다. 역할 인박스가 차 있으면 `fullops-work`의 `역할 인박스 규칙`대로 다음 과제를 PLANS.md 대기 목록에 기록한다. 별도 과제명 파일로 dispatch하지 않는다. 여러 역할에 나눠 배정할 때는 각 역할 인박스의 본문 첫 줄 키에 역할을 붙이고(`# <과제 키>-DEV — …`) 두 스크립트에 해당 키를 넘긴다. 결과 파일이 역할마다 따로 남고, 리뷰 check의 `--task-key`에 같은 키를 넘기면 적중률이 연결된다. 그다음 `worker_done` body에 `[설계] <과제 키> | 지시서: <경로들> | 역할: … | SHA …`를 보낸다. 코드는 구현하지 않는다.
-4. 설계 `worker_done`을 받으면 설계 역할을 `worker-retain`으로 남긴다(재사용 후보일 뿐이며 후속 세션은 아래 `후속 작업` 규칙으로 정한다). 먼저 아래 `merge` 절차로 설계 문서와 지시서를 기본 브랜치에 통합·push하고 하위 워크트리를 동기화한다. 후속 구현 배정은 이 통합을 확인한 뒤 진행한다. 적힌 지시서마다 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --model-only --role <역할>`로 그 지시서에 맞는 모델을 고른 뒤 해당 역할을 dispatch한다. 설계 역할은 그 과제의 병합이 끝나면 `worker-release`한다. 다음 설계는 새 세션에서 시작해 컨텍스트가 과제 단위로 끊기게 한다.
+4. 설계 `worker_done`을 받으면 설계 역할을 `worker-retain`으로 남긴다(재사용 후보일 뿐이며 후속 세션은 아래 `후속 작업` 규칙으로 정한다). 먼저 아래 `merge` 절차로 설계 문서와 지시서를 기본 브랜치에 통합·push하고 하위 워크트리를 동기화한다. 후속 구현 배정은 이 통합을 확인한 뒤 진행한다. 적힌 지시서마다 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --model-only --role <역할>`로 그 지시서에 맞는 모델을 고른 뒤 해당 역할을 dispatch한다. 설계 역할도 병합 뒤 아래 세션 선택을 적용한다. 다음 과제의 retain 여부와 교체·release 시점도 아래 세션 선택 순서를 따른다.
 
 ## 후속 작업 — 세션 선택
 
-새 과제 키는 항상 새 세션이다. 같은 과제 키의 후속(worker 질문에 대한 설계 판단, 리뷰 수정 요청, 검증 실패 뒤 재작업, 일시정지 뒤 재개)은 역할과 관계없이 아래 순서로 정한다. 기준은 토큰이다. 에이전트는 도구 호출마다 쌓인 대화 전체를 다시 보내므로, 오래 쉰 큰 세션을 이어 쓰는 것이 레포 기록으로 새로 시작하는 것보다 비싸다.
+기본은 fresh 세션이다. 새 과제도 아래 네 조건을 모두 만족하면 retain 예외를 적용한다. 독립 리뷰는 구현자와 다른 별도 세션을 사용한다. 같은 과제 키의 후속(worker 질문에 대한 설계 판단, 리뷰 수정 요청, 검증 실패 뒤 재작업, 일시정지 뒤 재개)은 역할과 관계없이 아래 순서로 정한다. 기준은 토큰이다. 에이전트는 도구 호출마다 쌓인 대화 전체를 다시 보내므로, 오래 쉰 큰 세션을 이어 쓰는 것이 레포 기록으로 새로 시작하는 것보다 비싸다.
 
 1. retain한 세션이 살아 있고, 그 세션의 직전 작업이 끝난 지 오래되지 않았고(프롬프트 캐시가 살아 있을 만한 몇 분 이내), 후속이 짧은 질문이나 작은 수정이면 그 세션에 `worker-start --terminal <핸들>`로 후속 dispatch를 보낸다.
 2. 그 밖에는 새 세션으로 dispatch한다. 오래 기다린 뒤의 후속, 이미 컨텍스트가 큰 세션(긴 빌드·테스트 로그가 쌓였거나 여러 번 후속을 받은 세션), 1번의 붙이기가 실패한 경우가 여기에 속한다. spec에는 과제 키, 지시서 경로, 이전 결과 SHA, 이어서 할 일, 관련 설계 문서를 넣는다. 맥락은 레포의 지시서·설계 문서·작업 로그로 이어받는다.
 3. 붙이기가 실패해도 `terminal send`로 지시를 넣지 않는다. 그렇게 보낸 작업은 Orca 추적 밖이라 `worker_done`, Run 대기, Stop 검사가 모두 빠진다. flow-gate가 coordinator의 긴 `terminal send`를 막는다.
 
-구현 worker도 그 과제의 리뷰·병합이 끝날 때까지 retain하고 병합 뒤 release한다. 새 세션으로 옮겼으면 이전 세션은 release한다.
+worker는 리뷰·병합이 끝날 때까지 retain한다. 병합 후 다음 과제의 네 조건을 먼저 평가해 retain/release를 결정한다. 다음 과제가 없으면 release한다. 교체할 새 세션의 착수가 성공한 뒤 이전 완료 세션을 release한다. 진행 중 세션을 강제로 중단하지 않는다.
 
 다음 과제(새 과제 키)는 기본적으로 새 세션이다. 아래 네 조건을 모두 만족할 때만 그 역할의 기존 세션에서 이어 한다.
 1. 같은 역할이고, 이번 과제에 고른 에이전트·모델·effort가 기존 세션과 같다.
 2. 기존 세션의 직전 과제가 worker_done으로 끝난 지 몇 분 이내다(프롬프트 캐시가 살아 있을 만한 시간).
 3. 같은 마일스톤이나 같은 파일 영역처럼 직전 과제와 관련 있다.
 4. 기존 세션이 과제를 하나만 했고 긴 빌드·테스트 로그가 쌓이지 않았다. PLANS.md의 배정 기록으로 판단하고 터미널 화면을 해석하지 않는다.
-이어 할 때도 spec에 새 과제 키와 지시서 경로를 넣고, 이전 과제의 기준 SHA·파일 소유권·멈출 조건은 새 지시서 기준으로 다시 정한다고 적는다. 이어 하기와 새 세션 중 무엇을 골랐는지와 근거(조건 충족 여부)를 PLANS.md 배정 기록에 한 줄로 남긴다. 절약 효과를 이 기록으로 확인한다.
+이어 할 때도 spec에 새 과제 키와 지시서 경로를 넣고, 이전 과제의 기준 SHA·파일 소유권·멈출 조건은 새 지시서 기준으로 다시 정한다고 적는다. 이어 하기와 새 세션 중 무엇을 골랐는지와 근거(조건 충족 여부)를 PLANS.md 배정 기록에 한 줄로 남긴다. 선택 핸들·역할/에이전트/모델/effort·직전 완료 시점·과제 수/문맥 크기 판단·결정 사유를 기록한다. 몇 분 이내라는 사실은 실제 cache hit나 비용 절감을 보증하지 않는다.
 
 ## dispatch
 
@@ -74,11 +74,11 @@ FullOps update 요청은 `update-fullops`로 설치 전 버전과 레포 적용 
 
 1. `fullops-work`의 `역할 인박스 규칙`대로 현재 인박스의 과제 키·내용·권한·선행 조건을 확인한다. spec에는 역할 인박스의 실제 경로를 넣고, 과제명 파일·pending·logs만으로 착수시키지 않는다. `python3 <orca_wait.py> --repo <레포 루트> --settings`로 비밀값 없이 운영 설정 세 개를 조회한다. `ready_timeout_seconds`를 1000배 한 값을 `worker-start --timeout-ms`에 넣고, 로그 조회의 `--limit`은 `log_limit` 이하로 지정한다(명령별 메시지/줄 단위).
 2. coordinator와 worker의 실제 repo id·워크트리·터미널 핸들을 조회해 지시서에 넣는다. 과거 핸들을 재사용하지 않는다.
-3. worker가 지시서와 원천 문서를 읽을 수 있는 버전을 전달하고 과제 키·내용을 확인한다. `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙과 지시서가 지정한 프로젝트 정본도 같은 버전으로 전달하고 실제 경로·기준 커밋 또는 스냅샷을 확인한다. 누락·불일치를 해소하기 전 착수시키지 않는다. 워크트리는 파일을 자동 공유하지 않는다. 기본은 준비 커밋을 worker에 반영하는 방식이며, 미커밋 지시서는 명시한 절대경로의 스냅샷으로 제공한다. 진행 중 변경을 덮어쓰지 않는다.
+3. worker가 지시서와 원천 문서를 읽을 수 있는 버전을 전달하고 과제 키·내용을 확인한다. `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙과 지시서가 지정한 프로젝트 정본도 같은 버전으로 전달하고 실제 경로·기준 커밋 또는 스냅샷을 확인한다. 누락·불일치를 해소하기 전 착수시키지 않는다. 탐색 패킷 정본과 지시서가 연결한 결과도 같은 버전으로 전달하고, worker 체크아웃에 없는 원천/근거는 미확인으로 표시해 보완한다. 새 route는 지시서의 현재 attempt/지시 해시에 연결하고 패킷을 생성한다. `jev_route.py --bind-inbox --role <역할>`는 기존 분류를 연결하며 다른 시도에 묶인 결과는 재분류해야 한다. 새 route의 dispatch는 worker의 packet 존재·identity·HEAD·원천 접근성을 검사한다. 워크트리는 파일을 자동 공유하지 않는다. 기본은 준비 커밋을 worker에 반영하는 방식이며, 미커밋 지시서는 명시한 절대경로의 스냅샷으로 제공한다. 진행 중 변경을 덮어쓰지 않는다.
 4. 보고를 받을 Run을 정한다. 내 세션에 Task·Dispatch ID가 든 preamble이 있으면 나도 dispatched worker다. 이때 상위 Run에 하위 worker를 띄우면 완료 보고가 상위 coordinator에게 간다. 먼저 `orchestration run-create`로 내 Run을 만들고 그 run id를 쓴다. preamble이 없으면 내가 최상위 coordinator다. 별도 coordinator 없이 한 역할(예: 아키텍처)이 다른 역할 worker를 띄우는 구성도 같다. 이 경우 기존 Run을 쓰거나 `run-create`로 새로 만든다. `nested_worker_depth_exceeded`면 하위 worker를 띄우지 말고 상위에 `escalation`으로 알린다.
-5. 고른 모델을 적용한다. 모델 후보가 있는 역할(설계 역할 포함)은 route·model 결과의 에이전트·모델·effort로 띄운다. 레포 문서에 "항상 이 모델" 같은 고정 문구가 있어도 모델 후보가 우선하며, 그런 문구를 발견하면 사용자에게 알리고 지울지 묻는다. Jev 결과를 따르지 않았으면 그 사유를 PLANS.md에 적는다. Claude·Codex는 `worker-start --agent <에이전트> --model <모델> --effort <effort>`로 띄운다. `--model`을 받지 않는 CLI(grok 등)는 `terminal create --command`로 해당 CLI의 모델·effort 인자를 넣어 띄우고 준비를 확인한 뒤 `worker-start --terminal <핸들>`로 감독한다. 대상 역할이 grok이면 `grok_trust.py --check`로 원본 레포 신뢰를 먼저 확인한다(bootstrap 규칙). `orchestration worker-start --run <run id> --spec "<한 문단>" --worktree <worker 워크트리> --agent <CLI>`로 현재 작업과 분리된 새 세션을 시작한다. 한 문단에는 과제 키·지시서 실제 경로·worker 경로를 넣고 "신중히 생각해" 같은 사고 지시는 넣지 않는다. 긴 내용은 파일로 제공한다. Orca가 넣는 preamble이 `worker_done` 복귀 경로다. 터미널 주입(`terminal send`, `dispatch --inject`)으로 착수시키면 worker가 `worker_done`을 보낼 수 없으므로 쓰지 않는다. 읽을 범위는 지시서의 `먼저 읽을 문서`로 한정하고, 원천 문서 전체를 붙이지 않는다. 권한 모드는 임의로 완화하지 않는다. 진행 중인 세션을 임의로 중단하지 않는다.
+5. 고른 모델을 적용한다. 모델 후보가 있는 역할(설계 역할 포함)은 route·model 결과의 에이전트·모델·effort로 띄운다. 레포 문서에 "항상 이 모델" 같은 고정 문구가 있어도 모델 후보가 우선하며, 그런 문구를 발견하면 사용자에게 알리고 지울지 묻는다. Jev 결과를 따르지 않았으면 그 사유를 PLANS.md에 적는다. Claude·Codex는 `worker-start --agent <에이전트> --model <모델> --effort <effort>`로 띄운다. `--model`을 받지 않는 CLI(grok 등)는 `terminal create --command`로 해당 CLI의 모델·effort 인자를 넣어 띄우고 준비를 확인한 뒤 `worker-start --terminal <핸들>`로 감독한다. 대상 역할이 grok이면 `grok_trust.py --check`로 원본 레포 신뢰를 먼저 확인한다(bootstrap 규칙). `orchestration worker-start --run <run id> --spec "<한 문단>" --worktree <worker 워크트리> --agent <CLI>`로 위 세션 선택에서 결정한 fresh 세션을 시작한다. retain이면 같은 모델 tuple의 `--terminal <핸들>`과 실제 `--worktree`를 사용한다. 한 문단에는 `Task key: <키>; Purpose: implementation`·지시서 실제 경로·기존 역할 worker 경로를 넣고 "신중히 생각해" 같은 사고 지시는 넣지 않는다. 긴 내용은 파일로 제공한다. Orca가 넣는 preamble이 `worker_done` 복귀 경로다. 터미널 주입(`terminal send`, `dispatch --inject`)으로 착수시키면 worker가 `worker_done`을 보낼 수 없으므로 쓰지 않는다. 읽을 범위는 지시서의 `먼저 읽을 문서`로 한정하고, 원천 문서 전체를 붙이지 않는다. 권한 모드는 임의로 완화하지 않는다. 진행 중인 세션을 임의로 중단하지 않는다.
 6. 반환된 run id·task id·dispatch id·worker 핸들을 지시서의 복귀 항목과 카드에 남긴다. terminal read로 worker가 지시서를 읽고 착수했는지 확인한다. send 성공이나 idle 상태만으로 판단하지 않는다.
-7. worker-start에는 새 세션과 retain 재사용 모두 `--worktree <실제 경로>`를 넣는다. 배정 전에 최신 기본 브랜치가 해당 역할 브랜치의 조상인지 확인한다. 고정 SHA의 읽기 전용 리뷰 snapshot은 예외다.
+7. worker-start에는 새 세션과 retain 재사용 모두 `--worktree <실제 경로>`를 넣는다. 배정 전에 최신 기본 브랜치가 해당 역할 브랜치의 조상인지 확인한다. 리뷰 예외는 spec에 `Task key: <키>; Purpose: review; Review SHA: <40자리 SHA>; Implementer session: <ID>; Reviewer session: <별도 ID>`를 명시하고 별도 clean detached snapshot을 사용한다. 미등록/다른 저장소 구현 경로는 예외가 아니다. snapshot 생성·정리는 fullops-review를 따른다.
 8. 착수를 확인하면 아래 대기 규칙대로 `--run <run id>`를 지정해 기다린다. 호스트에 따라 백그라운드(Claude Code) 또는 포그라운드(Codex·grok)로 기다린다.
 
 ## 대기 — coordinator
@@ -110,6 +110,8 @@ FullOps update 요청은 `update-fullops`로 설치 전 버전과 레포 적용 
 
 ## report — worker가 직접 실행
 
+`orchestration send`에 `--json`을 넣고 현재 task/dispatch를 사용한다. PostToolUse의 성공 전달 receipt가 있어야 settled가 된다. 작업 결과 failed와 전송 실패는 구분하며 ask는 종결이 아니다. 전송 오류는 같은 dispatch로 재시도한다. 알 수 없는 hook 결과는 기존 한 번 경고 정책을 따른다.
+
 `fullops-work`의 기록·아카이브·커밋 절차를 마친다. 현재 역할 인박스의 지시서와 완료 보고 전문이 날짜별 로그에 보존됐고 인박스가 비었는지 확인한다. 실제 브랜치와 SHA를 조회해 preamble의 `worker_done` 명령으로 한 번 보낸다. `--from`·capability·task id·dispatch id는 preamble 값을 그대로 쓰고 `--outcome succeeded` 또는 `failed`를 명시한다. body는 아래 한 줄로 쓴다:
 
 `[완료] <과제 키> | 브랜치 <branch> | SHA <sha 또는 미커밋> | 변경: … | 검토 필요: … | 검증(lint 포함): … | 산출물/로그: … | 후속: …`
@@ -133,7 +135,7 @@ coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summ
 3. 검토한 고정 SHA를 기본 브랜치에 merge하고 필요한 통합 검증을 한 번 실행한다. 충돌이 나면 현재 결과부터 해결한다. 완료 커밋에 인박스·아카이브가 포함됐는지 확인하고 중복 기록하지 않는다. 누적 역할 브랜치 전체를 한꺼번에 수락하지 않는다. 기본 경로는 SHA를 보존하는 merge이며 squash나 cherry-pick으로 완료 SHA의 조상 관계를 없애지 않는다.
 4. 원격 연결이면 검증한 기본 브랜치를 해당 원격의 기본 브랜치로 일반 push한다. 역할 브랜치 push만으로 통합을 완료했다고 기록하지 않는다. push 실패는 미완료다. 원격 갱신을 fetch로 확인하고, 완료 SHA가 로컬·원격 기본 브랜치의 조상인지 확인한다. force push는 사용하지 않는다.
 5. 병합할 때마다 모든 등록 역할의 워크트리를 조회한다. coordinator 역할 워크트리도 포함한다. Orca의 worker 상태를 확인하고, 쉬고 있으며 작업 트리가 깨끗한 워크트리에 최신 기본 브랜치를 merge 또는 fast-forward로 반영한다. 깨끗하다는 이유만으로 실행 중 worker를 바꾸지 않는다. 작업 중·미커밋 변경·동기화 충돌이 있으면 해당 역할과 최신 기본 SHA를 PLANS.md에 기록하고 동기화를 예약한다. worker가 완료 보고한 뒤 다음 dispatch 전에 예약을 처리한다. 진행 중 worker에게 기준 SHA와 동기화 예약을 coordinator가 알린다. 강제 reset이나 작업 삭제를 사용하지 않는다.
-6. PLANS.md와 현황판에 과제 키·완료 SHA·기본 브랜치 병합 SHA·원격 반영·역할별 동기화 결과를 기록한다. 이 결과의 통합을 마친 뒤 worker를 release하고 완료 delivery를 ack한다. 이후 독립 과제를 배정한다.
+6. PLANS.md와 현황판에 과제 키·완료 SHA·기본 브랜치 병합 SHA·원격 반영·역할별 동기화 결과를 기록한다. 통합 뒤 위 세션 선택으로 다음 과제의 retain 조건과 교체·release 시점을 결정한다. 완료 delivery를 ack한다. 리뷰 snapshot은 검증·증거 보존·reviewer release를 확인하고 fullops-review의 cleanup을 실행한다. 이후 독립 과제를 배정한다.
 
 `orca_wait.py`는 ACK 전에 완료 보고를 Git 공용 디렉터리의 `fullops-integration/`에 저장한다. coordinator가 직접 `orchestration check`를 사용하면 flow-gate도 peek에서 완료 보고를 저장한다. 세션이 바뀌어도 같은 저장소를 사용한다. 미통합 결과가 있으면 flow-gate가 coordinator 종료와 독립 과제 배정을 차단한다. 같은 과제 키의 리뷰·수정 배정은 허용한다. `worker-start --task`의 spec에도 같은 과제 키를 넣는다. 최신 기본 브랜치를 받지 않은 등록 역할의 배정도 차단한다. 확인은 이 스킬 기준 `../../scripts/integration.py --repo <레포 루트> status`로 한다.
 

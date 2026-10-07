@@ -60,7 +60,7 @@ def jev(plan, risk=0.05, seen=None):
             if name in q:
                 labels = list(q[name]['criteria'])
                 answers[name] = answer(labels, pick if pick in labels else labels[0])
-        return {'answers': answers, 'usage': {'cost': 0.0001}}, 0.2
+        return {'model': 'typesafe/jev-test', 'answers': answers, 'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.2
     return call
 
 
@@ -101,6 +101,19 @@ def main():
         premature = web.run({**scenario, 'max_steps': 2}, FakeBrowser(), jev([('done', None, None), ('blocked', None, None)]),
                             Path(tmp) / 'early', log=lambda _: None)
         assert premature['result'] == 'blocked' and not premature['passed']  # 검증 없는 done은 통과가 아니다
+
+        # done의 성공 관측과 보고서의 checks는 같은 집합이다.
+        class ChangingBrowser(FakeBrowser):
+            checks_called = 0
+
+            def check(self, condition):
+                self.checks_called += 1
+                return {'condition': condition, 'value': self.checks_called == 1, 'passed': self.checks_called == 1}
+
+        changing = ChangingBrowser()
+        stable = web.run(scenario, changing, jev([('done', None, None)]), Path(tmp) / 'changing', log=lambda _: None)
+        assert stable['passed'] and all(c['passed'] for c in stable['checks']), '성공 요약과 checks가 모순됨'
+        assert changing.checks_called == 1, '성공한 checks를 다시 실행함'
     import test_record
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / 'K-1-test' / 'web-20260925-000000'

@@ -19,7 +19,7 @@
 | D12 | 이행 | 운영자설명서 | `docs/operations/ops-guide.md` | 미작성 |
 | D13 | 이행 | 인수인계서 | `docs/operations/transition.md` | 미작성 |
 
-원천 문서 맨 위에는 front matter를 둔다. 원천이 여러 파일이거나 폴더면 각 문서에 같은 `id`를 적는다.
+원천 문서 맨 위에는 front matter를 둔다. 원천이 여러 파일이면 각 파일에 해당 `id`를 적는다. D06/D07/D09 공유 원천은 `id: [D06, D07, D09]`와 ID별 `statuses`를 사용한다.
 **front matter는 손으로 쓰지 않고 `deliverables.py --stamp`로만 쓴다.** 필드 순서와 목록 표기가 고정되고, `updated`는 오늘 날짜, 과제 키는 `tasks`에 추가되며, 이 표의 상태도 같은 값으로 맞춰진다.
 
 ```text

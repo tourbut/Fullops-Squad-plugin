@@ -35,6 +35,8 @@ def main():
         config_path = repo / '.fullops-squad/lint/lint.json'
         config = json.loads(config_path.read_text())
         config['exclude'] = []  # 기존 레포의 사용자 설정에 보드 제외가 없는 경우
+        config['commands'] = [{'name': 'gate-test', 'kind': 'test', 'run': [sys.executable, '-c',
+            "from pathlib import Path; import sys; sys.exit(3 if Path('.git/fail-test').exists() else 0)"]}]
         config_path.write_text(json.dumps(config))
         (repo / '.fullops-squad/board/index.html').write_text('old template\n')
         base = commit('base')
@@ -70,6 +72,19 @@ def main():
         (repo / 'app.py').write_text('x = 4\n')
         assert hook('stop')['decision'] == 'block'  # 통과 뒤 미커밋 코드
         git('checkout', '-q', '--', 'app.py')
+
+        # 같은 HEAD·올바른 기준의 재검사 실패는 이전 성공을 무효화한다.
+        failure = repo / '.git/fail-test'
+        failure.touch()
+        failed = subprocess.run([sys.executable, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base],
+                                capture_output=True, text=True)
+        assert failed.returncode == 1, failed.stdout
+        assert not (repo / '.git/fullops-gate/pass.json').exists(), '실패 뒤 이전 lint 성공 기록이 남음'
+        assert hook('stop')['decision'] == 'block'
+        failure.unlink()
+        recovered = subprocess.run([sys.executable, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base],
+                                   capture_output=True, text=True)
+        assert recovered.returncode == 0 and hook('stop') == {}
 
         # 다른 체크아웃에서 만든 커밋을 fast-forward로 받는 것은 이 세션의 코드 변경이 아니다.
         worker = repo.parent / f'{repo.name}-worker'

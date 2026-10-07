@@ -73,6 +73,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|shell|exec_command|local_shell|run_terminal_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" post",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

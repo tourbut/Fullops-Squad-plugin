@@ -19,5 +19,17 @@ UI 작업은 핸드오버의 디자인 정본·테마 토큰·공용 컴포넌�
 5. result.json의 모든 `(path,status)`에 `review_status: reviewed/skipped`와 `reason`을 기록한다. reviewer와 conclusion을 채운다. review_schema_version=2이면 independence의 implementer_session/reviewer_session에 서로 다른 실제 세션 ID, snapshot_path에 별도 detached snapshot 절대경로, snapshot_head에 고정 head, read_only=true를 기록한다. snapshot은 변경하지 않고 결과/보고서는 기록 체크아웃에 쓴다. check는 snapshot head·detached·clean 상태를 검증한다. 전환 전 고정 리뷰 기록은 원본을 보존한다. findings에는 `path`, `content`, 필요 시 `start_line/end_line`, `severity: critical/high/medium/low`, `resolved: true/false`를 기록한다. report.md에 발견 사항·재현·검증·커버리지·생략 영향·수락 결론을 같은 톤으로 작성한다. AI가 판단한 결과이며 OCR의 자동 판정으로 보고하지 않는다.
 6. lint 결과를 남긴다. 이 스킬 기준 `../../scripts/lint.py`로 `python3 <lint.py> --repo <worker 체크아웃 루트> --from <기준 ref> --out <리뷰 디렉터리>/lint.json`을 실행한다. worker 체크아웃은 보고된 SHA에 있고 작업 트리가 깨끗해야 한다. 실행 불가 명령은 사유를 `reason`에 적는다. ERROR가 있으면 수락하지 않고 수정을 요청한다. 등록된 kind: test 명령의 HEAD·종료코드·결과를 확인한다. SIZE-002가 있으면 지시서의 예상 변경 규모와 실제 차이·분할하지 않은 이유를 확인한다. DEP-001이 있으면 완료 보고에서 파일별 의존성 변경 여부·필요성·표준 라이브러리 대안을 확인한다. 근거가 없으면 수정 요청을 남기고 수락하지 않는다. WARNING과 실행 불가의 영향은 report.md에 적는다.
 7. `python3 <review.py> check --repo <루트> --key <키> --from <현재 기준 ref> --to <현재 worker ref>`를 실행한다. 실제 병합 ref를 전달해야 SHA 변경을 감지한다. 대상 누락, 규칙 변경, pending, 미해결 critical/high, lint 결과 누락·SHA 불일치·ERROR·사유 없는 실행 불가는 실패다. check 통과는 기록 검사이며 skipped의 수락 가능성과 테스트 결과는 검토자가 판단한다. 수정 커밋이 추가되면 새 SHA로 다시 리뷰한다.
-8. 과제에 `docs/evaluations/jev/<과제 키>-find.json`이 있으면 check가 실제 변경과 비교한 적중률을 리뷰 디렉터리의 `jev-find-score.json`에 자동으로 남긴다. 리뷰 키가 과제 키와 다르면 check에 `--task-key <과제 키>`를 넘긴다. 수락 판단에는 쓰지 않는다.
+8. 과제의 code/documents find 결과가 있으면 check가 실제 변경 파일과의 교집합 지표를 리뷰 폴더에 각각 남긴다. 이 지표는 참고 문서나 호출자/테스트의 필수 읽기 정확도가 아니다. packet의 영향·문서 read/update 후보는 별도의 기대 목록과 실제 확인 기록으로 평가한다. 리뷰 키가 과제 키와 다르면 check에 `--task-key <과제 키>`를 넘긴다. 수락 판단에는 쓰지 않는다.
 9. 보고서·검증 근거를 완료 기록에 연결하고 미해결 사항은 PLANS.md에 남긴다. GitHub 댓글 게시·자동 병합은 실행하지 않는다. 병합 책임자는 최신 SHA에 대한 리뷰 수락과 허가된 병합 범위를 확인한다.
+
+## 임시 리뷰 snapshot의 수명
+
+FullOps가 새로 만드는 임시 공간은 `review.py snapshot --repo <루트> --key <리뷰 키> --to <고정 SHA> --implementer-session <ID> --reviewer-session <별도 ID> --owner <정리 담당>`으로 생성한다. Git 공용 디렉터리에 과제·정확한 SHA·세션·목적·소유권·증거 위치를 기록한다. 기존 사용자 상설 worktree/clone은 자동 관리 대상으로 등록하지 않는다. 리뷰 결과·보고서·lint는 snapshot 밖 정본 리뷰 폴더에 쓴다.
+
+리뷰·수락·필요 재검증이 끝나면 reviewer를 정상 release한다. `review.py cleanup --repo <루트> --key <리뷰 키> --dispatch <reviewer dispatch> --finished`는 Orca의 released/archived/terminal 종료와 live 독립성, clean 상태, 정본 증거 hash를 확인한 뒤 관리된 Git worktree만 `git worktree remove`로 정리한다. force나 상설 공간 삭제는 하지 않는다. 프로세스 사용 여부가 unknown이거나 미커밋·미추적·ignored 파일이 남으면 hold 사유·담당·재개 조건을 기록한다. release와 Git 정리는 별도 단계다. 임시 clone은 이 명령의 삭제 대상이 아니며 별도 소유권·세션·증거를 확인해 담당자가 정리한다.
+
+정리 후 `review.py check --historical --repo <루트> --key <리뷰 키>`는 보존된 완료 증거의 동일성만 확인한다. 새 수락에는 사용하지 않는다. 신규 check는 여전히 live snapshot을 요구한다. 재검증은 보존된 40자리 SHA로 새 리뷰 키의 snapshot을 만들고 prepare/check한다. 과거 failed/skipped/unknown을 accepted로 바꾸지 않는다. 같은 cleanup 재시도는 중복 삭제하지 않는다.
+
+## 대화 미참조 인계 점검
+
+이전 대화를 읽지 않고 정본 산출물 인덱스에서 시작한다. 현재 요구·결정 이유·구조·구현/미완료 상태·실행/검증 방법·운영/복구(해당 시)·다음 작업을 각각 찾고 경로/절과 실제 점검 결과를 report.md에 남긴다. `확인/미확인/해당 없음`과 누락·오래된 정보·깨진 링크·지원하지 않는 anchor를 구분한다. 형식 검사·front matter·테스트 통과는 의미적 인계 점검 결과를 대신하지 않는다. 변경에 영향을 받는 정본만 갱신하고 모든 D01–D13을 매 과제 생성하지 않는다.

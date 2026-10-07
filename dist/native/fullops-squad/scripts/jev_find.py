@@ -6,16 +6,19 @@ Choice 질문으로 순위를, 두 값짜리 존재 질문으로 "관련 코드 
 파일이 더 많으면 디렉터리 단위로 먼저 고른다. 추천일 뿐이며 게이트에 쓰지 않는다.
 """
 import argparse
+import codecs
 from collections import defaultdict
 from fnmatch import fnmatch
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
+import time
 
-from jev_observe import MODEL, api_key, checked_answer, local_file, request, safe_text
-from lint import CONFIG, DEFAULT, header_summary
-from work import KEY, active_repo, instruction, safe_file
+from jev_observe import MODEL, api_key, checked_answer, local_file, request, safe_text, validated
+from lint import CONFIG, DEFAULT, header_summary, changed as changed_paths
+from work import KEY, active_repo, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
 from deliverables import split
 
 MAX_OPTIONS = 255
@@ -37,6 +40,20 @@ def result_path(repo, key, suffix):
     return safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{key}-{suffix}.json')
 
 
+def prefix_blob(repo, sha, size):
+    """큰 Git blob도 처음 MAX_BLOB 바이트만 읽는다. 불완전한 마지막 UTF-8 문자만 제외한다."""
+    with subprocess.Popen(['git', '-C', str(repo), 'cat-file', 'blob', sha], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL) as process:
+        data = process.stdout.read(min(size, MAX_BLOB))
+        process.stdout.close()
+        if size > MAX_BLOB:
+            process.terminate()
+        process.wait()
+    if b'\0' in data[:8000]:
+        return ''
+    return codecs.getincrementaldecoder('utf-8')().decode(data, final=size <= MAX_BLOB)
+
+
 def code_map(repo, head, scope='code'):
     """(path, summary) 목록. 제외·민감·바이너리 파일은 넣지 않는다."""
     try:
@@ -54,21 +71,18 @@ def code_map(repo, head, scope='code'):
         excluded = any(fnmatch(path, x) or (x.startswith('**/') and fnmatch(path, x[3:])) for x in exclude)
         if kind == 'blob' and mode != '120000' and eligible and not path.endswith('.meta') and (
                 scope == 'documents' and path.startswith(HARNESS) or not excluded):
+            try:
+                local_file(repo, path, historical=True)
+            except ValueError:
+                continue
             blobs.append((path, sha))
-    batch = subprocess.run(['git', '-C', str(repo), 'cat-file', '--batch'], input=''.join(f'{sha}\n' for _, sha in blobs).encode(),
-                           capture_output=True, check=True).stdout
-    entries, offset = [], 0
-    for path, _ in blobs:
-        header_end = batch.index(b'\n', offset)
-        size = int(batch[offset:header_end].split()[2])
-        data = batch[header_end + 1:header_end + 1 + size]
-        offset = header_end + 2 + size
+    sizes = subprocess.check_output(['git', '-C', str(repo), 'cat-file', '--batch-check=%(objectsize)'],
+                                    input=''.join(f'{sha}\n' for _, sha in blobs).encode()).splitlines()
+    entries = []
+    for (path, sha), size in zip(blobs, sizes):
         try:
-            local_file(repo, path)  # 민감 경로는 지도에서도 뺀다
-            text = data[:MAX_BLOB].decode('utf-8')
+            text = prefix_blob(repo, sha, int(size))
         except (OSError, ValueError, UnicodeDecodeError):
-            continue
-        if b'\0' in data[:8000]:
             continue
         meta, body = split(text) if path.endswith('.md') else (None, text)
         summary = ((' — '.join(str(meta.get(k, '')) for k in ('title', 'summary') if meta.get(k)) if meta else '')
@@ -91,9 +105,9 @@ def ask(call, task, options, with_exists):
     if with_exists:
         questions['exists'] = {'type': 'choice', 'criteria': EXISTS, 'instructions':
                                'Does any listed entry already contain code or documents that `task` must read or change?'}
-    response, elapsed = call({'model': MODEL, 'state': {'task': task}, 'questions': questions})
-    answers = {qid: checked_answer(response['answers'][qid], question['criteria']) for qid, question in questions.items()}
-    return answers, response.get('usage') or {}, elapsed, response.get('model')
+    values, usage, elapsed, model = validated(call({'model': MODEL, 'state': {'task': task}, 'questions': questions}), questions)
+    answers = {qid: checked_answer(values[qid], question['criteria']) for qid, question in questions.items()}
+    return answers, usage, elapsed, model
 
 
 def ranked(answer, cumulative, most):
@@ -108,45 +122,46 @@ def ranked(answer, cumulative, most):
 
 
 def find(repo, role, key, call, limit=12, handover=None, scope='code'):
+    started = time.monotonic()
     _, text = instruction(repo, role, key, handover)
-    task = safe_text(f'{key}\n' + text[:3500])
+    task = safe_text(f'{key}\n' + task_excerpt(text))
     head = git(repo, 'rev-parse', 'HEAD')
     entries = code_map(repo, head, scope)
-    result = {'version': 'jev-find-v1', 'task_key': key, 'head': head, 'requested_model': MODEL, 'files': len(entries),
+    result = {**input_identity(repo, role, key, {'policy': 'find-v2', 'scope': scope, 'limit': limit}),
+              'version': 'jev-find-v1', 'requested_model': MODEL, 'files': len(entries),
               'scope': scope, 'passes': [], 'candidates': [], 'existence': None, 'truncated': False,
               'usage': {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}, 'latency_seconds': 0.0, 'error': None}
-    pool, depth = entries, 0
+    existence, seen, candidates = [], 0, []
     try:
-        while len(pool) > MAX_OPTIONS and depth < 4:
-            groups = defaultdict(list)
-            for path, summary in pool:
-                parts = Path(path).parts
-                groups['/'.join(parts[:min(depth + 1, len(parts) - 1)]) or '.'].append((path, summary))
-            depth += 1
-            if len(groups) < 2 or len(groups) > MAX_OPTIONS:
-                continue  # 한 디렉터리뿐이거나 너무 많으면 한 단계 더 내려가 다시 묶는다
-            names = sorted(groups)
-            options = {f'D{i:03d}': f"{name}/ ({len(groups[name])} files) "
-                       + '; '.join(s or Path(p).name for p, s in groups[name][:3])[:160] for i, name in enumerate(names)}
-            answers = record(result, *ask(call, task, options, result['existence'] is None))
-            chosen = ranked(answers['where'], 0.8, 3)
-            if len(chosen) == 1 and len(options) > 1:  # 한 곳이 압도적이어도 다음 후보 하나는 더 본다
-                chosen = ranked(answers['where'], 1.0, 2)
-            result['passes'].append({'level': 'directory', 'options': len(options),
-                                     'chosen': [[names[int(o[1:])], p] for o, p in chosen]})
-            pool = [entry for o, _ in chosen for entry in groups[names[int(o[1:])]]]
-        if len(pool) > MAX_OPTIONS:
-            pool, result['truncated'] = pool[:MAX_OPTIONS], True
-        if pool:
+        for offset in range(0, len(entries), MAX_OPTIONS):
+            pool = entries[offset:offset + MAX_OPTIONS]
             options = {f'F{i:03d}': f'{path} — {summary}' if summary else path for i, (path, summary) in enumerate(pool)}
-            answers = record(result, *ask(call, task, options, result['existence'] is None))
-            picked = ranked(answers['where'], 0.99, limit)  # 코드 탐색은 빠뜨리지 않는 쪽이 중요하다. Jev 분포가 뾰족해 0.9면 2~3개에서 멈춘다
+            answers = record(result, *ask(call, task, options, True))
+            seen += len(pool)
+            existence.append(result['existence']['found_probability'])
+            picked = ranked(answers['where'], 0.99, limit)
             result['passes'].append({'level': 'file', 'options': len(options)})
-            result['candidates'] = [{'path': pool[int(o[1:])][0], 'summary': pool[int(o[1:])][1], 'probability': p}
-                                    for o, p in picked]
-    except (KeyError, TypeError, ValueError, RuntimeError, OSError, json.JSONDecodeError) as error:
+            candidates.extend({'path': pool[int(o[1:])][0], 'summary': pool[int(o[1:])][1], 'probability': probability,
+                               'probability_scope': 'batch', 'batch_start': offset, 'batch_rank': rank} for rank, (o, probability) in enumerate(picked))
+        # ponytail: 배치 간 확률은 비교할 수 없다. 전역 재평가 전에는 배치 순서와 partial을 보존한다.
+        result['candidates'] = sorted(candidates, key=lambda item: (item['batch_rank'], item['batch_start']))[:limit]
+        result['remaining_candidates'] = [item['path'] for item in candidates if item not in result['candidates']]
+        if existence:
+            found = max(existence)
+            result['existence'] = {'found_probability': found, 'status': 'found' if found >= FOUND else
+                                   'absent' if all(p <= ABSENT for p in existence) else 'unclear'}
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError, OSError) as error:
         result['error'] = f'API or response validation failed: {type(error).__name__}'
         result['candidates'] = []
+        result['existence'] = {'status': 'unknown', 'found_probability': None}
+    result.update(presented_files=seen, partial=seen != len(entries) or len(entries) > MAX_OPTIONS,
+                  ranking_status='batch_only' if len(entries) > MAX_OPTIONS else 'single_batch',
+                  fallback='keyword/symbol search' if seen != len(entries) or len(entries) > MAX_OPTIONS else None,
+                  input_partial=len(text) > 3500, instruction_chars=len(text))
+    result['elapsed_seconds'] = round(time.monotonic() - started, 3)
+    result['usage'].update(known_cost=result['usage']['cost'], cost_status='unknown' if result['error'] else 'complete')
+    if result['error']:
+        result['usage']['cost'] = None
     return result
 
 
@@ -162,22 +177,30 @@ def record(result, answers, usage, elapsed, model):
     return answers
 
 
-def score(repo, key, base, head, scope='code'):
+def score(repo, key, base, head, scope='code', labels=None):
     found = json.loads(result_path(repo, key, 'documents-find' if scope == 'documents' else 'find').read_text())
     head, merge_base = git(repo, 'rev-parse', head), git(repo, 'merge-base', base, head)
     mapped = {path for path, _ in code_map(repo, found['head'], found.get('scope', 'code'))}
     changed = set(git(repo, 'diff', '--name-only', '--no-renames', merge_base, head).splitlines())
     existing = changed & mapped
-    new = {p for p in changed - mapped if not p.startswith('.fullops-squad/')}
+    statuses = changed_paths(repo, merge_base, head)
+    new = {path for old, path in statuses if old is None and path and not path.startswith('.fullops-squad/')}
     candidates = {c['path'] for c in found['candidates']}
     hit = candidates & existing
     status = (found.get('existence') or {}).get('status')
-    out = {'task_key': key, 'find_head': found['head'], 'base': merge_base, 'head': head,
+    out = {'task_key': key, 'find_head': found['head'], 'base': merge_base, 'head': head, 'scope': scope,
+           'metric': 'changed-file overlap; does not measure required reading or impact coverage',
+           'deleted_files': sorted(old for old, path in statuses if path is None),
+           'renamed_files': [[old, path] for old, path in statuses if old and path and old != path],
            'changed_existing': sorted(existing), 'new_files': sorted(new), 'candidates': sorted(candidates),
            'hits': sorted(hit), 'recall': round(len(hit) / len(existing), 3) if existing else None,
            'precision': round(len(hit) / len(candidates), 3) if candidates else None,
            'existence_status': status,
-           'existence_correct': None if status in (None, 'unclear') else (status == 'found') == bool(existing)}
+           'existence_correct': None if status in (None, 'unclear', 'unknown') else (status == 'found') == bool(existing)}
+    packet = result_path(repo, key, 'packet')
+    if packet.is_file():
+        from jev_packet import evaluate
+        out['packet_evaluation'] = evaluate(json.loads(packet.read_text()), labels)
     context = result_path(repo, key, 'context')
     if context.is_file():
         ctx = json.loads(context.read_text()).get('context') or {}
@@ -195,9 +218,11 @@ def main():
     parser.add_argument('--handover', help='find: 현재 역할 인박스의 상대 경로. .fullops-squad/handovers/to_<역할>.md만 허용')
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--scope', choices=('code', 'documents'), default='code', help='documents: 하네스 문서를 포함한 Markdown의 title·summary로 탐색')
+    parser.add_argument('--force', action='store_true', help='이전 결과를 history에 보존하고 갱신')
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     parser.add_argument('--from', dest='base', help='score: 기준 ref')
     parser.add_argument('--to', help='score: worker 결과 ref')
+    parser.add_argument('--labels', help='score: 직접 수정/영향/문서 read/update의 기대 경로 JSON; diff와 별도 평가')
     args = parser.parse_args()
     try:
         if not KEY.fullmatch(args.key):
@@ -205,29 +230,34 @@ def main():
         repo = active_repo(args.repo)
         suffix = 'find' if args.mode == 'find' else 'find-score'
         output = result_path(repo, args.key, ('documents-' if args.scope == 'documents' else '') + suffix)
-        if output.exists():
-            raise ValueError(f'기존 결과를 보존합니다: {output.relative_to(repo)}')
+        reused = None
         if args.mode == 'find':
             if not args.role:
                 raise ValueError('find에는 --role이 필요합니다')
 
+            identity = input_identity(repo, args.role, args.key, {'policy': 'find-v2', 'scope': args.scope, 'limit': args.limit})
+            reused = previous_result(output, identity, args.force)
+
             def call(payload):
                 return request(payload, api_key(args.env_file, repo))
-            result = find(repo, args.role, args.key, call, args.limit, args.handover, args.scope)
+            result = reused or {**find(repo, args.role, args.key, call, args.limit, args.handover, args.scope), **identity}
         else:
             if not (args.base and args.to):
                 raise ValueError('score에는 --from과 --to가 필요합니다')
-            result = score(repo, args.key, args.base, args.to, args.scope)
+            labels = json.loads(local_file(repo, args.labels).read_text()) if args.labels else None
+            result = score(repo, args.key, args.base, args.to, args.scope, labels)
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'Jev 탐색 실패: {error}\n')
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    if not reused:
+        save_result(output, result)
     if args.mode == 'find':
         for c in result['candidates']:
             print(f"{c['probability']:.2f} {c['path']}  {c['summary']}".rstrip())
         existence = result['existence'] or {}
         print(f"존재: {existence.get('status', '-')} ({existence.get('found_probability', '-')}) / 파일 {result['files']} / "
               f"비용 {result['usage']['cost']} / {result['error'] or '정상'}")
+        if result.get('partial') or result.get('input_partial'):
+            print(f"부분 탐색: 제시 {result.get('presented_files', 0)}/{result['files']}, 지시서 전체 확인 및 일반 검색 필요")
         print('paths: ' + ' '.join(c['path'] for c in result['candidates']))
     else:
         print(f"recall {result['recall']} / precision {result['precision']} / 존재 판정 {result['existence_correct']} / "

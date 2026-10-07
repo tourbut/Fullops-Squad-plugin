@@ -124,7 +124,7 @@ python3 <플러그인>/scripts/jev_find.py find --repo . --role dev --key TASK-1
 
 ## 설치
 
-필요 환경: Python 3.9+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 AI CLI, Orca IDE.
+필요 환경: Python 3.10+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 AI CLI, Orca IDE.
 일반 설치는 GitHub 마켓플레이스를 사용합니다. 개발 체크아웃·agy 설치는 [개발 문서](docs/development.md)를 따릅니다.
 
 ### 통합 설치기
@@ -195,7 +195,7 @@ FullOps의 Context7은 라이브러리 문서 조회용 MCP입니다. OCR은 del
 
 ```bash
 python3 <설치된 플러그인>/scripts/deps.py --host codex  # claude-code, grok, agy
-python3 <설치된 플러그인>/scripts/deps.py --check
+python3 <설치된 플러그인>/scripts/deps.py --check --host codex  # 위와 같은 CLI
 ```
 
 에이전트에게 설치를 맡길 때는 다음 지시를 사용합니다.
@@ -225,7 +225,7 @@ grok plugin marketplace update
 grok plugin update fullops-squad
 ```
 
-업데이트 후 설치 버전과 `deps.py --check`를 확인합니다.
+업데이트 후 설치 버전과 `deps.py --check --host <현재 CLI>`를 확인합니다. 단독 `--check`는 CLI 존재만 검사합니다.
 실행 중인 세션은 이전 hook 경로를 사용할 수 있습니다. 작업을 정리한 뒤 새 세션으로 전환합니다.
 다른 PC와 Orca가 별도로 사용하는 CLI 홈도 갱신해야 합니다.
 

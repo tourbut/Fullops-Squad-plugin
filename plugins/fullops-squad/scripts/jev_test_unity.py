@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 
-from jev_observe import MODEL, api_key, checked_answer, request, safe_text
+from jev_observe import MODEL, api_key, checked_answer, request, safe_text, validated
 import test_record
 
 CONFIG = '.fullops-squad/test/unity-play.json'
@@ -97,10 +97,12 @@ def ask(call, scenario, state, history):
     actions.update(FINISH)
     body = {'goal': safe_text(scenario['goal'], 1000), **model_state(state), 'history': history[-6:],
             'step': state['step'], 'steps_left': scenario.get('max_steps', 30) - state['step']}
-    response, latency = call({'model': MODEL, 'state': body,
-                              'questions': {'action': {'type': 'choice', 'instructions': HINT, 'criteria': actions}}})
-    return {'action': checked_answer(response['answers']['action'], actions), 'latency_s': latency,
-            'cost': (response.get('usage') or {}).get('cost'), 'cached': bool(response.get('cached'))}
+    questions = {'action': {'type': 'choice', 'instructions': HINT, 'criteria': actions}}
+    raw_response = call({'model': MODEL, 'state': body, 'questions': questions})
+    answers, usage, latency, model = validated(raw_response, questions)
+    response = raw_response[0]
+    return {'action': checked_answer(answers['action'], actions), 'latency_s': latency,
+            'cost': usage['cost'], 'cached': bool(response.get('cached'))}
 
 
 def check(condition, state):
@@ -119,16 +121,30 @@ def check(condition, state):
     if 'text' in condition:
         found = any(condition['text'] in t for t in state.get('texts') or [])
         return {'condition': condition, 'value': found, 'passed': found}
-    present = any(a.get('group') == condition['actor'] for a in state.get('actors') or [])
+    counts = state.get('actorCounts')
+    count = next((c.get('count') for c in counts if isinstance(c, dict) and c.get('group') == condition['actor']), None) \
+        if isinstance(counts, list) else None
+    if type(count) is int and count >= 0:
+        present = count > 0
+    else:
+        present = any(a.get('group') == condition['actor'] for a in state.get('actors') or [])
+        if not present:
+            return {'condition': condition, 'value': None, 'passed': False, 'status': 'unknown',
+                    'reason': 'snapshot has no complete active-group count'}
     return {'condition': condition, 'value': present, 'passed': present != bool(condition.get('absent'))}
 
 
 def run(scenario, play, launch, call, out, log=print, timeout=120):
     """launch(play) → poll()/wait()/kill()이 있는 프로세스. 오프라인 테스트는 가짜 게임을 넘긴다."""
-    process = launch(play)
+    identity = test_record.begin(out, scenario)
+    calls = []
+    call = test_record.measured(call, calls)
+    process, error = None, None
+    started = time.monotonic()
     history, events, result, state = [], [], None, None
     last, repeats = None, 0
     try:
+        process = launch(play)
         for step in range(1, scenario.get('max_steps', 30) + 1):
             new = wait_file(play / f'state-{step}.json', process, timeout)
             if new is None:
@@ -151,6 +167,7 @@ def run(scenario, play, launch, call, out, log=print, timeout=120):
             events.append({'step': step, 'action': action, 'confidence': decision['action']['confidence'],
                            'probabilities': decision['action']['probabilities'], 'lastOutcome': state.get('lastOutcome'),
                            **{k: decision[k] for k in ('latency_s', 'cost', 'cached')}})
+            test_record.append(out, events[-1])
             log(f"{step:>2} {action:<22} p={decision['action']['confidence']:.2f} {decision['latency_s']:.2f}s "
                 f"← {state.get('lastOutcome') or '-'}")
             if result:
@@ -161,18 +178,36 @@ def run(scenario, play, launch, call, out, log=print, timeout=120):
                 break
         else:
             result = 'max_steps'
+    except Exception as failure:  # noqa: BLE001 — 증거를 남긴 뒤 원래 실행 실패를 다시 던진다
+        error, result = failure, 'error'
     finally:
-        try:
-            process.wait(timeout=20)
-        except Exception:  # noqa: BLE001 — 끝나지 않는 플레이어는 정리한다
-            process.kill()
-    final = [check(c, state) for c in scenario.get('checks', [])] if state else []
-    summary = {'version': 'jev-test-unity-v1', 'result': result, 'passed': result == 'passed', 'steps': len(events),
-               'jev_calls': len(events), 'cost': round(sum(e['cost'] or 0 for e in events), 6),
-               'latency_s': round(sum(e['latency_s'] or 0 for e in events), 3), 'checks': final, 'goal': scenario['goal'], 'covers': scenario.get('covers') or []}
-    out.mkdir(parents=True, exist_ok=True)
-    (out / 'events.jsonl').write_text(''.join(json.dumps(e, ensure_ascii=False) + '\n' for e in events), encoding='utf-8')
-    (out / 'result.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+        if process:
+            try:
+                if error:
+                    process.kill()
+                process.wait(timeout=20)
+            except Exception:  # noqa: BLE001 — 끝나지 않는 플레이어는 정리한다
+                try:
+                    process.kill()
+                except Exception:  # noqa: BLE001
+                    pass
+    try:
+        final = [check(c, state) for c in scenario.get('checks', [])] if state and error is None else []
+    except Exception as failure:  # noqa: BLE001
+        error, result, final = failure, 'error', []
+    summary = {'version': 'jev-test-unity-v1', **identity, 'result': result, 'passed': error is None and result == 'passed',
+               'steps': len(events), 'jev_calls': len(calls), 'calls': calls, **test_record.costs(calls),
+               'elapsed_s': round(time.monotonic() - started, 3),
+               'latency_s': round(sum(e.get('latency_s') or 0 for e in calls), 3), 'checks': final, 'goal': scenario['goal'], 'covers': scenario.get('covers') or []}
+    if error:
+        summary.update(error_type=type(error).__name__, evidence_unavailable='execution stopped before final evidence')
+    try:
+        test_record.finish(out, summary, events, 'unity')
+    except Exception:  # noqa: BLE001
+        if error is None:
+            raise
+    if error:
+        raise error
     return summary
 
 
@@ -202,7 +237,7 @@ def main():
     key = api_key(args.env_file, repo)
     if not key:
         parser.exit(2, 'OPENROUTER_API_KEY가 없어 Jev를 쓸 수 없습니다\n')
-    out = repo / f'.fullops-squad/docs/evaluations/qa-reports/{args.key}-test/unity-{datetime.now():%Y%m%d-%H%M%S}'
+    out = repo / f'.fullops-squad/docs/evaluations/qa-reports/{args.key}-test/unity-{datetime.now():%Y%m%d-%H%M%S-%f}'
     play = out / 'play'
     play.mkdir(parents=True)
     shutil.copyfile(config, play / 'config.json')

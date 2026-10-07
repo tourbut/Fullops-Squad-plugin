@@ -6,16 +6,20 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 
-from jev_observe import api_key, digest, excerpt, local_file, observe, request
-from work import KEY, active_repo, instruction, safe_file
+from jev_observe import api_key, digest, excerpt, local_file, observe, request, safe_text
+from deliverables import front_matter
+from work import KEY, active_repo, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
 
 SPAN_LINES, SPAN_CHARS, MAX_SOURCE = 34, 3500, 65536
 
 
-def candidate(repo, head, rel, n):
+def candidate(repo, head, rel, n, task=''):
     """경로 하나를 Jev 후보로 만든다. 원문을 보낼 수 없으면 source 없이 넣어 항상 유지되게 한다."""
     item = {'id': f'c{n}-' + re.sub(r'[^A-Za-z0-9._-]', '-', Path(rel).name)[:60], 'path': rel, 'summary': ''}
+    if (repo / rel).stat().st_size > MAX_SOURCE:
+        return item, 'too large or empty'
     raw = (repo / rel).read_bytes()
     try:
         lines = raw.decode('utf-8').splitlines(keepends=True)
@@ -23,21 +27,33 @@ def candidate(repo, head, rel, n):
         return item, 'not utf-8'
     if len(raw) > MAX_SOURCE or not lines:
         return item, 'too large or empty'
-    end = size = 0
-    while end < min(len(lines), SPAN_LINES) and size + len(lines[end]) <= SPAN_CHARS:
+    meta = front_matter(raw.decode('utf-8')) or {}
+    try:
+        item['summary'] = safe_text(' — '.join(str(meta[k]) for k in ('title', 'summary') if meta.get(k)), 1000)
+    except ValueError:
+        pass
+    terms = set(re.findall(r'[A-Za-z_][A-Za-z_0-9]{2,}', task))
+    hits = [n for n, line in enumerate(lines) if n >= SPAN_LINES and any(re.search(rf'\b{re.escape(term)}\b', line) for term in terms)]
+    start = max(0, hits[0] - 5) if hits else 0
+    end, size = start, 0
+    while end < min(len(lines), start + SPAN_LINES) and size + len(lines[end]) <= SPAN_CHARS:
         size, end = size + len(lines[end]), end + 1
-    span = {'start_line': 1, 'end_line': max(end, 1)}
+    span = {'start_line': start + 1, 'end_line': max(end, start + 1)}
     try:
         excerpt(raw, span)  # observe()는 후보 하나의 원문 거부로 전체 호출을 건너뛴다
     except ValueError:
         return item, 'sensitive or oversized passage'
     saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{rel}'], capture_output=True)  # 체크아웃 변환(CRLF) 적용
     item['source'] = {'sha256': digest(raw), 'at_head': saved.returncode == 0 and saved.stdout == raw, 'span': span}
+    item['total_lines'], item['partial'] = len(lines), start != 0 or end < len(lines)
+    item['search_hits'] = [n + 1 for n in hits]
     return item, None
 
 
 def context(repo, role, key, paths, call, required=(), handover=None):
+    started = time.monotonic()
     inbox, text = instruction(repo, role, key, handover)
+    paths = list(dict.fromkeys(paths))
     if len(paths) > 20:
         raise ValueError('후보는 20개 이하로 좁히세요')
     head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
@@ -48,17 +64,21 @@ def context(repo, role, key, paths, call, required=(), handover=None):
         except (OSError, ValueError) as error:
             refused.append({'path': name, 'reason': str(error)})
             continue
-        item, reason = candidate(repo, head, rel, n)
+        item, reason = candidate(repo, head, rel, n, text)
         candidates.append(item)
         if reason:
             unsent[rel] = reason
-    data = {'task': f'{key}\n' + text[:3500], 'head': head, 'candidates': candidates,
+    data = {'task': f'{key}\n' + task_excerpt(text), 'head': head, 'candidates': candidates,
             'required_paths': [inbox.relative_to(repo).as_posix(), *required]}
     try:
         outcome = observe(data, repo, call)
     except ValueError as error:  # 지시서 본문의 민감 문자열 등: Jev 없이 전부 유지한다
         outcome = {'error': f'Jev 생략: {error}', 'context': None}
-    return {**outcome, 'task_key': key, 'role': role, 'unsent_sources': unsent, 'refused_paths': refused}
+    return {**outcome, **input_identity(repo, role, key, {'policy': 'context-v2', 'paths': paths, 'required': list(required)}),
+            'unsent_sources': unsent, 'refused_paths': refused,
+            'elapsed_seconds': round(time.monotonic() - started, 3),
+            'input_partial': len(text) > 3500, 'instruction_chars': len(text),
+            'remaining_instruction': {'start_char': 3500, 'end_char': len(text)} if len(text) > 3500 else None}
 
 
 def report(result):
@@ -93,22 +113,31 @@ def main():
     parser.add_argument('--required', nargs='*', default=[], help='항상 유지할 추가 경로')
     parser.add_argument('--handover', help='현재 역할 인박스의 상대 경로. .fullops-squad/handovers/to_<역할>.md만 허용')
     parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
+    parser.add_argument('--force', action='store_true', help='이전 결과를 history에 보존하고 새 입력으로 갱신')
     args = parser.parse_args()
     try:
         if not KEY.fullmatch(args.key):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
         output = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{args.key}-context.json')
-        if output.exists():
-            raise ValueError(f'기존 결과를 보존합니다: {output.relative_to(repo)}')
+        sources = {}
+        for name in args.paths:
+            try:
+                source = local_file(repo, name)
+                sources[name] = digest(source.read_bytes()) if source.stat().st_size <= MAX_SOURCE else 'oversized'
+            except (OSError, ValueError):
+                sources[name] = 'unavailable'
+        identity = input_identity(repo, args.role, args.key, {'policy': 'context-v2', 'paths': args.paths,
+                                  'required': args.required, 'sources': sources})
+        reused = previous_result(output, identity, args.force)
 
         def call(payload):
             return request(payload, api_key(args.env_file, repo))
-        result = context(repo, args.role, args.key, args.paths, call, args.required, args.handover)
+        result = reused or {**context(repo, args.role, args.key, args.paths, call, args.required, args.handover), **identity}
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'Jev 문맥 분류 실패: {error}\n')
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    if not reused:
+        save_result(output, result)
     print(report(result))
     print(output.relative_to(repo))
 

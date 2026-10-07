@@ -23,9 +23,9 @@ import integration
 from orca_wait import find_orca
 from done_gate import CODE, field, git
 from jev_route import coordinator_role, guide, marked_role, product_roles
+from storage import write_json
 
 DISPATCH = re.compile(r'--dispatch-id[ =]+([A-Za-z0-9_.:-]+)')
-SETTLE = re.compile(r'orchestration\s+send\b.*--type[ =]+(?:worker_done|escalation)\b', re.S)  # ask는 턴을 끝내지 않는다
 INJECT = re.compile(r'\bterminal\s+send\b.*handovers/|\bdispatch\b.*--inject\b', re.S)
 SEND_LIMIT = 20  # coordinator가 terminal send로 보낼 수 있는 글자 수. 확인 프롬프트 응답(y, 1)은 허용하고 작업 지시는 막는다
 HANDOVER = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
@@ -51,7 +51,15 @@ def context(root):
 
 def route_of(root, key):
     try:
-        return json.loads((root / f'.fullops-squad/docs/evaluations/jev/{key}-route.json').read_text(encoding='utf-8'))
+        data = json.loads((root / f'.fullops-squad/docs/evaluations/jev/{key}-route.json').read_text(encoding='utf-8'))
+        roles = integration.config(root)['roles']
+        if not isinstance(data, dict) or data.get('version') not in ('jev-route-v1', 'jev-route-v2', 'jev-route-v3', 'jev-route-v4') or data.get('task_key') != key:
+            return None
+        if data.get('route') not in ('simple', 'design', 'product', 'implementation', 'unresolved'):
+            return None
+        if data.get('role') not in roles and data.get('route') != 'unresolved':
+            return None
+        return data
     except (OSError, ValueError):
         return None
 
@@ -141,9 +149,34 @@ def orca(*args):
     return integration.orca(*args)
 
 
-def operation_commands(command, operation, group='orchestration'):
-    """인용된 spec의 단어를 제외하고 셸 구분자별 실제 Orca 작업을 선택한다."""
+def shell_commands(command):
+    """here-doc 본문은 데이터로 두고 최상위 명령만 어휘 분석한다. 셸 실행기는 아니다."""
+    lines, visible, delimiter = command.splitlines(keepends=True), [], None
+    quote, escaped = None, False
+    for line in lines:
+        if delimiter:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        visible.append(line)
+        for n, char in enumerate(line):
+            if escaped:
+                escaped = False
+            elif char == '\\' and quote != "'":
+                escaped = True
+            elif quote:
+                if char == quote:
+                    quote = None
+            elif char in "'\"":
+                quote = char
+            elif line.startswith('<<', n) and (n == 0 or line[n - 1] != '<'):
+                heredoc = re.match(r'<<-?\s*[\'\"]?([A-Za-z_][A-Za-z0-9_]*)[\'\"]?', line[n:])
+                if heredoc:
+                    delimiter = heredoc.group(1)
+                    break
+    command = ''.join(visible)
     lexer = shlex.shlex(command, posix=False, punctuation_chars=';&|\n')
+    lexer.whitespace = ' \t\r'
     lexer.whitespace_split = True
     lexer.commenters = ''
     chunks, words = [], []
@@ -155,11 +188,88 @@ def operation_commands(command, operation, group='orchestration'):
             else:
                 words.append(word)
     except ValueError:
-        return [command] if re.search(rf'\b{group}\s+{operation}\b', command) else []
+        return []  # 해석할 수 없는 본문 예시를 실행 명령으로 승격하지 않는다.
     chunks.append(words)
-    return [' '.join(words) for words in chunks if any(
-        words[i:i + 2] == [group, operation] for i in range(len(words) - 1))
-        and not any(word in ('--help', '-h') for word in words)]
+    result, aliases = [], {}
+    for words in chunks:
+        while words and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*=.+', words[0]):
+            name, value = words.pop(0).split('=', 1)
+            aliases[name] = value.strip('\'\"')
+        if not words:
+            continue
+        executable = words[0].strip('\'\"')
+        if executable.startswith('$'):
+            executable = aliases.get(executable[1:], '')
+        result.append([executable, *words[1:]])
+    return result
+
+
+def operation_commands(command, operation, group='orchestration'):
+    return [' '.join(words) for words in shell_commands(command) if
+            Path(words[0]).name in ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev') and
+            words[1:3] == [group, operation] and not any(word in ('--help', '-h') for word in words)]
+
+
+def settlement_command(command, state):
+    """확인 가능한 단일 Orca 전송만 추적한다. 인용문·echo·도움말·다른 dispatch는 제외한다."""
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=';&|\n')
+        lexer.whitespace_split = True
+        words = list(lexer)
+    except ValueError:
+        return None
+    if len(words) < 4 or Path(words[0]).name not in ('orca', 'orca.exe', 'orca.cmd', 'orca-ide') or words[1:3] != ['orchestration', 'send']:
+        return None
+    if any(word in ('--help', '-h') or re.fullmatch(r'[;&|]+', word) for word in words):
+        return None
+    flags = {}
+    for n, word in enumerate(words):
+        if word.startswith('--'):
+            name, sep, value = word.partition('=')
+            flags[name] = value if sep else words[n + 1] if n + 1 < len(words) else ''
+    if '--payload' in flags:
+        try:
+            payload = json.loads(flags['--payload'])
+            flags['--task-id'], flags['--dispatch-id'] = payload.get('taskId'), payload.get('dispatchId')
+        except (ValueError, AttributeError):
+            return None
+    if flags.get('--type') not in ('worker_done', 'escalation') or flags.get('--dispatch-id') != state.get('dispatch'):
+        return None
+    if state.get('task') and flags.get('--task-id') != state['task']:
+        return None
+    return {'command_sha256': hashlib.sha256(command.encode()).hexdigest(), 'dispatch': state['dispatch']}
+
+
+def delivered(event, state):
+    command, _ = targets(field(event, 'tool_input') or {})
+    candidate = settlement_command(command, state)
+    pending = state.get('sending')
+    if not candidate or not pending or candidate != {k: pending[k] for k in candidate}:
+        return False
+    if pending.get('tool_use_id') != field(event, 'tool_use_id'):
+        return False
+    response = field(event, 'tool_response')
+    if isinstance(response, dict):
+        if response.get('exit_code', response.get('exitCode')) not in (None, 0) or response.get('is_error') or response.get('interrupted'):
+            return False
+        response = response.get('stdout', response.get('output', response))
+    if isinstance(response, str):
+        try:
+            response = json.loads(response)
+        except ValueError:
+            return False
+    return isinstance(response, dict) and response.get('ok') is True and isinstance(response.get('result'), dict) and \
+        (response['result'].get('lifecycle') or {}).get('action') != 'rejected' and bool(
+            (response['result'].get('message') or {}).get('id') or (response['result'].get('relay') or {}).get('messageId'))
+
+
+def settled_in_runtime(state):
+    """변수·wrapper 호출의 receipt를 해석하지 못하면 현재 Dispatch의 정본 완료를 확인한다."""
+    status = orca('orchestration', 'worker-show', '--dispatch', state['dispatch']) or {}
+    projection = status.get('projection') or {}
+    return projection.get('dispatchId') == state['dispatch'] and bool(state.get('task')) and \
+        projection.get('taskId') == state['task'] and projection.get('outcome') in ('succeeded', 'failed') and \
+        (projection.get('stage') or {}).get('dispatch') in ('completed', 'failed')
 
 
 def run_state(run, root=None):
@@ -170,7 +280,8 @@ def run_state(run, root=None):
     if root is not None:
         integration.record(root, inbox.get('messages') or [])
     unread = sum(1 for m in inbox.get('messages') or [] if m.get('type') in ('worker_done', 'question', 'escalation'))
-    active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if not (w.get('projection') or {}).get('outcome'))
+    active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if
+                    (w.get('projection') or {}).get('outcome') not in ('succeeded', 'failed'))
     return unread, active
 
 
@@ -242,17 +353,20 @@ def route_key_denial(root, command):
     text = command
     for path in re.findall(r'[^\s\'"`]*handovers[/\\]to_[a-z][a-z0-9_-]*\.md', command):  # 지시서 경로를 넘기면 본문 첫 줄의 키
         handover = Path(path) if Path(path).is_absolute() else root / re.sub(r'^\.[/\\]', '', path)
-        text += ' ' + (key_in(root, None, handover) or '')
+        text += ' Task key: ' + (key_in(root, None, handover) or '')
     task, run = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command), re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
     if task:
         listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
         if listing is None:
             return None  # 과제 내용을 확인할 수 없으면 막지 않는다
         found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
-        text += ' ' + str(found.get('spec') or '') + ' ' + str(found.get('task_title') or '')
+        text += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '')
+    named = integration.dispatch_key(text)
     for key in keys:
-        if integration.key_present(key, text):
-            route = route_of(root, key) or {}
+        if key == named:
+            route = route_of(root, key)
+            if not route:
+                return f'{key}의 route 기록 스키마가 잘못됐습니다. jev_route.py로 재분류하세요.'
             if route.get('route') == 'unresolved':
                 return f'{key}의 담당 역할이 미확정입니다. 근거와 함께 재분류한 뒤 배정하세요.'
             return None
@@ -267,11 +381,14 @@ def tool_denial(root, event, state):
     if not isinstance(tool, dict):
         return None
     command, files = targets(tool)
-    if SETTLE.search(command):
-        state['settled'] = True
-    for run in STARTED.findall(command):  # 띄운 worker의 결과를 받기 전에 끝내지 않게 Run을 기억한다
+    candidate = settlement_command(command, state)
+    if candidate:
+        state['sending'] = {**candidate, 'tool_use_id': field(event, 'tool_use_id')}
+    starting = operation_commands(command, 'worker-start')
+    python_commands = [' '.join(words) for words in shell_commands(command) if re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name)]
+    for run in STARTED.findall('\n'.join(starting)):  # 띄운 worker의 결과를 받기 전에 끝내지 않게 Run을 기억한다
         state['runs'] = sorted(set(state.get('runs', [])) | {run})
-    for key in ROUTED.findall(command):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
+    for key in ROUTED.findall('\n'.join(python_commands)):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
         state['routed'] = sorted(set(state.get('routed', [])) | {key})
     role, designer = context(root)
     for name, content in files:
@@ -288,7 +405,8 @@ def tool_denial(root, event, state):
             inbox = orca('orchestration', 'check', *flags, '--peek')
             if inbox is not None:
                 integration.record(root, inbox.get('messages') or [])
-    if INJECT.search(command):
+    injection_commands = operation_commands(command, 'send', 'terminal') + operation_commands(command, 'dispatch')
+    if INJECT.search('\n'.join(injection_commands)):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
     asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?=\s|[;&|]|$)', command)
     if role == 'coordinator' and any(len(sent_text(send)) > SEND_LIMIT for send in
@@ -296,7 +414,6 @@ def tool_denial(root, event, state):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
                 '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
-    starting = operation_commands(command, 'worker-start')
     creating = operation_commands(command, 'task-create')
     for dispatch in starting:
         if '--run' not in dispatch:
@@ -314,7 +431,7 @@ def tool_denial(root, event, state):
             listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
             if listing is not None:
                 found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
-                integration_spec += ' ' + str(found.get('spec') or '')
+                integration_spec += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')
         denial = dispatch_inbox_denial(integration_spec)
         if denial:
             return denial
@@ -325,11 +442,11 @@ def tool_denial(root, event, state):
         if denial:
             return denial
         if dispatch in starting:
-            denial = integration.baseline_denial(root, dispatch)
+            denial = integration.baseline_denial(root, integration_spec)
             if denial:
                 return denial
     if role == 'coordinator' and designer:
-        new = re.search(r'\bwork\.py\b.*\bnew\b', command)
+        new = re.search(r'\bwork\.py\b.*\bnew\b', '\n'.join(python_commands))
         if new and not asking_help:
             try:
                 words = shlex.split(command, posix=True)
@@ -426,12 +543,22 @@ def main():
         match = DISPATCH.search(str(field(event, 'prompt') or ''))
         if match and match.group(1) != state.get('dispatch'):
             state = {'dispatch': match.group(1), 'settled': False}
+            task = re.search(r'--task-id[ =]+([A-Za-z0-9_.:-]+)', str(field(event, 'prompt') or ''))
+            if task:
+                state['task'] = task.group(1)
     elif mode == 'tool':
         denial = tool_denial(root, event, state)
         if denial:
             output = {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
                                              'permissionDecisionReason': 'FullOps: ' + denial}}
+    elif mode == 'post':
+        if delivered(event, state):
+            state['settled'] = True
+            state.pop('sending', None)
     elif mode == 'stop' and (field(event, 'reason') or 'end_turn') == 'end_turn':
+        if state.get('dispatch') and not state.get('settled') and settled_in_runtime(state):
+            state['settled'] = True
+            state['settlement_source'] = 'Orca current dispatch outcome'
         if state.get('dispatch') and not state.get('settled'):
             if field(event, 'stop_hook_active') and state.get('blocked'):
                 output = {'systemMessage': 'FullOps: worker_done 없이 dispatched 세션을 끝냈습니다. coordinator가 계속 기다립니다.'}
@@ -484,7 +611,7 @@ def main():
             except Exception:  # noqa: BLE001
                 pass
     if state != before:
-        session.write_text(json.dumps(state))
+        write_json(session, state)
     return output
 
 

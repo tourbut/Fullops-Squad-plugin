@@ -8,8 +8,21 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import shlex
 
 from done_gate import git
+from storage import write_json
+
+
+def dispatch_key(text):
+    """명시 선언, 현재 인박스 또는 spec 첫 단어만 과제 정체성으로 쓴다."""
+    named = re.findall(r'\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)', text, re.I)
+    if named:
+        return named[0].rstrip('.') if len(set(named)) == 1 else None
+    spec = re.search(r'--spec(?:=|\s+)["\']([^"\']+)', text)
+    if spec:
+        return re.match(r'[A-Za-z0-9][A-Za-z0-9._-]*', spec.group(1)).group(0) if re.match(r'[A-Za-z0-9]', spec.group(1)) else None
+    return None
 
 
 def orca(*args, cwd=None):
@@ -97,7 +110,7 @@ def record(root, messages):
                     saved[field] = data[field]
                     changed = True
             if changed:
-                path.write_text(json.dumps(saved, ensure_ascii=False), encoding='utf-8')
+                write_json(path, saved)
 
 
 def ancestor(root, source, target):
@@ -140,7 +153,7 @@ def denial(root, command=None):
     items = pending(root)
     if command is not None:
         # 같은 과제의 리뷰·수정 배정은 통합 선행 조건을 해결한다.
-        items = [item for item in items if not item['key'] or not key_present(item['key'], command)]
+        items = [item for item in items if not item['key'] or item['key'] != dispatch_key(command)]
     if not items:
         return None
     labels = ', '.join(f'{item["key"] or item["message"]}: {item["action"]}' for item in items[:5])
@@ -170,16 +183,42 @@ def baseline_denial(root, command):
     try:
         branch = git(worker, 'symbolic-ref', '--short', 'HEAD')
     except subprocess.CalledProcessError:
-        # detached HEAD는 고정 SHA 리뷰에 사용한다. 경로 자체는 유효한 Git 레포여야 한다.
+        branch = None
+    purpose = re.search(r'\bPurpose\s*[:=]\s*(implementation|review)\b', command, re.I)
+    purpose = purpose.group(1).lower() if purpose else 'implementation'
+    if purpose == 'review':
+        fields = {}
+        for name in ('Review SHA', 'Implementer session', 'Reviewer session'):
+            found = re.search(rf'\b{name}\s*[:=]\s*([A-Za-z0-9._-]+)', command, re.I)
+            fields[name] = found.group(1) if found else None
         try:
-            git(worker, 'rev-parse', 'HEAD')
-        except subprocess.CalledProcessError:
-            return '실제 Git 워크트리 경로를 --worktree에 지정하세요.'
+            from review import check_independence
+            head = fields['Review SHA']
+            if not dispatch_key(command) or not head or not re.fullmatch('[0-9a-f]{40}', head):
+                raise ValueError('Task key와 정확한 Review SHA가 필요합니다')
+            check_independence(root, {'review_schema_version': 2, 'head': head, 'independence': {
+                'snapshot_path': str(worker), 'snapshot_head': head, 'read_only': True,
+                'implementer_session': fields['Implementer session'], 'reviewer_session': fields['Reviewer session']}})
+            if not ancestor(worker, head, head) or not ancestor(root, head, head):
+                raise ValueError('현재 저장소의 commit이 아닙니다')
+        except (OSError, ValueError, subprocess.CalledProcessError) as error:
+            return f'리뷰 snapshot 정체성 확인 실패: {error}'
         return None
     if branch not in settings.get('roles', {}).values():
-        return None  # 읽기 전용 고정 SHA 리뷰 snapshot은 동기화 대상이 아니다.
+        return 'implementation은 등록 역할 브랜치의 기존 워크트리를 사용하세요. 리뷰는 Purpose: review와 고정 SHA·독립 세션을 선언하세요.'
     if directory(worker) != directory(root):
         return '등록 역할의 워크트리가 현재 레포와 다릅니다. 실제 워크트리 경로를 확인하세요.'
+    try:
+        from flow_gate import route_of
+        route = route_of(Path(root), dispatch_key(command))
+        if route and settings['roles'].get(route['role']) != branch:
+            return 'route 담당 역할과 worker 브랜치가 다릅니다. 기존 역할 경로를 선택하거나 근거를 남겨 재분류하세요.'
+        packet = Path(root) / f'.fullops-squad/docs/evaluations/jev/{dispatch_key(command)}-packet.json'
+        if packet.is_file() or (route and route.get('requires_packet')):
+            from jev_packet import check
+            check(worker.resolve(), route['role'], dispatch_key(command), required=True)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return f'탐색 패킷/배정 역할 검사 실패: {error}'
     base, published = references(root, settings)
     sources = [base]
     if published:
@@ -222,7 +261,7 @@ def main():
             item['hold'] = {'reason': args.reason, 'owner': args.owner, 'resume': args.resume}
         else:
             item.pop('hold', None)
-        path.write_text(json.dumps(item, ensure_ascii=False), encoding='utf-8')
+        write_json(path, item)
     print(json.dumps({'pending': pending(root)}, ensure_ascii=False))
 
 

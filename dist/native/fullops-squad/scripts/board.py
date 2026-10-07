@@ -164,7 +164,7 @@ def tests(root, limit=12):
     """조작 테스트(jev_test_web·jev_test_unity) 결과. 과제 키와 시나리오마다 최신 실행 하나와 실행 횟수."""
     latest, runs = {}, {}
     for path in (root / 'docs/evaluations/qa-reports').glob('*-test/*/result.json'):
-        match = re.fullmatch(r'(web|unity)-(\d{4})(\d{2})(\d{2})-(\d{6})', path.parent.name)
+        match = re.fullmatch(r'(web|unity)-(\d{4})(\d{2})(\d{2})-(\d{6})(?:-\d{6})?', path.parent.name)
         data = load(path) or {}
         if not match or 'result' not in data:
             continue
@@ -176,10 +176,10 @@ def tests(root, limit=12):
                 'scenario': group[1], 'covers': [c for c in data.get('covers') or [] if isinstance(c, str)],
                 'date': f'{match.group(2)}-{match.group(3)}-{match.group(4)}',
                 'report': path.with_name('report.md').relative_to(root).as_posix() if path.with_name('report.md').is_file() else ''}
-        if group not in latest or item['run'][-15:] > latest[group]['run'][-15:]:
+        if group not in latest or item['run'].split('-', 1)[1] > latest[group]['run'].split('-', 1)[1]:
             latest[group] = item
     result = [{**item, 'runs': runs[group]} for group, item in latest.items()]
-    result.sort(key=lambda t: t['run'][-15:], reverse=True)
+    result.sort(key=lambda t: t['run'].split('-', 1)[1], reverse=True)
     return result[:limit]
 
 
@@ -223,7 +223,10 @@ def deliverables(root):
             if re.fullmatch(r'D\d{2}', ident):
                 paths = re.findall(r'`([^`]+)`', source)
                 sources = documents(root, paths)
-                meta = next((d.get('meta') for d in sources if d.get('meta', {}).get('id') == ident), None)
+                from deliverables import identities, document_status
+                meta = next((d.get('meta') for d in sources if ident in identities(d.get('meta', {}))), None)
+                if meta:
+                    meta = {**meta, 'id': ident, 'status': document_status(meta, ident)}
                 meta = meta or {}  # 원천 문서의 front matter가 인덱스 표보다 우선한다
                 result.append({'id': ident, 'stage': stage, 'name': meta.get('title') or name, 'source': paths,
                                'status': meta.get('status') or status, 'index_status': status,

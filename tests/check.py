@@ -19,7 +19,7 @@ def load(name, path):
 
 def snapshot(root):
     return {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*')
-            if p.is_file() and '.git' not in p.relative_to(root).parts}
+            if p.is_file() and not {'.git', '__pycache__'} & set(p.relative_to(root).parts)}
 
 
 def main():
@@ -110,13 +110,10 @@ def main():
         assert inbox.read_bytes() == b''
         assert 'TEST-1' in (repo / f'.fullops-squad/handovers/logs/{date.today()}_to_backend_dev.md').read_text()
         inbox.write_text(completed)
-        try:
-            work.finish(repo, 'backend_dev', 'TEST-1')
-        except ValueError:
-            pass
-        else:
-            raise AssertionError('완료 지시서 중복 아카이브')
-        assert inbox.read_text() == completed
+        log = repo / f'.fullops-squad/handovers/logs/{date.today()}_to_backend_dev.md'
+        archived = log.read_bytes()
+        work.finish(repo, 'backend_dev', 'TEST-1')
+        assert log.read_bytes() == archived and not inbox.read_bytes()
         inbox.write_bytes(b'')
         assert not deliverables.check(repo, 'D01')  # 미작성 원천은 실패가 아니다.
         deliverable = repo / '.fullops-squad/docs/deliverables/D01_business-plan.md'
@@ -266,7 +263,7 @@ def main():
         hosts = {cmd[0] for cmd in plan} - {'npx'}
         assert hosts == {'all': {'npm', 'codex', 'claude', 'grok', 'agy'},
                          'both': {'npm', 'codex', 'claude'}}.get(host, {'npm', 'claude' if host == 'claude-code' else host})
-        assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@latest']
+        assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.12']
         assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
         for source, name in (('JuliusBrussee/caveman', 'caveman'), ('typesafe-ai/skills', 'typesafe-ai')):
             targets = {cmd[cmd.index('--agent') + 1] for cmd in skills

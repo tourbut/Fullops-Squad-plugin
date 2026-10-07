@@ -39,7 +39,7 @@
   ],
   "tools": [
     {
-      "package": "@alibaba-group/open-code-review@latest",
+      "package": "@alibaba-group/open-code-review@1.12.12",
       "command": "ocr"
     }
   ],
