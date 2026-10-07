@@ -72,10 +72,12 @@ Codex add는 기존 0.9.14 호환 경로를 다시 정리했다. 부모 hook 경
 
 77fcaaf의 Actions run 37595873280은 Linux core/OCR와 Windows portable이 통과했고 macOS portable의 Python 회귀 4건이 실패했다. macOS 임시 경로 /var가 /private/var로 resolve되면서 원래 repo 경로와 resolved 파일을 비교해 정상 파일을 외부로 거부한 것이 원인이다.
 
-공유 local_file은 실제 containment를 resolved repo끼리 확인하고 검증한 입력 경로를 반환한다. 내부 symlink/민감 이름/외부 경로/상위 탈출 차단은 유지한다. Markdown 링크도 resolved repo를 기준으로 계산한다. 부모 경로 alias의 파일·링크·packet 접근과 차단 경계를 함께 확인하는 회귀를 추가했다. 기존 jev-observe 보안 검사는 통과했다. 수정본 Actions 재실행 결과는 아래에 기록한다.
+공유 local_file은 실제 containment를 resolved repo끼리 확인하고 검증한 입력 경로를 반환한다. 내부 symlink/민감 이름/외부 경로/상위 탈출 차단은 유지한다. Markdown 링크도 resolved repo를 기준으로 계산한다. 부모 경로 alias의 파일·링크·packet 접근과 차단 경계를 함께 확인하는 회귀를 추가했다. 기존 jev-observe 보안 검사는 통과했다. 7b7d2b00606302b353673f0fd17734900af0b520의 [재실행 Actions](https://github.com/tourbut/Fullops-Squad-plugin/actions/runs/37596494783)는 core/review/portable Windows/portable macOS 4개 작업 모두 success다. CI 정의가 아닌 실제 실행 결과다.
 
 ## 검사
 
 npm test: 전체 통과. tests/stabilization.py: 24개 통과. tests/review-check.py: pinned OCR 1.12.12 실제 delegate 검사 통과. 실제 Jev API/캐시/route 연결: 통과. build와 git diff --check: 통과.
 
 Windows/macOS 실제 host·Unity Player·강제 종료/동시 빌드 회복·전체 제품 QA는 미실행이다. Windows/macOS portable은 CI의 launcher·실패 회복·합성 회귀·native build 검사이며 실제 CLI 설치·세션 테스트는 Linux에서만 실행했다. i-Docs main의 서비스 적용 버전 0.9.14는 테스트 설치와 구분하며 운영 정책 전체 반영/병합을 이번 점검으로 완료했다고 표시하지 않는다.
+
+최종 설치·세션 정본·자동 Stop·CI의 구조화된 증거: [sessions-1.0.0-followup.json](evidence/sessions-1.0.0-followup.json). i-Docs coor에 `.fullops-squad/docs/exec-plans/phases/FULLOPS-UPDATE-1.0.0.md`를 기록했으며 서비스 정책 이행은 별도 후속으로 보류했다.

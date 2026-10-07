@@ -1,0 +1,166 @@
+{
+  "version": "1.0.0",
+  "code_commit": "7b7d2b00606302b353673f0fd17734900af0b520",
+  "previous_installed_version": "0.9.14",
+  "idocs_repo_applied_version": "0.9.14",
+  "clis": {
+    "codex": "0.160.1",
+    "claude-code": "2.1.292",
+    "orca": "1.4.222",
+    "python3": "3.12.3"
+  },
+  "final_install": {
+    "command": "python3 scripts/install.py --host both",
+    "exit_code": 0,
+    "native_identity": {
+      "version": "1.0.0",
+      "sha256": "489e782c5c4526f36bfe426c726fc0fa2e05a9ca93fa89f1b7c607c04f788ce8"
+    },
+    "hosts": [
+      {
+        "host": "codex",
+        "target": {
+          "version": "1.0.0",
+          "sha256": "489e782c5c4526f36bfe426c726fc0fa2e05a9ca93fa89f1b7c607c04f788ce8",
+          "source": "/home/shin/workspace/Fullops-Squad-plugin"
+        },
+        "verified": true
+      },
+      {
+        "host": "claude-code",
+        "target": {
+          "version": "1.0.0",
+          "sha256": "489e782c5c4526f36bfe426c726fc0fa2e05a9ca93fa89f1b7c607c04f788ce8",
+          "source": "/home/shin/workspace/Fullops-Squad-plugin"
+        },
+        "verified": true
+      }
+    ]
+  },
+  "run_id": "run_6d5f8427a99f",
+  "sessions": [
+    {
+      "cli": "claude-code",
+      "role": "arch",
+      "task_id": "task_35f014c7c23f",
+      "dispatch_id": "ctx_5095f1cdc76a",
+      "model": "Opus 5.5",
+      "effort": "medium",
+      "session_id": "dd8593c7-4b92-4339-8364-e70359b5b690",
+      "report_commit": "5bc574ad258dffd170508970262b3b513f6ff58c",
+      "observed": [
+        "SessionStart",
+        "UserPromptSubmit state",
+        "PreToolUse",
+        "PostToolUse",
+        "Stop false block then continuation"
+      ],
+      "finding": "completed alias send was not recognized; Stop false warning and duplicate worker_done",
+      "terminal_disposition": "retained; user entered followup prompt"
+    },
+    {
+      "cli": "codex",
+      "role": "tester",
+      "task_id": "task_5f588e3ad1d7",
+      "dispatch_id": "ctx_10bb11fd7eb2",
+      "session_id": "01a11572-4d88-76f2-8b3b-b6752eea0221",
+      "report_commit": "44747d4cd5556e6d844f22353e4ed0d2f7f66b93",
+      "observed": [
+        "SessionStart context",
+        "UserPromptSubmit state",
+        "PreToolUse intended denial and heredoc false positive",
+        "PostToolUse settled state",
+        "normal task_complete; Stop process exit unexposed"
+      ],
+      "final_flow_state": {
+        "dispatch": "ctx_10bb11fd7eb2",
+        "settled": true,
+        "task": "task_5f588e3ad1d7"
+      },
+      "worker_done_message": "msg_4a5a1ec965d4",
+      "delivery_id": "delivery_1d0d18728d3e",
+      "terminal_disposition": "released; archive captured; closed"
+    },
+    {
+      "cli": "claude-code",
+      "role": "tester",
+      "task_id": "task_9d8267afa0ff",
+      "dispatch_id": "ctx_e5c2d5d0978a",
+      "model": "Sonnet 5.5",
+      "effort": "medium",
+      "session_id": "9487f8b2-5ffc-4f53-9fe8-195688d69787",
+      "report_commit": "9693df72143e004173f7b0a3ae9eb7ff69c7ac79",
+      "loaded_flow_gate_sha256": "a855a11a495cb68494ddfecd62d62583194db58fbc6581ba5ccaf0f975a141e4",
+      "heredoc_string_write": {
+        "automatic_pre_tool_use": "allowed",
+        "shell_exit_code": 0
+      },
+      "top_level_missing_run": {
+        "automatic_pre_tool_use": "denied",
+        "shell_exit_code": null
+      },
+      "worker_done_message": "msg_7f5f626fdd4d",
+      "delivery_id": "delivery_6baf1ba9acc7",
+      "worker_done_transport": "Python subprocess; local receipt parser cannot see nested command",
+      "automatic_stop": [
+        {
+          "timestamp": "2026-10-07T08:47:26.080Z",
+          "hook_count": 3,
+          "plugin_hooks": [
+            {
+              "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/done_gate.py\" stop",
+              "durationMs": 56
+            },
+            {
+              "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" stop",
+              "durationMs": 161
+            }
+          ],
+          "hook_errors": [],
+          "prevented_continuation": false
+        }
+      ],
+      "final_flow_state": {
+        "dispatch": "ctx_e5c2d5d0978a",
+        "settled": true,
+        "task": "task_9d8267afa0ff",
+        "settlement_source": "Orca current dispatch outcome"
+      },
+      "source_log": {
+        "path": "/home/shin/.claude/projects/-home-shin-orca-workspaces-i-Docs-tester/9487f8b2-5ffc-4f53-9fe8-195688d69787.jsonl",
+        "sha256": "b085878908cb0418b55578c72f4d1bf72ec161672d9be65c5024c894a286fa37"
+      },
+      "report": {
+        "path": "/home/shin/orca/workspaces/i-Docs/tester/.fullops-squad/docs/evaluations/qa-reports/FULLOPS-100-HOOKFIX-test/report.md",
+        "sha256": "15072aae146385b62dd2f670a56872444c93470cddd5a9352043235025010ded"
+      },
+      "document_check": {
+        "DOC-002/DOC-003": "passed",
+        "violations": [],
+        "git_diff_check_exit_code": 0,
+        "observer": "parent"
+      },
+      "full_product_lint": "failed: frontend svelte-kit/prettier not installed; outside document-only task; no pass claim",
+      "terminal_disposition": "release retained external; parent closed its own idle terminal"
+    }
+  ],
+  "limitations": [
+    "Original H1 cause remains unconfirmed",
+    "Actual host CLI installation/sessions tested on Linux only",
+    "i-Docs product merge/push and service policy migration not performed"
+  ],
+  "ci": {
+    "initial_run": "https://github.com/tourbut/Fullops-Squad-plugin/actions/runs/37595873280",
+    "initial_failure": "macOS canonical path mismatch; other three jobs passed",
+    "fix_commit": "7b7d2b00606302b353673f0fd17734900af0b520",
+    "rerun": "https://github.com/tourbut/Fullops-Squad-plugin/actions/runs/37596494783",
+    "rerun_status": "success",
+    "jobs": {
+      "core": "success",
+      "review": "success",
+      "portable (windows-latest)": "success",
+      "portable (macos-latest)": "success"
+    }
+  },
+  "idocs_update_record": ".fullops-squad/docs/exec-plans/phases/FULLOPS-UPDATE-1.0.0.md in coor; service policy migration deferred"
+}
