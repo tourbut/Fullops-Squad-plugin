@@ -170,9 +170,11 @@ def plugin_problems(host, expected=None, target=None):
         absent = ['plugin: ' + name for name in expected if name not in installed]
         if target and not absent:
             row = installed['fullops-squad@fullops-squad']
-            if row.get('version') != target['version']:
+            folder = row.get('readFromFolder') if host == 'claude-code' else None
+            version = row.get('folderVersion') if folder else row.get('version')
+            if version != target['version']:
                 return ['FullOps version differs from development target']
-            root = receipt_path(host).parent / 'plugins/cache/fullops-squad/fullops-squad' / row['version'] if host == 'codex' else Path(row['installPath'])
+            root = receipt_path(host).parent / 'plugins/cache/fullops-squad/fullops-squad' / version if host == 'codex' else Path(folder or row['installPath'])
             if package_identity(root) != {k: target[k] for k in ('version', 'sha256')}:
                 absent.append('FullOps package version/content differs from development target')
             source = registered_marketplaces(cli).get('fullops-squad', '')

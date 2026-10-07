@@ -15,7 +15,7 @@ summary: 새 리뷰 R1–R7 보완과 실제 로컬 업데이트 및 i-Docs 두 
 
 | 항목 | 수정 | 확인 |
 |---|---|---|
-| R1 | 개발 설치의 명령별 대상 확인, FullOps 버전·내용 해시·출처 receipt와 최종 검사 | 제거/부분 실패/다른 버전/동일 버전 변경 회귀, 실제 양쪽 개발 설치 |
+| R1 | 개발 설치의 명령별 대상 확인, FullOps 버전·내용 해시·출처 receipt와 최종 검사, Claude readFromFolder 실제 로딩 경로 검사 | 제거/부분 실패/다른 버전/동일 버전 변경 회귀, 실제 양쪽 개발 설치 |
 | R2 | standalone Claude 의존 플러그인 install 명령 생성 | 누락 대상 명령 회귀와 실제 설치/호스트 검사. 실제 dependency 제거 후 복구는 미실행 |
 | R3 | wrapper와 개발 설치 모두 hook과 같은 python3 3.10+ 검사 | python만 성공하는 경우 거부 회귀, Linux 실제 python3 3.12.3 |
 | R4 | producer의 task/role/HEAD/attempt/지시 해시 엄격 대조 | 동일 HEAD 새 시도 결과 거부, route 명시 bind/API 없는 연결 회귀 |
@@ -47,14 +47,20 @@ route가 선택한 architecture 역할과 D05/D10/D09를 저장·현재 지시�
 
 Run: run_6d5f8427a99f. 기존 dev/ops 인박스·제품 코드·사용자 세션을 보존하고 비어 있는 arch/tester 인박스에 승인된 테스트 지시서를 작성했다. 각 worker는 자기 QA 증거·컨텍스트·완료 로그만 작성하고 로컬 역할 브랜치에 커밋했다. i-Docs push/merge는 수행하지 않는다.
 
-Claude: arch, Opus 5.5 medium. 최초 보고 SHA 5bc574a. SessionStart 3종·PreToolUse(Bash/Write)·PostToolUse(Bash)의 자동 성공을 확인했다. UserPromptSubmit은 해당 로그에서 미확인이다. directory 출처의 실제 hook 루트는 개발 dist이며 캐시와의 내용 일치도 검사했다. 최초 검증 당시 dist는 미커밋 후보였으므로 설치 metadata의 Git SHA로 실제 파일 내용을 대신하지 않는다.
+Claude: arch, Opus 5.5 medium. 최초 보고 SHA 5bc574a. SessionStart 3종·PreToolUse(Bash/Write)·PostToolUse(Bash)의 자동 성공을 확인했다. UserPromptSubmit은 보고서의 로그 snapshot에서는 미확인이며, 부모가 같은 session/task/dispatch의 prompt 상태 파일로 후속 확인했다. directory 출처의 실제 hook 루트는 개발 dist이며 캐시와의 내용 일치도 검사했다. 최초 검증 당시 dist는 미커밋 후보였으므로 설치 metadata의 Git SHA로 실제 파일 내용을 대신하지 않는다.
 
 실제 Stop에서 `O=<Orca 경로>; $O orchestration send ...` 완료 전송을 local parser가 인식하지 못해 이미 도착한 worker_done을 미완료로 경고했다. worker는 중복 회신까지 했다. 해당 세션 로그에 block 후 다음 Stop 정상 완료가 남았다. 이 결함은 현재 task/dispatch의 Orca 정본 완료를 조회하는 보완과 stale/진행 중/조회 실패 회귀로 수정했다. Run 집계에서도 in_progress를 active로 처리했다.
 
-Codex는 SessionStart·UserPromptSubmit의 context/dispatch state와 실제 PreToolUse 거부를 관측했다. 보고서 작성용 Python here-doc 안의 `orca orchestration worker-start` 예시를 실제 실행으로 오인해 차단하는 결함도 재현했다. 공통 셸 분석에서 here-doc 본문·echo·인용된 spec은 실행 명령에서 제외하고 실제 최상위 Orca 명령만 선택하도록 수정했다. 진행 Run/route 추적과 inject 검사도 같은 분석을 사용한다. 실제 최상위 명령은 그대로 검사하는 회귀를 추가했다. 최종 수명 결과는 완료 후 아래에 추가한다.
+Codex는 SessionStart·UserPromptSubmit의 context/dispatch state와 실제 PreToolUse 거부를 관측했다. 보고서 작성용 Python here-doc 안의 `orca orchestration worker-start` 예시를 실제 실행으로 오인해 차단하는 결함도 재현했다. 공통 셸 분석에서 here-doc 본문·echo·인용된 spec은 실행 명령에서 제외하고 실제 최상위 Orca 명령만 선택하도록 수정했다. 진행 Run/route 추적과 inject 검사도 같은 분석을 사용한다. 실제 최상위 명령은 그대로 검사하는 회귀를 추가했다. Codex 최종 보고 커밋은 44747d4cd5556e6d844f22353e4ed0d2f7f66b93다. 실제 worker_done msg_4a5a1ec965d4의 현재 task/dispatch 정본 완료와 자동 PostToolUse settled=true 전환을 확인했다. 같은 세션은 task_complete 후 idle이었고 Stop 차단 메시지는 없었으나 Stop 개별 process 종료코드는 로그에 노출되지 않았다. 소유한 Codex terminal을 worker-release로 archive/종료한 뒤 delivery를 ack했다. Claude terminal은 사용자가 후속 입력을 했으므로 보존했다.
+
+## 최종 재설치 검사
+
+최종 재설치에서 Claude 2.1.292의 plugin list는 오래된 installPath와 최신 readFromFolder/folderVersion을 함께 반환했다. 실제 hook은 폴더에서 읽지만 최초 검사는 cache를 확인해 exit 2가 났다. readFromFolder가 있을 때 그 경로와 folderVersion을 검사하도록 수정하고 오래된 cache/변경된 실폴더/일반 cache 설치 회귀를 추가했다. 이후 `python3 scripts/install.py --host both` exit 0. Codex cache와 Claude 실제 로딩 폴더를 각각 개발 dist의 버전·내용 해시·marketplace 출처와 대조했다.
+
+Codex add는 기존 0.9.14 호환 경로를 다시 정리했다. 부모 hook 경로가 사라진 상태로 방치하지 않고 동일 df981bc archive 124파일을 설치 후 복원·SHA 검증했다. 이는 실행 중 부모의 경로 보존이며 최신 설치 버전을 되돌리지 않는다.
 
 ## 검사
 
-npm test: 전체 통과. tests/stabilization.py: 22개 통과. tests/review-check.py: pinned OCR 1.12.12 실제 delegate 검사 통과. 실제 Jev API/캐시/route 연결: 통과. build와 git diff --check: 통과.
+npm test: 전체 통과. tests/stabilization.py: 23개 통과. tests/review-check.py: pinned OCR 1.12.12 실제 delegate 검사 통과. 실제 Jev API/캐시/route 연결: 통과. build와 git diff --check: 통과.
 
 Windows/macOS 실제 host·Unity Player·강제 종료/동시 빌드 회복·전체 제품 QA는 미실행이다. GitHub Actions 결과는 실행 후 별도로 기록한다. i-Docs main의 서비스 적용 버전 0.9.14는 테스트 설치와 구분하며 운영 정책 전체 반영/병합을 이번 점검으로 완료했다고 표시하지 않는다.

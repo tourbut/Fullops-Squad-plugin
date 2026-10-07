@@ -603,6 +603,24 @@ class Stabilization(unittest.TestCase):
         for name in deps.dependency_plugins('claude-code'):
             self.assertIn(['claude', 'plugin', 'install', name], claude)
 
+    def test_claude_development_folder_is_runtime_package(self):
+        folder, cache = self.root / 'folder', self.root / 'cache'
+        for root, version in ((folder, '1.0.0'), (cache, '0.9.14')):
+            root.mkdir()
+            (root / 'plugin.json').write_text(json.dumps({'version': version}))
+        target = {**deps.package_identity(folder), 'source': str(self.root)}
+        row = {'id': 'fullops-squad@fullops-squad', 'enabled': True,
+               'version': '0.9.14', 'installPath': str(cache),
+               'readFromFolder': str(folder), 'folderVersion': '1.0.0'}
+        with patch.object(deps.subprocess, 'check_output', side_effect=lambda *a, **k: json.dumps([row])), \
+             patch.object(deps, 'registered_marketplaces', return_value={'fullops-squad': str(self.root)}):
+            self.assertEqual(deps.plugin_problems('claude-code', [row['id']], target), [])
+            (folder / 'hook.py').write_text('changed live hook')
+            self.assertIn('content', deps.plugin_problems('claude-code', [row['id']], target)[0])
+            row.pop('readFromFolder')
+            row.pop('folderVersion')
+            self.assertIn('version', deps.plugin_problems('claude-code', [row['id']], target)[0])
+
     def test_packet_producer_identity_uncertainty_markdown_and_optional(self):
         (self.repo / 'ref.md').write_text('# unrelated reference\n')
         (self.repo / 'omit.md').write_text('# garden\n')
