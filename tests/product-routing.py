@@ -9,6 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import jev_route
+import jev_find
+import jev_packet
+import storage
+import work
 import setup
 
 
@@ -91,6 +95,10 @@ with tempfile.TemporaryDirectory(prefix='fullops-product-') as tmp:
     subprocess.run(['git', '-C', tmp, '-c', 'user.name=t', '-c', 'user.email=t@example.test', 'commit', '-qm', 'setup'], check=True)
     worker = repo / '.git/dev'
     subprocess.run(['git', '-C', tmp, 'worktree', 'add', '-q', '-b', 'fullops/dev', str(worker)], check=True)
+    assert '패킷' in hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')
+    work.new(worker, 'dev', 'IMPLEMENT', '확정 요구의 구현', 'HEAD')
+    packet = jev_packet.packet(worker, 'dev', 'IMPLEMENT')
+    storage.write_json(jev_find.result_path(worker, 'IMPLEMENT', 'packet'), packet)
     assert not hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')
     patch = ('*** Begin Patch\n*** Update File: .fullops-squad/handovers/to_dev.md\n@@\n'
              '+# IMPLEMENT — 구현\n+orca orchestration worker-start --spec "본문 예시"\n*** End Patch\n')

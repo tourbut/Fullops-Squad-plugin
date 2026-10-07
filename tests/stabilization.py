@@ -194,6 +194,24 @@ class Stabilization(unittest.TestCase):
         for bad in ('echo ' + command, command + '; echo fake', command.replace('worker_done', 'ask'), command + ' --help'):
             self.assertIsNone(flow_gate.settlement_command(bad, state))
         self.assertIsNotNone(flow_gate.settlement_command(command.replace('worker_done', 'escalation'), state))
+        projection = {'dispatchId': 'd1', 'taskId': 't1', 'outcome': 'succeeded', 'stage': {'dispatch': 'completed'}}
+        with patch.object(flow_gate, 'orca', return_value={'projection': projection}):
+            self.assertTrue(flow_gate.settled_in_runtime(state))
+        for field, value in [('dispatchId', 'old'), ('taskId', 'other'), ('outcome', 'in_progress')]:
+            with patch.object(flow_gate, 'orca', return_value={'projection': {**projection, field: value}}):
+                self.assertFalse(flow_gate.settled_in_runtime(state))
+        with patch.object(flow_gate, 'orca', return_value=None):
+            self.assertFalse(flow_gate.settled_in_runtime(state))
+        def status(*args):
+            return {'messages': []} if args[1] == 'check' else {'workers': [
+                {'dispatchId': 'live', 'projection': {'outcome': 'in_progress'}}, {'dispatchId': 'done', 'projection': projection}]}
+        with patch.object(flow_gate, 'orca', side_effect=status):
+            self.assertEqual(flow_gate.run_state('run1'), (0, ['live']))
+        report = "python3 - <<'PY'\nreport = '''\norca orchestration worker-start\n'''\nprint(report)\nPY\n"
+        self.assertEqual(flow_gate.operation_commands(report, 'worker-start'), [])
+        self.assertEqual(flow_gate.operation_commands('echo orca orchestration worker-start', 'worker-start'), [])
+        self.assertEqual(len(flow_gate.operation_commands(report + 'orca orchestration worker-start --run r1', 'worker-start')), 1)
+        self.assertEqual(len(flow_gate.operation_commands('O=/opt/Orca/resources/bin/orca-ide; $O orchestration worker-start --run r1', 'worker-start')), 1)
 
     def test_dispatch_rejects_detached_unknown_and_broken_route(self):
         head = self.git('rev-parse', 'HEAD')
@@ -501,6 +519,8 @@ class Stabilization(unittest.TestCase):
         worker_inbox = worker / inbox.relative_to(self.repo)
         worker_inbox.write_text(text)
         command = f'orca orchestration worker-start --run run1 --worktree "{worker}" --spec "Task key: K1; Purpose: implementation"'
+        self.assertIn('탐색 패킷', flow_gate.tool_denial(self.repo, {'tool_input': {'command': command}}, {}))
+        storage.write_json(jev_find.result_path(worker, 'K1', 'packet'), packet)
         self.assertIsNone(flow_gate.tool_denial(self.repo, {'tool_input': {'command': command}}, {}))
         for name in ('api.py', 'caller.py', 'test_api.py'):
             path = worker / name
@@ -508,6 +528,16 @@ class Stabilization(unittest.TestCase):
         test = subprocess.run([sys.executable, str(worker / 'test_api.py')], cwd=worker, capture_output=True)
         self.assertEqual(test.returncode, 0)
         worker_inbox.write_text(text.partition('## 완료 보고\n')[0] + '## 완료 보고\n\n최종 API·호출자·테스트 수정. Python test_api.py exit_code=0.\n')
+        with self.assertRaisesRegex(ValueError, '패킷'):
+            work.finish(worker, 'dev', 'K1')
+        contract = worker / '.fullops-squad/docs/design-docs/interface-design.md'
+        contract.write_text(contract.read_text() + '\nlookup_user API 이름 변경; 반환 계약은 동일하다.\n')
+        outcomes = {'packet_input_sha256': packet['input_sha256'], 'attempt': packet['attempt'],
+                    'uncertainty_review': 'fixture의 모든 후보·잔여를 직접 검토했다', 'items': [
+                        {'path': i['path'], 'category': c, 'status': 'completed' if c in ('direct_edit', 'document_update') else 'no_change',
+                         'reason': 'API·계약 변경과 테스트 확인' if c in ('direct_edit', 'document_update') else '원문 읽기 및 영향 확인, 추가 변경 없음'}
+                        for i in packet['items'] if not i.get('optional') for c in i['categories']]}
+        storage.write_json(jev_find.result_path(worker, 'K1', 'packet-outcomes'), outcomes)
         with redirect_stdout(io.StringIO()):
             work.finish(worker, 'dev', 'K1')
         self.git('add', '-A', cwd=worker)
@@ -531,6 +561,135 @@ class Stabilization(unittest.TestCase):
         self.assertTrue((folder / 'jev-documents-find-score.json').is_file())
         integration.record(self.repo, [{'id': 'm-final', 'type': 'worker_done', 'body': f'[완료] K1 | 최종 SHA {head}'}])
         self.assertEqual(integration.pending(self.repo)[0]['sha'], head)
+
+    def test_development_plugin_repair_version_and_partial_failure(self):
+        target = self.root / 'package'
+        target.mkdir()
+        (target / 'plugin.json').write_text('{"version":"1.0.0"}')
+        receipt = self.root / 'deps-repair.json'
+        plugin = {'package': target, 'source': str(self.root)}
+        plan = [['codex', 'plugin', 'add', 'fullops-squad@fullops-squad']]
+        installed, calls = {}, []
+        def problems(host, expected=None, target=None):
+            return ['missing or stale FullOps'] if target and installed != target else []
+        def run(commands, dry):
+            calls.extend(commands)
+            installed.clear()
+            installed.update({**deps.package_identity(plugin['package']), 'source': plugin['source']})
+        with patch.object(deps, 'receipt_path', return_value=receipt), patch.object(deps, 'tool_problems', return_value=[]), \
+             patch.object(deps, 'plugin_problems', side_effect=problems), patch.object(deps, 'skill_files', side_effect=lambda *args: ([], [])), \
+             patch.object(deps, 'run', side_effect=run):
+            deps.install_host('codex', plan, plugin)
+            deps.install_host('codex', plan, plugin)
+            self.assertEqual(len(calls), 1)
+            installed.clear()  # 의존성/receipt는 유지한 채 FullOps만 제거
+            self.assertTrue(deps.check_host('codex'))
+            deps.install_host('codex', plan, plugin)
+            self.assertEqual(len(calls), 2)
+            (target / 'plugin.json').write_text('{"version":"1.0.1"}')
+            with patch.object(deps, 'run', side_effect=OSError('native install failed')):
+                with self.assertRaises(OSError):
+                    deps.install_host('codex', plan, plugin)
+            self.assertFalse(deps.read_receipt(receipt)['complete'])
+            deps.install_host('codex', plan, plugin)
+            self.assertEqual(installed['version'], '1.0.1')
+            (target / 'hook.py').write_text('new same-version hook')
+            deps.install_host('codex', plan, plugin)
+            self.assertEqual(len(calls), 4)
+            self.assertEqual(deps.check_host('codex'), [])
+            deps.install_host('codex', [], None)
+            self.assertIsNone(deps.read_receipt(receipt)['plugin'])  # standalone 복구는 과거 개발 target을 재검증하지 않는다.
+        claude = list(deps.commands('claude-code'))
+        for name in deps.dependency_plugins('claude-code'):
+            self.assertIn(['claude', 'plugin', 'install', name], claude)
+
+    def test_packet_producer_identity_uncertainty_markdown_and_optional(self):
+        (self.repo / 'ref.md').write_text('# unrelated reference\n')
+        (self.repo / 'omit.md').write_text('# garden\n')
+        self.commit('references')
+        inbox = self.new()
+        identity = work.input_identity(self.repo, 'dev', 'K1', {})
+        def save(suffix, **data):
+            storage.write_json(jev_find.result_path(self.repo, 'K1', suffix), {**identity, **data})
+        save('find', candidates=[{'path': 'ref.md'}], partial=True, remaining_candidates=['tail.py'], error='one batch failed')
+        save('route', deliverables=['D05'], docs_status='partial', unresolved_deliverables=['D10'])
+        save('context', context={'candidate_paths': {'c1': 'omit.md'}, 'signals': {'c1': {'decision': 'suggest_omit'}}, 'fallback': 'API failure'}, refused_paths=[{'path': 'missing.md'}])
+        packet = jev_packet.packet(self.repo, 'dev', 'K1')
+        self.assertTrue(packet['partial'])
+        self.assertEqual(packet['producer_status']['route']['unresolved_deliverables'], ['D10'])
+        self.assertEqual(packet['producer_status']['find']['remaining_candidates'], ['tail.py'])
+        self.assertIn('context_fallback', packet['producer_status']['context'])
+        self.assertIn('ref.md', packet['categories']['document_read'])
+        self.assertNotIn('ref.md', packet['categories']['document_update'])
+        self.assertEqual(packet['optional_context_paths'], ['omit.md'])
+        self.assertNotIn('omit.md', packet['context_paths'])
+        self.assertNotIn('`omit.md`', jev_packet.handover(packet, Path('packet.json')))
+        inbox.write_text(inbox.read_text().replace('attempt: ' + identity['attempt'], 'attempt: new-attempt'))
+        stale = jev_packet.packet(self.repo, 'dev', 'K1')
+        self.assertFalse(stale['producer_status'])
+        self.assertEqual({v['source'] for v in stale['unknown'] if 'source' in v}, {'find', 'route', 'context'})
+        self.assertNotIn('ref.md', stale['categories']['document_read'])
+
+    def test_packet_delivery_identity_paths_and_outcomes(self):
+        inbox = self.new()
+        packet = jev_packet.packet(self.repo, 'dev', 'K1')
+        path = jev_find.result_path(self.repo, 'K1', 'packet')
+        with self.assertRaises(ValueError):
+            jev_packet.check(self.repo, 'dev', 'K1', required=True)
+        for field in ('attempt', 'head', 'instruction_sha256'):
+            storage.write_json(path, {**packet, field: 'stale'})
+            with self.assertRaises(ValueError):
+                jev_packet.check(self.repo, 'dev', 'K1')
+        storage.write_json(path, {**packet, 'items': [*packet['items'], {'path': 'absent.md'}]})
+        with self.assertRaises(ValueError):
+            jev_packet.check(self.repo, 'dev', 'K1')
+        storage.write_json(path, packet)
+        jev_packet.check(self.repo, 'dev', 'K1')
+        result = {'attempt': packet['attempt'], 'packet_input_sha256': packet['input_sha256'], 'items': []}
+        out = jev_find.result_path(self.repo, 'K1', 'packet-outcomes')
+        storage.write_json(out, result)
+        with self.assertRaisesRegex(ValueError, 'incomplete'):
+            jev_packet.check(self.repo, 'dev', 'K1', completion=True)
+        result['items'] = [{'path': i['path'], 'category': c, 'status': 'no_change', 'reason': '원문 읽기 및 영향 확인: 변경 불필요'} for i in packet['items'] for c in i['categories']]
+        storage.write_json(out, result)
+        jev_packet.check(self.repo, 'dev', 'K1', completion=True)
+        result['items'][0]['status'] = 'unknown'
+        storage.write_json(out, result)
+        with self.assertRaisesRegex(ValueError, 'pending'):
+            jev_packet.check(self.repo, 'dev', 'K1', completion=True)
+
+    def test_uneven_find_batches_do_not_claim_global_probability_rank(self):
+        self.new()
+        entries = [(f'file-{n}.py', '') for n in range(255)] + [('tail.py', '')]
+        def call(payload):
+            labels = list(payload['questions']['where']['criteria'])
+            probabilities = {name: 1 / len(labels) for name in labels}
+            return {'model': 'typesafe/jev-test', 'usage': {'input_tokens': 1, 'output_tokens': 1, 'cost': 0.001}, 'answers': {
+                'where': {'type': 'choice', 'choice': labels[0], 'confidence': probabilities[labels[0]], 'probabilities': probabilities},
+                'exists': web_test.answer(list(payload['questions']['exists']['criteria']), 'found')}}, 0.01
+        with patch.object(jev_find, 'code_map', return_value=entries):
+            result = jev_find.find(self.repo, 'dev', 'K1', call, limit=2)
+        self.assertTrue(result['partial'])
+        self.assertEqual(result['ranking_status'], 'batch_only')
+        self.assertEqual([c['path'] for c in result['candidates']], ['file-0.py', 'tail.py'])
+        self.assertEqual(result['candidates'][1]['probability'], 1)
+
+    def test_route_bind_records_current_instruction_without_api(self):
+        self.new()
+        path = jev_find.result_path(self.repo, 'K1', 'route')
+        storage.write_json(path, {'task_key': 'K1', 'head': self.git('rev-parse', 'HEAD'), 'role': 'dev', 'route': 'simple'})
+        command = [sys.executable, str(ROOT / 'plugins/fullops-squad/scripts/jev_route.py'), '--repo', str(self.repo), '--key', 'K1', '--role', 'dev', '--bind-inbox']
+        bound = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(bound.returncode, 0, bound.stderr)
+        self.assertEqual(json.loads(path.read_text())['attempt'], work.input_identity(self.repo, 'dev', 'K1', {})['attempt'])
+        self.assertTrue(json.loads(path.read_text())['requires_packet'])
+        inbox, content = work.instruction(self.repo, 'dev', 'K1')
+        inbox.write_text(content.replace('rename fetch_user API', 'different instruction'))
+        self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+        original = '# K1 — task\n- [ ] read source\n\n## 완료 보고\n미작성.\n'
+        completed = original.replace('[ ]', '[x]').replace('미작성.', '보고와 검증 기록.')
+        self.assertEqual(work.instruction_digest(original), work.instruction_digest(completed))
+        self.assertNotEqual(work.instruction_digest(original), work.instruction_digest(original.replace('read source', 'edit source')))
 
 
 if __name__ == '__main__':

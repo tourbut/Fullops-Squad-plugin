@@ -60,9 +60,8 @@ def commands(host, registered=None, plugin=None):
                     raise ValueError(f"{cli}: {name} 마켓플레이스 출처 충돌: {current} != {source}")
             else:
                 yield [cli, "plugin", "marketplace", "add", source]
-        if cli == "codex":
-            for name in deps["codex"]["plugins"]:
-                yield [cli, "plugin", "add", name]
+        for name in dependency_plugins(agent):
+            yield [cli, "plugin", "install" if cli == "claude" else "add", name]
         for skill in deps["skills"] + (deps["codex"]["skills"] if cli == "codex" else []):
             yield ["npx", "--yes", "skills@latest", "add", skill["source"],
                    "--skill", *skill["names"], "--global", "--agent", agent, "--yes"]
@@ -146,18 +145,51 @@ def tool_problems():
     return absent
 
 
-def plugin_problems(host):
-    expected = manifest()['codex']['plugins'] if host == 'codex' else ['ponytail@ponytail', 'mattpocock-skills@claude-plugins-official'] if host == 'claude-code' else []
+def dependency_plugins(host):
+    return manifest()['codex']['plugins'] if host == 'codex' else ['ponytail@ponytail', 'mattpocock-skills@claude-plugins-official'] if host == 'claude-code' else []
+
+
+def package_identity(root):
+    root = Path(root)
+    files = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+             for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and '.git' not in p.parts}
+    return {'version': json.loads((root / 'plugin.json').read_text())['version'],
+            'sha256': hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()}
+
+
+def plugin_problems(host, expected=None, target=None):
+    expected = dependency_plugins(host) if expected is None else expected
     if not expected:
         return []
     cli = 'claude' if host == 'claude-code' else host
     try:
         data = json.loads(subprocess.check_output([shutil.which(cli) or cli, 'plugin', 'list', '--json'], text=True))
         rows = data.get('installed', []) if host == 'codex' else data
-        names = {row.get('id') or f"{row.get('name')}@{row.get('marketplaceName') or row.get('marketplace')}" for row in rows}
-        return ['plugin: ' + name for name in expected if name not in names]
-    except (OSError, ValueError, TypeError, AttributeError, subprocess.CalledProcessError):
+        installed = {row.get('id') or row.get('pluginId') or f"{row.get('name')}@{row.get('marketplaceName') or row.get('marketplace')}": row
+                     for row in rows if row.get('installed', True) and row.get('enabled', True)}
+        absent = ['plugin: ' + name for name in expected if name not in installed]
+        if target and not absent:
+            row = installed['fullops-squad@fullops-squad']
+            if row.get('version') != target['version']:
+                return ['FullOps version differs from development target']
+            root = receipt_path(host).parent / 'plugins/cache/fullops-squad/fullops-squad' / row['version'] if host == 'codex' else Path(row['installPath'])
+            if package_identity(root) != {k: target[k] for k in ('version', 'sha256')}:
+                absent.append('FullOps package version/content differs from development target')
+            source = registered_marketplaces(cli).get('fullops-squad', '')
+            if normalize_source(source) != normalize_source(target['source']):
+                absent.append('FullOps marketplace source differs from development target')
+        return absent
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.CalledProcessError):
         return ['host plugin verification unavailable']
+
+
+def python_problem():
+    try:
+        subprocess.run([shutil.which('python3') or 'python3', '-c', 'import sys; assert sys.version_info >= (3, 10)'],
+                       check=True, capture_output=True, timeout=10)
+        return []
+    except (OSError, subprocess.SubprocessError):
+        return ['hooks require python3 3.10+ on PATH']
 
 
 def fingerprint():
@@ -166,34 +198,47 @@ def fingerprint():
 
 def check_host(host):
     paths, absent = skill_files(host)
-    absent += tool_problems() + plugin_problems(host)
+    absent += python_problem() + tool_problems() + plugin_problems(host)
     path = receipt_path(host)
     receipt = read_receipt(path)
+    if receipt.get('plugin'):
+        absent += plugin_problems(host, ['fullops-squad@fullops-squad'], receipt['plugin'])
     if receipt.get('manifest_sha256') != fingerprint() or receipt.get('host') != host or receipt.get('home') != str(path.parent.resolve()) or receipt.get('complete') is not True:
         absent.append('host dependency installation incomplete; rerun --host ' + host)
     absent += ['removed skill: ' + p for p in receipt.get('skill_files', []) if not Path(p).is_file()]
     return absent
 
 
-def install_host(host, plan):
+def install_host(host, plan, plugin=None):
+    absent = python_problem()
+    if absent:
+        raise ValueError('; '.join(absent))
     path = receipt_path(host)
     old = read_receipt(path)
-    identity = {'manifest_sha256': fingerprint(), 'host': host, 'home': str(path.parent.resolve())}
-    receipt = old if all(old.get(k) == v for k, v in identity.items()) else {**identity, 'completed': []}
+    identity = {'manifest_sha256': fingerprint(), 'host': host, 'home': str(path.parent.resolve()), 'plugin': None}
+    if plugin and host in ('codex', 'claude-code'):
+        identity['plugin'] = {**package_identity(plugin['package']), 'source': str(plugin['source'])}
+    receipt = old if all(old.get(k) == identity[k] for k in ('manifest_sha256', 'host', 'home')) else {'completed': []}
+    receipt.update(identity)
     receipt['complete'] = False
     write_json(path, receipt)
     for command in plan:
         token = hashlib.sha256(json.dumps(command).encode()).hexdigest()
         valid = not tool_problems() if command[:3] == ['npm', 'install', '--global'] else \
             not skill_files(host, [{'source': command[4], 'names': command[command.index('--skill') + 1:command.index('--global')]}])[1] \
-            if command[0] == 'npx' else not plugin_problems(host) if command[1:3] == ['plugin', 'add'] else False
+            if command[0] == 'npx' else not plugin_problems(host, [command[3]], identity.get('plugin') if command[3] == 'fullops-squad@fullops-squad' else None) \
+            if command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and host in ('codex', 'claude-code') else False
         if token not in receipt['completed'] or not valid:
             run([command], False)
+            if command[:4] == ['claude', 'plugin', 'install', 'fullops-squad@fullops-squad'] and plugin_problems(host, [command[3]], identity.get('plugin')):
+                run([['claude', 'plugin', 'update', command[3], '--scope', 'user']], False)
         if token not in receipt['completed']:
             receipt['completed'].append(token)
         write_json(path, receipt)
     paths, absent = skill_files(host)
     absent += tool_problems() + plugin_problems(host)
+    if identity.get('plugin'):
+        absent += plugin_problems(host, ['fullops-squad@fullops-squad'], identity['plugin'])
     if absent:
         raise ValueError('; '.join(absent))
     receipt.update(complete=True, skill_files=paths)

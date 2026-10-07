@@ -127,7 +127,8 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code'):
     task = safe_text(f'{key}\n' + task_excerpt(text))
     head = git(repo, 'rev-parse', 'HEAD')
     entries = code_map(repo, head, scope)
-    result = {'version': 'jev-find-v1', 'task_key': key, 'head': head, 'requested_model': MODEL, 'files': len(entries),
+    result = {**input_identity(repo, role, key, {'policy': 'find-v2', 'scope': scope, 'limit': limit}),
+              'version': 'jev-find-v1', 'requested_model': MODEL, 'files': len(entries),
               'scope': scope, 'passes': [], 'candidates': [], 'existence': None, 'truncated': False,
               'usage': {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}, 'latency_seconds': 0.0, 'error': None}
     existence, seen, candidates = [], 0, []
@@ -141,8 +142,9 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code'):
             picked = ranked(answers['where'], 0.99, limit)
             result['passes'].append({'level': 'file', 'options': len(options)})
             candidates.extend({'path': pool[int(o[1:])][0], 'summary': pool[int(o[1:])][1], 'probability': probability,
-                               'probability_scope': 'batch', 'batch_start': offset} for o, probability in picked)
-        result['candidates'] = sorted(candidates, key=lambda item: -item['probability'])[:limit]
+                               'probability_scope': 'batch', 'batch_start': offset, 'batch_rank': rank} for rank, (o, probability) in enumerate(picked))
+        # ponytail: 배치 간 확률은 비교할 수 없다. 전역 재평가 전에는 배치 순서와 partial을 보존한다.
+        result['candidates'] = sorted(candidates, key=lambda item: (item['batch_rank'], item['batch_start']))[:limit]
         result['remaining_candidates'] = [item['path'] for item in candidates if item not in result['candidates']]
         if existence:
             found = max(existence)
@@ -152,7 +154,9 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code'):
         result['error'] = f'API or response validation failed: {type(error).__name__}'
         result['candidates'] = []
         result['existence'] = {'status': 'unknown', 'found_probability': None}
-    result.update(presented_files=seen, partial=seen != len(entries), fallback='keyword/symbol search' if seen != len(entries) else None,
+    result.update(presented_files=seen, partial=seen != len(entries) or len(entries) > MAX_OPTIONS,
+                  ranking_status='batch_only' if len(entries) > MAX_OPTIONS else 'single_batch',
+                  fallback='keyword/symbol search' if seen != len(entries) or len(entries) > MAX_OPTIONS else None,
                   input_partial=len(text) > 3500, instruction_chars=len(text))
     result['elapsed_seconds'] = round(time.monotonic() - started, 3)
     result['usage'].update(known_cost=result['usage']['cost'], cost_status='unknown' if result['error'] else 'complete')

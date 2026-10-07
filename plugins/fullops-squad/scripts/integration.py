@@ -214,12 +214,11 @@ def baseline_denial(root, command):
         if route and settings['roles'].get(route['role']) != branch:
             return 'route 담당 역할과 worker 브랜치가 다릅니다. 기존 역할 경로를 선택하거나 근거를 남겨 재분류하세요.'
         packet = Path(root) / f'.fullops-squad/docs/evaluations/jev/{dispatch_key(command)}-packet.json'
-        if packet.is_file():
-            value = json.loads(packet.read_text(encoding='utf-8'))
-            if value.get('version') != 'jev-packet-v1' or value.get('task_key') != dispatch_key(command) or value.get('role') != route['role'] or value.get('head') != git(worker, 'rev-parse', 'HEAD') or not all(c in value.get('categories', {}) for c in ('direct_edit', 'impact_check', 'document_read', 'document_update')):
-                return '탐색 패킷의 과제·역할·worker SHA/범주가 다릅니다. 같은 지시서와 대상 SHA에서 jev_packet.py --force로 갱신하세요.'
-    except (KeyError, TypeError):
-        return '배정 역할을 확인할 수 없습니다'
+        if packet.is_file() or (route and route.get('requires_packet')):
+            from jev_packet import check
+            check(worker.resolve(), route['role'], dispatch_key(command), required=True)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return f'탐색 패킷/배정 역할 검사 실패: {error}'
     base, published = references(root, settings)
     sources = [base]
     if published:

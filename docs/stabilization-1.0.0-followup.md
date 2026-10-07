@@ -1,0 +1,60 @@
+---
+title: FullOps 1.0.0 이슈 6 후속 검증
+status: draft
+updated: 2026-10-07
+owner: maintainer
+summary: 새 리뷰 R1–R7 보완과 실제 로컬 업데이트 및 i-Docs 두 CLI 세션의 증거를 기록한다
+---
+
+# #6 후속 검증
+
+검토한 코멘트: https://github.com/tourbut/Fullops-Squad-plugin/issues/6#issuecomment-6033458842
+기준 커밋: df981bc279c79d71a334290e15c5093a27d86c23. #8 소스는 별도 85edbd3 커밋에 보존한다.
+
+## 보완과 회귀
+
+| 항목 | 수정 | 확인 |
+|---|---|---|
+| R1 | 개발 설치의 명령별 대상 확인, FullOps 버전·내용 해시·출처 receipt와 최종 검사 | 제거/부분 실패/다른 버전/동일 버전 변경 회귀, 실제 양쪽 개발 설치 |
+| R2 | standalone Claude 의존 플러그인 install 명령 생성 | 누락 대상 명령 회귀와 실제 설치/호스트 검사. 실제 dependency 제거 후 복구는 미실행 |
+| R3 | wrapper와 개발 설치 모두 hook과 같은 python3 3.10+ 검사 | python만 성공하는 경우 거부 회귀, Linux 실제 python3 3.12.3 |
+| R4 | producer의 task/role/HEAD/attempt/지시 해시 엄격 대조 | 동일 HEAD 새 시도 결과 거부, route 명시 bind/API 없는 연결 회귀 |
+| R5 | producer_status에 partial/error/미확인 ID/잔여/원문 거부 보존 | D05 양성·D10 미확인, 실패 context가 partial로 남는 회귀 |
+| R6 | find Markdown은 read, 명시 edit seed/diff/update ID만 update 근거 | 참고 Markdown이 update로 승격되지 않는 회귀 |
+| R7 | worker의 packet 전달/identity/HEAD/접근성, finish/review의 항목별 처리 결과 검사 | missing packet, stale identity/HEAD, worker 파일 부재, 누락/unknown 결과 차단과 실제 D05 수정 통합 회귀 |
+
+`completed` 또는 `no_change`에는 구체적인 사유가 필요하다. 추천을 모두 수정할 의무로 만들지 않는다. 패킷의 비선택 경로/범주 쌍마다 읽기·영향·갱신 결과를 기록하고 미확인은 완료로 승격하지 않는다. 완료 보고/체크박스 진행 기록은 지시 해시에서 분리하며 실질 지시 변경은 새 입력이다.
+
+context의 suggest_omit는 optional 목록으로 남긴다. 배치 간 확률을 전역 비교하지 않고 배치별 후보를 교대로 전달하며 batch_only/partial/잔여 후보를 기록한다. 불균형 255+1 회귀에서 확률 1인 tail을 전역 최상으로 표시하지 않는다. 정의 64개 제한도 미확인으로 표시한다. worker decisions는 의견이며 인계에 보여 주고 원본 추천은 보존한다.
+
+## 실제 Jev 연결
+
+`python3 tests/jev-live.py --env-file .env --output docs/evidence/jev-1.0.0-followup.json`: exit 0.
+route가 선택한 architecture 역할과 D05/D10/D09를 저장·현재 지시서에 bind한 뒤 find/documents-find/context와 packet에서 실제 소비했다. 이 연결 fixture에는 explicit seed/update ID를 주지 않았다. 4개 producer가 소비됐으며 이 실행은 partial=false였다. 총 API 비용은 $0.001605114, 캐시 적중 검증은 통과했다.
+
+기존 LIVE-1 비교는 동일 explicit seed/D05가 주어진 비교다. 새 LIVE-ROUTE 연결과 구분한다. 단일 합성 과제·제한된 문자열/정의/링크 탐색이며 구현 품질, 전체 과제 비용, 후속 모델 토큰, 재작업 절감은 미측정이다.
+
+## 로컬 설치와 기존 세션
+
+- 실제 이전 설치: Codex/Claude FullOps 0.9.14. CLI: Codex 0.160.1, Claude Code 2.1.292, Orca 1.4.222, Linux aarch64.
+- marketplace 출처를 GitHub에서 이 개발 체크아웃으로 전환하고 `python3 scripts/install.py --host both`를 실행했다. 양쪽 1.0.0과 `deps.py --check --host codex|claude-code` exit 0을 확인했다. 서비스 setup을 다시 실행하지 않았다.
+- 전환 중 Codex marketplace 제거가 기존 cache를 지웠다. 실행 중 부모 세션은 여전히 0.9.14 경로를 호출해 도구 실행이 차단됐다. 정확한 오류: `python3: can't open file '/home/shin/.codex/plugins/cache/fullops-squad/fullops-squad/0.9.14/scripts/flow_gate.py': [Errno 2] No such file or directory`.
+- 새 복구 세션이 df981bc의 native 124개 파일을 기존 hook 경로에 보존 사본으로 복원했다. 이는 0.9.14 패키지 재설치가 아니라 1.0.0 기준 커밋의 호환 사본이다. hook 비활성화/래퍼 변경 없이 실행을 복구했다. 부모가 살아 있는 동안 이 사본은 유지한다.
+- 기존 H1의 오류 원문과 동일한 재현이라고 확정하지 않는다. H1 원인은 여전히 미확정이다.
+- Codex 신규 시작은 새 FullOps PostToolUse hook의 신뢰 확인 때문에 첫 dispatch가 readiness 단계에서 실패했다. 새 명령/플러그인 출처를 화면에서 검토한 뒤 해당 hook만 trust했다. 실패한 생성 세션은 Orca release로 정리하고 같은 task의 새 attempt로 재시도했다.
+
+## i-Docs 실제 세션
+
+Run: run_6d5f8427a99f. 기존 dev/ops 인박스·제품 코드·사용자 세션을 보존하고 비어 있는 arch/tester 인박스에 승인된 테스트 지시서를 작성했다. 각 worker는 자기 QA 증거·컨텍스트·완료 로그만 작성하고 로컬 역할 브랜치에 커밋했다. i-Docs push/merge는 수행하지 않는다.
+
+Claude: arch, Opus 5.5 medium. 최초 보고 SHA 5bc574a. SessionStart 3종·PreToolUse(Bash/Write)·PostToolUse(Bash)의 자동 성공을 확인했다. UserPromptSubmit은 해당 로그에서 미확인이다. directory 출처의 실제 hook 루트는 개발 dist이며 캐시와의 내용 일치도 검사했다. 최초 검증 당시 dist는 미커밋 후보였으므로 설치 metadata의 Git SHA로 실제 파일 내용을 대신하지 않는다.
+
+실제 Stop에서 `O=<Orca 경로>; $O orchestration send ...` 완료 전송을 local parser가 인식하지 못해 이미 도착한 worker_done을 미완료로 경고했다. worker는 중복 회신까지 했다. 해당 세션 로그에 block 후 다음 Stop 정상 완료가 남았다. 이 결함은 현재 task/dispatch의 Orca 정본 완료를 조회하는 보완과 stale/진행 중/조회 실패 회귀로 수정했다. Run 집계에서도 in_progress를 active로 처리했다.
+
+Codex는 SessionStart·UserPromptSubmit의 context/dispatch state와 실제 PreToolUse 거부를 관측했다. 보고서 작성용 Python here-doc 안의 `orca orchestration worker-start` 예시를 실제 실행으로 오인해 차단하는 결함도 재현했다. 공통 셸 분석에서 here-doc 본문·echo·인용된 spec은 실행 명령에서 제외하고 실제 최상위 Orca 명령만 선택하도록 수정했다. 진행 Run/route 추적과 inject 검사도 같은 분석을 사용한다. 실제 최상위 명령은 그대로 검사하는 회귀를 추가했다. 최종 수명 결과는 완료 후 아래에 추가한다.
+
+## 검사
+
+npm test: 전체 통과. tests/stabilization.py: 22개 통과. tests/review-check.py: pinned OCR 1.12.12 실제 delegate 검사 통과. 실제 Jev API/캐시/route 연결: 통과. build와 git diff --check: 통과.
+
+Windows/macOS 실제 host·Unity Player·강제 종료/동시 빌드 회복·전체 제품 QA는 미실행이다. GitHub Actions 결과는 실행 후 별도로 기록한다. i-Docs main의 서비스 적용 버전 0.9.14는 테스트 설치와 구분하며 운영 정책 전체 반영/병합을 이번 점검으로 완료했다고 표시하지 않는다.

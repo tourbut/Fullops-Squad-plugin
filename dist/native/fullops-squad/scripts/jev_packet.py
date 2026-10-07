@@ -8,9 +8,10 @@ import re
 import subprocess
 
 from board import deliverables
+from deliverables import front_matter
 from jev_find import code_map, git, result_path, MAX_BLOB
 from jev_observe import local_file, REQUIRED, digest, safe_text
-from work import active_repo, instruction, input_identity, previous_result, save_result, task_excerpt, KEY
+from work import active_repo, instruction, instruction_digest, input_identity, previous_result, save_result, task_excerpt, KEY
 from storage import atomic_write
 
 CATEGORIES = ('direct_edit', 'impact_check', 'document_read', 'document_update')
@@ -37,25 +38,40 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     inbox, text = instruction(repo, role, key)
     text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
     head = git(repo, 'rev-parse', 'HEAD')
-    sources, unknown, entries = {}, [], {}
+    current = input_identity(repo, role, key, {})
+    sources, unknown, entries, producer_status = {}, [], {}, {}
     for suffix in ('route', 'find', 'documents-find', 'context'):
         path = result_path(repo, key, suffix)
         if path.is_file():
-            data = json.loads(path.read_text(encoding='utf-8'))
-            if data.get('task_key') != key or data.get('head', head) != head or data.get('role', role) != role:
-                unknown.append({'source': suffix, 'reason': 'task/role/SHA differs; regenerate'})
+            try:
+                data = json.loads(path.read_text(encoding='utf-8'))
+            except (OSError, ValueError):
+                unknown.append({'source': suffix, 'reason': 'invalid producer JSON; regenerate'})
+                continue
+            if not isinstance(data, dict) or any(data.get(k) != current[k] for k in ('task_key', 'role', 'head', 'attempt', 'instruction_sha256')) or not data.get('attempt'):
+                unknown.append({'source': suffix, 'reason': 'task/role/SHA/attempt/instruction differs or absent; regenerate/bind route'})
             else:
                 sources[suffix] = data
-    direct = set(seeds) | {c['path'] for c in sources.get('find', {}).get('candidates', [])}
+                producer_status[suffix] = {k: data[k] for k in ('error', 'partial', 'input_partial', 'docs_status', 'unresolved_deliverables',
+                    'remaining_candidates', 'refused_paths', 'unsent_sources', 'ranking_status', 'fallback') if k in data}
+                ctx_status = data.get('context') or {}
+                if ctx_status.get('fallback'):
+                    producer_status[suffix]['context_fallback'] = ctx_status['fallback']
+                if data.get('error') or data.get('partial') or data.get('input_partial') or data.get('docs_status') == 'partial' or data.get('unresolved_deliverables') or data.get('remaining_candidates') or data.get('refused_paths') or data.get('unsent_sources') or data.get('fallback') or ctx_status.get('fallback'):
+                    unknown.append({'source': suffix, 'reason': 'producer uncertainty; inspect producer_status', **producer_status[suffix]})
+    recommended = {c['path'] for c in sources.get('find', {}).get('candidates', [])}
+    explicit = set(seeds)
     dirty = git(repo, 'status', '--porcelain', '--untracked-files=all')
-    direct.update(p for p in git(repo, 'diff', '--name-only', 'HEAD').splitlines() if not p.startswith(
+    explicit.update(p for p in git(repo, 'diff', '--name-only', 'HEAD').splitlines() if not p.startswith(
                   ('.fullops-squad/handovers/', '.fullops-squad/board/', '.fullops-squad/docs/evaluations/jev/')))
+    direct = explicit | {p for p in recommended if not p.endswith('.md')}
     mandatory = set(REQUIRED) | set(required) | {inbox.relative_to(repo).as_posix()}
     route = sources.get('route', {})
     update_ids = set(updates) | set(route.get('deliverables', [])) | set(route.get('additional_deliverables', []))
-    documents = {c['path'] for c in sources.get('documents-find', {}).get('candidates', [])}
+    documents = {c['path'] for c in sources.get('documents-find', {}).get('candidates', [])} | {p for p in recommended if p.endswith('.md')}
     ctx = sources.get('context', {}).get('context') or {}
     contexts = {path: cid for cid, path in ctx.get('candidate_paths', {}).items()}
+    optional = {p for p, cid in contexts.items() if (ctx.get('signals', {}).get(cid) or {}).get('decision') == 'suggest_omit'}
     mandatory.update(path for path in ctx.get('required_paths', []) if path)
     mapped = {path for scope in ('code', 'documents') for path, _ in code_map(repo, head, scope)}
     mapped.update(direct | mandatory | documents | set(contexts))
@@ -86,8 +102,8 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
             item['doc_ids'].append(doc_id)
 
     for path in direct:
-        add(path, 'document_update' if path.endswith('.md') else 'direct_edit', 'explicit seed, diff or find recommendation')
-    for path in mandatory | documents | set(contexts):
+        add(path, 'document_update' if path.endswith('.md') else 'direct_edit', 'explicit edit seed/diff' if path in explicit else 'code find recommendation')
+    for path in mandatory | documents | (set(contexts) - optional):
         add(path, 'document_read' if path.endswith('.md') else 'impact_check', 'required or existing context recommendation')
         if path in contexts:
             entries[path]['context_signal'] = ctx.get('signals', {}).get(contexts[path])
@@ -109,6 +125,8 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
         if not definitions:
             definitions = [(m.group(1), body[:m.start()].count('\n') + 1) for m in re.finditer(
                 r'\b(?:function|class|def|fn|func)\s+([A-Za-z_][A-Za-z_0-9]*)', body)]
+        if len(definitions) > 64:
+            unknown.append({'path': path, 'reason': 'definition budget exceeded; remaining definitions require search', 'remaining_definitions': len(definitions) - 64})
         for symbol, line in definitions[:64]:
             symbols.setdefault(symbol, []).append(path)
             add(path, 'direct_edit', 'seed definition', {'method': 'definition', 'symbol': symbol, 'line': line, 'seed': path})
@@ -146,32 +164,91 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                     {'method': 'deliverable-index', 'id': doc['id'], 'source': doc['source']}, doc['id'])
         if doc['id'] in update_ids and not doc['documents']:
             unknown.append({'doc_id': doc['id'], 'reason': 'no existing source; create/locate canonical source'})
+    for path in optional:
+        if path not in entries:
+            add(path, 'document_read' if path.endswith('.md') else 'impact_check', 'optional context; suggest_omit')
+            entries[path]['optional'] = True
+        entries[path]['context_signal'] = ctx.get('signals', {}).get(contexts[path])
     for decision in decisions:
         if decision.get('path') not in entries or decision.get('action') not in ('add', 'exclude', 'change') or not decision.get('reason', '').strip():
             raise ValueError('worker decision needs existing path, action and reason; use --seeds to add a path')
         if decision['action'] == 'exclude' and entries[decision['path']]['required']:
             raise ValueError('mandatory context cannot be excluded')
-    identity = input_identity(repo, role, key, {'policy': 'packet-v1', 'seeds': sorted(direct), 'required': sorted(mandatory),
+    identity = input_identity(repo, role, key, {'policy': 'packet-v2', 'seeds': sorted(explicit), 'required': sorted(mandatory),
         'updates': sorted(update_ids), 'sources': file_hashes, 'search_results': {k: digest(json.dumps(v, sort_keys=True).encode()) for k, v in sources.items()},
         'decisions': decisions})
-    items = sorted(entries.values(), key=lambda item: (item['priority'], item['path']))
-    return {**identity, 'version': 'jev-packet-v1', 'base': head, 'worktree_dirty': bool(dirty), 'items': items,
+    items = sorted(entries.values(), key=lambda item: (bool(item.get('optional')), item['priority'], item['path']))
+    primary = [i['path'] for i in items if not i['required'] and not i.get('optional')]
+    return {**identity, 'version': 'jev-packet-v2', 'base': head, 'worktree_dirty': bool(dirty), 'items': items,
         'categories': {c: [i['path'] for i in items if c in i['categories']] for c in CATEGORIES},
         'input_partial': len(text) > 3500, 'task_excerpt': task_excerpt(text), 'instruction': inbox.relative_to(repo).as_posix(),
-        'partial': bool(unknown), 'unknown': unknown, 'worker_decisions': decisions,
+        'partial': bool(unknown), 'unknown': unknown, 'producer_status': producer_status,
+        'worker_decisions': decisions, 'worker_decisions_mode': 'annotations; original recommendations preserved',
         'fallback': 'bounded string/definition search; dynamic references and language server semantics unverified',
-        'context_paths': [i['path'] for i in items if not i['required']][:20], 'required_paths': sorted(mandatory),
-        'remaining_context_paths': [i['path'] for i in items if not i['required']][20:]}
+        'context_paths': primary[:20], 'required_paths': sorted(mandatory),
+        'optional_context_paths': [i['path'] for i in items if i.get('optional')], 'remaining_context_paths': primary[20:]}
 
 
 def handover(result, output):
     lines = ['<!-- fullops-packet:start -->', '### 탐색 근거와 읽을 구간', '', f'정본: `{output}` / SHA `{result["head"]}` / partial={result["partial"]}']
     for item in result['items']:
+        if item.get('optional'):
+            continue
         spans = ', '.join(str(e.get('line')) for e in item['evidence'] if e.get('line'))
         lines.append(f'- `{item["path"]}` ({", ".join(item["categories"])}) · 줄 {spans or "전체/미확인"} · {item["status"]}' +
                      (' · 필수' if item['required'] else '') + (f' · {item["context_signal"]}' if item.get('context_signal') else ''))
-    lines += [f'미확인 {len(result["unknown"])}건: 정본의 unknown/remaining_context_paths 확인. {result["fallback"]}', '<!-- fullops-packet:end -->']
+    for decision in result['worker_decisions']:
+        lines.append(f'- 작업자 의견(원본 추천 유지): `{decision["path"]}` {decision["action"]} — {decision["reason"]}')
+    lines += [f'미확인 {len(result["unknown"])}건: 정본의 unknown/producer_status/remaining_context_paths/optional_context_paths 확인. {result["fallback"]}', '<!-- fullops-packet:end -->']
     return '\n'.join(lines)
+
+
+def check(repo, role, key, completion=False, required=False, head=None, text=None):
+    """추천은 수정 의무가 아니다. 현재 시도의 패킷 전달과 항목별 처리 근거를 검사한다."""
+    def read(relative):
+        if head:
+            return git(repo, 'show', f'{head}:{relative}')
+        return local_file(repo, relative).read_text(encoding='utf-8')
+    relative = result_path(repo, key, 'packet').relative_to(repo).as_posix()
+    if text is None:
+        _, text = instruction(repo, role, key)
+    route = result_path(repo, key, 'route')
+    required = required or '<!-- fullops-packet:start -->' in text or result_path(repo, key, 'packet').is_file() or (route.is_file() and json.loads(route.read_text()).get('requires_packet'))
+    if not required:
+        return
+    try:
+        result = json.loads(read(relative))
+        meta = front_matter(text) or {}
+        sha = instruction_digest(text)
+        if result.get('task_key') != key or result.get('role') != role or not meta.get('attempt') or result.get('attempt') != meta['attempt'] or result.get('instruction_sha256') != sha:
+            raise ValueError('packet task/role/attempt/instruction identity differs')
+        current_head = head or git(repo, 'rev-parse', 'HEAD')
+        if completion:
+            subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', result['head'], current_head], check=True, capture_output=True)
+        elif result.get('head') != current_head:
+            raise ValueError('packet SHA differs from worker HEAD')
+        if not completion:
+            for item in result['items']:
+                if not item.get('optional') and (item.get('required') or item.get('status') != 'unknown'):
+                    read(item['path'])  # 워크트리 간 파일 공유를 가정하지 않는다.
+            return
+        outcomes = json.loads(read(result_path(repo, key, 'packet-outcomes').relative_to(repo).as_posix()))
+        if outcomes.get('packet_input_sha256') != result['input_sha256'] or outcomes.get('attempt') != result['attempt']:
+            raise ValueError('packet outcomes identity differs')
+        expected = {(i['path'], c) for i in result['items'] if not i.get('optional') for c in i['categories']}
+        rows = outcomes.get('items', [])
+        seen = set()
+        for item in rows:
+            pair = (item.get('path'), item.get('category'))
+            if pair in seen or pair not in expected or item.get('status') not in ('completed', 'no_change') or not isinstance(item.get('reason'), str) or not item['reason'].strip():
+                raise ValueError('packet item needs unique completed/no_change status and reason; unknown remains pending')
+            seen.add(pair)
+        if seen != expected:
+            raise ValueError('packet document/read/impact outcomes incomplete')
+        if result.get('partial') and not str(outcomes.get('uncertainty_review') or '').strip():
+            raise ValueError('partial packet needs manual uncertainty review evidence')
+    except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
+        raise ValueError(f'탐색 패킷 전달/완료 검사 실패: {error}') from error
 
 
 def main():

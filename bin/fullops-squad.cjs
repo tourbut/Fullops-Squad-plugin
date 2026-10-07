@@ -187,10 +187,9 @@ function main(argv = process.argv.slice(2), execute = run) {
   }
   const selected = targets(options, process.env, os.homedir(), fs.existsSync, execute);
   if (!selected.length) throw new Error('사용 가능한 대상 CLI가 없습니다');
-  const python = ['python3', 'python'].find(p => {
-    try { execute(p, ['-c', 'import sys; assert sys.version_info >= (3, 10)'], process.env, true); return true; } catch { return false; }
-  });
-  if (!python) throw new Error('Python 3.10 이상 실행 파일이 필요합니다');
+  const python = 'python3';
+  try { execute(python, ['-c', 'import sys; assert sys.version_info >= (3, 10)'], process.env, true); }
+  catch { throw new Error('hook 실행에 필요한 python3 3.10 이상이 PATH에 있어야 합니다'); }
   // Check all registrations before making any changes.
   const results = [];
   const plans = [];

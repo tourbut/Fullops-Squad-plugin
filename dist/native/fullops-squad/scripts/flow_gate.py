@@ -149,9 +149,21 @@ def orca(*args):
     return integration.orca(*args)
 
 
-def operation_commands(command, operation, group='orchestration'):
-    """인용된 spec의 단어를 제외하고 셸 구분자별 실제 Orca 작업을 선택한다."""
+def shell_commands(command):
+    """here-doc 본문은 데이터로 두고 최상위 명령만 어휘 분석한다. 셸 실행기는 아니다."""
+    lines, visible, delimiter = command.splitlines(keepends=True), [], None
+    for line in lines:
+        if delimiter:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        visible.append(line)
+        heredoc = re.search(r'<<-?\s*[\'\"]?([A-Za-z_][A-Za-z0-9_]*)[\'\"]?', line)
+        if heredoc:
+            delimiter = heredoc.group(1)
+    command = ''.join(visible)
     lexer = shlex.shlex(command, posix=False, punctuation_chars=';&|\n')
+    lexer.whitespace = ' \t\r'
     lexer.whitespace_split = True
     lexer.commenters = ''
     chunks, words = [], []
@@ -163,11 +175,26 @@ def operation_commands(command, operation, group='orchestration'):
             else:
                 words.append(word)
     except ValueError:
-        return [command] if re.search(rf'\b{group}\s+{operation}\b', command) else []
+        return []  # 해석할 수 없는 본문 예시를 실행 명령으로 승격하지 않는다.
     chunks.append(words)
-    return [' '.join(words) for words in chunks if any(
-        words[i:i + 2] == [group, operation] for i in range(len(words) - 1))
-        and not any(word in ('--help', '-h') for word in words)]
+    result, aliases = [], {}
+    for words in chunks:
+        while words and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*=.+', words[0]):
+            name, value = words.pop(0).split('=', 1)
+            aliases[name] = value.strip('\'\"')
+        if not words:
+            continue
+        executable = words[0].strip('\'\"')
+        if executable.startswith('$'):
+            executable = aliases.get(executable[1:], '')
+        result.append([executable, *words[1:]])
+    return result
+
+
+def operation_commands(command, operation, group='orchestration'):
+    return [' '.join(words) for words in shell_commands(command) if
+            Path(words[0]).name in ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev') and
+            words[1:3] == [group, operation] and not any(word in ('--help', '-h') for word in words)]
 
 
 def settlement_command(command, state):
@@ -223,6 +250,15 @@ def delivered(event, state):
             (response['result'].get('message') or {}).get('id') or (response['result'].get('relay') or {}).get('messageId'))
 
 
+def settled_in_runtime(state):
+    """변수·wrapper 호출의 receipt를 해석하지 못하면 현재 Dispatch의 정본 완료를 확인한다."""
+    status = orca('orchestration', 'worker-show', '--dispatch', state['dispatch']) or {}
+    projection = status.get('projection') or {}
+    return projection.get('dispatchId') == state['dispatch'] and bool(state.get('task')) and \
+        projection.get('taskId') == state['task'] and projection.get('outcome') in ('succeeded', 'failed') and \
+        (projection.get('stage') or {}).get('dispatch') in ('completed', 'failed')
+
+
 def run_state(run, root=None):
     """(처리하지 않은 worker_done·question·escalation 수, 아직 결과가 없는 Dispatch ID들). 확인할 수 없으면 None."""
     inbox, workers = orca('orchestration', 'check', '--run', run, '--peek'), orca('orchestration', 'worker-list', '--run', run)
@@ -231,7 +267,8 @@ def run_state(run, root=None):
     if root is not None:
         integration.record(root, inbox.get('messages') or [])
     unread = sum(1 for m in inbox.get('messages') or [] if m.get('type') in ('worker_done', 'question', 'escalation'))
-    active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if not (w.get('projection') or {}).get('outcome'))
+    active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if
+                    (w.get('projection') or {}).get('outcome') not in ('succeeded', 'failed'))
     return unread, active
 
 
@@ -334,9 +371,11 @@ def tool_denial(root, event, state):
     candidate = settlement_command(command, state)
     if candidate:
         state['sending'] = {**candidate, 'tool_use_id': field(event, 'tool_use_id')}
-    for run in STARTED.findall(command):  # 띄운 worker의 결과를 받기 전에 끝내지 않게 Run을 기억한다
+    starting = operation_commands(command, 'worker-start')
+    python_commands = [' '.join(words) for words in shell_commands(command) if re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name)]
+    for run in STARTED.findall('\n'.join(starting)):  # 띄운 worker의 결과를 받기 전에 끝내지 않게 Run을 기억한다
         state['runs'] = sorted(set(state.get('runs', [])) | {run})
-    for key in ROUTED.findall(command):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
+    for key in ROUTED.findall('\n'.join(python_commands)):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
         state['routed'] = sorted(set(state.get('routed', [])) | {key})
     role, designer = context(root)
     for name, content in files:
@@ -353,7 +392,8 @@ def tool_denial(root, event, state):
             inbox = orca('orchestration', 'check', *flags, '--peek')
             if inbox is not None:
                 integration.record(root, inbox.get('messages') or [])
-    if INJECT.search(command):
+    injection_commands = operation_commands(command, 'send', 'terminal') + operation_commands(command, 'dispatch')
+    if INJECT.search('\n'.join(injection_commands)):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
     asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?=\s|[;&|]|$)', command)
     if role == 'coordinator' and any(len(sent_text(send)) > SEND_LIMIT for send in
@@ -361,7 +401,6 @@ def tool_denial(root, event, state):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
                 '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
-    starting = operation_commands(command, 'worker-start')
     creating = operation_commands(command, 'task-create')
     for dispatch in starting:
         if '--run' not in dispatch:
@@ -394,7 +433,7 @@ def tool_denial(root, event, state):
             if denial:
                 return denial
     if role == 'coordinator' and designer:
-        new = re.search(r'\bwork\.py\b.*\bnew\b', command)
+        new = re.search(r'\bwork\.py\b.*\bnew\b', '\n'.join(python_commands))
         if new and not asking_help:
             try:
                 words = shlex.split(command, posix=True)
@@ -504,6 +543,9 @@ def main():
             state['settled'] = True
             state.pop('sending', None)
     elif mode == 'stop' and (field(event, 'reason') or 'end_turn') == 'end_turn':
+        if state.get('dispatch') and not state.get('settled') and settled_in_runtime(state):
+            state['settled'] = True
+            state['settlement_source'] = 'Orca current dispatch outcome'
         if state.get('dispatch') and not state.get('settled'):
             if field(event, 'stop_hook_active') and state.get('blocked'):
                 output = {'systemMessage': 'FullOps: worker_done 없이 dispatched 세션을 끝냈습니다. coordinator가 계속 기다립니다.'}
