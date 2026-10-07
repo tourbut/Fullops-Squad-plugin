@@ -201,24 +201,25 @@ def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, t
     text = target.read_text(encoding="utf-8") if target.is_file() else ""
     meta, body = split(text)
     meta = dict(meta or {})
+    owned = identities(meta)
     for key, value in (("title", title), ("owner", owner), ("summary", summary)):
         if value:
             meta[key] = value.strip()
     shared = [key for key, (_, mapped, _) in rows.items() if owner_of(mapped, target.relative_to(base).as_posix())] if doc_id else []
-    if doc_id:
-        meta['id'] = shared if len(shared) > 1 else doc_id
     meta.setdefault("title", name or next((line[2:].strip() for line in body.splitlines() if line.startswith('# ')), target.stem))
-    effective = status or (document_status(meta, doc_id) if document_status(meta, doc_id) in STATUSES else None) or \
+    current_status = document_status(meta, doc_id) if not doc_id or doc_id in owned else None
+    effective = status or (current_status if current_status in STATUSES else None) or \
         (index_status if index_status in STATUSES else "draft")
     if len(shared) > 1:
-        states = dict(meta.get('statuses') or {})
-        for key in shared:
-            states.setdefault(key, rows[key][2] if rows[key][2] in STATUSES else meta.get('status', 'draft'))
+        states = {key: document_status(meta, key) if key in owned else
+                  rows[key][2] if rows[key][2] in STATUSES else 'draft' for key in shared}
         states[doc_id] = effective
         meta['statuses'] = states
         meta.setdefault('status', 'draft')
     else:
         meta['status'] = effective
+    if doc_id:
+        meta['id'] = shared if len(shared) > 1 else doc_id
     siblings = {f for source in sources for f in source_files(base, source)} - {target} if doc_id else set()
     if all_sources and (not doc_id or not status):
         raise ValueError('--all-sources에는 --id와 명시적 --status가 필요합니다')

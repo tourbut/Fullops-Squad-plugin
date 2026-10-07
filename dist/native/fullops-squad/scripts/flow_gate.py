@@ -152,15 +152,28 @@ def orca(*args):
 def shell_commands(command):
     """here-doc 본문은 데이터로 두고 최상위 명령만 어휘 분석한다. 셸 실행기는 아니다."""
     lines, visible, delimiter = command.splitlines(keepends=True), [], None
+    quote, escaped = None, False
     for line in lines:
         if delimiter:
             if line.strip() == delimiter:
                 delimiter = None
             continue
         visible.append(line)
-        heredoc = re.search(r'<<-?\s*[\'\"]?([A-Za-z_][A-Za-z0-9_]*)[\'\"]?', line)
-        if heredoc:
-            delimiter = heredoc.group(1)
+        for n, char in enumerate(line):
+            if escaped:
+                escaped = False
+            elif char == '\\' and quote != "'":
+                escaped = True
+            elif quote:
+                if char == quote:
+                    quote = None
+            elif char in "'\"":
+                quote = char
+            elif line.startswith('<<', n) and (n == 0 or line[n - 1] != '<'):
+                heredoc = re.match(r'<<-?\s*[\'\"]?([A-Za-z_][A-Za-z0-9_]*)[\'\"]?', line[n:])
+                if heredoc:
+                    delimiter = heredoc.group(1)
+                    break
     command = ''.join(visible)
     lexer = shlex.shlex(command, posix=False, punctuation_chars=';&|\n')
     lexer.whitespace = ' \t\r'

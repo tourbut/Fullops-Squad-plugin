@@ -132,6 +132,10 @@ def validate_role(repo, role):
 
 def instruction_digest(text):
     text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
+    header, separator, body = text.partition('\n## ')
+    header = re.sub(r'^- (?:상태|복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id):[^\n]*(?:\n|$)',
+                    '', header, flags=re.M)
+    text = header + separator + body
     text = re.sub(r'^(\s*[-*]\s+)\[[xX]\]', r'\1[ ]', text.partition('## 완료 보고\n')[0], flags=re.M)
     return hashlib.sha256(text.rstrip().encode()).hexdigest()
 

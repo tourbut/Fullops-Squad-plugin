@@ -522,6 +522,10 @@ class Stabilization(unittest.TestCase):
         self.assertIn('탐색 패킷', flow_gate.tool_denial(self.repo, {'tool_input': {'command': command}}, {}))
         storage.write_json(jev_find.result_path(worker, 'K1', 'packet'), packet)
         self.assertIsNone(flow_gate.tool_denial(self.repo, {'tool_input': {'command': command}}, {}))
+        text = text.replace('- 상태: ready / running / blocked', '- 상태: running').replace(
+            '- 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id:',
+            '- 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id: repo1 / tree1 / terminal1 / run1 / task1 / dispatch1')
+        worker_inbox.write_text(text)
         for name in ('api.py', 'caller.py', 'test_api.py'):
             path = worker / name
             path.write_text(path.read_text().replace('fetch_user', 'lookup_user').replace('return 1', 'return 2').replace('== 1', '== 2'))
@@ -733,6 +737,99 @@ class Stabilization(unittest.TestCase):
         completed = original.replace('[ ]', '[x]').replace('미작성.', '보고와 검증 기록.')
         self.assertEqual(work.instruction_digest(original), work.instruction_digest(completed))
         self.assertNotEqual(work.instruction_digest(original), work.instruction_digest(original.replace('read source', 'edit source')))
+
+    def test_packet_survives_dispatch_metadata_and_finish(self):
+        inbox = self.new()
+        packet = jev_packet.packet(self.repo, 'dev', 'K1')
+        path = jev_find.result_path(self.repo, 'K1', 'packet')
+        storage.write_json(path, packet)
+        text = inbox.read_text().replace('## 완료 보고', jev_packet.handover(packet, path.relative_to(self.repo)) + '\n\n## 완료 보고', 1)
+        text = text.replace('- 상태: ready / running / blocked', '- 상태: running').replace(
+            '- 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id:',
+            '- 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id: repo1 / tree1 / terminal1 / run1 / task1 / dispatch1')
+        inbox.write_text(text)
+        jev_packet.check(self.repo, 'dev', 'K1')
+        for old, new in [('rename fetch_user API', 'different scope'), ('base: ', 'changed_base: '), ('attempt: ', 'changed_attempt: ')]:
+            self.assertNotEqual(work.instruction_digest(text), work.instruction_digest(text.replace(old, new)))
+        body = '\n## 작업 제약\n- 상태: contract must stay\n'
+        constrained = text.replace('## 완료 보고', body + '\n## 완료 보고', 1)
+        self.assertNotEqual(work.instruction_digest(constrained), work.instruction_digest(constrained.replace('must stay', 'may change')))
+        outcomes = {'packet_input_sha256': packet['input_sha256'], 'attempt': packet['attempt'],
+                    'uncertainty_review': 'fixture candidates checked', 'items': [
+                        {'path': item['path'], 'category': category, 'status': 'no_change', 'reason': 'read and checked'}
+                        for item in packet['items'] if not item.get('optional') for category in item['categories']]}
+        storage.write_json(jev_find.result_path(self.repo, 'K1', 'packet-outcomes'), outcomes)
+        text = text.partition('## 완료 보고\n')[0] + '## 완료 보고\n검증 완료.\n'
+        inbox.write_text(text)
+        with redirect_stdout(io.StringIO()):
+            work.finish(self.repo, 'dev', 'K1')
+        self.assertEqual(inbox.read_bytes(), b'')
+        self.assertIn('dispatch1', work.archives(self.repo, 'dev', 'K1')[0].read_text())
+        head = self.commit('completed dispatch')
+        jev_packet.check(self.repo, 'dev', 'K1', completion=True, head=head, text=text)
+
+    def test_claude_checks_runtime_skill_path_and_repairs_receipt(self):
+        shared = self.root / '.agents/skills/x/SKILL.md'
+        shared.parent.mkdir(parents=True)
+        shared.write_text('shared skill')
+        wanted = [{'source': 'repo/skills', 'names': ['x']}]
+        manifest = {'skills': wanted, 'codex': {'skills': []}, 'portable_skills': []}
+        command = ['npx', '--yes', 'skills@latest', 'add', 'repo/skills', '--skill', 'x', '--global', '--agent', 'claude-code', '--yes']
+        for folder in ('.claude', 'custom-claude'):
+            with self.subTest(folder=folder), patch.object(deps.Path, 'home', return_value=self.root), \
+                 patch.dict('os.environ', {'CLAUDE_CONFIG_DIR': str(self.root / folder)}), \
+                 patch.object(deps, 'manifest', return_value=manifest), patch.object(deps, 'python_problem', return_value=[]), \
+                 patch.object(deps, 'tool_problems', return_value=[]), patch.object(deps, 'plugin_problems', return_value=[]):
+                runtime = self.root / folder / 'skills/x/SKILL.md'
+                def install(plan, dry):
+                    runtime.parent.mkdir(parents=True, exist_ok=True)
+                    runtime.write_text(shared.read_text())
+                with patch.object(deps, 'run', side_effect=install) as run:
+                    deps.install_host('claude-code', [command])
+                    self.assertEqual(deps.read_receipt(deps.receipt_path('claude-code'))['skill_files'], [str(runtime)])
+                    self.assertEqual(deps.check_host('claude-code'), [])
+                    runtime.unlink()
+                    self.assertTrue(deps.check_host('claude-code'))
+                    deps.install_host('claude-code', [command])
+                    self.assertEqual(run.call_count, 2)
+                    self.assertEqual(deps.check_host('claude-code'), [])
+
+    def test_shared_document_keeps_approval_only_for_existing_ids(self):
+        base = self.repo / '.fullops-squad'
+        target = base / 'docs/design-docs/data-model.md'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        for selected in ('D06', 'D07'):
+            with self.subTest(selected=selected):
+                target.write_text(docs.render({'id': 'D06', 'status': 'approved', 'title': 'Model',
+                    'owner': 'dev', 'summary': 'existing approval', 'updated': '2026-10-07'}) + '\n# Model\n')
+                index = base / docs.INDEX
+                original = index.read_text()
+                try:
+                    docs.stamp(self.repo, doc_id=selected)
+                    meta = docs.front_matter(target.read_text())
+                    self.assertEqual(meta['statuses'], {'D06': 'approved', 'D07': 'draft', 'D09': 'draft'})
+                    docs.stamp(self.repo, doc_id=selected, status='review')
+                    meta = docs.front_matter(target.read_text())
+                    self.assertEqual(meta['statuses'][selected], 'review')
+                    self.assertEqual(meta['statuses']['D09'], 'draft')
+                finally:
+                    index.write_text(original)
+
+    def test_quoted_heredoc_text_keeps_dispatch_checks_and_run_tracking(self):
+        start = 'orca orchestration worker-start --run r1'
+        for echo in ("echo 'literal <<EOF'", 'echo "literal <<EOF"', 'echo "literal \\" <<EOF"',
+                     "echo 'literal\n<<EOF\n'", r'echo literal \<<EOF'):
+            with self.subTest(echo=echo):
+                command = echo + '\n' + start
+                self.assertEqual(flow_gate.operation_commands(command, 'worker-start'), [start])
+                state = {}
+                flow_gate.tool_denial(self.repo, {'tool_input': {'command': command}}, state)
+                self.assertEqual(state['runs'], ['r1'])
+                denial = flow_gate.tool_denial(self.repo, {'tool_input': {'command': command.replace(' --run r1', '')}}, {})
+                self.assertIn('--run', denial)
+        for delimiter in ('EOF', "'EOF'", '"EOF"'):
+            command = f'cat <<{delimiter}\n{start}\nEOF\n{start}'
+            self.assertEqual(flow_gate.operation_commands(command, 'worker-start'), [start])
 
 
 if __name__ == '__main__':

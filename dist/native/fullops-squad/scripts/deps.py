@@ -111,7 +111,9 @@ def skill_files(host, wanted=None):
             installed = {}
     except (OSError, ValueError, AttributeError):
         installed = {}
-    roots = [Path.home() / '.agents/skills', receipt_path(host).parent / 'skills']
+    roots = [receipt_path(host).parent / 'skills']
+    if host != 'claude-code':
+        roots.insert(0, Path.home() / '.agents/skills')
     paths, absent = [], []
     for item in wanted:
         names = item['names']
