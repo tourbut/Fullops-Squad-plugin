@@ -1,0 +1,39 @@
+# 이슈 자동 작업 운영과 검증
+
+설정과 활성화는 별도이며 기본 OFF이다. 구현 또는 설치 요청으로 실제 저장소의 폴러를 켜지 않는다. `fullops-issues` 스킬이 초기 질문·명시 범위·CLI 순서의 정본이다.
+
+```
+사용자 설정 → API 사용자 ID/remote 확인 → configured_OFF
+현재 coor 명시 enable → lease + 로컬 수집 폴러
+이슈/댓글 수집 (모델 0회) → durable queue
+동일 coor foreground wait → claimed → 실제 수신 receipt → running
+  → 기존 route/인박스/packet/worker/test/독립 review → draft PR → completed
+  → 질문 outbox → awaiting_author → 원 작성자 댓글 → coor 판단
+       → sufficient → 새 attempt/digest/packet
+       → insufficient/conflicting → 추가 정보 대기
+```
+
+`status`는 설정·소유자·큐 상태·최근 event를 반환하고 lease capability/원문 본문을 출력하지 않는다. 호스트 종료는 provider session ID, Orca 소유권은 Orca session/run/terminal incarnation으로 따로 추적한다. 체크포인트는 snapshot과 allowlist를 다시 확인한다. pause는 새 수집/claim 중지, disable/종료/lease 만료는 신규 실행 차단이다. 미커밋 파일·기존 worker·질문·큐를 삭제하지 않는다.
+
+동시 실행은 issue 하나이며 worker 병렬 wave는 기존 방식이다. 보류 이슈와의 독립성을 검토하지 않은 다음 이슈는 claim 후 실행을 보류한다. 이미 dispatch intent가 있는 과제의 답변 재개/재시도는 기존 Run의 task/worker 확정 종료를 `sync`로 확인한 뒤 queued checkpoint를 남긴다. 부재/unverifiable를 종료로 바꾸지 않는다. 새 coor의 `reconcile`도 같은 정본 조회로 인계하고 자동 재배정하지 않는다. draft PR 이후 worker의 integration receipt는 사용자 병합 판단/PR 링크로 hold한다.
+
+인증은 `GH_TOKEN`/`GITHUB_TOKEN` 또는 `gh auth token`을 메모리에서만 사용한다. HTTPS의 api.github.com과 동일 페이지 endpoint만 조회한다. API 에러는 응답 본문/credential을 기록하지 않는다. 흔한 credential 문자열은 저장된 본문/댓글에서 제거하고 원문 digest로 변경을 추적한다. 질문/receipt에는 비밀정보·불필요한 로그를 넣지 않는다.
+
+## 실행한 검증
+
+- `python3 tests/issue-mode.py`: 격리 Git 저장소, 결정적 GitHub/Orca 대역. 기본 OFF와 범위 선택, 60초 경계, remote/push 권한, stable ID, PR/과거/close 제외, FIFO/동시 claim, 네트워크 실패 cursor 보존, 질문 응답 유실 조정, 같은 계정의 질문 제외, 타인/중복 답변 제외, 충분성 판단과 새 attempt, 댓글 삭제/본문 변경 보류, native session 종료, 새 owner fencing/인계, scope/review 실패, 304 Link/외부 redirect 차단.
+- 실제 read-only GitHub: 저장소/계정 stable ID, issue #10의 GraphQL `editor`/`lastEditedAt` 조회 성공. 실제 질문/상태 댓글은 전송하지 않았다.
+- 실제 Windows Orca 1.4.222: 설치된 가이드와 status, terminal show, run-current 및 check/worker-show/task-list help 확인. 현재 외부 제어 환경에서 caller identity 미제공. 활성화는 blocked이며 다른 사용자의 terminal/Run을 임의로 선택하지 않는다.
+- 실제 Windows native Codex 0.160.1: 별도 QA `CODEX_HOME`에 로컬 빌드 1.1.0을 설치하고 app-server의 `hooks/list`에서 SessionEnd 포함 9개 hook, warnings 0/errors 0을 확인했다. native 종료 이벤트 발생 자체나 실제 coor wake 검증으로 취급하지 않는다. 종료 처리 로직은 위 격리 테스트의 실제 subprocess/stdin 경로로 검증했다.
+
+## 실환경 수용 검증
+
+연결된 coor에서 사용자가 자동 모드를 명시적으로 켠 전용 테스트 저장소/허용 작성자가 필요하다. 그 환경에서 아래 결과를 기록하기 전에는 #10 완료/wake 성공을 주장하지 않는다.
+
+1. idle 적격 이슈가 같은 coor의 foreground wait로 반환되고 현재 task key/session 수신 receipt와 실제 worker-start receipt가 이어지는지 확인한다.
+2. busy 동안 새 이슈/댓글은 큐에만 쌓이고 진행 대화·dirty inbox를 방해하지 않는지 확인한다. 비허용/중복/자기 댓글에서는 모델 호출이 없는지 확인한다.
+3. 종료/absent 뒤 수집/dispatch가 멈추고, 새 coor의 명시 enable이 기존 worker/질문을 재조정하는지 확인한다.
+4. 실제 질문 outbox→원 작성자 댓글→같은 coor의 충분성 판단→새 attempt/packet→테스트/독립 리뷰→draft PR을 확인한다. 불충분/충돌/편집/삭제/전송 실패도 보류되어야 한다.
+5. main 병합/이슈 종료/배포/외부 전송을 하지 않고 호스트 승인 정책/사용량 측정 실패를 보류하는지 확인한다.
+
+공식 API 참고: [Issues](https://docs.github.com/en/rest/issues/issues), [comments](https://docs.github.com/en/rest/issues/comments), [조건부 요청·rate limit](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api).
