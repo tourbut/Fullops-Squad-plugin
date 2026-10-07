@@ -1,0 +1,1322 @@
+{
+  "date": "2026-10-07",
+  "source_head": "fbd75e7b5ab8e333a1ef4ec8327118e41d9cc919",
+  "classification": "accepted host cache lifetime limitation; no plugin fix or recurrence guarantee",
+  "host": "Windows Codex CLI 0.160.1, Python 3.13, source Orca CLI 1.4.222",
+  "model": "deterministic localhost Responses fixture; no paid model calls",
+  "stderr_normalized": "python3.exe: can't open file '<CODEX_HOME>/plugins/cache/fullops-squad/fullops-squad/0.9.14/scripts/flow_gate.py': [Errno 2] No such file or directory",
+  "tool_execution": "read-only host policy rejected shell command; PostToolUse unverified",
+  "original_environment": "erden-godot and actual Codex/Orca FullOps installation remain 0.9.14; no user session terminated",
+  "runs": [
+    {
+      "case_id": "probe-215845",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": false,
+      "old_cache_exists_before_explicit_upgrade": null,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "probe-220325",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": false,
+      "old_cache_exists_before_explicit_upgrade": null,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "probe-220407",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": false,
+      "old_cache_exists_before_explicit_upgrade": null,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "probe-220516",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": false,
+      "old_cache_exists_before_explicit_upgrade": null,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "probe-220657",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": false,
+      "old_cache_exists_before_explicit_upgrade": false,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "probe-220751",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": true,
+      "old_cache_exists_before_explicit_upgrade": false,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "probe-221517",
+      "codex_version": "codex-cli 0.160.1",
+      "initial_plugin_version": "0.9.14",
+      "plugin_version_after": "1.0.0",
+      "stderr_capture_proxy": true,
+      "old_cache_exists_before_explicit_upgrade": false,
+      "original_repo_status_before": "",
+      "original_repo_status_after": "",
+      "turns": [
+        {
+          "label": "before-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "0.9.14",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "failed",
+              "plugin_version": "0.9.14",
+              "errors": [
+                "hook exited with code 1"
+              ]
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "update-during-active-turn",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-1",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "same-session-after-update-2",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        },
+        {
+          "label": "new-session-after-update",
+          "status": "completed",
+          "hooks": [
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "sessionStart",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "userPromptSubmit",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "preToolUse",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            },
+            {
+              "event": "stop",
+              "status": "completed",
+              "plugin_version": "1.0.0",
+              "errors": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

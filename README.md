@@ -1,7 +1,7 @@
 ---
 title: FullOps Squad
 status: draft
-updated: 2026-10-06
+updated: 2026-10-07
 owner: maintainer
 summary: Orca에서 AI worker의 배정, 문서, 검증, 리뷰를 관리하는 하네스 플러그인
 ---
@@ -150,6 +150,13 @@ npx --yes fullops-squad@latest install --hosts codex,grok
 
 Codex는 현재 `CODEX_HOME`, 기본 사용자 홈, 기존 Windows Orca 홈을 처리합니다. 다른 홈은 `--codex-home PATH`로 추가합니다.
 설치나 업데이트가 끝나면 각 CLI에서 새 에이전트 세션을 엽니다.
+
+**Codex 업데이트 주의:** Codex 0.160.1에서 자동 업데이트가 이전 플러그인 캐시를 삭제하는 동안,
+이미 읽은 hook 명령이 이전 경로를 호출해 `can't open file .../scripts/flow_gate.py` 오류를 내는 사례를 확인했습니다.
+이는 호스트의 캐시 정리와 hook 갱신 사이의 제약입니다. FullOps는 Codex의 캐시 수명을 제어하지 않습니다.
+진행 중 작업을 저장하거나 완료한 뒤 별도 터미널에서 플러그인 업데이트를 끝내고 새 세션을 여세요.
+시작 중 자동 업데이트에서 같은 오류가 나면 업데이트 완료를 확인한 뒤 세션을 다시 열고 hook 실행을 확인하세요.
+오류가 난 이벤트는 해당 검사를 수행하지 못했으므로, hook 오류가 없어졌다는 이유만으로 과제 검증을 통과 처리하지 마세요.
 
 `update --repo PATH`는 업데이트 전 설치 버전 이후의 레포 적용 안내를 출력합니다.
 에이전트에게 해당 레포의 FullOps update를 요청하면 적용 작업을 진행합니다.

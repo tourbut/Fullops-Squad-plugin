@@ -81,3 +81,13 @@ npm test: 전체 통과. tests/stabilization.py: 24개 통과. tests/review-chec
 Windows/macOS 실제 host·Unity Player·강제 종료/동시 빌드 회복·전체 제품 QA는 미실행이다. Windows/macOS portable은 CI의 launcher·실패 회복·합성 회귀·native build 검사이며 실제 CLI 설치·세션 테스트는 Linux에서만 실행했다. i-Docs main의 서비스 적용 버전 0.9.14는 테스트 설치와 구분하며 운영 정책 전체 반영/병합을 이번 점검으로 완료했다고 표시하지 않는다.
 
 최종 설치·세션 정본·자동 Stop·CI의 구조화된 증거: [sessions-1.0.0-followup.json](evidence/sessions-1.0.0-followup.json). i-Docs coor에 `.fullops-squad/docs/exec-plans/phases/FULLOPS-UPDATE-1.0.0.md`를 기록했으며 서비스 정책 이행은 별도 후속으로 보류했다.
+
+## Windows Codex H1 후속과 수락된 환경 제약
+
+2026-10-07, erden-godot의 실제 0.9.14 설치와 하네스를 격리 복제해 Windows Codex 0.160.1 native app-server로 7회 실행했다. 7회 모두 첫 turn에서 이전 cache 경로의 hook 호출이 실패했다. 6회는 UserPromptSubmit, 마지막 1회는 PreToolUse였다. 마지막 실행은 hook의 `PLUGIN_ROOT`도 삭제된 0.9.14 경로임을 확인했다. Python 오류 원문은 `can't open file .../0.9.14/scripts/flow_gate.py: [Errno 2] No such file or directory`다.
+
+SessionStart는 이전 경로에서 실행됐고 이후 hook은 1.0.0 경로로 갱신됐다. 명시적 upgrade/add 전에 이미 이전 cache가 사라지고 설치 목록은 1.0.0인 것을 별도로 확인했다. 출처 변경 없이 native 시작 시 자동 업데이트에서 발생한 사례이며, 호스트의 cache 정리와 hook 갱신 사이의 경로 수명 문제로 판단한다. 이후 기존 thread의 두 turn과 새 thread에서는 같은 hook 오류가 없었다. 기존 사용자 사고의 모든 반복 오류가 이 원인이었다고 확정하지 않는다.
+
+사용자는 호스트 환경 문제는 주의사항으로 남기고 후속 코드 수정을 진행하지 않도록 지시했다. H1은 알려진 호스트 제약으로 수락하며 플러그인 수정 완료나 재발 방지 보장으로 기록하지 않는다. 업데이트를 별도 터미널에서 완료한 뒤 새 세션의 hook 실행을 확인하도록 README와 릴리스에 안내한다. 실패한 이벤트의 검사를 통과로 대체하지 않는다.
+
+호스트 설치·hook은 실제 실행이며 모델 응답만 localhost fixture다. 도구 실행은 read-only 정책에서 거부돼 PostToolUse는 검증하지 못했다. 실제 Orca worker 수명주기·제품 QA로 확대하지 않는다. 원본 erden-godot와 Codex/Orca 설치는 0.9.14를 유지했고 사용자 세션은 종료하지 않았다. 구조화된 결과는 [codex-hook-cache-20261007.json](evidence/codex-hook-cache-20261007.json)에 보존한다.
