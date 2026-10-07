@@ -1,0 +1,14 @@
+{
+  "name": "fullops-motion-example",
+  "private": true,
+  "dependencies": {
+    "hyperframes": "0.8.139",
+    "@remotion/cli": "4.0.533",
+    "@remotion/fonts": "4.0.533",
+    "@remotion/media": "4.0.533",
+    "remotion": "4.0.533",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "gsap": "3.15.0"
+  }
+}

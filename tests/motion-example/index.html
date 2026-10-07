@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- Six-second silent shape motion; local GSAP and a seekable paused timeline. -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <script src="public/gsap.min.js"></script>
+  <style>
+    :root { --background: #142032; --a: #8de0c4; --b: #f2b779; --c: #c0b8ee; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1280px; height: 720px; background: var(--background); }
+    #root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 90px; }
+    .shape { width: 160px; height: 160px; }
+    #circle { border-radius: 50%; background: var(--a); }
+    #square { border-radius: 24px; background: var(--b); }
+    #ring { border-radius: 50%; border: 26px solid var(--c); }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="main" data-width="1280" data-height="720" data-duration="6" data-fps="30">
+    <section id="stage" class="clip" data-start="0" data-duration="6" data-track-index="0">
+      <div id="circle" class="shape"></div><div id="square" class="shape"></div><div id="ring" class="shape"></div>
+    </section>
+  </div>
+  <script>
+    const tl = gsap.timeline({paused: true});
+    tl.fromTo('.shape', {y: 150, opacity: 0}, {y: 0, opacity: 1, duration: 1, stagger: 0.3, ease: 'power3.out'}, 0);
+    tl.to('#circle', {y: -65, duration: 1.1, yoyo: true, repeat: 3, ease: 'sine.inOut'}, 1.6);
+    tl.to('#square', {rotation: 180, duration: 4.4, ease: 'sine.inOut'}, 1.6);
+    tl.to('#ring', {scale: 1.4, duration: 1.1, yoyo: true, repeat: 3, ease: 'sine.inOut'}, 1.6);
+    window.__timelines = window.__timelines || {};
+    window.__timelines.main = tl;
+    tl.seek(0);
+  </script>
+</body>
+</html>

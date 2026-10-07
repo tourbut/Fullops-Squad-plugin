@@ -69,6 +69,7 @@ heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 �
 | 도구 | 확인하는 것 |
 |---|---|
 | `fullops-test` | 코드 테스트와 웹·Unity 조작 테스트. 조작 테스트의 통과 판정은 시나리오 `checks`가 담당 |
+| `fullops-motion` | 선택형 모션그래픽 제작. HyperFrames/Remotion 공식 스킬, 로컬 렌더·클립 합성·검수·재렌더 인계 |
 | `fullops-review` | OCR CLI가 준비한 파일·규칙을 호스트 AI가 리뷰. 별도 OCR LLM API 키는 불필요 |
 | `lint.py` | 프로젝트 검사·테스트 명령, 코드·디자인 경고, 변경 규모·의존성 선언, 억제·비밀값·문서 메타데이터 |
 | flow-gate | route 기록, `worker-start --run`, 역할별 행동과 완료 보고. 터미널 주입으로 배정하는 행동 차단 |

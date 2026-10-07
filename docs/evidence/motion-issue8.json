@@ -1,0 +1,1436 @@
+{
+  "date": "2026-10-07",
+  "base": "df981bc279c79d71a334290e15c5093a27d86c23",
+  "scope": "local, skills reference; same host rerender",
+  "tools": {
+    "hyperframes": "0.8.139",
+    "remotion": "4.0.533",
+    "chrome": "Google Chrome 153.0.8010.47"
+  },
+  "api_calls": 0,
+  "listening": "not_run",
+  "user_aesthetic_acceptance": "not_run",
+  "results": {
+    "silent": {
+      "status": "passed",
+      "checked_at": "2026-10-07T07:41:46.836489+00:00",
+      "media": ".local/motion-issue8/renders/v01/motion.mp4",
+      "spec": ".local/motion-issue8/silent-spec.json",
+      "failures": [],
+      "visual": "not_run",
+      "content": "not_run",
+      "listening": "not_run",
+      "spec_sha256": "a4b1d897216697aadeecb17977aecf3483468a4fa291c9de72fb6af8570018b6",
+      "ffprobe_version": "ffprobe version n7.1 Copyright (c) 2007-2024 the FFmpeg developers",
+      "metadata": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "unknown",
+            "profile": "100",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 1280,
+            "height": 720,
+            "coded_width": 1280,
+            "coded_height": 720,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 0,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "level": 31,
+            "color_range": "tv",
+            "color_space": "bt709",
+            "color_transfer": "bt709",
+            "color_primaries": "bt709",
+            "chroma_location": "center",
+            "field_order": "progressive",
+            "refs": 3,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 92160,
+            "duration": "6.000000",
+            "bit_rate": "787472",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "180",
+            "nb_read_frames": "180",
+            "extradata_size": 51,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc61.19.100 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": ".local/motion-issue8/renders/v01/motion.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "start_time": "0.000000",
+          "duration": "6.000000",
+          "size": "592518",
+          "bit_rate": "790024",
+          "probe_score": 100,
+          "tags": {
+            "minor_version": "512",
+            "major_brand": "isom",
+            "compatible_brands": "isomiso2avc1mp41",
+            "hyperframes_version": "0.8.139",
+            "hyperframes_renderer": "hyperframes",
+            "encoder": "Lavf61.7.100"
+          }
+        }
+      },
+      "audio_metadata": []
+    },
+    "combined": {
+      "status": "passed",
+      "checked_at": "2026-10-07T07:49:48.672811+00:00",
+      "media": ".local/motion-issue8/renders/v03/intro.mp4",
+      "spec": ".local/motion-issue8/intro-spec-v02.json",
+      "failures": [],
+      "visual": "not_run",
+      "content": "not_run",
+      "listening": "not_run",
+      "spec_sha256": "8b4e3bedb282b48568dc3fc6bbcbcc73ed5231324c439d41b09ca2d08d183c99",
+      "ffprobe_version": "ffprobe version n7.1 Copyright (c) 2007-2024 the FFmpeg developers",
+      "metadata": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "unknown",
+            "profile": "100",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 1280,
+            "height": 720,
+            "coded_width": 1280,
+            "coded_height": 720,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuvj420p",
+            "level": 31,
+            "color_range": "pc",
+            "color_space": "bt470bg",
+            "chroma_location": "center",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/90000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 1350000,
+            "duration": "15.000000",
+            "bit_rate": "391300",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "450",
+            "nb_read_frames": "450",
+            "extradata_size": 51,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]"
+            },
+            "side_data_list": [
+              {
+                "side_data_type": "ICC Profile"
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "unknown",
+            "profile": "1",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 720912,
+            "duration": "15.019000",
+            "bit_rate": "317368",
+            "nb_frames": "706",
+            "nb_read_frames": "704",
+            "extradata_size": 2,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": ".local/motion-issue8/renders/v03/intro.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "start_time": "0.000000",
+          "duration": "15.019000",
+          "size": "1349603",
+          "bit_rate": "718877",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf61.7.100",
+            "comment": "Made with Remotion 4.0.533"
+          }
+        }
+      },
+      "audio_metadata": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "pcm_s16le",
+              "codec_long_name": "unknown",
+              "codec_type": "audio",
+              "codec_tag_string": "[1][0][0][0]",
+              "codec_tag": "0x0001",
+              "sample_fmt": "s16",
+              "sample_rate": "22050",
+              "channels": 1,
+              "bits_per_sample": 16,
+              "initial_padding": 0,
+              "r_frame_rate": "0/0",
+              "avg_frame_rate": "0/0",
+              "time_base": "1/22050",
+              "duration_ts": 140580,
+              "duration": "6.375510",
+              "bit_rate": "352800",
+              "nb_read_frames": "69",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ],
+          "format": {
+            "filename": "<repo>/.local/motion-issue8/public/narration.wav",
+            "nb_streams": 1,
+            "nb_programs": 0,
+            "nb_stream_groups": 0,
+            "format_name": "wav",
+            "duration": "6.375510",
+            "size": "281204",
+            "bit_rate": "352855",
+            "probe_score": 99
+          }
+        }
+      ]
+    },
+    "general": {
+      "status": "passed",
+      "checked_at": "2026-10-07T07:53:10.443532+00:00",
+      "media": ".local/motion-issue8/renders/v02/general-intro.mp4",
+      "spec": ".local/motion-issue8/intro-spec-v02.json",
+      "failures": [],
+      "visual": "not_run",
+      "content": "not_run",
+      "listening": "not_run",
+      "spec_sha256": "8b4e3bedb282b48568dc3fc6bbcbcc73ed5231324c439d41b09ca2d08d183c99",
+      "ffprobe_version": "ffprobe version n7.1 Copyright (c) 2007-2024 the FFmpeg developers",
+      "metadata": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "unknown",
+            "profile": "100",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 1280,
+            "height": 720,
+            "coded_width": 1280,
+            "coded_height": 720,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 0,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "level": 31,
+            "color_range": "tv",
+            "color_space": "bt709",
+            "color_transfer": "bt709",
+            "color_primaries": "bt709",
+            "chroma_location": "center",
+            "field_order": "progressive",
+            "refs": 3,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 230400,
+            "duration": "15.000000",
+            "bit_rate": "693594",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "450",
+            "nb_read_frames": "450",
+            "extradata_size": 51,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc60.31.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "unknown",
+            "profile": "1",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 720000,
+            "duration": "15.000000",
+            "bit_rate": "71483",
+            "nb_frames": "705",
+            "nb_read_frames": "704",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": ".local/motion-issue8/renders/v02/general-intro.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "start_time": "0.000000",
+          "duration": "15.000000",
+          "size": "1449417",
+          "bit_rate": "773022",
+          "probe_score": 100,
+          "tags": {
+            "minor_version": "512",
+            "major_brand": "isom",
+            "compatible_brands": "isomiso2avc1mp41",
+            "hyperframes_version": "0.8.139",
+            "hyperframes_renderer": "hyperframes",
+            "encoder": "Lavf60.16.100"
+          }
+        }
+      },
+      "audio_metadata": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "pcm_s16le",
+              "codec_long_name": "unknown",
+              "codec_type": "audio",
+              "codec_tag_string": "[1][0][0][0]",
+              "codec_tag": "0x0001",
+              "sample_fmt": "s16",
+              "sample_rate": "22050",
+              "channels": 1,
+              "bits_per_sample": 16,
+              "initial_padding": 0,
+              "r_frame_rate": "0/0",
+              "avg_frame_rate": "0/0",
+              "time_base": "1/22050",
+              "duration_ts": 140580,
+              "duration": "6.375510",
+              "bit_rate": "352800",
+              "nb_read_frames": "69",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ],
+          "format": {
+            "filename": "<repo>/.local/motion-issue8/public/narration.wav",
+            "nb_streams": 1,
+            "nb_programs": 0,
+            "nb_stream_groups": 0,
+            "format_name": "wav",
+            "duration": "6.375510",
+            "size": "281204",
+            "bit_rate": "352855",
+            "probe_score": 99
+          }
+        }
+      ]
+    },
+    "rerender": {
+      "status": "passed",
+      "checked_at": "2026-10-07T07:54:33.776567+00:00",
+      "media": ".local/motion-issue8/rerender/renders/v01/intro.mp4",
+      "spec": ".local/motion-issue8/rerender/intro-spec.json",
+      "failures": [],
+      "visual": "not_run",
+      "content": "not_run",
+      "listening": "not_run",
+      "spec_sha256": "8b4e3bedb282b48568dc3fc6bbcbcc73ed5231324c439d41b09ca2d08d183c99",
+      "ffprobe_version": "ffprobe version n7.1 Copyright (c) 2007-2024 the FFmpeg developers",
+      "metadata": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "unknown",
+            "profile": "100",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 1280,
+            "height": 720,
+            "coded_width": 1280,
+            "coded_height": 720,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuvj420p",
+            "level": 31,
+            "color_range": "pc",
+            "color_space": "bt470bg",
+            "chroma_location": "center",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/90000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 1350000,
+            "duration": "15.000000",
+            "bit_rate": "391300",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "450",
+            "nb_read_frames": "450",
+            "extradata_size": 51,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]"
+            },
+            "side_data_list": [
+              {
+                "side_data_type": "ICC Profile"
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "unknown",
+            "profile": "1",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 720912,
+            "duration": "15.019000",
+            "bit_rate": "317368",
+            "nb_frames": "706",
+            "nb_read_frames": "704",
+            "extradata_size": 2,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": ".local/motion-issue8/rerender/renders/v01/intro.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "start_time": "0.000000",
+          "duration": "15.019000",
+          "size": "1349603",
+          "bit_rate": "718877",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf61.7.100",
+            "comment": "Made with Remotion 4.0.533"
+          }
+        }
+      },
+      "audio_metadata": [
+        {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "pcm_s16le",
+              "codec_long_name": "unknown",
+              "codec_type": "audio",
+              "codec_tag_string": "[1][0][0][0]",
+              "codec_tag": "0x0001",
+              "sample_fmt": "s16",
+              "sample_rate": "22050",
+              "channels": 1,
+              "bits_per_sample": 16,
+              "initial_padding": 0,
+              "r_frame_rate": "0/0",
+              "avg_frame_rate": "0/0",
+              "time_base": "1/22050",
+              "duration_ts": 140580,
+              "duration": "6.375510",
+              "bit_rate": "352800",
+              "nb_read_frames": "69",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ],
+          "format": {
+            "filename": "<repo>/.local/motion-issue8/rerender/public/narration.wav",
+            "nb_streams": 1,
+            "nb_programs": 0,
+            "nb_stream_groups": 0,
+            "format_name": "wav",
+            "duration": "6.375510",
+            "size": "281204",
+            "bit_rate": "352855",
+            "probe_score": 99
+          }
+        }
+      ]
+    },
+    "motion_check": {
+      "ok": true,
+      "strict": false,
+      "browserSkipped": false,
+      "lint": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 1,
+        "infoCount": 0,
+        "findings": [
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"stage\"> is a timeline element that contains nested <div id=\"circle\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#stage",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"stage\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          }
+        ],
+        "filesScanned": 1
+      },
+      "runtime": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": []
+      },
+      "layout": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "duration": 6,
+        "samples": [
+          0.333,
+          1,
+          1.667,
+          2.333,
+          3,
+          3.667,
+          4.333,
+          5,
+          5.667
+        ],
+        "transitionSamples": [],
+        "transitionSamplesDropped": 0,
+        "tolerance": 2,
+        "totalIssueCount": 0,
+        "truncated": false
+      },
+      "motion": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": true,
+        "specPath": "<repo>/.local/motion-issue8/index.motion.json",
+        "samples": 121
+      },
+      "contrast": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": true,
+        "samples": [
+          0.333,
+          1.667,
+          3,
+          4.333,
+          5.667
+        ],
+        "checked": 0,
+        "passed": 0
+      },
+      "hdr": {
+        "autoPromotion": null,
+        "inspection": "available"
+      },
+      "snapshots": {
+        "enabled": false,
+        "files": [],
+        "times": [],
+        "findingFiles": []
+      },
+      "_meta": {
+        "version": "0.8.139",
+        "latestVersion": "0.8.139",
+        "updateAvailable": false
+      }
+    },
+    "general_check": {
+      "ok": true,
+      "strict": false,
+      "browserSkipped": false,
+      "lint": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 2,
+        "infoCount": 0,
+        "findings": [
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"motion\"> is a timeline element that contains nested <div id=\"shape\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#motion",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/general/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"motion\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          },
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"closing\"> is a timeline element that contains nested <h1>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#closing",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/general/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"closing\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          }
+        ],
+        "filesScanned": 1
+      },
+      "runtime": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": []
+      },
+      "layout": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "duration": 15,
+        "samples": [
+          1,
+          6,
+          12.967,
+          13,
+          14.967
+        ],
+        "transitionSamples": [],
+        "transitionSamplesDropped": 0,
+        "tolerance": 2,
+        "totalIssueCount": 0,
+        "truncated": false
+      },
+      "motion": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": false,
+        "samples": 0
+      },
+      "contrast": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": true,
+        "samples": [
+          1,
+          6,
+          12.967,
+          13,
+          14.967
+        ],
+        "checked": 2,
+        "passed": 2
+      },
+      "hdr": {
+        "autoPromotion": null,
+        "inspection": "available"
+      },
+      "snapshots": {
+        "enabled": true,
+        "files": [
+          "snapshots/frame-00-at-1.0s.png",
+          "snapshots/frame-01-at-6.0s.png",
+          "snapshots/frame-02-at-13.0s.png",
+          "snapshots/frame-03-at-13.0s.png",
+          "snapshots/frame-04-at-15.0s.png"
+        ],
+        "times": [
+          1,
+          6,
+          12.967,
+          13,
+          14.967
+        ],
+        "findingFiles": []
+      },
+      "_meta": {
+        "version": "0.8.139",
+        "latestVersion": "0.8.139",
+        "updateAvailable": false
+      }
+    },
+    "missing_font": {
+      "ok": false,
+      "strict": false,
+      "browserSkipped": false,
+      "lint": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 2,
+        "infoCount": 0,
+        "findings": [
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"motion\"> is a timeline element that contains nested <div id=\"shape\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#motion",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/negative/missing-font/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"motion\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          },
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"closing\"> is a timeline element that contains nested <h1>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#closing",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/negative/missing-font/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"closing\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          }
+        ],
+        "filesScanned": 1
+      },
+      "runtime": {
+        "ok": false,
+        "errorCount": 2,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [
+          {
+            "code": "http_error",
+            "severity": "error",
+            "message": "404 loading public/MissingFont.ttf",
+            "selector": "[data-composition-id]",
+            "dataAttributes": {
+              "data-composition-id": "main",
+              "data-width": "1280",
+              "data-height": "720",
+              "data-duration": "15",
+              "data-fps": "30",
+              "data-start": "0"
+            },
+            "sourceFile": "index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 720
+            },
+            "time": 0,
+            "url": "http://127.0.0.1:39523/public/MissingFont.ttf"
+          },
+          {
+            "code": "request_failed",
+            "severity": "error",
+            "message": "Failed to load public/MissingFont.ttf: net::ERR_ABORTED",
+            "selector": "[data-composition-id]",
+            "dataAttributes": {
+              "data-composition-id": "main",
+              "data-width": "1280",
+              "data-height": "720",
+              "data-duration": "15",
+              "data-fps": "30",
+              "data-start": "0"
+            },
+            "sourceFile": "index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 720
+            },
+            "time": 0,
+            "url": "http://127.0.0.1:39523/public/MissingFont.ttf"
+          }
+        ]
+      },
+      "layout": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "duration": 15,
+        "samples": [
+          14
+        ],
+        "transitionSamples": [],
+        "transitionSamplesDropped": 0,
+        "tolerance": 2,
+        "totalIssueCount": 0,
+        "truncated": false
+      },
+      "motion": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": false,
+        "samples": 0
+      },
+      "contrast": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": true,
+        "samples": [
+          14
+        ],
+        "checked": 1,
+        "passed": 1
+      },
+      "hdr": {
+        "autoPromotion": null,
+        "inspection": "available"
+      },
+      "snapshots": {
+        "enabled": false,
+        "files": [],
+        "times": [],
+        "findingFiles": []
+      },
+      "_meta": {
+        "version": "0.8.139",
+        "latestVersion": "0.8.139",
+        "updateAvailable": false
+      }
+    },
+    "long_title": {
+      "ok": false,
+      "strict": false,
+      "browserSkipped": false,
+      "lint": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 2,
+        "infoCount": 0,
+        "findings": [
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"motion\"> is a timeline element that contains nested <div id=\"shape\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#motion",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/negative/long-title/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"motion\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          },
+          {
+            "code": "nested_structure_needs_subcomposition",
+            "severity": "warning",
+            "message": "<section id=\"closing\"> is a timeline element that contains nested <h1>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+            "selector": "#closing",
+            "dataAttributes": {},
+            "sourceFile": "<repo>/.local/motion-issue8/negative/long-title/index.html",
+            "bbox": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            },
+            "time": 0,
+            "fixHint": "Move <section id=\"closing\"> and its contents into a sub-composition file and mount it with data-composition-src."
+          }
+        ],
+        "filesScanned": 1
+      },
+      "runtime": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": []
+      },
+      "layout": {
+        "ok": false,
+        "errorCount": 1,
+        "warningCount": 1,
+        "infoCount": 0,
+        "findings": [
+          {
+            "code": "text_box_overflow",
+            "severity": "error",
+            "time": 13,
+            "selector": "#closing > h1:nth-of-type(1)",
+            "message": "Text extends outside its nearest visual/container box.",
+            "rect": {
+              "left": 540,
+              "top": 323.5,
+              "right": 11148.63,
+              "bottom": 396.5,
+              "width": 10608.63,
+              "height": 73
+            },
+            "containerSelector": "#root",
+            "text": "함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명",
+            "fixHint": "Text is 10609px x 73px inside 1280px x 720px and overflows by up to 9869px; widen the container to at least ~11149px or shrink font-size from 64px to ~8px, or allow wrapping with max-width/fitTextFontSize.",
+            "containerRect": {
+              "left": 0,
+              "top": 0,
+              "right": 1280,
+              "bottom": 720,
+              "width": 1280,
+              "height": 720
+            },
+            "overflow": {
+              "right": 9868.63
+            },
+            "dataAttributes": {},
+            "sourceFile": "index.html",
+            "bbox": {
+              "x": 540,
+              "y": 323.5,
+              "width": 10608.63,
+              "height": 73
+            },
+            "firstSeen": 13,
+            "lastSeen": 14.967,
+            "occurrences": 3,
+            "heldMs": 1967.0000000000005
+          },
+          {
+            "code": "canvas_overflow",
+            "severity": "warning",
+            "time": 13,
+            "selector": "#closing > h1:nth-of-type(1)",
+            "message": "Text extends outside the composition canvas.",
+            "rect": {
+              "left": 540,
+              "top": 323.5,
+              "right": 11148.63,
+              "bottom": 396.5,
+              "width": 10608.63,
+              "height": 73
+            },
+            "containerSelector": "#root",
+            "text": "함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명 함께 만드는 모션 그래픽 소개 영상과 매우 긴 모델명",
+            "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+            "containerRect": {
+              "left": 0,
+              "top": 0,
+              "right": 1280,
+              "bottom": 720,
+              "width": 1280,
+              "height": 720
+            },
+            "overflow": {
+              "right": 9868.63
+            },
+            "dataAttributes": {},
+            "sourceFile": "index.html",
+            "bbox": {
+              "x": 540,
+              "y": 323.5,
+              "width": 10608.63,
+              "height": 73
+            },
+            "firstSeen": 13,
+            "lastSeen": 14.967,
+            "occurrences": 3,
+            "heldMs": 1967.0000000000005
+          }
+        ],
+        "duration": 15,
+        "samples": [
+          13,
+          14,
+          14.967
+        ],
+        "transitionSamples": [],
+        "transitionSamplesDropped": 0,
+        "tolerance": 2,
+        "totalIssueCount": 2,
+        "truncated": false
+      },
+      "motion": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": false,
+        "samples": 0
+      },
+      "contrast": {
+        "ok": true,
+        "errorCount": 0,
+        "warningCount": 0,
+        "infoCount": 0,
+        "findings": [],
+        "enabled": true,
+        "samples": [
+          13,
+          14,
+          14.967
+        ],
+        "checked": 3,
+        "passed": 3
+      },
+      "hdr": {
+        "autoPromotion": null,
+        "inspection": "available"
+      },
+      "snapshots": {
+        "enabled": true,
+        "files": [
+          "snapshots/frame-00-at-13.0s.png",
+          "snapshots/frame-01-at-14.0s.png",
+          "snapshots/frame-02-at-15.0s.png"
+        ],
+        "times": [
+          13,
+          14,
+          14.967
+        ],
+        "findingFiles": [
+          "snapshots/finding-00-text_box_overflow.png"
+        ]
+      },
+      "_meta": {
+        "version": "0.8.139",
+        "latestVersion": "0.8.139",
+        "updateAvailable": false
+      }
+    },
+    "audio": {
+      "source": {
+        "sample_rate": 22050,
+        "channels": 1,
+        "duration": 6.375510204081633,
+        "peak": 0.710906982421875,
+        "clipped_samples": 0,
+        "audible_threshold_start": 0.0,
+        "audible_threshold_end": 6.03
+      },
+      "final": {
+        "sample_rate": 48000,
+        "channels": 2,
+        "duration": 15.018666666666666,
+        "peak": 0.70751953125,
+        "clipped_samples": 0,
+        "audible_threshold_start": 0.5,
+        "audible_threshold_end": 6.51
+      },
+      "listening": "not_run"
+    },
+    "frame_comparison": {
+      "scope": "second clean directory, same host; decoded RGB at selected frames",
+      "frames": [
+        {
+          "frame": 0,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 30,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 179,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 180,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 359,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 360,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 389,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 390,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 402,
+          "rmse_0_255": 0.0
+        },
+        {
+          "frame": 449,
+          "rmse_0_255": 0.0
+        }
+      ]
+    }
+  },
+  "assets": {
+    "public/NanumBarunGothic.ttf": {
+      "sha256": "9b872773134e2e4d8c0b17021266786576db06c843ede0d0b523b214a450756c",
+      "bytes": 4186060
+    },
+    "public/narration.wav": {
+      "sha256": "a3dbc5f93fe0e622f3ac58365c13eebe3afe971af0f16ba78710c6b79cff813d",
+      "bytes": 281204
+    },
+    "public/gsap.min.js": {
+      "sha256": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb",
+      "bytes": 72927
+    }
+  }
+}
