@@ -621,6 +621,31 @@ class Stabilization(unittest.TestCase):
             row.pop('folderVersion')
             self.assertIn('version', deps.plugin_problems('claude-code', [row['id']], target)[0])
 
+    def test_repository_parent_alias_preserves_file_and_link_checks(self):
+        alias = self.root / 'parent-alias'
+        try:
+            alias.symlink_to(self.root, target_is_directory=True)
+        except OSError as error:
+            self.skipTest('directory symlink unavailable: ' + str(error))
+        repo = alias / 'repo'
+        self.new()
+        (self.repo / 'api.py').write_text('def alpha():\n    return 1\n')
+        (self.repo / 'reference.md').write_text('[API](api.py#alpha)\n')
+        (self.repo / 'inside-link.py').symlink_to(self.repo / 'api.py')
+        (self.repo / '.env').write_text('private fixture')
+        self.commit('alias fixture')
+        path = jev_observe.local_file(repo, 'api.py')
+        self.assertEqual(path.relative_to(repo).as_posix(), 'api.py')
+        self.assertEqual(path.read_bytes(), (self.repo / 'api.py').read_bytes())
+        for name in ('inside-link.py', '.env', str(self.root / 'outside.py'), '../outside.py'):
+            with self.assertRaises(ValueError):
+                jev_observe.local_file(repo, name)
+        packet = jev_packet.packet(repo, 'dev', 'K1', seeds=['api.py'])
+        reference = next(item for item in packet['items'] if item['path'] == 'reference.md')
+        self.assertIn('local link to seed', reference['reasons'])
+        storage.write_json(jev_find.result_path(repo, 'K1', 'packet'), packet)
+        jev_packet.check(repo, 'dev', 'K1')
+
     def test_packet_producer_identity_uncertainty_markdown_and_optional(self):
         (self.repo / 'ref.md').write_text('# unrelated reference\n')
         (self.repo / 'omit.md').write_text('# garden\n')

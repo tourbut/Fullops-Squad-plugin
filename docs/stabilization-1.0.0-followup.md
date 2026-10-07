@@ -59,8 +59,23 @@ Codex는 SessionStart·UserPromptSubmit의 context/dispatch state와 실제 PreT
 
 Codex add는 기존 0.9.14 호환 경로를 다시 정리했다. 부모 hook 경로가 사라진 상태로 방치하지 않고 동일 df981bc archive 124파일을 설치 후 복원·SHA 검증했다. 이는 실행 중 부모의 경로 보존이며 최신 설치 버전을 되돌리지 않는다.
 
+## 수정본의 실제 hook 재검증
+
+새 Claude Sonnet 5.5 medium 세션을 tester에서 실행했다. Task task_9d8267afa0ff, Dispatch ctx_e5c2d5d0978a, Session 9487f8b2-5ffc-4f53-9fe8-195688d69787, 보고 커밋 9693df72143e. 기존 사용자 arch 세션은 재사용하지 않았다.
+
+- 자동 PreToolUse에서 worker-start 문자열을 담은 Python here-doc 쓰기가 exit 0으로 통과했다. 실제 최상위 worker-start의 --run 누락은 도구 실행 전에 계속 차단됐다.
+- 마지막 worker_done을 Python subprocess로 보내 local command receipt 추적 없이 Orca msg_7f5f626fdd4d에 전달했다. 같은 세션의 자동 Stop 요약은 hookCount=3, hookErrors=[], preventedContinuation=false다. flow 상태에는 현재 task/dispatch, settled=true, settlement_source=Orca current dispatch outcome이 남았다. 정본 완료 조회 보완의 실제 실행을 확인했다.
+- worker가 범위 밖의 전체 lint CLI도 실행해 설치되지 않은 frontend svelte-kit/prettier로 2건 실패했다. 이를 전체 제품 lint 통과로 표시하지 않는다. 부모는 이번 Markdown의 DOC-002/DOC-003을 별도 검사해 위반 0과 git diff --check exit 0을 확인했다.
+- parent가 만든 새 테스트 terminal은 정상 완료·idle을 확인하고 release/close한 뒤 delivery를 ack했다. 사용자 arch terminal은 보존했다.
+
+## Actions 실패와 경로 수정
+
+77fcaaf의 Actions run 37595873280은 Linux core/OCR와 Windows portable이 통과했고 macOS portable의 Python 회귀 4건이 실패했다. macOS 임시 경로 /var가 /private/var로 resolve되면서 원래 repo 경로와 resolved 파일을 비교해 정상 파일을 외부로 거부한 것이 원인이다.
+
+공유 local_file은 실제 containment를 resolved repo끼리 확인하고 검증한 입력 경로를 반환한다. 내부 symlink/민감 이름/외부 경로/상위 탈출 차단은 유지한다. Markdown 링크도 resolved repo를 기준으로 계산한다. 부모 경로 alias의 파일·링크·packet 접근과 차단 경계를 함께 확인하는 회귀를 추가했다. 기존 jev-observe 보안 검사는 통과했다. 수정본 Actions 재실행 결과는 아래에 기록한다.
+
 ## 검사
 
-npm test: 전체 통과. tests/stabilization.py: 23개 통과. tests/review-check.py: pinned OCR 1.12.12 실제 delegate 검사 통과. 실제 Jev API/캐시/route 연결: 통과. build와 git diff --check: 통과.
+npm test: 전체 통과. tests/stabilization.py: 24개 통과. tests/review-check.py: pinned OCR 1.12.12 실제 delegate 검사 통과. 실제 Jev API/캐시/route 연결: 통과. build와 git diff --check: 통과.
 
-Windows/macOS 실제 host·Unity Player·강제 종료/동시 빌드 회복·전체 제품 QA는 미실행이다. GitHub Actions 결과는 실행 후 별도로 기록한다. i-Docs main의 서비스 적용 버전 0.9.14는 테스트 설치와 구분하며 운영 정책 전체 반영/병합을 이번 점검으로 완료했다고 표시하지 않는다.
+Windows/macOS 실제 host·Unity Player·강제 종료/동시 빌드 회복·전체 제품 QA는 미실행이다. Windows/macOS portable은 CI의 launcher·실패 회복·합성 회귀·native build 검사이며 실제 CLI 설치·세션 테스트는 Linux에서만 실행했다. i-Docs main의 서비스 적용 버전 0.9.14는 테스트 설치와 구분하며 운영 정책 전체 반영/병합을 이번 점검으로 완료했다고 표시하지 않는다.

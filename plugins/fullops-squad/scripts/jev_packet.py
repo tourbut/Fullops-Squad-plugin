@@ -149,7 +149,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                         continue
                     linked = (repo / path).parent / target.split('#')[0]
                     try:
-                        link_path = linked.resolve().relative_to(repo).as_posix()
+                        link_path = linked.resolve().relative_to(repo.resolve()).as_posix()
                     except ValueError:
                         continue
                     if link_path in direct:
