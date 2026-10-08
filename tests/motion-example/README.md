@@ -23,6 +23,10 @@ PATH에 없는 실행 파일은 `fullops-motion/toolchain.md`의 프로세스별
 
 spec은 `color_range=tv`, `color_space/color_transfer/color_primaries=bt709`를 요구한다. 엔진별 실제 출력 속성을 확인하고 필요한 색 변환은 별도 버전으로 렌더한다. 태그만 바꿔 색 변환으로 보고하지 않는다. 기존 2026-10-07 Remotion 출력은 이 조건과 달라 새 검사에서 실패한다.
 
+Remotion의 새 렌더는 `--color-space bt709`를 명시한다. 2026-10-09 Windows 평가에서는 이 옵션의 실제 BT.709/TV 출력과 PCM 대응을 확인했다. 설치된 Edge의 실행 실패 뒤 작업 폴더의 chrome-headless-shell 150.0.7871.124를 사용했다. 도구·자산·실패 및 재렌더 기록은 [Windows 증거](../../docs/evidence/motion-issue8-windows.json)를 본다.
+
+기존 로컬 WAV를 쓰려면 `prepare.py --font <허가된 글꼴> --voice-file <승인한 WAV>`로 준비한다. source와 출력의 채널 변환이 다르면 PCM 비교가 레벨 차이를 검출할 수 있다. Windows 평가에서 모노 음원이 HF 스테레오 출력과 비교돼 실패한 원본을 보존하고 `ffmpeg -i <원본.wav> -ac 2 <새 스테레오.wav>`로 새 자산을 만든 뒤 재렌더했다. 검사 기준을 완화하지 않았다. 글꼴 파일명은 예제의 로컬 별칭이며 평가 자산의 실제 family는 NanumGothic Regular/SIL OFL 1.1이다.
+
 검사기는 FFprobe의 실제 프레임 시각을 확인하고, 음성이 있으면 FFmpeg로 원본과 출력을 8kHz mono PCM으로 디코드해 계획된 시작·길이의 unity-gain 합성과 0.25초 구간별로 비교한다. `--ffmpeg <실행 파일>`로 디코더를 지정할 수 있다. 가공 음성·fade·공간 음향은 이 비교의 범위 밖이며 별도 QA가 필요하다. 청취·시각 수락은 계속 별도다.
 
 자산 기록:
