@@ -39,7 +39,7 @@ def main():
             deps.run(plan, True)
         else:
             for host in {'all': deps.HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host]):
-                deps.install_host(host, list(commands(host, registered)))
+                deps.install_host(host, list(commands(host, registered)), {'source': str(ROOT), 'package': PLUGIN})
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     print("설치 계획 확인 완료" if args.dry_run else "설치 완료. 새 에이전트 세션에서 setup-fullops를 실행하세요.")

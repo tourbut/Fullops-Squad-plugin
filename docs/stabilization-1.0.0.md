@@ -35,6 +35,14 @@ H1은 실제 오류 원문을 확보하기 전까지 원인 미확정으로 유�
 - `FULLOPS_JEV_CACHE_BYPASS=1 python3 tests/jev-observe.py --live-env-file <.env 절대경로>`: 실제 모델 `typesafe/jev-1.13-20260917`, 비용 $0.000082614, 관측 0.687초. 불충분한 증거를 성공으로 올리지 않았음.
 - `python3 tests/jev-live.py --env-file <.env 절대경로> --output <새 경로>`: route/code/documents/context/web/Unity 응답의 공통 protocol 검사 및 동일 payload 캐시 대조 통과. 실제 브라우저/게임 조작 검증은 아님.
 
+## PR #9 비공개 리뷰 보완 검증
+
+리뷰의 네 결함을 `tests/stabilization.py`의 회귀 네 개로 재현했다. 수정 전에는 운영 정보 갱신 후 패킷 identity 불일치, Claude 공용 경로의 잘못된 설치 성공, 새 공유 ID의 승인 상속, 인용된 here-doc 문자열 뒤의 dispatch 누락을 확인했다. 수정 후 회귀 네 개와 기존 전체 인계·완료·리뷰 연결 검사 한 개가 Windows에서 통과했다.
+
+목표·기준 SHA·attempt·본문 제약 변경의 해시 감지는 유지한다. Claude 기본 경로와 `CLAUDE_CONFIG_DIR` 경로에서 설치 receipt 기록·파일 삭제 감지·재시도를 검사했다. 기존 공유 ID 승인 보존과 새 ID의 draft 초기화, 명시적 review 전환을 검사했다. 작은따옴표·큰따옴표·여러 줄 인용·이스케이프된 `<<` 뒤의 Run 추적 및 `--run` 필수 검사와 실제 here-doc 본문 제외도 확인했다.
+
+OCR 1.12.12를 격리된 테스트 경로에 설치해 `python3 tests/review-check.py`를 실행했다. 실제 delegate 준비와 독립 snapshot, 파일·SHA·lint·리뷰 기록 관문이 통과했다. 이번 회귀는 임시 저장소와 가짜 설치기를 사용하며, 실제 호스트 스킬 재설치나 Orca worker 세션을 새로 실행한 증거는 아니다.
+
 ## 실제 Jev 관측과 정확도 한계
 
 키는 `.env`에서 읽었고 payload·출력·증거에는 넣지 않았다. 1회 합성 과제와 명시적 기대 경로를 사용했다.

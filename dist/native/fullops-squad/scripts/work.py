@@ -93,6 +93,8 @@ def finish(repo, role, key):
     placeholder = TEMPLATE.read_text().partition("## 완료 보고\n")[2].strip()
     if not report or report == placeholder:
         raise ValueError("완료 보고 전문을 인박스에 먼저 작성하세요")
+    from jev_packet import check
+    check(repo, role, key, completion=True, text=content)
     log = safe_file(repo, f".fullops-squad/handovers/logs/{date.today()}_to_{role}.md")
     meta = deliverables.front_matter(content) or {}
     attempt = meta.get('attempt') or hashlib.sha256(content.encode()).hexdigest()
@@ -128,13 +130,23 @@ def validate_role(repo, role):
         raise ValueError("등록되지 않은 역할입니다. setup에서 역할을 추가하세요")
 
 
+def instruction_digest(text):
+    text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
+    header, separator, body = text.partition('\n## ')
+    header = re.sub(r'^- (?:상태|복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id):[^\n]*(?:\n|$)',
+                    '', header, flags=re.M)
+    text = header + separator + body
+    text = re.sub(r'^(\s*[-*]\s+)\[[xX]\]', r'\1[ ]', text.partition('## 완료 보고\n')[0], flags=re.M)
+    return hashlib.sha256(text.rstrip().encode()).hexdigest()
+
+
 def input_identity(repo, role, key, options):
     _, text = instruction(repo, role, key)
     text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
     head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
     meta = deliverables.front_matter(text) or {}
     value = {'task_key': key, 'role': role, 'head': head, 'attempt': meta.get('attempt'),
-             'instruction_sha256': hashlib.sha256(text.encode()).hexdigest(), 'options': options}
+             'instruction_sha256': instruction_digest(text), 'options': options}
     return {**value, 'input_sha256': hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()}
 
 

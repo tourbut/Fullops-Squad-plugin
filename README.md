@@ -1,7 +1,7 @@
 ---
 title: FullOps Squad
 status: draft
-updated: 2026-10-06
+updated: 2026-10-07
 owner: maintainer
 summary: Orca에서 AI worker의 배정, 문서, 검증, 리뷰를 관리하는 하네스 플러그인
 ---
@@ -152,6 +152,13 @@ npx --yes fullops-squad@latest install --hosts codex,grok
 Codex는 현재 `CODEX_HOME`, 기본 사용자 홈, 기존 Windows Orca 홈을 처리합니다. 다른 홈은 `--codex-home PATH`로 추가합니다.
 설치나 업데이트가 끝나면 각 CLI에서 새 에이전트 세션을 엽니다.
 
+**Codex 업데이트 주의:** Codex 0.160.1에서 자동 업데이트가 이전 플러그인 캐시를 삭제하는 동안,
+이미 읽은 hook 명령이 이전 경로를 호출해 `can't open file .../scripts/flow_gate.py` 오류를 내는 사례를 확인했습니다.
+이는 호스트의 캐시 정리와 hook 갱신 사이의 제약입니다. FullOps는 Codex의 캐시 수명을 제어하지 않습니다.
+진행 중 작업을 저장하거나 완료한 뒤 별도 터미널에서 플러그인 업데이트를 끝내고 새 세션을 여세요.
+시작 중 자동 업데이트에서 같은 오류가 나면 업데이트 완료를 확인한 뒤 세션을 다시 열고 hook 실행을 확인하세요.
+오류가 난 이벤트는 해당 검사를 수행하지 못했으므로, hook 오류가 없어졌다는 이유만으로 과제 검증을 통과 처리하지 마세요.
+
 `update --repo PATH`는 업데이트 전 설치 버전 이후의 레포 적용 안내를 출력합니다.
 에이전트에게 해당 레포의 FullOps update를 요청하면 적용 작업을 진행합니다.
 
@@ -269,6 +276,10 @@ FullOps update 수행해줘.
 과제 키: <예: PLAYER-JUMP-1>
 fullops-orca route로 분류하고 dispatch해줘.
 ```
+
+### 선택형 GitHub 이슈 작업
+
+FullOps 활성 저장소에서 `이슈 자동 작업 모드를 설정하고 현재 coor에서 켜줘`라고 요청하면 `fullops-issues`가 저장소·허용 작성자·주기(기본 300초, 최소 60초)·작업 범위를 확인합니다. 기본 OFF이며 설치/setup으로 켜지지 않습니다. 로컬 폴러는 모델 호출 없이 수집하고, 동일 coor의 foreground wait로 하나씩 처리합니다. 완료 지점은 테스트/독립 리뷰를 통과한 draft PR이며 main 병합은 사용자 판단입니다. 질문은 원래 이슈에 보내고 원 작성자의 답변을 검토해 새 attempt로 재개합니다. [운영과 실환경 수용 검증](docs/issue-auto-mode.md)을 참고합니다.
 
 ## 설정
 

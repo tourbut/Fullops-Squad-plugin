@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 import subprocess
@@ -277,7 +278,26 @@ def check(repo, key, base, head, task_key=None):
               + sum(c['status'] in ('failed', 'timeout') for c in lint['commands']))
     if errors:
         raise ValueError(f'lint ERROR {errors}건이 남아 있습니다. 수정 커밋 후 새 리뷰를 준비하세요')
-    record_find_score(repo, directory, task_key or key, result['base'], result['head'])
+    packet_key = task_key or key
+    packet_path = jev_find.result_path(repo, packet_key, 'packet')
+    committed = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{packet_path.relative_to(repo).as_posix()}'], capture_output=True, text=True)
+    route_path = jev_find.result_path(repo, packet_key, 'route')
+    if packet_path.is_file() or committed.returncode == 0 or (route_path.is_file() and json.loads(route_path.read_text()).get('requires_packet')):
+        from jev_packet import check as check_packet
+        if committed.returncode != 0:
+            raise ValueError('리뷰할 SHA에 탐색 패킷이 없습니다')
+        packet = json.loads(committed.stdout)
+        role = packet['role']
+        content = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:.fullops-squad/handovers/to_{role}.md'], text=True)
+        if not content.strip():
+            token = f'<!-- fullops-attempt: {packet_key} {packet["attempt"]} -->'
+            for path in subprocess.check_output(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', head, '--', '.fullops-squad/handovers/logs'], text=True).splitlines():
+                log = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:{path}'], text=True)
+                if token in log:
+                    content = re.split(r'\n## [A-Za-z0-9][A-Za-z0-9._-]* — \d{4}-\d{2}-\d{2}\n<!-- fullops-attempt:', log.split(token, 1)[1], maxsplit=1)[0].strip()
+                    break
+        check_packet(repo, role, packet_key, completion=True, required=True, head=head, text=content)
+    record_find_score(repo, directory, packet_key, result['base'], result['head'])
     reviewed = sum(f['review_status'] == 'reviewed' for f in result['files'])
     print(f'기록 검사 통과: reviewed={reviewed}, skipped={len(actual)-reviewed}, total={len(actual)}, '
           f"lint WARNING={lint['summary']['warnings']}")

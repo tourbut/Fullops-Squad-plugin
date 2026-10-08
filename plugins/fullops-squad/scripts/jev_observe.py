@@ -64,10 +64,10 @@ def local_file(repo, name, historical=False):
         return path  # Git mode 검사는 호출자가 맡는다. 현재 파일·symlink 상태와 독립적인 snapshot 경로다.
     if any(parent.is_symlink() for parent in (path, *path.parents) if parent != repo and parent.is_relative_to(repo)):
         raise ValueError('symlink path')
-    path = path.resolve(strict=True)
-    if not path.is_file() or not path.is_relative_to(repo):
+    resolved = path.resolve(strict=True)
+    if not resolved.is_file() or not resolved.is_relative_to(repo.resolve()):
         raise ValueError('path outside repository or not a file')
-    return path
+    return path  # 검증한 입력 경로를 유지한다. macOS /var → /private/var도 같은 레포다.
 
 
 def safe_text(value, limit=4000):

@@ -13,12 +13,13 @@ import os
 import re
 import sys
 import time
+import subprocess
 
 from pathlib import Path
 
 from board import deliverables
 from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text, validated
-from work import KEY, active_repo, safe_file
+from work import KEY, active_repo, safe_file, input_identity, save_result
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
 # 산출물마다 독립된 예/아니오로 묻는다. Choice는 여러 문서가 해당하면 확률을 나눠 가져 문서마다 낮아진다
@@ -190,6 +191,14 @@ def route(repo, key, text, call, override_role=None, reason=None):
         result['override_reason'] = reason
     result['model'] = pick_model(repo, result['role'], text, call) if result.get('role') else None
     result['candidate_hash'] = candidate_hash(repo, result['role'])
+    head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
+    result['head'] = head.stdout.strip() if head.returncode == 0 else None
+    result['requires_packet'] = True
+    if result.get('role'):
+        try:
+            result.update(input_identity(repo, result['role'], key, {'policy': 'route-v4'}))
+        except ValueError:
+            pass  # 지시서 작성 전 분류는 --bind-inbox로 현재 시도와 명시적으로 연결한다.
     return result
 
 
@@ -272,6 +281,7 @@ def main():
     parser.add_argument('--request', help='사용자 요청 원문 (4000자 이하, 비밀값 금지). --model-only면 생략 시 지시서를 읽는다')
     parser.add_argument('--model-only', action='store_true', help='분류 없이 --role의 모델만 고른다(설계 뒤 worker 배정용)')
     parser.add_argument('--role', help='--model-only 대상 역할')
+    parser.add_argument('--bind-inbox', action='store_true', help='API 호출 없이 기존 route를 현재 역할 지시서와 연결한다')
     parser.add_argument('--override-role', help='담당 역할 변경(사유 기록; 제품/기술 책임 분리 레포에서는 unresolved도 명시 배정)')
     parser.add_argument('--reason', help='--override-role의 근거(500자 이하)')
     parser.add_argument('--force', action='store_true', help='기존 결과를 백업하고 같은 키로 재선정')
@@ -282,6 +292,19 @@ def main():
         if not KEY.fullmatch(args.key):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
+        if args.bind_inbox:
+            if not args.role or args.model_only or args.request or args.override_role:
+                raise ValueError('--bind-inbox에는 --role만 함께 지정하세요')
+            output = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{args.key}-route.json')
+            result = json.loads(output.read_text())
+            identity = input_identity(repo, args.role, args.key, {'policy': 'route-v4'})
+            if result.get('task_key') != args.key or result.get('role') != args.role or result.get('head') != identity['head']:
+                raise ValueError('route의 과제/역할/SHA가 다릅니다. 먼저 재분류하세요')
+            if result.get('attempt') and any(result.get(k) != identity[k] for k in ('attempt', 'instruction_sha256')):
+                raise ValueError('이미 다른 시도/지시에 연결된 route입니다. --force로 재분류하세요')
+            save_result(output, {**result, **identity, 'requires_packet': True})
+            print(output.relative_to(repo))
+            return
         if args.model_only and not args.role:
             raise ValueError('--model-only에는 --role이 필요합니다')
         if not args.model_only and not args.request:

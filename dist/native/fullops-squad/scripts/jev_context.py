@@ -74,7 +74,8 @@ def context(repo, role, key, paths, call, required=(), handover=None):
         outcome = observe(data, repo, call)
     except ValueError as error:  # 지시서 본문의 민감 문자열 등: Jev 없이 전부 유지한다
         outcome = {'error': f'Jev 생략: {error}', 'context': None}
-    return {**outcome, 'task_key': key, 'role': role, 'unsent_sources': unsent, 'refused_paths': refused,
+    return {**outcome, **input_identity(repo, role, key, {'policy': 'context-v2', 'paths': paths, 'required': list(required)}),
+            'unsent_sources': unsent, 'refused_paths': refused,
             'elapsed_seconds': round(time.monotonic() - started, 3),
             'input_partial': len(text) > 3500, 'instruction_chars': len(text),
             'remaining_instruction': {'start_char': 3500, 'end_char': len(text)} if len(text) > 3500 else None}

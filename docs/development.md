@@ -29,6 +29,8 @@ python3 scripts/install.py --host codex --dry-run   # claude-code, grok, agy, al
 python3 scripts/install.py --host codex
 ```
 
+이미 GitHub 출처의 `fullops-squad`가 등록돼 있으면 출처 충돌로 멈춘다. 로컬 출처로 전환할 때 marketplace 제거는 설치 캐시도 지울 수 있으므로 실행 중 세션에서 바로 제거하지 않는다. 이전 cache의 원본을 먼저 보존하고 별도 신규 세션에서 전환한다. 기존 세션이 완전히 끝나기 전까지 그 hook 경로를 보존한다. 개발 directory 출처는 Claude가 dist를 직접 읽을 수 있으므로 검증 중 빌드로 실행 코드를 바꾸지 않는다.
+
 설치기는 빌드한 뒤 플러그인 안의 `scripts/deps.py`와 같은 의존성 목록으로 의존성을 설치하고, 체크아웃을 로컬 마켓플레이스로 등록해 플러그인을 설치한다.
 
 ## 배포

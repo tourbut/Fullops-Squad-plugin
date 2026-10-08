@@ -16,6 +16,16 @@ test('arguments validate hosts and preserve paths with spaces', () => {
   assert.throws(() => installer.parseArgs(['update', '--repo']));
 });
 
+test('hooks require modern python3 even when python would succeed', t => {
+  const { calls, execute } = flow(t);
+  const onlyPython = (command, args, ...rest) => {
+    if (command === 'python3') throw new Error('missing or old python3');
+    return execute(command, args, ...rest);
+  };
+  assert.throws(() => installer.main(['update', '--hosts', 'grok'], onlyPython), /python3 3.10/);
+  assert.ok(calls.every(c => c.args[0] === '--version'));
+});
+
 test('Codex homes include current, default, explicit and existing Orca without changing environment', () => {
   const home = path.resolve('user');
   const current = path.join(home, 'custom');

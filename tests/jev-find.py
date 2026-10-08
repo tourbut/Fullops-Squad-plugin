@@ -139,8 +139,8 @@ def main():
         commit('many')
         sent = []
         big = jev.find(repo, 'dev', 'F-1', stub(sent, ['src/', 'auth/login']))
-        assert all(p['level'] == 'file' for p in big['passes']) and not big['partial'], big['passes']
-        assert big['candidates'][0]['path'] == 'src/auth/login.py'
+        assert all(p['level'] == 'file' for p in big['passes']) and big['partial'] and big['ranking_status'] == 'batch_only', big['passes']
+        assert 'src/auth/login.py' in [c['path'] for c in big['candidates']] + big['remaining_candidates']
         assert all('exists' in p['questions'] for p in sent)
         assert sum(len(p['questions']['where']['criteria']) for p in sent) == big['files']
         assert all(len(p['questions']['where']['criteria']) <= 255 for p in sent)

@@ -99,6 +99,33 @@ def main():
             'additional_search': {'status': 'not_run', 'reason': 'candidate generation only; no human or coding agent follow-through'},
             'rework': {'status': 'not_run'}, 'whole_task_tokens_cost': {'status': 'not_run',
                 'reason': 'host agent reading/implementation/review tokens are not measured; no savings claim'}}
+        # 분류 결과의 실제 역할/문서 ID를 저장·연결·소비한다. 이 연결 시험은 비용 절감 비교가 아니다.
+        pipeline_request = 'Rename fetch_user to lookup_user, update callers/tests and the API contract. Product requirements are fixed.'
+        pipeline_route = jev_route.route(repo, 'LIVE-ROUTE', pipeline_request, call)
+        owner = pipeline_route.get('role')
+        if not owner:
+            raise ValueError('live pipeline route owner unresolved')
+        storage.write_json(jev_find.result_path(repo, 'LIVE-ROUTE', 'route'), pipeline_route)
+        with redirect_stdout(io.StringIO()):
+            work.new(repo, owner, 'LIVE-ROUTE', pipeline_request, 'HEAD')
+        subprocess.run([sys.executable, str(ROOT / 'plugins/fullops-squad/scripts/jev_route.py'), '--repo', temp,
+                        '--key', 'LIVE-ROUTE', '--role', owner, '--bind-inbox'], check=True, capture_output=True)
+        pipeline_route = json.loads(jev_find.result_path(repo, 'LIVE-ROUTE', 'route').read_text())
+        for scope, name in [('code', 'find'), ('documents', 'documents-find')]:
+            selected = jev_find.find(repo, owner, 'LIVE-ROUTE', call, scope=scope)
+            storage.write_json(jev_find.result_path(repo, 'LIVE-ROUTE', name), selected)
+        selected_context = jev_context.context(repo, owner, 'LIVE-ROUTE', list(fixtures), call)
+        storage.write_json(jev_find.result_path(repo, 'LIVE-ROUTE', 'context'), selected_context)
+        pipeline_packet = jev_packet.packet(repo, owner, 'LIVE-ROUTE')  # seed/update ID를 강제로 주지 않는다.
+        pipeline = {'task_key': 'LIVE-ROUTE', 'role': owner, 'route_deliverables': pipeline_route['deliverables'],
+                    'route_additional_deliverables': pipeline_route.get('additional_deliverables', []),
+                    'producer_status': pipeline_packet['producer_status'], 'partial': pipeline_packet['partial'],
+                    'unknown': pipeline_packet['unknown'], 'categories': pipeline_packet['categories'],
+                    'input_sha256': pipeline_packet['input_sha256'], 'explicit_seeds': [], 'explicit_updates': [],
+                    'status': 'passed' if 'route' in pipeline_packet['producer_status'] else 'failed',
+                    'limitation': 'single synthetic connection fixture; no implementation, whole-task cost or quality gain claim'}
+        if pipeline['status'] != 'passed':
+            errors.append('persisted route not consumed by packet')
         page = {'url': 'https://example.test', 'elements': [{'ref': 'e1', 'role': 'textbox', 'name': 'New todo'}]}
         web_decision = web.ask(call, {'goal': 'Add milk to the todo list', 'values': {'milk': 'milk'}}, page, [], 1)
         unity_decision = unity.ask(call, {'goal': 'All enemies are defeated; finish the check.'},
@@ -119,7 +146,7 @@ def main():
             'route': {'route': route['route'], 'role': route['role'], 'deliverables': route['deliverables']},
             'code_candidates': code['candidates'], 'document_candidates': documents['candidates'],
             'context': context.get('context'), 'packet_evaluation': evaluation,
-            'search_comparison': comparison,
+            'search_comparison': comparison, 'persisted_route_pipeline': pipeline,
             'web_operation': web_decision['operation']['choice'], 'web_risk': web_decision['risk'],
             'unity_action': unity_decision['action']['choice'], 'cache_hit_proven': cache_proven,
             'cache_answers_equal': fresh[0]['answers'] == cached[0]['answers'],
