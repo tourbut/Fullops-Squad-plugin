@@ -22,9 +22,10 @@ class SessionRegressions(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='fullops-session-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        subprocess.run(['git', 'init', '-q', '-b', 'main', str(self.root)], check=True)
         (self.root / '.fullops-squad').mkdir()
         (self.root / '.fullops-squad/fullops.json').write_text(json.dumps({
-            'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}))
+            'schema_version': 1, 'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}))
 
     def gate(self, command):
         with patch.object(flow_gate, 'context', return_value=('coordinator', None)):

@@ -52,7 +52,12 @@ def guide(repo):
 
 def coordinator_role(repo):
     """라우팅 기준의 "- coordinator 역할: `<역할>`" 줄. 없으면 None(기본 브랜치 체크아웃이 coordinator)."""
-    return marked_role(repo, 'coordinator')
+    import policy
+    config = policy.load(repo)
+    role = marked_role(repo, 'coordinator')
+    if config['mode'] == 'coor':
+        return config.get('primary_role') or role
+    return None if role == config['primary_role'] else role
 
 
 def marked_role(repo, label):
@@ -180,7 +185,10 @@ def route(repo, key, text, call, override_role=None, reason=None):
         split = product_roles(repo)
         if not split and result['route'] != 'simple':
             raise ValueError('역할 변경은 simple 분류에서만 허용합니다. design 결과는 설계 역할에 배정하세요')
-        if override_role not in roles or override_role == coordinator_role(repo) or (not split and override_role == marked_role(repo, '설계')):
+        import policy
+        config = policy.load(repo)
+        primary = config.get('primary_role') if config['mode'] == 'dev' else None
+        if override_role not in roles or override_role == coordinator_role(repo) or (not split and override_role == marked_role(repo, '설계') and override_role != primary):
             raise ValueError(f'배정할 수 없는 역할: {override_role}')
         if not reason or not reason.strip():
             raise ValueError('역할 변경 근거를 기록하세요')
@@ -229,7 +237,12 @@ def classify(repo, key, text, call):
     if designer not in roles:
         return {**result, 'route': 'design', 'error': f'설계 역할 {designer}이 fullops.json에 없습니다'}
     coordinator = coordinator_role(repo)
-    workers = {r: f'{r}: {described.get(r, r)}' for r in roles if r not in (designer, coordinator)}
+    import policy
+    config = policy.load(repo)
+    excluded = {designer, coordinator}
+    if config['mode'] == 'dev':
+        excluded.discard(config['primary_role'])
+    workers = {r: f'{r}: {described.get(r, r)}' for r in roles if r not in excluded}
     if not workers:
         return {**result, 'route': 'design', 'error': '설계 역할 외 worker 역할이 없습니다'}
     if split:

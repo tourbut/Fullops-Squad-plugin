@@ -5,6 +5,8 @@ description: FullOps setup이 완료된 레포에서 구현된 동작을 검증�
 
 # 동작 검증
 
+`fullops.json.test_level`과 지시서의 선택 레벨을 읽고 rules/common/testing.md의 범위를 적용한다. lite는 개발 중 핵심 검증, standard는 영향 범위 회귀, full은 안정된 통합 후보의 전체 회귀·통합 검증이다. 필수 검사와 독립 QA·최종 수락은 유지하며 범위 밖·미실행 검사는 사유를 남기고 PASS로 표시하지 않는다. 정한 검사가 통과하면 인계하고 새 변경·실패·증거 결함이 있을 때만 반복한다.
+
 문서를 작성하거나 검토할 때 `.fullops-squad/docs/agents/document-writing.md`의 front matter와 한국어 STE 작성 원칙을 적용한다. 기존 레포에 이 파일이 없으면 `setup-fullops` 갱신으로 추가한다.
 
 현재 Git 레포 루트의 `.fullops-squad/fullops.json`이 없으면 setup을 안내한다. 어느 역할이든 동작 검증에 이 도구를 쓸 수 있다. 라우팅 기준의 `- tester 역할:`로 지정된 역할은 세션 시작 때 이 스킬을 받으며, 받은 지시서의 확인할 동작과 통과 조건을 기준으로 검증한다. tester 역할은 제품 코드를 고치지 않고 테스트 코드, 시나리오, 검증 증거만 만든다.

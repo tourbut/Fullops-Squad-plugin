@@ -20,6 +20,7 @@ import deps
 import env_link
 import deliverables
 import integration
+import policy
 from orca_wait import find_orca
 from done_gate import CODE, field, git
 from jev_route import coordinator_role, guide, marked_role, product_roles
@@ -36,17 +37,16 @@ ROUTED = re.compile(r'\bjev_route\.py\b.*?--key[ =]+["\']?([A-Za-z0-9][A-Za-z0-9
 
 def context(root):
     """(역할 또는 'coordinator', 설계 역할 또는 None). 역할 브랜치가 아니거나 지정된 coordinator 역할이면 coordinator다."""
-    roles = json.loads((root / '.fullops-squad/fullops.json').read_text(encoding='utf-8')).get('roles', {})
-    try:  # symbolic-ref는 첫 커밋 전에도 브랜치 이름을 준다
-        branch = git(root, 'symbolic-ref', '--short', 'HEAD')
-    except subprocess.CalledProcessError:
-        branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD')  # detached HEAD
+    config = policy.load(root)
     try:
         designer = guide(root)[1]
     except (OSError, ValueError):
         designer = None
-    role = next((role for role, b in roles.items() if b == branch), 'coordinator')
-    return ('coordinator' if role == coordinator_role(root) else role), designer
+    return policy.identity(root, config, coordinator_role(root))[0], designer
+
+
+def primary(root, state):
+    return policy.identity(root, policy.load(root), coordinator_role(root), bool(state.get('dispatch')))[1]
 
 
 def route_of(root, key):
@@ -398,11 +398,14 @@ def tool_denial(root, event, state):
     for key in ROUTED.findall('\n'.join(python_commands)):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
         state['routed'] = sorted(set(state.get('routed', [])) | {key})
     role, designer = context(root)
+    lead = primary(root, state)
+    config = policy.load(root)
+    direct_role = config.get('primary_role') if lead and config['mode'] == 'dev' else None
     for name, content in files:
         denial = inbox_denial(root, name, content)
         if denial:
             return denial
-    if role == 'coordinator':
+    if lead:
         for check in operation_commands(command, 'check'):
             flags = []
             for flag in ('--run', '--terminal'):
@@ -416,7 +419,7 @@ def tool_denial(root, event, state):
     if INJECT.search('\n'.join(injection_commands)):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
     asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?=\s|[;&|]|$)', command)
-    if role == 'coordinator' and any(len(sent_text(send)) > SEND_LIMIT for send in
+    if lead and any(len(sent_text(send)) > SEND_LIMIT for send in
                                      operation_commands(command, 'send', group='terminal')):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
@@ -425,7 +428,7 @@ def tool_denial(root, event, state):
     for dispatch in starting:
         if '--run' not in dispatch:
             return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
-    for dispatch in (starting + creating if role == 'coordinator' else []):
+    for dispatch in (starting + creating if lead else []):
         integration_spec = dispatch
         variable = re.search(r'--spec\s+(\$[A-Za-z_][A-Za-z0-9_]*)\b', dispatch)
         if variable:
@@ -452,7 +455,7 @@ def tool_denial(root, event, state):
             denial = integration.baseline_denial(root, integration_spec)
             if denial:
                 return denial
-    if role == 'coordinator' and designer:
+    if lead and designer:
         new = re.search(r'\bwork\.py\b.*\bnew\b', '\n'.join(python_commands))
         if new and not asking_help:
             try:
@@ -460,17 +463,18 @@ def tool_denial(root, event, state):
             except ValueError:
                 words = command.split()
             args = dict(zip(words, words[1:]))
-            denial = handover_denial(root, designer, args.get('--role'), args.get('--key'))
+            denial = None if direct_role and args.get('--role') == direct_role else handover_denial(
+                root, designer, args.get('--role'), args.get('--key'))
             if denial:
                 return denial
         for name, content in files:
             match = HANDOVER.search(name.replace('\\', '/'))
-            if match:
+            if match and match.group(1) != direct_role:
                 path = Path(name) if Path(name).is_absolute() else root / name
                 denial = handover_denial(root, designer, match.group(1), key_in(root, content, path))
                 if denial:
                     return denial
-    if role == designer:
+    if role == designer and not (lead and policy.load(root)['mode'] == 'dev'):
         for name, _ in files:
             if Path(name).suffix.lower() in CODE and '.fullops-squad/' not in name.replace('\\', '/'):
                 return f'설계 역할은 코드를 고치지 않습니다({name}). 역할별 지시서에 적고 worker에게 맡기세요.'
@@ -478,6 +482,10 @@ def tool_denial(root, event, state):
 
 
 BRIEF = {
+    'primary-dev': ('FullOps dev 주 담당자: 사용자와 직접 기술 계획·구현·검증을 진행한다. 전문가가 필요하면 '
+                    'jev_route.py 분류 → 역할 인박스 → worker-start --run으로 배정하고 결과를 리뷰·통합한다. '
+                    '제품 범위 변경은 사용자/기획 담당과 확인한다. 직접 작업은 부모 dispatch·가짜 worker_done 없이 '
+                    '기준 SHA와 완료 조건을 기록하고 현재 HEAD의 lint 및 다른 세션의 고정 SHA 독립 리뷰 후 완료한다.'),
     'coordinator': ('FullOps coordinator: 새 개발 요청은 과제 키를 정하고 `jev_route.py`로 먼저 분류한다. 플러그인·setup 갱신, 워크트리 동기화·병합, 현황판 정리 같은 운영 작업은 분류하지 않고 직접 처리한다. simple이면 그 역할 지시서를, '
                     'design이면 설계 역할을 `worker-start --run`으로 띄운다. 설계·범위 질문은 직접 답하지 않고 설계 역할에게 넘긴다. '
                     '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다.'),
@@ -515,9 +523,27 @@ def main():
     gate.mkdir(exist_ok=True)
     session = gate / ('flow-' + re.sub(r'[^A-Za-z0-9_-]', '_', str(field(event, 'session_id') or 'default'))[:100] + '.json')
     state = json.loads(session.read_text()) if session.is_file() else {}
+    try:
+        config = policy.load(root)
+    except policy.PolicyError:
+        command, _ = targets(field(event, 'tool_input') or {})
+        commands = shell_commands(command)
+        if mode == 'tool' and len(commands) == 1:
+            words = commands[0]
+            if len(words) > 2 and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name) and (
+                    Path(words[1].strip('\'"')).resolve() == Path(__file__).with_name('setup.py').resolve()) and '--repo' in words:
+                index = words.index('--repo')
+                if index + 1 < len(words) and Path(words[index + 1].strip('\'"')).resolve() == root and (
+                        any(flag in words for flag in ('--rollback', '--mode', '--primary-role'))):
+                    return {}
+        raise
+    current = [config['mode'], config.get('primary_role'), config.get('primary_branch')]
+    if state.get('operating') is not None and state['operating'] != current:
+        raise policy.PolicyError('운영 모드가 바뀌었습니다. 기존 세션에 주입하지 말고 새 세션을 시작하세요')
     before = dict(state)
     output = {}
     if mode == 'start':
+        state['operating'] = current
         state['provider_session'] = field(event, 'session_id')
         state['orca_terminal'] = os.getenv('ORCA_TERMINAL_HANDLE')
         if state['provider_session'] and state['orca_terminal']:
@@ -525,13 +551,15 @@ def main():
             write_json(hook_path(root, 'terminal-' + state['orca_terminal']),
                        {key: state[key] for key in ('provider_session', 'orca_terminal')})
         role, designer = context(root)
-        kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
+        kind = ('primary-dev' if config['mode'] == 'dev' and primary(root, state) else
+                'coordinator' if role == 'coordinator' else 'designer' if role == designer
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')
         brief = PRODUCT_BRIEF.get(kind, BRIEF[kind]) if product_roles(root) else BRIEF[kind]
+        brief += ' ' + policy.test_brief(config['test_level'])
         brief += (' 현재 작업은 역할별 handovers/to_<역할>.md 한 곳에 쓴다. 다음 과제는 PLANS.md에 대기시키고, '
                   '완료하면 work.py finish로 지시서·결과 전문을 로그에 보존한 뒤 인박스를 재사용한다. '
                   '과제명 파일·pending·logs를 현재 지시서로 dispatch하지 않는다.')
-        if kind == 'coordinator':
+        if kind in ('coordinator', 'primary-dev'):
             brief += (' 완료 보고마다 현재 SHA의 리뷰·기본 브랜치 병합·원격 push·하위 워크트리 동기화를 '
                       '바로 처리한다. 절차는 fullops-orca의 merge 절을 따른다. coordinator 역할 브랜치만 push하지 않는다.')
             brief += ' 자동 이슈 과제 GH-<저장소 ID>-<번호>-A<attempt>는 예외로 draft PR과 integration hold까지만 처리하고 main 병합은 사용자 판단을 기다린다.'
@@ -557,11 +585,17 @@ def main():
     elif mode == 'prompt':
         match = DISPATCH.search(str(field(event, 'prompt') or ''))
         if match and match.group(1) != state.get('dispatch'):
-            state = {**{k: state[k] for k in ('provider_session', 'orca_terminal') if k in state},
+            state = {**{k: state[k] for k in ('provider_session', 'orca_terminal', 'operating') if k in state},
                      'dispatch': match.group(1), 'settled': False}
             task = re.search(r'--task-id[ =]+([A-Za-z0-9_.:-]+)', str(field(event, 'prompt') or ''))
             if task:
                 state['task'] = task.group(1)
+            if config['mode'] == 'dev':
+                role, designer = context(root)
+                kind = 'designer' if role == designer else 'tester' if role == marked_role(root, 'tester') else 'worker'
+                brief = PRODUCT_BRIEF.get(kind, BRIEF[kind]) if product_roles(root) else BRIEF[kind]
+                output = {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
+                          'additionalContext': brief + ' ' + policy.test_brief(config['test_level'])}}
     elif mode == 'tool':
         denial = tool_denial(root, event, state)
         if denial:
@@ -622,7 +656,7 @@ def main():
                           f'`python3 <orca_wait.py> --orca <orca> --run {run}`을 포그라운드로 실행해 결과를 기다리세요. '
                           '지금 사용자와 다른 일을 해야 하면 그 이유를 말하고 다시 끝내면 됩니다.'}
             break
-        if context(root)[0] == 'coordinator':
+        if primary(root, state):
             denial = integration.denial(root)
             if denial and 'decision' not in output:
                 output = {'decision': 'block', 'reason': 'FullOps: ' + denial}
@@ -641,6 +675,11 @@ def main():
 if __name__ == '__main__':
     try:
         result = main()
+    except policy.PolicyError as error:
+        result = ({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
+                   'permissionDecisionReason': str(error)}} if sys.argv[1] == 'tool' else
+                  {'decision': 'block', 'reason': str(error)} if sys.argv[1] == 'stop' else
+                  {'systemMessage': str(error)})
     except Exception:  # noqa: BLE001 — hook은 실패해도 작업을 막지 않는다
         result = {}
     print(json.dumps(result, ensure_ascii=False))
