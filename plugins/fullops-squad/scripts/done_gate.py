@@ -14,6 +14,7 @@ import sys
 
 from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY
 import deliverables
+import policy
 from storage import write_json
 
 CODE = PY | HASH | C_STYLE
@@ -89,14 +90,23 @@ def main():
     root = Path(git(field(event, 'cwd') or '.', 'rev-parse', '--show-toplevel'))
     if not (root / '.fullops-squad/fullops.json').is_file():
         return {}
+    config = policy.load(root)
     gate = Path(git(root, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
     gate.mkdir(exist_ok=True)
     session = gate / (re.sub(r'[^A-Za-z0-9_-]', '_', str(field(event, 'session_id') or 'default'))[:100] + '.json')
     state = json.loads(session.read_text()) if session.is_file() else None
+    flow_path = gate / ('flow-' + session.name)
+    flow = json.loads(flow_path.read_text()) if flow_path.is_file() else {}
+    from jev_route import coordinator_role
+    direct = config['mode'] == 'dev' and policy.identity(root, config, coordinator_role(root), bool(flow.get('dispatch')))[1]
     if mode == 'start':
         if state is None:  # resume·compact는 처음 시작 지점을 유지한다
             state = {'reflog': len(reflog(root))}
-        expected_base(root, state)
+            if direct:
+                state['base'] = git(root, 'rev-parse', 'HEAD')
+                state['implementer_session'] = str(field(event, 'session_id') or 'default')
+        if not direct:
+            expected_base(root, state)
         write_json(session, state)
         if (field(event, 'source') or 'startup') not in ('startup', 'clear'):
             return {}
@@ -116,7 +126,7 @@ def main():
     if not committed and not dirty:
         return {}
     head = git(root, 'rev-parse', 'HEAD')
-    expected = expected_base(root, state)
+    expected = state.get('base') if direct else expected_base(root, state)
     write_json(session, state)  # 성공 Stop 뒤 finish가 인박스를 비워도 기준을 보존한다.
     try:
         record = json.loads((gate / 'pass.json').read_text())
@@ -124,8 +134,17 @@ def main():
     except (OSError, ValueError, AttributeError):
         passed = False
     if passed and not dirty:
+        if direct:
+            import review
+            try:
+                review.direct_check(root, expected, head, state.get('implementer_session'))
+            except (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.CalledProcessError) as error:
+                return {'decision': 'block', 'reason': 'FullOps: ' + str(error)}
         return {}
     marker = [head, [[p, (root / p).stat().st_mtime_ns if (root / p).exists() else None] for p in dirty]]
+    if direct:
+        return {'decision': 'block', 'reason': 'FullOps dev: 현재 HEAD의 lint 통과와 깨끗한 작업 경계가 필요합니다. '
+                '직접 구현은 반복 Stop으로 검사를 생략할 수 없습니다.'}
     if field(event, 'stop_hook_active') and state.get('blocked') == marker:
         return {'systemMessage': 'FullOps: lint.py 통과 기록 없이 세션을 끝냈습니다. 완료 보고의 검증 항목을 확인하세요.'}
     write_json(session, {**state, 'blocked': marker})
@@ -140,6 +159,8 @@ def main():
 if __name__ == '__main__':
     try:
         output = main()
+    except policy.PolicyError as error:
+        output = {'decision': 'block', 'reason': str(error)} if sys.argv[1] == 'stop' else {'systemMessage': str(error)}
     except Exception:  # noqa: BLE001 — hook은 실패해도 종료를 막지 않는다
         output = {}
     print(json.dumps(output, ensure_ascii=False))

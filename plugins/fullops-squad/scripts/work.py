@@ -11,6 +11,7 @@ import subprocess
 import uuid
 
 import deliverables
+import policy
 from storage import atomic_write, write_json
 
 KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
@@ -23,6 +24,7 @@ def active_repo(path):
         ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
     if root != repo or not (repo / ".fullops-squad/fullops.json").is_file():
         raise ValueError("활성화된 Git 레포 루트를 지정하세요")
+    policy.load(repo)
     return repo
 
 
@@ -67,6 +69,7 @@ def new(repo, role, key, goal, base=None, rework=False):
     content = TEMPLATE.read_text().replace("<과제 키>", key, 1).replace("<목표>", goal.strip(), 1)
     meta = {'title': f'{key} — {goal.strip()}', 'status': 'draft', 'updated': date.today().isoformat(),
             'owner': role, 'tasks': [key], 'summary': goal.strip(), 'attempt': uuid.uuid4().hex}
+    meta['test_level'] = policy.load(repo)['test_level']
     if base:
         meta['base'] = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', base + '^{commit}'], text=True).strip()
     if previous:

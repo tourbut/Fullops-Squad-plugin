@@ -233,7 +233,7 @@ def main():
         assert 'worker_done' in hook('start', session_id='wd', source='startup')['hookSpecificOutput']['additionalContext']
 
         (repo / '.fullops-squad/fullops.json').write_text('{', encoding='utf-8')
-        assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'orca terminal send handovers/'}) == {}  # fail-open
+        assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'orca terminal send handovers/'})['hookSpecificOutput']['permissionDecision'] == 'deny'
     print('PASS: flow-gate roles, inject/run/route denials, handover route check, designer code block, worker_done stop gate, grok input')
 
 

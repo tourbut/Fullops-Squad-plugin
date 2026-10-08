@@ -15,6 +15,7 @@ import tokenize
 import uuid
 
 import deliverables
+import policy
 from work import active_repo, safe_file
 from storage import write_json
 
@@ -68,6 +69,7 @@ def load_config(repo, ref):
     if config.get('schema_version') != 1:
         raise ValueError('지원하지 않는 lint 설정 버전')
     for command in config['commands']:
+        policy.command_selected(command, 'standard')
         run = command.get('run')
         if not command.get('name') or not isinstance(run, list) or not run or not all(isinstance(a, str) for a in run):
             raise ValueError('lint 명령은 name과 문자열 배열 run이 필요합니다')
@@ -303,12 +305,16 @@ def lint(repo, base_ref):
     if limit and additions > limit:
         violations.append({'code': 'SIZE-002', 'severity': 'WARNING', 'line': None, 'path': '',
                            'message': f'변경 추가 {additions}줄 > 상한 {limit}줄. 지시서의 예상 변경 규모와 차이·분할하지 않은 이유를 검토하세요'})
-    commands = [run_command(repo, c, config['timeout_seconds']) for c in config['commands']]
+    level, policy_digest = policy.at_ref(repo, merge_base)
+    commands = [run_command(repo, c, config['timeout_seconds']) if policy.command_selected(c, level) else
+                {**c, 'status': 'skipped', 'reason': f'기준 설정 test_level={level}, 명령 최소 level={c["level"]}'}
+                for c in config['commands']]
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '프로젝트 lint 명령이 등록되지 않았습니다. setup에서 기존 도구를 연결하세요'})
     errors = sum(v['severity'] == 'ERROR' for v in violations) + sum(c['status'] in ('failed', 'timeout') for c in commands)
     return {'schema_version': 1, 'attempt': attempt, 'base': base, 'merge_base': merge_base, 'head': head, 'config_sha256': digest,
+            'test_level': level, 'policy_sha256': policy_digest,
             'commands': commands, 'violations': violations,
             'summary': {'files': files, 'added_lines': additions, 'errors': errors,
                         'warnings': sum(v['severity'] == 'WARNING' for v in violations),

@@ -5,6 +5,10 @@ description: FullOps 활성 레포에서 worker 구현 완료 후 병합 전 OCR
 
 # 병합 전 delegate 리뷰
 
+dev 모드 주 담당자의 직접 구현도 다른 세션의 깨끗한 고정 SHA detached snapshot 리뷰를 받는다. 부모 dispatch나 worker_done은 요구하지 않는다. 구현자 세션 ID는 done-gate가 시작 시 보존한 실제 host 세션 ID를 사용하며 기존 prepare·check·snapshot 계약을 재사용한다. 테스트 레벨은 rules/common/testing.md를 따르고 lint.json의 선택 범위 밖 검사는 skipped와 사유로 보존한다. 필수 검사가 누락됐거나 같은 작성자 세션이면 수락하지 않는다.
+
+이전 SHA의 실패/중단 리뷰를 후속 리뷰가 대체했으면 `review.py supersede --repo <루트> --key <이전 리뷰 키> --replacement <수락한 후속 키>`로 연결한다. 후속 SHA가 원본의 후손이고 실제 리뷰 검사를 통과해야 한다. 원본 result.json은 수정하지 않으며 대체 기록에 양쪽 증거 hash를 보존한다. 운영 모드 전환은 이 기록이 유효한 과거 pending 리뷰를 활성 검토로 간주하지 않는다. 정상 cleanup 후 같은 SHA의 직접 개발 Stop은 이미 수락한 영수증을 확인하며 신규 수락에 historical을 사용하지 않는다.
+
 문서를 작성하거나 검토할 때 `.fullops-squad/docs/agents/document-writing.md`의 front matter와 한국어 STE 작성 원칙을 적용한다. 기존 레포에 이 파일이 없으면 `setup-fullops` 갱신으로 추가한다.
 
 현재 Git 레포 루트의 `.fullops-squad/fullops.json`으로 활성화를 확인한다. 없으면 `setup-fullops`를 안내하고 멈춘다.

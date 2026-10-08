@@ -77,6 +77,8 @@ DESIGN-001은 줄 처음의 CSS custom property 선언을 토큰 정의로 허�
 
 ## 게이트
 
+dev 주 담당자의 직접 구현은 현재 HEAD·세션 시작 기준 SHA의 lint와 다른 세션의 고정 SHA 독립 리뷰가 필요하다. 배정된 dev worker는 기존 worker 게이트를 따른다. 직접 구현의 누락·잘못된 리뷰 기록은 반복 Stop으로 생략할 수 없다. 정상 snapshot 정리 후에는 동일 SHA·작성자 세션의 이미 수락한 cleanup 영수증과 증거 hash를 확인한다. 신규 수락은 live snapshot 검사다. 잘못된 운영 정책이나 중단된 모드 전환은 복구 또는 새 세션 전까지 작업을 차단한다.
+
 - 세션 안: 플러그인의 Stop hook(`done_gate.py`)이 이 세션에서 코드를 바꿨는데 현재 HEAD의 `lint.py` 통과 기록(`<git dir>/fullops-gate/pass.json`)이 없으면 종료를 한 번 막는다. 아무것도 바꾸지 않고 다시 끝내면 경고만 하고 통과한다. 이 체크아웃에서 직접 만든 커밋과 미커밋 변경만 보므로 fast-forward로 받은 커밋은 해당하지 않는다. hook 오류는 종료를 막지 않는다.
 - worker는 완료 보고 전에 실행한다. ERROR를 모두 고치고, 결과 요약(HEAD·ERROR·WARNING·실행 불가와 사유)을 완료 보고의 검증 항목에 적는다.
 - 검토자는 리뷰 디렉터리에 `lint.json`을 남긴다. `review.py check`는 lint 결과가 없거나 SHA·설정이 다르거나, ERROR가 남아 있거나, 실행 불가 명령에 `reason`이 비어 있으면 실패한다.

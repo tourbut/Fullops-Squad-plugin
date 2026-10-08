@@ -69,7 +69,8 @@ def prepare(repo, key, base, head):
                         {**item, 'review_status': 'pending', 'reason': ''} for item in preview['excluded_files']],
               'findings': []}
     managed = snapshot_record(repo, key)
-    if product_roles(repo) or managed.is_file():
+    import policy
+    if product_roles(repo) or managed.is_file() or policy.load(repo)['mode'] == 'dev':
         preview['fullops_review_schema_version'] = 2
         result.update(review_schema_version=2, independence={'implementer_session': '', 'reviewer_session': '',
                       'snapshot_path': '', 'snapshot_head': head, 'read_only': True})
@@ -263,11 +264,20 @@ def check(repo, key, base, head, task_key=None):
             hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
         raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
     settings, _ = load_config(repo, merge_base)
+    import policy
+    level, policy_digest = policy.at_ref(repo, merge_base)
+    if any(c.get('level') is not None for c in settings['commands']) and (
+            lint.get('test_level') != level or lint.get('policy_sha256') != policy_digest):
+        raise ValueError('테스트 레벨이 기준 설정과 다릅니다. lint.py를 다시 실행하세요')
     for command in (c for c in settings['commands'] if c.get('kind') == 'test'):
         records = [c for c in lint['commands'] if c.get('kind') == 'test' and c['name'] == command['name']
                    and c.get('run') == command['run'] and c.get('cwd', '.') == command.get('cwd', '.')]
         if len(records) != 1:
             raise ValueError(f'등록된 테스트 실행 증거가 없거나 중복됐습니다: {command["name"]}')
+        if not policy.command_selected(command, level):
+            if records[0]['status'] != 'skipped' or not records[0].get('reason', '').strip():
+                raise ValueError('레벨 범위 밖 테스트는 skipped와 사유를 기록하세요')
+            continue
         if records[0]['status'] == 'passed' and records[0].get('exit_code') != 0:
             raise ValueError(f'테스트 통과 종료코드가 없습니다: {command["name"]}')
         if records[0]['status'] not in ('passed', 'failed', 'timeout', 'unavailable'):
@@ -303,6 +313,70 @@ def check(repo, key, base, head, task_key=None):
           f"lint WARNING={lint['summary']['warnings']}")
 
 
+def direct_check(repo, base, head, implementer):
+    """직접 구현에는 부모 dispatch 대신 기존 고정 SHA 리뷰 계약을 적용한다."""
+    import contextlib
+    import io
+    for path in (repo / '.fullops-squad/docs/evaluations/qa-reports').glob('*-review/result.json'):
+        result = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(result, dict) or not isinstance(result.get('independence', {}), dict):
+            raise ValueError('독립 리뷰 result·independence는 객체여야 합니다')
+        if (result.get('base'), result.get('head')) != (base, head):
+            continue
+        if result.get('review_schema_version') != 2 or result.get('independence', {}).get('implementer_session') != implementer:
+            continue
+        key = path.parent.name[:-7]
+        if superseded_check(repo, key):
+            continue
+        with contextlib.redirect_stdout(io.StringIO()):
+            if path.with_name('snapshot-cleanup.json').is_file():
+                historical(repo, key)  # Already accepted and cleaned; this is completion, not a new acceptance.
+            else:
+                check(repo, key, base, head)
+        return
+    raise ValueError('직접 구현의 현재 SHA에 독립 세션·snapshot 리뷰 기록이 없습니다. fullops-review 절차를 완료하세요')
+
+
+def superseded_check(repo, key):
+    folder = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review')
+    path = folder / 'superseded.json'
+    if not path.is_file():
+        return False
+    receipt = json.loads(path.read_text(encoding='utf-8'))
+    replacement = receipt['replacement']
+    if not KEY.fullmatch(replacement) or replacement == key or receipt.get('state') != 'superseded':
+        raise ValueError('리뷰 대체 기록의 키·상태가 다릅니다')
+    if receipt.get('original_sha256') != rule_hash(folder / 'result.json') or receipt.get(
+            'replacement_evidence_sha256') != evidence_hashes(repo, replacement):
+        raise ValueError('리뷰 대체 후 원본·수락 증거가 바뀌었습니다')
+    return True
+
+
+def supersede(repo, key, replacement):
+    """실패 원본은 그대로 두고 검증한 후속 수락에 연결한다."""
+    if not replacement or not KEY.fullmatch(replacement) or replacement == key:
+        raise ValueError('서로 다른 유효한 원본·후속 리뷰 키를 지정하세요')
+    folder = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review')
+    original = json.loads((folder / 'result.json').read_text(encoding='utf-8'))
+    next_folder = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{replacement}-review')
+    result = json.loads((next_folder / 'result.json').read_text(encoding='utf-8'))
+    subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', original['head'], result['head']], check=True)
+    def merge_base(data):
+        return subprocess.check_output(['git', '-C', str(repo), 'merge-base', sha(repo, data['base']),
+                                        sha(repo, data['head'])], text=True).strip()
+    coverage = subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor',
+                               merge_base(result), merge_base(original)], capture_output=True)
+    if coverage.returncode != 0:
+        raise ValueError('후속 리뷰의 범위가 원본 미검토 변경을 포함하지 않습니다. 원본 기준부터 리뷰하세요')
+    if (next_folder / 'snapshot-cleanup.json').is_file():
+        historical(repo, replacement)
+    else:
+        check(repo, replacement, result['base'], result['head'])
+    write_json(folder / 'superseded.json', {'state': 'superseded', 'replacement': replacement,
+               'original_sha256': rule_hash(folder / 'result.json'),
+               'replacement_evidence_sha256': evidence_hashes(repo, replacement)})
+
+
 def record_find_score(repo, directory, task_key, base, head):
     """과제의 jev_find 결과가 있으면 실제 변경과 비교한 적중률을 남긴다. 수락 판단에는 쓰지 않는다."""
     labels_path = jev_find.result_path(repo, task_key, 'packet-labels')
@@ -324,7 +398,8 @@ def record_find_score(repo, directory, task_key, base, head):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=['prepare', 'check', 'snapshot', 'cleanup'])
+    parser.add_argument('mode', choices=['prepare', 'check', 'snapshot', 'cleanup', 'supersede'])
+    parser.add_argument('--replacement', help='supersede: 검증한 후속 리뷰 키')
     for option in ['repo', 'key']:
         parser.add_argument('--' + option, required=True)
     for option in ['from', 'to', 'implementer-session', 'reviewer-session', 'owner', 'dispatch']:
@@ -337,7 +412,9 @@ def main():
         if not KEY.fullmatch(args.key):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
-        if args.mode == 'snapshot':
+        if args.mode == 'supersede':
+            supersede(repo, args.key, args.replacement)
+        elif args.mode == 'snapshot':
             if not args.to:
                 raise ValueError('--to가 필요합니다')
             snapshot(repo, args.key, args.to, args.implementer_session, args.reviewer_session, args.owner)

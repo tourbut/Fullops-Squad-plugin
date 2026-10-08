@@ -5,6 +5,8 @@ description: FullOps setup이 완료된 레포에서 요청 라우팅·Orca work
 
 # Orca 운영
 
+`fullops.json`의 mode·primary_role·primary_branch를 먼저 읽고 FULLOPS.md의 운영 모드 절을 따른다. coor 전용 직접 설계 제한은 dev 주 담당자에게 적용하지 않는다. dev 주 담당자는 직접 기술 계획·구현·검증을 진행하며 전문가 배정 시 아래 route·dispatch·질문·리뷰·merge 계약을 그대로 사용한다. 직접 작업에는 부모 dispatch나 worker_done이 없고 과제 키·기준 SHA·완료 조건을 기록한 뒤 lint와 다른 세션의 고정 SHA 독립 리뷰를 받아 완료한다. 등록 dev 역할의 dispatched worker에게 주 담당자의 통합 권한을 주지 않는다. bootstrap은 필요한 공간만 만들고 주 담당 체크아웃을 중복 생성하지 않는다. 테스트 범위는 rules/common/testing.md의 선택 레벨을 따른다.
+
 현재 Git 레포 루트에 `.fullops-squad/fullops.json`이 있을 때만 진행한다. 없으면 `setup-fullops`를 안내하고 멈춘다.
 `.fullops-squad/FULLOPS.md`와 `.fullops-squad/orca-agents.md`를 읽는다.
 

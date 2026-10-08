@@ -481,6 +481,9 @@ class Stabilization(unittest.TestCase):
     def test_route_find_packet_handover_dispatch_review_identity(self):
         with redirect_stdout(io.StringIO()):
             setup.setup(self.repo, roles=['architecture', 'dev'], local_only=True)
+        agents = self.repo / '.fullops-squad/orca-agents.md'
+        agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `dev`',
+                          '- 설계 역할: `architecture`'), encoding='utf-8')
         for name, content in {'api.py': '# User API.\ndef fetch_user():\n    return 1\n',
             'caller.py': '# User API caller.\nfrom api import fetch_user\nvalue = fetch_user()\n',
             'test_api.py': '# User API test.\nfrom api import fetch_user\nassert fetch_user() == 1\n'}.items():
