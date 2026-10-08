@@ -1,6 +1,8 @@
 """격리 Git 저장소에서 이슈 수집→동일 coor claim→질문→답변→새 attempt와 안전 경계를 검증한다."""
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+from contextlib import redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -127,6 +129,33 @@ def main():
         assert mode.owner_identity(store, Orca(), tui_owner) == 'incarnation'
         owner = mode.activate(store, Orca(), 'coor', 'run', 'term', 'provider')
         token = owner['token']
+        # 실제 CLI 입력 경로: inline interpreter/argv secret 없이 같은 fencing을 적용한다.
+        private = root / '.fullops-squad/.env.issue-mode-lease.json'
+        (root / '.fullops-squad/.gitignore').write_text('.env*\n')
+        private.write_text(json.dumps(owner))
+        private.chmod(0o600)
+        arguments = ['issue_mode.py', '--repo', str(root), 'wait', '--token-file', str(private)]
+        output = io.StringIO()
+        with patch.object(sys, 'argv', arguments), patch.object(mode, 'GitHub', return_value=api), \
+                patch.object(mode, 'Orca', return_value=Orca()), \
+                patch.object(mode, 'wait', return_value={'status': 'test_wait'}) as waiting, redirect_stdout(output):
+            assert mode.main() == 0
+            assert waiting.call_args.args[-1] == token
+        assert token not in output.getvalue()
+        public = root / 'public-token.json'
+        public.write_text(json.dumps(owner))
+        public.chmod(0o600)
+        fails(lambda: mode.lease_token(store, str(public)), 'Git')
+        if os.name == 'posix':
+            private.chmod(0o644)
+            fails(lambda: mode.lease_token(store, str(private)), '0600')
+            private.chmod(0o600)
+        private.write_text('{"token":"invalid"}')
+        fails(lambda: mode.lease_token(store, str(private)), 'token')
+        private.write_text(json.dumps({'token': '0' * 48}))
+        with patch.object(sys, 'argv', arguments), patch.object(mode, 'GitHub', return_value=api), redirect_stdout(io.StringIO()):
+            assert mode.main() == 2  # 파일 입력도 다른 coor의 capability를 수락하지 않는다.
+        private.write_text(json.dumps(owner))
         fails(lambda: mode.activate(store, Orca(), 'other', 'run', 'term', 'provider'), 'lease')
         fails(lambda: mode.guard(store.read(), 'foreign'))
 
