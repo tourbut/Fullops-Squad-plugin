@@ -89,7 +89,7 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     finally:
         git('worktree', 'remove', managed_path)
     agents = repo / '.fullops-squad/orca-agents.md'
-    agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `implementer`',
+    agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
                       '- 설계 역할: `designer`\n- 제품 기획 역할: `designer`\n- 기술 계획 역할: `implementer`'), encoding='utf-8')
     marker = repo / '.fullops-squad/fullops.json'
     config = json.loads(marker.read_text(encoding='utf-8'))
