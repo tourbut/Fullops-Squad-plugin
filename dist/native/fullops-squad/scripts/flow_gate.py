@@ -534,7 +534,7 @@ def main():
                     Path(words[1].strip('\'"')).resolve() == Path(__file__).with_name('setup.py').resolve()) and '--repo' in words:
                 index = words.index('--repo')
                 if index + 1 < len(words) and Path(words[index + 1].strip('\'"')).resolve() == root and (
-                        '--rollback' in words or '--mode' in words):
+                        any(flag in words for flag in ('--rollback', '--mode', '--primary-role'))):
                     return {}
         raise
     current = [config['mode'], config.get('primary_role'), config.get('primary_branch')]

@@ -122,6 +122,28 @@ class OperatingPolicy(unittest.TestCase):
         self.assertEqual(json.loads(before['.fullops-squad/fullops.json'])['roles'], policy.load(self.repo)['roles'])
         self.assertEqual(self.apply(**options), [])
 
+    def test_primary_role_only_interruption_retry(self):
+        with patch.object(setup, 'atomic_write', side_effect=OSError('interruption')):
+            with self.assertRaises(OSError):
+                self.apply(local_only=True, primary_role='dev')
+        command = f'python3 "{setup.__file__}" --repo "{self.repo}" --local-only --primary-role dev'
+        event = {'cwd': str(self.repo), 'tool_input': {'command': command}}
+        with patch.object(sys, 'argv', ['flow_gate.py', 'tool']), patch.object(sys, 'stdin', io.StringIO(json.dumps(event))):
+            self.assertEqual(flow_gate.main(), {})
+        self.apply(local_only=True, primary_role='dev')
+        self.assertEqual(policy.load(self.repo)['primary_role'], 'dev')
+
+    def test_single_dev_role_can_write_code(self):
+        single = self.repo / 'single'
+        single.mkdir()
+        subprocess.run(['git', '-C', str(single), 'init', '-q', '-b', 'main'], check=True)
+        with redirect_stdout(io.StringIO()):
+            setup.setup(single, roles=['dev'], local_only=True)
+        subprocess.run(['git', '-C', str(single), 'checkout', '-qb', 'fullops/dev'], check=True)
+        self.assertEqual(flow_gate.context(single), ('dev', 'architecture'))
+        event = {'tool_input': {'file_path': str(single / 'app.py'), 'content': 'print("ok")'}}
+        self.assertIsNone(flow_gate.tool_denial(single, event, {}))
+
     def test_dirty_dispatch_hold_and_review_block_transition(self):
         options = {'local_only': True, 'mode': 'dev'}
         extra = self.repo / 'user-note.txt'
@@ -217,8 +239,12 @@ class OperatingPolicy(unittest.TestCase):
             with patch.object(sys, 'argv', ['done_gate.py', mode]), patch.object(
                     sys, 'stdin', io.StringIO(json.dumps({**event, **extra}))):
                 return done_gate.main()
-        hook('start')
-        (self.repo / 'app.py').write_text('"""new behavior"""\nprint("hello")\n')
+        self.assertIn('설정·에셋', hook('start')['hookSpecificOutput']['additionalContext'])
+        for name, content in (('package.json', '{"private":true}'), ('app.toml', 'enabled = true'),
+                              ('scene.tscn', '[gd_scene format=3]')):
+            with self.subTest(name=name):
+                (self.repo / name).write_text(content)
+                self.assertEqual(hook('stop')['decision'], 'block')
         head = self.commit()
         self.assertEqual(hook('stop')['decision'], 'block')
         self.assertEqual(hook('stop', stopHookActive=True)['decision'], 'block')

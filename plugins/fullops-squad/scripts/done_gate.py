@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""FullOps done-gate hook. 이 세션에서 코드를 바꿨는데 현재 HEAD의 lint.py 통과 기록이 없으면 종료(Stop)를 막는다.
+"""FullOps done-gate hook. 이 세션의 변경에 현재 HEAD의 lint.py 통과 기록이 없으면 종료(Stop)를 막는다.
 
 Canny(qkal/canny)의 "사실만 막는다"를 ledger 없이 줄였다. SessionStart에 세션 시작 지점과 규칙을 남기고,
 Stop에서 이 체크아웃이 직접 만든 커밋(HEAD reflog의 commit 항목)과 미커밋 변경의 코드 파일만 본다.
-막힌 뒤 아무것도 바뀌지 않은 채 다시 끝내면 경고만 하고 통과시킨다. 어떤 오류도 종료를 막지 않는다.
+기존 worker는 반복 Stop을 경고로 통과시킨다. dev 직접 개발은 설정·에셋도 검사하고 독립 리뷰를 필수로 유지한다.
 """
 from fnmatch import fnmatch
 import json
@@ -44,15 +44,15 @@ def excluded(root):
         return DEFAULT['exclude']
 
 
-def code_changes(root, state):
-    """(이 세션이 만든 커밋의 코드 파일, 미커밋 코드 파일)"""
+def code_changes(root, state, all_files=False):
+    """(이 세션이 만든 커밋 파일, 미커밋 파일). 직접 개발은 설정·에셋도 검사한다."""
     skip = excluded(root)
 
     def code(path):
         # board.py가 자동 관리하는 파일은 레포별 lint 제외 설정과 무관하게 개발 코드가 아니다.
         if path in ('.fullops-squad/board/board-data.js', '.fullops-squad/board/index.html'):
             return False
-        return Path(path).suffix.lower() in CODE and not any(
+        return (all_files or Path(path).suffix.lower() in CODE) and not any(
             fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in skip)
     entries = reflog(root)
     own = [line.split(' ', 1)[0] for line in entries[:max(0, len(entries) - state['reflog'])]
@@ -114,15 +114,18 @@ def main():
             names = [c['name'] for c in json.loads((root / CONFIG).read_text()).get('commands', [])]
         except (OSError, ValueError, AttributeError, KeyError, TypeError):
             names = []
-        brief = (f'FullOps done-gate: 이 세션에서 코드 파일을 바꾸면 끝내기 전에 변경을 커밋하고 '
+        scope = '개발 파일(설정·에셋 포함)' if direct else '코드 파일'
+        completion = ('현재 SHA의 lint와 다른 세션의 독립 리뷰를 통과해야 한다. 반복 Stop으로 생략할 수 없다. ' if direct else
+                      '통과 기록이 없으면 종료가 한 번 막힌다. 적용할 검사가 없으면 이유를 말하고 다시 끝낸다. ')
+        brief = (f'FullOps done-gate: 이 세션에서 {scope}을 바꾸면 끝내기 전에 변경을 커밋하고 '
                  f'`python3 {LINT} --repo {root} --from <지시서의 기준 ref>`를 통과시킨다'
                  f"{' (등록 명령: ' + ', '.join(names) + ')' if names else ''}. "
-                 '통과 기록이 없으면 종료가 한 번 막힌다. 적용할 검사가 없으면 이유를 말하고 다시 끝낸다. '
+                 f'{completion}'
                  '테스트 로그를 증거로 남길 때 `| tail` 등으로 명령 자신의 종료코드를 가리지 않는다.')
         return {'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': brief}}
     if state is None or (field(event, 'reason') or 'end_turn') != 'end_turn':
         return {}  # 게이트 도입 전 세션, grok의 세션 종료 Stop
-    committed, dirty = code_changes(root, state)
+    committed, dirty = code_changes(root, state, all_files=direct)
     if not committed and not dirty:
         return {}
     head = git(root, 'rev-parse', 'HEAD')

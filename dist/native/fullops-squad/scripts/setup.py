@@ -262,7 +262,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     if not marker.exists():
         name = '.fullops-squad/orca-agents.md'
         text = files[name].decode('utf-8')
-        designer = 'designer' if 'designer' in assigned else next(iter(assigned))
+        designer = 'designer' if 'designer' in assigned else 'architecture'
         markers = f'- 설계 역할: `{designer}`'
         if config.get('mode') == 'coor' and config.get('primary_role'):
             markers += f'\n- coordinator 역할: `{config["primary_role"]}`'
