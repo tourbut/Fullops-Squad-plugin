@@ -191,14 +191,50 @@
     "rerender": "passed"
   },
   "visual_observation": {
-    "status": "passed for inspected representative frames",
-    "frames": [
-      389,
-      390,
-      405
+    "outputs": [
+      {
+        "media": ".local/motion-issue8-final/source/intro-hyperframes-v04.mp4",
+        "media_sha256": "74362e51fd4d4b222448b9b254f9e80e39963fc2aa570696d14dd42863b25605",
+        "frames": [
+          {
+            "number": 389,
+            "artifact": ".local/motion-issue8-final/hf-frame389.png",
+            "sha256": "2d8b0d4551b5803108fc88c370aba10134b5e10424adade0592cb80a5e3a2434"
+          },
+          {
+            "number": 405,
+            "artifact": ".local/motion-issue8-final/hf-frame405-v04.png",
+            "sha256": "daed4ce330b1ce703cfc7ad5c2b5c43bb56e368a1a2dffc4fdbdcf697b0672e2"
+          },
+          {
+            "number": 449,
+            "artifact": ".local/motion-issue8-final/hf-final449.png",
+            "sha256": "daed4ce330b1ce703cfc7ad5c2b5c43bb56e368a1a2dffc4fdbdcf697b0672e2"
+          }
+        ],
+        "status": "passed for inspected frames",
+        "observation": "specified Korean closing text, no clipping or broken glyphs; HyperFrames frame 389 has no text"
+      },
+      {
+        "media": ".local/motion-issue8-final/source/intro-remotion-v04.mp4",
+        "media_sha256": "d7f50465fbfa033477a03808f1d1f6722a6e609e3d3b0c090a733386ada0384b",
+        "frames": [
+          {
+            "number": 390,
+            "artifact": ".local/motion-issue8-final/remotion-frame390.png",
+            "sha256": "31cc2eb2a87b264cff904f726b5d5ef88e7f2997406200ddd424afed117d3468"
+          },
+          {
+            "number": 449,
+            "artifact": ".local/motion-issue8-final/remotion-final449.png",
+            "sha256": "c38091e197fdd93cdae2e19f18fe465bdf10e4a6c860fd85d7e9b7eb783b83be"
+          }
+        ],
+        "status": "passed for inspected frames",
+        "observation": "specified Korean closing text, no clipping or broken glyphs; HyperFrames frame 389 has no text"
+      }
     ],
-    "scope": "no text immediately before 13s; exact Korean closing after 13s; no clipping or broken glyphs observed",
-    "limits": "sampled frames; not a claim that every rendered frame was visually reviewed"
+    "limits": "sampled frames including actual last frame 449; not every frame visually reviewed"
   },
   "prior_attempts": {
     "edge_attempt2": "browser launch failed; log preserved",

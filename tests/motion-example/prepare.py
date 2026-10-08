@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import wave
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -15,24 +16,29 @@ args = parser.parse_args()
 root = Path(__file__).resolve().parent
 public = root / 'public'
 public.mkdir(exist_ok=True)
-for source, name in ((args.font, 'NanumBarunGothic.ttf'),
-                     (root / 'node_modules/gsap/dist/gsap.min.js', 'gsap.min.js')):
+assets = ((args.font, 'NanumBarunGothic.ttf'),
+          (root / 'node_modules/gsap/dist/gsap.min.js', 'gsap.min.js'))
+for source, name in assets:
     target = public / name
     if target.exists():
         raise SystemExit(f'preserve existing asset: {target}')
     if not source.is_file():
         raise SystemExit(f'missing asset: {source}')
-    shutil.copyfile(source, target)
 voice = public / 'narration.wav'
 if voice.exists():
     raise SystemExit('preserve existing narration')
-if args.voice_file:
-    shutil.copyfile(args.voice_file, voice)
-else:
-    subprocess.run([args.voice_executable, '-v', 'en-us', '-s', '155', '-w', str(voice),
-                    'Motion connects ideas. Build scenes, test timing, and share editable sources.'], check=True)
-with wave.open(str(voice)) as audio:
-    duration = audio.getnframes() / audio.getframerate()
+with tempfile.TemporaryDirectory(prefix='fullops-motion-voice-') as temporary:
+    source_voice = args.voice_file or Path(temporary) / 'narration.wav'
+    if not args.voice_file:
+        subprocess.run([args.voice_executable, '-v', 'en-us', '-s', '155', '-w', str(source_voice),
+                        'Motion connects ideas. Build scenes, test timing, and share editable sources.'], check=True)
+    with wave.open(str(source_voice)) as audio:
+        duration = audio.getnframes() / audio.getframerate()
+    if not 0 < duration <= 14.5:
+        raise SystemExit('narration must fit the 0.5–15s audio interval (0 < duration <= 14.5s)')
+    for source, name in assets:
+        shutil.copyfile(source, public / name)
+    shutil.copyfile(source_voice, voice)
 common = {'width': 1280, 'height': 720, 'fps': 30, 'assets': ['public/gsap.min.js'],
           'color_range': 'tv', 'color_space': 'bt709', 'color_transfer': 'bt709', 'color_primaries': 'bt709'}
 silent = {**common, 'duration': 6, 'audio': 'none', 'audio_clips': [], 'texts': [],

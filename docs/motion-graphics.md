@@ -85,7 +85,7 @@ HyperFrames의 6초 무음 clip, 15초 내레이션 영상, Remotion의 15초 �
 
 현재 영속 자료는 `.local/motion-issue8-final/`에 보관한다. `source/`는 편집 가능한 최종 소스·lock·public 음원/글꼴/clip·spec과 v04 영상, `re-render/source/`는 두 번째 설치와 v06 영상이다. `qa/`, 실패/중단 로그, `rerender-record.json`, `frame-comparison.json`, 글꼴 OFL 원문을 함께 전달한다. 원본 작업 폴더는 유지하며 npm/browser 임시 캐시만으로 전달하지 않는다.
 
-재현은 예제 README의 작업별 사전 점검 후, 전달된 source에서 `npm ci`, `hyperframes render general --strict --fps 30 --workers 1 --output <새 버전.mp4>`, `remotion render src/index.jsx Intro <새 버전.mp4> --browser-executable <확인한 브라우저> --color-space bt709`를 실행한다. HyperFrames 프로세스에 DO_NOT_TRACK=1과 확인한 브라우저/FFmpeg/FFprobe 경로를 지정한다. `motion_check.py`에는 전달된 intro-spec-v04.json을 사용한다.
+재현은 예제 README의 작업별 사전 점검 후, 전달된 source에서 `npm ci`, `hyperframes render general --strict --fps 30 --workers 1 --output intro-hyperframes-vNN.mp4`, `remotion render src/index.jsx Intro intro-remotion-vNN.mp4 --browser-executable <확인한 브라우저> --color-space bt709`를 실행한다. NN은 아직 없는 새 버전으로 정하며 두 엔진의 출력 경로를 구분한다. HyperFrames 프로세스에 DO_NOT_TRACK=1과 확인한 브라우저/FFmpeg/FFprobe 경로를 지정한다. `motion_check.py`에는 전달된 intro-spec-v04.json을 사용한다.
 
 사용자 청취·미적 수락은 별도 `not_run`으로 남아 있다. 로컬 SAPI 기본 Microsoft Heami Desktop이 읽은 영문 평가 대본이며 자연스러운 내레이션 품질·상업 사용권을 수락한 결과가 아니다. alpha/HDR·유료/클라우드·다른 OS의 이번 소스 재렌더는 실행하지 않았다.
 

@@ -156,6 +156,32 @@ with tempfile.TemporaryDirectory() as directory:
     else:
         print('not_run: optional FFmpeg/FFprobe codec regression (tools unavailable)')
 
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    script = root / 'prepare.py'
+    shutil.copyfile(ROOT / 'tests/motion-example/prepare.py', script)
+    font = root / 'licensed.ttf'
+    font.write_bytes(b'fixture font')
+    gsap = root / 'node_modules/gsap/dist/gsap.min.js'
+    gsap.parent.mkdir(parents=True)
+    gsap.write_text('// fixture GSAP')
+    (root / 'general').mkdir()
+    narration = root / 'input.wav'
+    for seconds, expected in ((15, 1), (1, 0)):
+        with wave.open(str(narration), 'wb') as audio:
+            audio.setnchannels(1)
+            audio.setsampwidth(2)
+            audio.setframerate(8000)
+            audio.writeframes(b'\0\0' * (8000 * seconds))
+        prepared = subprocess.run([sys.executable, str(script), '--font', str(font), '--voice-file', str(narration)],
+                                  capture_output=True, text=True)
+        assert prepared.returncode == expected, prepared.stderr
+        if expected:
+            assert not list((root / 'public').iterdir()), 'invalid narration copied assets'
+        else:
+            generated = json.loads((root / 'intro-spec.json').read_text(encoding='utf-8'))
+            motion.validate(generated, root)
+
 # Common install plans must remain independent of video tools on every host.
 for host in ('codex', 'claude-code', 'grok', 'agy', 'all'):
     plan = list(deps.commands(host))
