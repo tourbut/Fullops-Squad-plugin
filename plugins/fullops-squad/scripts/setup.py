@@ -161,14 +161,17 @@ def operating_block(content, name):
                 '현재 모드·주 담당자·테스트 레벨은 fullops.json을 읽는다. FULLOPS.md의 운영 모드 절을 우선 적용한다.\n'
                 'dev 주 담당자는 직접 구현과 전문가 배정·통합을 맡는다. dispatched dev-worker는 기존 worker 권한과 worker_done 계약을 따른다.\n')
     block = f'{start}\n{body}{end}'
+    frontmatter = re.match(r'\A(?:\ufeff)?---\r?\n.*?^---(?:\r?\n|\Z)', content, re.M | re.S)
+    if content.lstrip('\ufeff').startswith(('---\n', '---\r\n')) and not frontmatter:
+        raise ValueError(f'손상된 문서 메타데이터: {name}')
     if start in content:
         left, right = content.index(start), content.index(end)
         if left > right:
             raise ValueError(f'손상된 운영 모드 관리 블록: {name}')
         return content[:left] + block + content[right + len(end):]
-    meta, body = deliverables.split(content)
-    prefix = deliverables.render(meta) + '\n' if meta else ''
-    return prefix + block + '\n\n' + body
+    boundary = frontmatter.end() if frontmatter else 0
+    separator = '\n' if boundary and not content[:boundary].endswith('\n') else ''
+    return content[:boundary] + separator + block + '\n\n' + content[boundary:]
 
 
 def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None, local_only=False,

@@ -72,6 +72,16 @@ class OperatingPolicy(unittest.TestCase):
                 work.active_repo(self.repo)
 
     def test_preview_preservation_retry_and_rollback(self):
+        header = '\ufeff---\r\nowner: "user" # preserve comment\r\ncustom:\r\n  nested: true\r\n---\r\n'
+        body = '\r\n# User guide\r\nUSER MODEL CHOICE\r\n'
+        updated = setup.operating_block(header + body, '.fullops-squad/orca-agents.md')
+        self.assertTrue(updated.startswith(header))
+        self.assertTrue(updated.endswith(body))
+        self.assertEqual(setup.operating_block(updated, '.fullops-squad/orca-agents.md'), updated)
+        with self.assertRaisesRegex(ValueError, '메타데이터'):
+            setup.operating_block('---\nowner: user', '.fullops-squad/orca-agents.md')
+        with self.assertRaisesRegex(ValueError, '메타데이터'):
+            setup.operating_block('---\nowner: user\n<!-- fullops-mode:start -->\nold\n<!-- fullops-mode:end -->', '.fullops-squad/orca-agents.md')
         agents = self.repo / '.fullops-squad/orca-agents.md'
         agents.write_text(agents.read_text(encoding='utf-8') + '\nUSER MODEL CHOICE\n', encoding='utf-8')
         self.commit()
