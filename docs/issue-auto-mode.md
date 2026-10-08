@@ -17,7 +17,11 @@
 
 동시 실행은 issue 하나이며 worker 병렬 wave는 기존 방식이다. 보류 이슈와의 독립성을 검토하지 않은 다음 이슈는 claim 후 실행을 보류한다. 이미 dispatch intent가 있는 과제의 답변 재개/재시도는 기존 Run의 task/worker 확정 종료를 `sync`로 확인한 뒤 queued checkpoint를 남긴다. 부재/unverifiable를 종료로 바꾸지 않는다. 새 coor의 `reconcile`도 같은 정본 조회로 인계하고 자동 재배정하지 않는다. draft PR 이후 worker의 integration receipt는 사용자 병합 판단/PR 링크로 hold한다.
 
+보류/취소 상태라도 미종료 dispatch intent가 있으면 다른 이슈의 claim/실행을 막는다. worker는 native SessionStart receipt와 Orca의 dispatch/task/Run/terminal 작업 공간을 연결해 coor와 같은 범위·lease 제한을 적용한다. OFF/보류 시에도 같은 dispatch의 완료·escalation 보고는 허용한다. 작업 브랜치 push는 `git push origin HEAD:refs/heads/fullops/issue-<번호>-a<시도>`처럼 저장된 remote와 전체 대상 ref를 명시한다. 대상 ref를 생략하거나 축약한 push는 remote 기본 push 설정의 영향을 받으므로 허용하지 않는다.
+
 인증은 `GH_TOKEN`/`GITHUB_TOKEN` 또는 `gh auth token`을 메모리에서만 사용한다. HTTPS의 api.github.com과 동일 페이지 endpoint만 조회한다. API 에러는 응답 본문/credential을 기록하지 않는다. 흔한 credential 문자열은 저장된 본문/댓글에서 제거하고 원문 digest로 변경을 추적한다. 질문/receipt에는 비밀정보·불필요한 로그를 넣지 않는다.
+
+credential 문자열이 포함된 API 페이지는 ETag 캐시를 저장하지 않고 다음 주기에 재조회한다. 안전한 페이지의 304/Link 캐시는 유지한다. 종료 확인은 Orca의 `taskId`와 `projection.liveness.verdict=exited`를 사용하며, 관련 task마다 worker 증거가 있어야 한다.
 
 ## 실행한 검증
 

@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -192,6 +193,94 @@ def main():
         resumed_receipt = {'task_key': resumed['task_key'], 'session': 'coor', 'received': True}
         mode.checkpoint(store, api, token, 101, 'running', receipt=resumed_receipt, dependencies=[])
         assert store.read()['jobs']['101']['run'] == 'run'
+
+        # 보류/취소/답변 대기는 worker 종료 증거를 대신하지 않는다.
+        saved = store.read()
+        mode.reserve_dispatch(root, 'provider', [['orca', 'orchestration', 'worker-start']])
+        for status in ('held', 'awaiting_author', 'changed', 'policy_hold', 'cancelled'):
+            with store.edit() as state:
+                state['jobs']['101']['status'] = status
+                state['jobs']['102']['status'] = 'queued'
+            assert mode.claim(store, api, token) is None, status
+            assert mode.answer_delivery(store, token) is None, status
+            with store.edit() as state:
+                state['jobs']['102'].update(status='claimed', epoch=owner['epoch'])
+            fails(lambda: mode.checkpoint(store, api, token, 102, 'running',
+                                         receipt=second_receipt, dependencies=[]), '종료')
+        with store.edit() as state:
+            state.clear()
+            state.update(saved)
+
+        # 실제 pages 구현을 거친 이슈/댓글 원문은 SQLite에 들어가지 않는다.
+        secret = 'ghp_' + 'x' * 36
+        api.issues.append(issue(30, body=secret))
+        client = GitHub('test-token')
+        def response(path, **kwargs):
+            rows = api.comments + [{**answer, 'id': 1030, 'body': secret}] if '/comments?' in path else api.issues
+            return 200, {'ETag': 'test'}, deepcopy(rows)
+        with patch.object(client, 'request', side_effect=response), patch.object(api, 'pages', side_effect=client.pages):
+            mode.poll(store, api, token)
+        assert store.read()['jobs']['130']['snapshot']['body'] == '[REDACTED]'
+        assert store.read()['jobs']['130']['snapshot']['source_digest'] == mode.digest(['work 30', secret])
+        assert secret not in json.dumps(store.read()) and secret.encode() not in store.path.read_bytes()
+        api.issues.pop()
+        with store.edit() as state:
+            state.clear()
+            state.update(saved)
+
+        # 기본 remote push refspec 설정과 무관하게 대상 ref를 명시한다.
+        branch = 'fullops/issue-1-a2'
+        subprocess.run(['git', '-C', str(root), 'symbolic-ref', 'HEAD', 'refs/heads/' + branch], check=True)
+        subprocess.run(['git', '-C', str(root), 'config', 'remote.origin.push', 'refs/heads/main:refs/heads/main'], check=True)
+        for args in (['origin'], ['origin', branch]):
+            assert mode.boundary(root, 'provider', 'git push ' + ' '.join(args), [], [['git', 'push', *args]])
+        explicit = ['git', 'push', 'origin', 'HEAD:refs/heads/' + branch]
+        assert mode.boundary(root, 'provider', ' '.join(explicit), [], [explicit]) is None
+        for override in (['-c', 'remote.origin.pushurl=https://github.com/another/repo.git'],
+                         ['-cremote.origin.pushurl=https://github.com/another/repo.git'],
+                         ['--config-env=remote.origin.pushurl=PUSH_URL']):
+            words = ['git', *override, *explicit[1:]]
+            assert mode.boundary(root, 'provider', ' '.join(words), [], [words])
+        subprocess.run(['git', '-C', str(root), 'symbolic-ref', 'HEAD', 'refs/heads/main'], check=True)
+
+        # 다른 provider session의 worker도 정본 task/terminal로 연결한 뒤 같은 scope를 적용한다.
+        context = {'dispatch': 'ctx_auto', 'task': 'task_auto'}
+        mode.hook_path(root, 'worker').write_text(json.dumps({'provider_session': 'worker', 'orca_terminal': 'worker-term'}))
+        projection = {'projection': {'dispatchId': 'ctx_auto', 'taskId': 'task_auto', 'runId': 'run'},
+                      'terminal': {'handle': 'worker-term', 'worktreePath': str(root)}}
+        listing = {'tasks': [{'id': 'task_auto', 'spec': 'Task key: ' + resumed['task_key']}]}
+        merge = ['gh', 'pr', 'merge', '1']
+        unknown = deepcopy(projection)
+        unknown['terminal'].pop('worktreePath')
+        previous_cwd = Path.cwd()
+        try:
+            os.chdir(root)  # hook의 실제 cwd에서도 빈 경로를 작업 공간 증거로 쓰지 않는다.
+            with patch.object(mode.integration, 'orca', side_effect=[unknown, listing]):
+                assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context)
+        finally:
+            os.chdir(previous_cwd)
+        with patch.object(mode.integration, 'orca', side_effect=[projection, listing]):
+            assert mode.boundary(root, 'worker', ' '.join(merge), [], [merge], context)
+        with patch.object(mode.integration, 'orca', side_effect=AssertionError('binding queried again')):
+            assert mode.boundary(root, 'worker', 'cat .env', [], [['cat', '.env']], context)
+            assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context) is None
+            with store.edit() as state:
+                state['owner']['expires'] = 0
+            assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context)
+            send = 'orca orchestration send --type worker_done --dispatch-id ctx_auto --task-id task_auto --outcome failed'
+            assert mode.boundary(root, 'worker', send, [], [send.split()], context) is None
+        with store.edit() as state:
+            state['owner']['expires'] = time.time() + 90
+            state['jobs']['101']['status'] = 'held'
+        assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context)
+        with store.edit() as state:
+            state['jobs']['101']['status'] = 'running'
+            state['jobs']['101']['task_key'] += '-next'
+        assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context)
+        with store.edit() as state:
+            state['jobs']['101']['task_key'] = resumed['task_key']
+        with patch.object(mode.integration, 'orca', return_value=None):
+            assert mode.boundary(root, 'unverified-worker', ' '.join(merge), [], [merge], context)
         # 현재 실행 allowlist 철회는 다음 안전 경계에서 중단한다.
         with store.edit() as state:
             allowed = state['config']['allowed']
@@ -306,8 +395,13 @@ def main():
                 key = store.read()['jobs']['101']['task_key']
                 if 'task-list' in args:
                     return {'tasks': [{'id': 'task', 'status': 'failed', 'spec': 'Task key: ' + key}]}
-                return {'workers': [{'task_id': 'task', 'projection': {'liveness': {'status': 'exited'}}}]}
-        mode.reconcile(store, SettledOrca(), newer['token'], 101, '실제 failed task/종료 receipt', syncing=True)
+                return {'workers': [{'taskId': 'task', 'projection': {'liveness': {'verdict': self.verdict}}}]}
+            verdict = 'unverifiable'
+        runtime = SettledOrca()
+        mode.reconcile(store, runtime, newer['token'], 101, '종료 미확인', syncing=True)
+        assert not store.read()['jobs']['101']['settled']
+        runtime.verdict = 'exited'
+        mode.reconcile(store, runtime, newer['token'], 101, '실제 failed task/종료 receipt', syncing=True)
         assert store.read()['jobs']['101']['status'] == 'held' and store.read()['jobs']['101']['settled']
         with store.edit() as state:
             state['jobs']['101']['status'] = 'running'

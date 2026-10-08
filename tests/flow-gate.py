@@ -140,10 +140,13 @@ def main():
 
         # dispatched worker
         git('checkout', '-q', '-B', roles['dev'])
-        assert 'worker_done' in hook('start', session_id='w', source='startup')['hookSpecificOutput']['additionalContext']
+        assert 'worker_done' in hook('start', session_id='w', source='startup',
+                                   native_env={'ORCA_TERMINAL_HANDLE': 'term-worker'})['hookSpecificOutput']['additionalContext']
         assert hook('stop', session_id='w') == {}  # preamble 없는 세션은 막지 않는다
         preamble = 'Task t-1 ... orca orchestration send --type worker_done --task-id t-1 --dispatch-id d-1 ...'
         assert hook('prompt', session_id='w', prompt=preamble) == {}
+        native = json.loads((repo / '.git/fullops-gate/flow-w.json').read_text())
+        assert native['provider_session'] == 'w' and native['orca_terminal'] == 'term-worker'
         assert hook('stop', session_id='w')['decision'] == 'block'
         assert 'systemMessage' in hook('stop', session_id='w', stop_hook_active=True)  # 두 번째는 통과
         assert hook('stop', sessionId='w', reason='shutdown') == {}  # grok 세션 종료 Stop

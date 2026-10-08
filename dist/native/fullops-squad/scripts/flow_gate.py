@@ -383,7 +383,7 @@ def tool_denial(root, event, state):
     command, files = targets(tool)
     import issue_mode
     try:
-        denial = issue_mode.boundary(root, field(event, 'session_id'), command, files, shell_commands(command))
+        denial = issue_mode.boundary(root, field(event, 'session_id'), command, files, shell_commands(command), state)
     except (OSError, ValueError, KeyError, issue_mode.sqlite3.Error):
         denial = '자동 이슈 상태/범위를 확인하지 못했습니다. 상태를 복구한 뒤 재개하세요'
     if denial:
@@ -557,7 +557,8 @@ def main():
     elif mode == 'prompt':
         match = DISPATCH.search(str(field(event, 'prompt') or ''))
         if match and match.group(1) != state.get('dispatch'):
-            state = {'dispatch': match.group(1), 'settled': False}
+            state = {**{k: state[k] for k in ('provider_session', 'orca_terminal') if k in state},
+                     'dispatch': match.group(1), 'settled': False}
             task = re.search(r'--task-id[ =]+([A-Za-z0-9_.:-]+)', str(field(event, 'prompt') or ''))
             if task:
                 state['task'] = task.group(1)

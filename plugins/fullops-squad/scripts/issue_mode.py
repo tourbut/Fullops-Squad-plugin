@@ -41,6 +41,16 @@ def redact(text):
     return re.sub(r'(?im)\b(?:authorization\s*:\s*bearer|[A-Z_]*(?:API_KEY|TOKEN|PASSWORD|SECRET)\s*[=:])\s*[^\s,;]+', '[REDACTED]', text)
 
 
+def safe_pages(pages):
+    # 비밀값이 있는 페이지는 재조회한다. 원문 digest와 304 캐시를 혼동하지 않는다.
+    return {key: value for key, value in pages.items()
+            if redact(json.dumps(value, ensure_ascii=False)) == json.dumps(value, ensure_ascii=False)}
+
+
+def occupies(job):
+    return job['status'] in ACTIVE or bool(job.get('dispatch_intents') and not job.get('settled'))
+
+
 def local_file(store, name):
     candidate = Path(name)
     candidate = candidate if candidate.is_absolute() else store.repo / candidate
@@ -214,7 +224,7 @@ def activate(store, orca, session, run, terminal, provider_session, now=None):
         if old and old['enabled'] and old['expires'] > now and not Path(old['end_marker']).is_file():
             raise ValueError('같은 저장소에서 이미 활성 coor가 lease를 소유합니다')
         for job in state['jobs'].values():
-            if job['status'] in ACTIVE or (job['status'] not in FINAL and job.get('dispatch_intents') and not job.get('settled')):
+            if occupies(job):
                 job.update(status='reconciling', reason='이전 session task/worker/receipt 확인 필요',
                            resume='정본 receipt를 확인하여 checkpoint reconcile 실행')
             elif job['status'] not in FINAL and job.get('attempt'):
@@ -303,7 +313,7 @@ def poll(store, github, token):
     config = saved['config']
     since = iso(timestamp(saved['cursor']) - 1)  # 같은 초 경계와 오프라인 복귀를 포함한다.
     path = f"/repos/{config['repository']}/issues?state=all&sort=created&direction=asc&per_page=100&since={since}"
-    issues, cache = github.pages(path, saved['pages'])
+    issues, cache = github.pages(path, safe_pages(saved['pages']))
     # 모든 네트워크 결과가 준비된 뒤 cursor와 enqueue를 함께 commit한다.
     with store.edit() as state:
         guard(state, token)
@@ -330,7 +340,7 @@ def poll(store, github, token):
         if issues:
             state['cursor'] = max([state['cursor']] + [i['updated_at'] for i in issues])
         state['pages'] = {k: v for k, v in state['pages'].items() if '/comments' in k}
-        state['pages'].update(cache)
+        state['pages'] = safe_pages({**state['pages'], **cache})
     poll_answers(store, github, token)
     saved = store.read()
     observations = {identifier: (job['digest'], fresh(saved, github, job))
@@ -346,7 +356,7 @@ def poll(store, github, token):
 def claim(store, github, token):
     saved = store.read()
     owner = guard(saved, token)
-    if owner['paused'] or any(j['status'] in ACTIVE for j in saved['jobs'].values()):
+    if owner['paused'] or any(occupies(j) for j in saved['jobs'].values()):
         return None
     ordered = sorted(saved['jobs'].items(), key=lambda pair: (pair[1]['snapshot']['created_at'], pair[1]['snapshot']['number']))
     for identifier, previous in ordered:
@@ -355,7 +365,7 @@ def claim(store, github, token):
         denial = fresh(saved, github, previous)
         with store.edit() as state:
             owner = guard(state, token)
-            if owner['paused'] or any(j['status'] in ACTIVE for j in state['jobs'].values()):
+            if owner['paused'] or any(occupies(j) for j in state['jobs'].values()):
                 return None
             config, job = state['config'], state['jobs'][identifier]
             if job['status'] != 'queued' or job['digest'] != previous['digest']:
@@ -416,6 +426,8 @@ def checkpoint(store, github, token, identifier, phase, *, reason='', resume='',
             if not reason or not resume:
                 raise ValueError('보류/취소의 사유와 재개 조건이 필요합니다')
         elif phase in ('running', 'reviewing'):
+            if any(occupies(j) for key, j in state['jobs'].items() if key != str(identifier)):
+                raise ValueError('다른 이슈의 task/worker가 아직 종료되지 않았습니다')
             if job['dependencies'] is None and any(j['status'] in HELD for j in state['jobs'].values()):
                 raise ValueError('보류 이슈와의 의존 여부를 먼저 명시적으로 검토하세요')
             if not isinstance(receipt, dict) or not receipt:
@@ -528,7 +540,7 @@ def poll_answers(store, github, token):
         if not job['questions'] or job['status'] in FINAL:
             continue
         path = f"/repos/{saved['config']['repository']}/issues/{job['snapshot']['number']}/comments?per_page=100"
-        comments, cache = github.pages(path, saved['pages'])
+        comments, cache = github.pages(path, safe_pages(saved['pages']))
         with store.edit() as state:
             guard(state, token)
             current = state['jobs'][identifier]
@@ -564,7 +576,7 @@ def poll_answers(store, github, token):
             for key, comment in state['comments'].items():
                 if comment['issue_id'] == identifier and key not in seen and comment.get('candidate'):
                     current.update(status='changed', reason='사용한 답변 댓글 삭제', resume='작성자의 새 확인 댓글')
-            state['pages'] = {**state['pages'], **cache}
+            state['pages'] = safe_pages({**state['pages'], **cache})
 
 
 def answer_delivery(store, token):
@@ -577,6 +589,8 @@ def answer_delivery(store, token):
                 continue
             answers = [a for a in job['answers'] if not a['received']]
             if job['status'] == 'awaiting_author' and answers:
+                if any(occupies(j) for key, j in state['jobs'].items() if key != identifier):
+                    continue
                 for answer in answers:
                     answer['received'] = True
                 job.update(status='claimed', epoch=state['owner']['epoch'])
@@ -643,15 +657,15 @@ def reconcile(store, orca, token, identifier, reason, syncing=False):
     entries = workers.get('workers') or []
     # 예전 런타임/미확인 fleet의 부재는 종료 증거가 아니다.
     task_ids = {t.get('id') for t in relevant} - {None}
-    relevant_workers = [w for w in entries if w.get('task_id') in task_ids or
-                        integration.key_present(job['task_key'], json.dumps(w, ensure_ascii=False))]
-    exited = bool(relevant_workers) and all(w.get('projection', {}).get('liveness', {}).get('status') == 'exited'
-                                         for w in relevant_workers)
+    relevant_workers = [w for w in entries if w.get('taskId') in task_ids]
+    exited = (task_ids and task_ids <= {w.get('taskId') for w in relevant_workers} and
+              all(w.get('projection', {}).get('liveness', {}).get('verdict') == 'exited'
+                  for w in relevant_workers))
     with store.edit() as state:
         owner = guard(state, token)
         job = state['jobs'][str(identifier)]
         job.update(status=('held' if failed else job['status']) if syncing else ('running' if live else 'held'), epoch=owner['epoch'],
-                   settled=not live and exited,
+                   settled=bool(not live and exited),
                    reason=('기존 task 실패/취소: ' if failed else '') + reason, resume='기존 worker 완료 후 검증; 같은 task를 재배정하지 않음')
         job['history'].append(json.loads(redact(json.dumps({'phase': 'reconciled', 'reason': reason, 'tasks': relevant, 'workers': workers}))))
 
@@ -696,7 +710,50 @@ def complete(store, github, token, identifier, worktree, review_key, base, head,
         record(state, 'completed', issue_id=str(identifier), head=head, pr=pr['html_url'])
 
 
-def boundary(repo, session, command, files, commands):
+def worker_job(store, state, session, context):
+    """host receipt와 Orca 정본 dispatch/task를 연결한다. 수동 세션은 연결하지 않는다."""
+    for job in state['jobs'].values():
+        binding = job.get('worker_sessions', {}).get(session)
+        if binding:
+            if context.get('dispatch') != binding['dispatch'] or context.get('task') != binding['task']:
+                raise ValueError('자동 worker의 dispatch/task binding이 바뀌었습니다')
+            return job, binding['epoch'] if binding['task_key'] == job.get('task_key') else None
+    if not context.get('dispatch'):
+        return None, None
+    status = integration.orca('orchestration', 'worker-show', '--dispatch', context['dispatch'], cwd=store.repo)
+    if status is None:
+        raise ValueError('worker의 자동 이슈 범위를 Orca 정본에서 확인하지 못했습니다')
+    projection = status.get('projection') or {}
+    run = projection.get('runId')
+    listing = integration.orca('orchestration', 'task-list', '--run', run, cwd=store.repo) if run else None
+    if listing is None:
+        raise ValueError('worker의 정본 task를 확인하지 못했습니다')
+    task = next((t for t in listing.get('tasks', []) if t.get('id') == projection.get('taskId')), {})
+    jobs = [j for j in state['jobs'].values() if j.get('run') == run and j.get('task_key') and
+            integration.key_present(j['task_key'], str(task.get('spec') or ''))]
+    if not jobs:
+        return None, None
+    pane = status.get('terminal') or {}
+    receipt = hook_path(store.repo, session)
+    native = json.loads(receipt.read_text()) if receipt.is_file() else {}
+    if (len(jobs) != 1 or projection.get('dispatchId') != context['dispatch'] or
+            projection.get('taskId') != context.get('task') or native.get('provider_session') != session or
+            not native.get('orca_terminal') or pane.get('handle') != native['orca_terminal'] or
+            not pane.get('worktreePath') or
+            Path(pane.get('worktreePath') or '').resolve() != store.repo):
+        raise ValueError('worker의 host session/terminal/task 작업 공간 binding이 다릅니다')
+    job = jobs[0]
+    with store.edit() as current:
+        if current['epoch'] != state['epoch']:
+            raise ValueError('worker 연결 중 coor 소유자가 바뀌었습니다')
+        target = next(j for j in current['jobs'].values() if j.get('task_key') == job['task_key'])
+        target.setdefault('worker_sessions', {})[session] = {
+            'epoch': job['epoch'], 'dispatch': context['dispatch'], 'task': context['task'],
+            'task_key': job['task_key']}
+    return job, job['epoch']
+
+
+def boundary(repo, session, command, files, commands, context=None):
     """기존 flow-gate의 해석 가능한 명령/파일에 자동 작업의 추가 범위 검사를 적용한다."""
     if not session:
         return None  # 동일 host session 증명이 없는 호출은 자동 모드에 연결되지 않는다.
@@ -706,21 +763,37 @@ def boundary(repo, session, command, files, commands):
     store = Store(repo)
     state = store.read()
     owner = state['owner']
-    if not owner or owner.get('provider_session', owner['session']) != session:
+    if not owner:
         return None
+    coordinator = owner.get('provider_session', owner['session']) == session
+    job = None
+    if not coordinator:
+        try:
+            job, epoch = worker_job(store, state, session, context or {})
+        except (ValueError, OSError) as error:
+            return str(error)
+        if job is None:
+            return None
+        from flow_gate import settlement_command
+        if len(commands) == 1 and not files and settlement_command(command, context or {}):
+            return None  # OFF/보류에서도 같은 worker의 완료·escalation 증거는 전달한다.
+        if epoch != owner['epoch']:
+            return '이전 coor의 worker입니다. 자동 실행 fencing token이 바뀌었습니다'
     jobs = [j for j in state['jobs'].values() if j['status'] not in FINAL and j.get('epoch') == owner['epoch']]
-    if not jobs:
+    if not jobs and job is None:
         return None
     try:
         guard(state, owner['token'])
     except ValueError as error:
         return str(error)
-    job = next((j for j in jobs if j['status'] in ACTIVE), jobs[-1])
+    job = job or next((j for j in jobs if j['status'] in ACTIVE), jobs[-1])
     control = any('issue_mode.py' in ' '.join(w) and any(c in w for c in
                   ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))
                   for w in commands)
-    if control and len(commands) == 1 and not files:
+    if coordinator and control and len(commands) == 1 and not files:
         return None
+    if control and not coordinator:
+        return '자동 worker는 coor의 이슈 설정/상태를 변경할 수 없습니다'
     if owner['paused'] or job['status'] not in ACTIVE or job['status'] == 'reconciling':
         return '자동 작업이 보류/정책 변경/인계 확인 중입니다. 증거를 보존하고 checkpoint를 처리하세요'
     if str(job['snapshot']['user']['id']) not in state['config']['allowed']:
@@ -736,7 +809,8 @@ def boundary(repo, session, command, files, commands):
         if 'issue_mode.py' in ' '.join(words) and 'configure' in words:
             return 'GitHub 이슈/댓글로 자동 작업 설정과 allowlist를 변경할 수 없습니다'
         if executable == 'git':
-            if any(w in words for w in ('-C', '--git-dir', '--work-tree', '--force', '-f', '--force-with-lease')):
+            if any(w in words for w in ('-C', '-c', '--git-dir', '--work-tree', '--force', '-f', '--force-with-lease')) or any(
+                    w.startswith(('--config-env', '--git-dir=', '--work-tree=', '--exec-path', '-c', '-C')) for w in words[1:]):
                 return '자동 작업의 Git 저장소/강제 변경 범위를 확인할 수 없습니다'
             if any(w in words for w in ('clean', 'reset')) or ('merge' in words and integration.git(repo, 'branch', '--show-current') == integration.config(repo)['git']['base']):
                 return '자동 작업의 main 병합/파괴적 Git 명령은 사전 범위 밖입니다'
@@ -747,7 +821,8 @@ def boundary(repo, session, command, files, commands):
                     return '자동 push는 허용 작업 브랜치만 가능합니다'
                 arguments = words[words.index('push') + 1:]
                 remote = integration.config(repo).get('git', {}).get('remote', 'origin')
-                if arguments not in ([remote], [remote, branch], [remote, f'HEAD:refs/heads/{branch}']):
+                if arguments not in ([remote, f'refs/heads/{branch}:refs/heads/{branch}'],
+                                     [remote, f'HEAD:refs/heads/{branch}']):
                     return '명시한 같은 저장소 remote와 작업 브랜치 외 push는 금지합니다'
                 try:
                     remote_identity(repo, state['config']['repository'])
