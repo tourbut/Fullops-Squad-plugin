@@ -21,6 +21,10 @@ python3 <개발 저장소>/tests/motion_check.py --spec intro-spec.json --media 
 
 PATH에 없는 실행 파일은 `fullops-motion/toolchain.md`의 프로세스별 옵션을 명시한다. 렌더마다 새 `vNN`을 쓴다. source·package-lock·public 자산·spec·QA를 함께 전달하고 필요한 바이너리는 프로젝트의 보관 정책을 따른다. 다른 경로에서 `npm ci` 후 재렌더해 규격과 대표 프레임을 비교한다.
 
+spec은 `color_range=tv`, `color_space/color_transfer/color_primaries=bt709`를 요구한다. 엔진별 실제 출력 속성을 확인하고 필요한 색 변환은 별도 버전으로 렌더한다. 태그만 바꿔 색 변환으로 보고하지 않는다. 기존 2026-10-07 Remotion 출력은 이 조건과 달라 새 검사에서 실패한다.
+
+검사기는 FFprobe의 실제 프레임 시각을 확인하고, 음성이 있으면 FFmpeg로 원본과 출력을 8kHz mono PCM으로 디코드해 계획된 시작·길이의 unity-gain 합성과 0.25초 구간별로 비교한다. `--ffmpeg <실행 파일>`로 디코더를 지정할 수 있다. 가공 음성·fade·공간 음향은 이 비교의 범위 밖이며 별도 QA가 필요하다. 청취·시각 수락은 계속 별도다.
+
 자산 기록:
 
 - 도형·대본·한국어 문구·HTML/React/Python은 이 저장소의 예제 소스.

@@ -1,7 +1,7 @@
 ---
 title: 로컬 모션그래픽 연결과 검증
 status: draft
-updated: 2026-10-07
+updated: 2026-10-08
 owner: maintainer
 summary: HyperFrames와 Remotion 공식 스킬 참조, 로컬 클립 합성 및 재렌더 검증 기록
 ---
@@ -50,6 +50,16 @@ Remotion 무료 자격은 사용 주체에 달려 있다. 이번 로컬 실행�
 프레임 비교는 같은 호스트의 두 디렉터리에서 수행했다. 다른 OS/GPU의 완전한 동등성, 모든 프레임이나 MP4 바이트 동일성을 보증하지 않는다.
 첫 프레임과 6/12초 반복 경계의 빈 화면은 원본 clip의 entrance 재시작이다. 13초부터 closing 타이포가 표시된다.
 시각 검수는 위 실제 프레임에서 수행했으며 음성 청취와 사용자 미적 수락은 별도다.
+
+### PR 검토에서 보완한 검사 경계
+
+위 렌더 기록과 JSON의 `status=passed`는 2026-10-07 당시 제한된 검사의 원문이다. 당시 검사는 색 속성, 프레임별 시각, 입력 음원과 실제 출력의 구간별 대응을 검증하지 않았다. 이를 새 기술 검사 전체 통과로 해석하지 않는다.
+
+2026-10-08 검사기는 spec의 네 색 속성을 실제 stream과 대조하고, 모든 영상 프레임의 시각으로 고정 FPS를 확인한다. 음성이 있으면 로컬 FFmpeg로 원본과 출력을 8kHz mono PCM으로 디코드해 계획된 unity-gain 합성의 0.25초 구간별 대응을 검사한다. 가공 음성·fade·공간 음향과 실제 청취는 별도 검수가 필요하다. 도구나 프레임 시각 metadata가 없으면 unavailable이며, 색 속성 누락·불일치는 failed다.
+
+기존 HF 출력은 BT.709/TV인 반면 Remotion 합성·재렌더는 BT.470BG/PC이고 transfer/primaries가 누락됐다. 새 예제의 BT.709/TV spec에서 기존 합성은 실패한다. 색 변환·원본 영상 재검사·전체 재렌더는 이번 PR 검토에서 실행하지 않았다. 과거 원문 증거를 보존하고 `review_assessment`에 새 검사 기준의 실패·미실행을 분리했다.
+
+Windows의 로컬 FFmpeg/FFprobe 회귀 영상에서는 정상 AAC/CFR 합성 통과와 무음·시작 이동·중간 잘림, 색 속성 불일치·가변 FPS 실패를 확인했다. 이는 기존 소개 영상의 새 수락 검사를 대신하지 않는다. 검사 명령은 [FFprobe 공식 문서](https://ffmpeg.org/ffprobe.html)와 [FFmpeg 공식 문서](https://ffmpeg.org/ffmpeg.html)를 대조했다.
 
 ### 검사와 실패 보존
 

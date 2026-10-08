@@ -28,7 +28,8 @@ subprocess.run([args.voice_executable, '-v', 'en-us', '-s', '155', '-w', str(voi
                 'Motion connects ideas. Build scenes, test timing, and share editable sources.'], check=True)
 with wave.open(str(voice)) as audio:
     duration = audio.getnframes() / audio.getframerate()
-common = {'width': 1280, 'height': 720, 'fps': 30, 'assets': ['public/gsap.min.js']}
+common = {'width': 1280, 'height': 720, 'fps': 30, 'assets': ['public/gsap.min.js'],
+          'color_range': 'tv', 'color_space': 'bt709', 'color_transfer': 'bt709', 'color_primaries': 'bt709'}
 silent = {**common, 'duration': 6, 'audio': 'none', 'audio_clips': [], 'texts': [],
           'text_policy': [{'start': 0, 'end': 6, 'allow': []}]}
 intro = {**common, 'duration': 15, 'audio': 'required',

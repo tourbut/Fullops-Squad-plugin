@@ -10,6 +10,17 @@
   "api_calls": 0,
   "listening": "not_run",
   "user_aesthetic_acceptance": "not_run",
+  "review_assessment": {
+    "date": "2026-10-08",
+    "historical_results": "Preserved verbatim; passed covered the original limited metadata checks only.",
+    "original_media_rechecked": "not_run",
+    "frame_cadence": "not_run",
+    "planned_audio_pcm_comparison": "not_run",
+    "composition_color_contract": "failed",
+    "reason": "HyperFrames reports BT.709/TV. Remotion composition and rerender report BT.470BG/PC and omit transfer/primaries; the new example requires all four BT.709/TV properties.",
+    "color_conversion_rerender": "not_run",
+    "checker_regression": "Windows local FFmpeg/FFprobe: AAC/CFR valid mix passed; missing, shifted and truncated narration, color mismatch and variable frame cadence rejected. This does not revalidate the historical renders."
+  },
   "results": {
     "silent": {
       "status": "passed",
