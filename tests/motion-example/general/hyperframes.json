@@ -1,0 +1,4 @@
+{
+  "paths": {"assets": "public", "blocks": "compositions", "components": "compositions/components"},
+  "authoringSkill": "general-video"
+}
