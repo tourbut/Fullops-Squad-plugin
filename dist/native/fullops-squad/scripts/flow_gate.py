@@ -381,6 +381,13 @@ def tool_denial(root, event, state):
     if not isinstance(tool, dict):
         return None
     command, files = targets(tool)
+    import issue_mode
+    try:
+        denial = issue_mode.boundary(root, field(event, 'session_id'), command, files, shell_commands(command), state)
+    except (OSError, ValueError, KeyError, issue_mode.sqlite3.Error):
+        denial = '자동 이슈 상태/범위를 확인하지 못했습니다. 상태를 복구한 뒤 재개하세요'
+    if denial:
+        return denial
     candidate = settlement_command(command, state)
     if candidate:
         state['sending'] = {**candidate, 'tool_use_id': field(event, 'tool_use_id')}
@@ -511,6 +518,12 @@ def main():
     before = dict(state)
     output = {}
     if mode == 'start':
+        state['provider_session'] = field(event, 'session_id')
+        state['orca_terminal'] = os.getenv('ORCA_TERMINAL_HANDLE')
+        if state['provider_session'] and state['orca_terminal']:
+            from issue_mode import hook_path
+            write_json(hook_path(root, 'terminal-' + state['orca_terminal']),
+                       {key: state[key] for key in ('provider_session', 'orca_terminal')})
         role, designer = context(root)
         kind = ('coordinator' if role == 'coordinator' else 'designer' if role == designer
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')
@@ -521,6 +534,7 @@ def main():
         if kind == 'coordinator':
             brief += (' 완료 보고마다 현재 SHA의 리뷰·기본 브랜치 병합·원격 push·하위 워크트리 동기화를 '
                       '바로 처리한다. 절차는 fullops-orca의 merge 절을 따른다. coordinator 역할 브랜치만 push하지 않는다.')
+            brief += ' 자동 이슈 과제 GH-<저장소 ID>-<번호>-A<attempt>는 예외로 draft PR과 integration hold까지만 처리하고 main 병합은 사용자 판단을 기다린다.'
         try:  # 워크트리에 빠진 .fullops-squad/.env*를 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)
         except Exception:  # noqa: BLE001
@@ -538,11 +552,13 @@ def main():
                       f"`python3 {Path(__file__).resolve().parent / 'deps.py'} --host <지금 CLI>`로 의존성을 설치한다.")
         # 샌드박스 셸이 사용자 PATH를 물려받지 않으면 python3·orca를 못 찾는다. hook 환경에서 찾은 경로를 알린다
         brief += f' 셸에서 python3나 orca를 찾지 못하면 전체 경로를 쓴다: python3={sys.executable}, orca={find_orca() or "찾지 못함"}.'
+        brief += f' 선택형 fullops-issues 활성화의 host SessionStart ID는 {field(event, "session_id")}이다. 활성화는 사용자 요청 때만 한다.'
         output = {'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': brief}}
     elif mode == 'prompt':
         match = DISPATCH.search(str(field(event, 'prompt') or ''))
         if match and match.group(1) != state.get('dispatch'):
-            state = {'dispatch': match.group(1), 'settled': False}
+            state = {**{k: state[k] for k in ('provider_session', 'orca_terminal') if k in state},
+                     'dispatch': match.group(1), 'settled': False}
             task = re.search(r'--task-id[ =]+([A-Za-z0-9_.:-]+)', str(field(event, 'prompt') or ''))
             if task:
                 state['task'] = task.group(1)
@@ -551,11 +567,18 @@ def main():
         if denial:
             output = {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
                                              'permissionDecisionReason': 'FullOps: ' + denial}}
+        else:
+            import issue_mode
+            command, _ = targets(field(event, 'tool_input') or {})
+            issue_mode.reserve_dispatch(root, field(event, 'session_id'), shell_commands(command))
     elif mode == 'post':
         if delivered(event, state):
             state['settled'] = True
             state.pop('sending', None)
-    elif mode == 'stop' and (field(event, 'reason') or 'end_turn') == 'end_turn':
+    if mode in ('tool', 'post', 'prompt'):
+        import issue_mode
+        issue_mode.heartbeat(root, field(event, 'session_id'))
+    if mode == 'stop' and (field(event, 'reason') or 'end_turn') == 'end_turn':
         if state.get('dispatch') and not state.get('settled') and settled_in_runtime(state):
             state['settled'] = True
             state['settlement_source'] = 'Orca current dispatch outcome'

@@ -39,6 +39,7 @@ def build(output=NATIVE):
         shutil.copy2(ROOT / "dependencies.json", staged / "dependencies.json")  # 설치된 플러그인의 deps.py가 읽는다
         shutil.copy2(ROOT / "README.md", staged / "INSTALL.md")
         shutil.copytree(ROOT / "docs/releases", staged / "releases")
+        shutil.copy2(ROOT / "docs/issue-auto-mode.md", staged / "issue-auto-mode.md")
         write_json(staged / "plugin.json", {key: common[key] for key in ("name", "version", "description")})
         for host, directory in (("codex", ".codex-plugin"), ("claude-code", ".claude-plugin")):
             adapter = json.loads((ROOT / f"adapters/{host}.json").read_text())

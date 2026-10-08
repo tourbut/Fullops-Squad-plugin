@@ -276,6 +276,10 @@ FullOps update 수행해줘.
 fullops-orca route로 분류하고 dispatch해줘.
 ```
 
+### 선택형 GitHub 이슈 작업
+
+FullOps 활성 저장소에서 `이슈 자동 작업 모드를 설정하고 현재 coor에서 켜줘`라고 요청하면 `fullops-issues`가 저장소·허용 작성자·주기(기본 300초, 최소 60초)·작업 범위를 확인합니다. 기본 OFF이며 설치/setup으로 켜지지 않습니다. 로컬 폴러는 모델 호출 없이 수집하고, 동일 coor의 foreground wait로 하나씩 처리합니다. 완료 지점은 테스트/독립 리뷰를 통과한 draft PR이며 main 병합은 사용자 판단입니다. 질문은 원래 이슈에 보내고 원 작성자의 답변을 검토해 새 attempt로 재개합니다. [운영과 실환경 수용 검증](docs/issue-auto-mode.md)을 참고합니다.
+
 ## 설정
 
 원본 체크아웃의 `.fullops-squad/.env.example`을 `.fullops-squad/.env`로 복사합니다.

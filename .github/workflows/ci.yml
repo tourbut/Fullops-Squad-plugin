@@ -93,4 +93,5 @@ jobs:
         run: |
           node --test tests/npm-installer.cjs
           python tests/stabilization.py
+          python tests/issue-mode.py
           python scripts/build.py

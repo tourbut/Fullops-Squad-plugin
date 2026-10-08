@@ -12,7 +12,7 @@ PACKAGE = ROOT / 'dist/native/fullops-squad'
 for host in ('codex', 'claude'):
     manifest = json.loads((PACKAGE / f'.{host}-plugin/plugin.json').read_text())
     config = json.loads((PACKAGE / manifest['hooks']).read_text())
-    assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop'}
+    assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'}
     group, gate, flow = config['hooks']['SessionStart']
     assert group['matcher'] == 'startup|clear'  # Resume/compact must preserve an opt-out.
     hook, = group['hooks']

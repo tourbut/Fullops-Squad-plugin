@@ -13,6 +13,8 @@ Orca 실행 파일은 `ORCA_CLI_COMMAND` → `ORCA_DEV_REPO_ROOT`가 있는 개�
 설치된 `orca-cli` 스킬이 있으면 해당 가이드를 사용한다. 이 플러그인은 Orca 앱이나 실행 파일을 번들하지 않는다.
 
 `bootstrap`, `route`, `dispatch <role>`, `report`, `merge <role>` 중 요청한 모드를 수행한다.
+사용자가 GitHub 허용 작성자의 이슈 자동 작업 모드를 요청하면 `fullops-issues`를 사용한다. 기본 OFF이며, 그 모드의 완료 지점은 draft PR이다. 아래 자동 main 병합 절 대신 사용자 판단을 위한 integration hold를 남긴다.
+자동 이슈의 `GH-<저장소 ID>-<번호>-A<attempt>` 완료 보고는 세션이 바뀌어도 이 정책을 유지한다. 새 모드 활성화 또는 사용자 병합 요청 없이 자동 main 병합하지 않는다.
 flow-gate hook이 route 기록, `worker-start --run`, 설계 역할의 코드 수정 금지, worker의 `worker_done`을 강제한다. 차단되면 사유에 적힌 절차를 따르고 우회하지 않는다.
 할당·회신은 Orca 에이전트 터미널 간 통신이며 사용자·고객에게 보내는 Slack/메일 권한을 뜻하지 않는다.
 하위 worker에 대한 실제 작업 위임은 사용자의 위임 요청 또는 해당 레포의 합의된 작업 방식 안에서 한다.
