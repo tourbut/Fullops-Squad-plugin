@@ -83,7 +83,11 @@ class OperatingPolicy(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '메타데이터'):
             setup.operating_block('---\nowner: user\n<!-- fullops-mode:start -->\nold\n<!-- fullops-mode:end -->', '.fullops-squad/orca-agents.md')
         agents = self.repo / '.fullops-squad/orca-agents.md'
-        agents.write_text(agents.read_text(encoding='utf-8') + '\nUSER MODEL CHOICE\n', encoding='utf-8')
+        content = agents.read_text(encoding='utf-8')
+        start, end = '<!-- fullops-mode:start -->', '<!-- fullops-mode:end -->'
+        # A legacy guide guarantees two planned writes, independently of host line endings.
+        content = content[:content.index(start)] + content[content.index(end) + len(end):]
+        agents.write_text(content + '\nUSER MODEL CHOICE\n', encoding='utf-8')
         self.commit()
         before = self.snapshot()
         options = {'local_only': True, 'mode': 'dev', 'test_level': 'lite'}
