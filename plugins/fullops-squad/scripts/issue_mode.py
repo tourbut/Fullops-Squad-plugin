@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import secrets
 import sqlite3
+import stat
 import subprocess
 import sys
 import time
@@ -59,6 +60,42 @@ def local_file(store, name):
     if any(p.lower().startswith('.env') or p.lower() in ('.git', '.codex', '.claude', 'auth.json', 'credentials.json') for p in relative.parts):
         raise ValueError('credential/실행 권한 파일은 자동 이슈 입력으로 읽을 수 없습니다')
     return candidate
+
+
+def lease_token(store, name):
+    """명시한 로컬 제어 파일만 읽는다. 이슈 본문 입력에는 local_file 경계를 유지한다."""
+    candidate = (store.repo / name).resolve()
+    relative = candidate.relative_to(store.repo)
+    if any(p.lower() in ('.git', '.codex', '.claude', 'auth.json', 'credentials.json') for p in relative.parts):
+        raise ValueError('host 권한 파일은 lease 입력으로 사용할 수 없습니다')
+    ignored = subprocess.run(['git', '-C', str(store.repo), 'check-ignore', '-q', '--', str(relative)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if ignored.returncode:
+        raise ValueError('lease 파일은 같은 작업 공간의 Git 제외 경로여야 합니다')
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+    with os.fdopen(os.open(candidate, flags), encoding='utf-8') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError('lease 파일은 일반 파일이어야 합니다')
+        if os.name == 'posix' and (info.st_mode & 0o077 or info.st_uid != os.getuid()):
+            raise ValueError('lease 파일은 현재 사용자 소유의 0600 권한이어야 합니다')
+        content = stream.read(8193)
+    if len(content) > 8192:
+        raise ValueError('lease 파일 크기 제한을 초과했습니다')
+    try:
+        value = json.loads(content)
+    except ValueError:
+        raise ValueError('lease JSON 형식 오류') from None
+    token = value.get('token') if isinstance(value, dict) else None
+    if not isinstance(token, str) or not re.fullmatch(r'[0-9a-f]{48}', token):
+        raise ValueError('lease token 형식 오류')
+    return token
+
+
+def token_options(parser):
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--token')
+    group.add_argument('--token-file', help='Git 제외·비공개 enable 결과 JSON; token을 argv에 넣지 않는다')
 
 
 class Store:
@@ -970,11 +1007,11 @@ def main():
     for name in ('pause', 'resume', 'disable'):
         sub.add_parser(name).add_argument('--session', required=True)
     for name in ('poll', 'wait', 'claim'):
-        sub.add_parser(name).add_argument('--token', required=True)
+        token_options(sub.add_parser(name))
     sub.add_parser('watch')  # lease capability는 argv/log 대신 stdin으로 전달한다.
     for name in ('checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'):
         p = sub.add_parser(name)
-        p.add_argument('--token', required=True)
+        token_options(p)
         p.add_argument('--issue-id', required=True)
         if name == 'checkpoint':
             p.add_argument('--phase', required=True)
@@ -1020,6 +1057,8 @@ def main():
             if not stop(store, args.session, args.command):
                 raise ValueError('그 session은 현재 자동 모드 소유자가 아닙니다')
             return 0
+        if getattr(args, 'token_file', None):
+            args.token = lease_token(store, args.token_file)
         github = GitHub()
         if hasattr(args, 'token'):
             owner = guard(store.read(), args.token)
