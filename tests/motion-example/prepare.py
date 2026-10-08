@@ -8,7 +8,9 @@ import wave
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--font', type=Path, required=True, help='licensed NanumBarunGothic.ttf')
-parser.add_argument('--voice-executable', required=True, help='existing espeak-ng executable')
+voice_source = parser.add_mutually_exclusive_group(required=True)
+voice_source.add_argument('--voice-executable', help='existing espeak-ng executable')
+voice_source.add_argument('--voice-file', type=Path, help='approved local WAV narration')
 args = parser.parse_args()
 root = Path(__file__).resolve().parent
 public = root / 'public'
@@ -24,8 +26,11 @@ for source, name in ((args.font, 'NanumBarunGothic.ttf'),
 voice = public / 'narration.wav'
 if voice.exists():
     raise SystemExit('preserve existing narration')
-subprocess.run([args.voice_executable, '-v', 'en-us', '-s', '155', '-w', str(voice),
-                'Motion connects ideas. Build scenes, test timing, and share editable sources.'], check=True)
+if args.voice_file:
+    shutil.copyfile(args.voice_file, voice)
+else:
+    subprocess.run([args.voice_executable, '-v', 'en-us', '-s', '155', '-w', str(voice),
+                    'Motion connects ideas. Build scenes, test timing, and share editable sources.'], check=True)
 with wave.open(str(voice)) as audio:
     duration = audio.getnframes() / audio.getframerate()
 common = {'width': 1280, 'height': 720, 'fps': 30, 'assets': ['public/gsap.min.js'],

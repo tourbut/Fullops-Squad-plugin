@@ -75,6 +75,20 @@ Windows의 로컬 FFmpeg/FFprobe 회귀 영상에서는 정상 AAC/CFR 합성 �
 `npm test`, `python3 tests/review-check.py`, native build와 `git diff --check`가 통과했다. 기존 공통 설치 계획에 영상 도구가 없음을 검사했다.
 실제 렌더 강제 중단, 다른 OS/호스트, 소스 번역, alpha/HDR 합성, 사용자 청취/미적 수락은 not_run이다.
 
+## 2026-10-09 후속 검증
+
+이전 Linux 원본은 이번 Windows 환경에 없으므로 새 자산·새 버전으로 렌더했다. 과거 기록은 그대로 보존하며 새 검사 통과로 바꾸지 않는다. [Windows 증거](evidence/motion-issue8-windows.json)에 실제 도구·글꼴 출처/라이선스·음성 조건·소스와 영상 hash·실패·중단·재렌더 결과를 남겼다.
+
+HyperFrames의 6초 무음 clip, 15초 내레이션 영상, Remotion의 15초 합성 영상은 BT.709/TV의 네 색 속성·실제 30fps 프레임 시각·450/180 프레임·계획된 음원의 시작/길이/PCM 대응을 통과했다. Remotion은 실제 `--color-space bt709` 렌더를 사용했다. 마지막 텍스트 직전/직후와 종료 문구의 대표 프레임에서 한글 문자열과 잘림 여부를 확인했다. 모든 프레임의 육안 검수나 자연스러운 발음을 주장하지 않는다.
+
+작업 중 capture 단계에서 렌더 프로세스 트리를 강제 종료한 v05를 보존했고 기존 v04 영상 SHA가 유지됐다. 소스·lock·public 자산을 다른 프로젝트 경로에 전달해 `npm ci` 후 두 엔진으로 v06을 재렌더했다. v06도 동일 기술 검사를 통과하고 선택한 9개 시각의 디코드 RGB 프레임은 v04와 일치했다. MP4 바이트의 환경 간 동일성을 보장하지 않는다.
+
+현재 영속 자료는 `.local/motion-issue8-final/`에 보관한다. `source/`는 편집 가능한 최종 소스·lock·public 음원/글꼴/clip·spec과 v04 영상, `re-render/source/`는 두 번째 설치와 v06 영상이다. `qa/`, 실패/중단 로그, `rerender-record.json`, `frame-comparison.json`, 글꼴 OFL 원문을 함께 전달한다. 원본 작업 폴더는 유지하며 npm/browser 임시 캐시만으로 전달하지 않는다.
+
+재현은 예제 README의 작업별 사전 점검 후, 전달된 source에서 `npm ci`, `hyperframes render general --strict --fps 30 --workers 1 --output <새 버전.mp4>`, `remotion render src/index.jsx Intro <새 버전.mp4> --browser-executable <확인한 브라우저> --color-space bt709`를 실행한다. HyperFrames 프로세스에 DO_NOT_TRACK=1과 확인한 브라우저/FFmpeg/FFprobe 경로를 지정한다. `motion_check.py`에는 전달된 intro-spec-v04.json을 사용한다.
+
+사용자 청취·미적 수락은 별도 `not_run`으로 남아 있다. 로컬 SAPI 기본 Microsoft Heami Desktop이 읽은 영문 평가 대본이며 자연스러운 내레이션 품질·상업 사용권을 수락한 결과가 아니다. alpha/HDR·유료/클라우드·다른 OS의 이번 소스 재렌더는 실행하지 않았다.
+
 ## 보관과 재현
 
 현재 로컬 결과는 개발 레포의 `.local/motion-issue8/`에 보존한다. 임시 캐시만으로 전달하지 않는다.

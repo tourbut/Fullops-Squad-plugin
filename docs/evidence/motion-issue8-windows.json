@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-09",
+  "scope": "Windows local evaluation; fresh assets; two engines and a second project path",
+  "historical_evidence": "motion-issue8.json remains unchanged; these checks do not revalidate the old Linux media",
+  "tools": {
+    "node": "v24.13.0",
+    "hyperframes": "0.8.139",
+    "remotion": "4.0.533",
+    "browser": "chrome-headless-shell 150.0.7871.124 win64 (project-local)",
+    "ffmpeg": "ffmpeg version 8.0.1-full_build-www.gyan.dev Copyright (c) 2000-2025 the FFmpeg developers",
+    "os": "Windows-11-10.0.26200-SP0"
+  },
+  "assets": {
+    "font": {
+      "family": "NanumGothic Regular",
+      "local_alias": "public/NanumBarunGothic.ttf",
+      "source": "google/fonts ofl/nanumgothic/NanumGothic-Regular.ttf",
+      "commit": "133ccbee9a8b408eb71f31a36ccb9116f5c695ad",
+      "sha256": "76f45ef4a6bcff344c837c95a7dcc26e017e38b5846d5ae0cdcb5b86be2e2d31",
+      "license": "SIL OFL 1.1",
+      "license_sha256": "eeacf16032901d0ed0456876ec77b8f0fda6b3fecec7d972f8543eb602e6c30f"
+    },
+    "narration": {
+      "engine": "Windows System.Speech / Microsoft Heami Desktop (system default)",
+      "rate": -1,
+      "script": "Motion connects ideas. Build scenes, test timing, and share editable sources.",
+      "source": "public/narration.wav",
+      "render_source": "public/narration-stereo-v04.wav",
+      "preparation": "ffmpeg -i narration.wav -ac 2 narration-stereo-v04.wav",
+      "listening": "not_run",
+      "natural_pronunciation_acceptance": "not_run"
+    },
+    "gsap": "3.15.0 official npm package; standard license"
+  },
+  "source_sha256": {
+    "hyperframes.json": "5f61e6147a77590e696b0e4fee21bea918d0e25566a16c9c574f620ed701ff9a",
+    "index.html": "8fb04a60307f34d765018fa9ad1380f6999aa82cfc4abf9dd53a4f2aed23af79",
+    "index.motion.json": "07ae96ef97cb7d354ee6409c373b0667489ede05b1e6b868d18ef3b46eaca763",
+    "intro-spec-v04.json": "eeeee5b403d79264d6267ab0b7f5ec7947e223d75d9385d6be82aee6df039ed2",
+    "intro-spec.json": "7f9b79a4fdc652e528f906ed9e932a0db6c4297beca653360372939eb52c7098",
+    "package-lock.json": "39b85e2f6738ee1da44d4a913f5cb39ef4640ac6461ddce28e0e3d9fed504e49",
+    "package.json": "eaa04bebf4e16ef049f0cddf188b2a633b3b648703ea615237a7a3c1d2723230",
+    "prepare.py": "2c3243855ce6da7977234728885310462aa648df07807ca32e5288327f935d0e",
+    "README.md": "70cc5bb3f090b7c732f825a99e10de364d4a60bf5ad9334639cefbb6fc7db96a",
+    "silent-spec.json": "c8f0ff8e359e1a52f7ef49fbfebf000a9c0030f1225b72ac4947821b04adc46f",
+    "general/hyperframes.json": "0d6520bfedef672eb99938c18260b8915884dd74c2673a54a16cdbcc1c67824e",
+    "general/index.html": "d6ae27eedf063fb3c41c51a84065fb841dc15e623c2c15dbc95e4bac3355dee8",
+    "public/gsap.min.js": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb",
+    "public/motion.mp4": "c9411be9ec2859a6b0a0d8fc28689b7884aa1ceed5bb030f030e5de0f386d1a7",
+    "public/NanumBarunGothic.ttf": "76f45ef4a6bcff344c837c95a7dcc26e017e38b5846d5ae0cdcb5b86be2e2d31",
+    "public/narration-stereo-v04.wav": "6b50828a646c60346b7391ae8a7f4e3385461d41c4b7f86ea848c69ddffccf5e",
+    "public/narration.wav": "57d0a6576ebcab88e7c67867bc8129766664cd46daf5a7ca1ec7543b372b8789",
+    "src/index.jsx": "a9cd3046e7bee4922711c4079be8a6ab1ea48c1c099c70d095cfd50dd95d5490",
+    "general/public/gsap.min.js": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb",
+    "general/public/NanumBarunGothic.ttf": "76f45ef4a6bcff344c837c95a7dcc26e017e38b5846d5ae0cdcb5b86be2e2d31",
+    "general/public/narration-stereo-v04.wav": "6b50828a646c60346b7391ae8a7f4e3385461d41c4b7f86ea848c69ddffccf5e",
+    "general/public/narration.wav": "57d0a6576ebcab88e7c67867bc8129766664cd46daf5a7ca1ec7543b372b8789"
+  },
+  "results": {
+    "silent-v04": {
+      "status": "passed",
+      "checked_at": "2026-10-08T16:51:22.144213+00:00",
+      "audio_content": "not_applicable",
+      "frame_cadence": "passed",
+      "color_properties": "passed",
+      "failures": [],
+      "qa_path": ".local/motion-issue8-final/qa/silent-v04.json",
+      "qa_sha256": "36dba28c579345e25a62b6a0084572d48c2d77aaca5f973908cfd604ecdb948d",
+      "media": ".local/motion-issue8-final/source/motion-v04.mp4",
+      "media_sha256": "c9411be9ec2859a6b0a0d8fc28689b7884aa1ceed5bb030f030e5de0f386d1a7"
+    },
+    "hyperframes-v04": {
+      "status": "passed",
+      "checked_at": "2026-10-08T16:51:22.508384+00:00",
+      "audio_content": "passed",
+      "frame_cadence": "passed",
+      "color_properties": "passed",
+      "failures": [],
+      "qa_path": ".local/motion-issue8-final/qa/hyperframes-v04.json",
+      "qa_sha256": "ae9eaa133615e2a4db9382629d98e0f33099bf301b9862a3fcc81b81285130fc",
+      "media": ".local/motion-issue8-final/source/intro-hyperframes-v04.mp4",
+      "media_sha256": "74362e51fd4d4b222448b9b254f9e80e39963fc2aa570696d14dd42863b25605"
+    },
+    "remotion-v04": {
+      "status": "passed",
+      "checked_at": "2026-10-08T16:52:38.768086+00:00",
+      "audio_content": "passed",
+      "frame_cadence": "passed",
+      "color_properties": "passed",
+      "failures": [],
+      "qa_path": ".local/motion-issue8-final/qa/remotion-v04.json",
+      "qa_sha256": "72a3d0ec8585434b0b703a78b530dd7f4f9e7088deca014810cd39d2f60047fc",
+      "media": ".local/motion-issue8-final/source/intro-remotion-v04.mp4",
+      "media_sha256": "d7f50465fbfa033477a03808f1d1f6722a6e609e3d3b0c090a733386ada0384b"
+    },
+    "hyperframes-v06": {
+      "status": "passed",
+      "checked_at": "2026-10-08T17:00:52.489781+00:00",
+      "audio_content": "passed",
+      "frame_cadence": "passed",
+      "color_properties": "passed",
+      "failures": [],
+      "qa_path": ".local/motion-issue8-final/qa/hyperframes-v06.json",
+      "qa_sha256": "438c555d88ddfc878a4c9a90a4c7556e131dbabc7e8f9ed7b8b59c7391cfbcfc",
+      "media": ".local/motion-issue8-final/re-render/source/intro-hyperframes-v06.mp4",
+      "media_sha256": "74362e51fd4d4b222448b9b254f9e80e39963fc2aa570696d14dd42863b25605"
+    },
+    "remotion-v06": {
+      "status": "passed",
+      "checked_at": "2026-10-08T17:00:53.412489+00:00",
+      "audio_content": "passed",
+      "frame_cadence": "passed",
+      "color_properties": "passed",
+      "failures": [],
+      "qa_path": ".local/motion-issue8-final/qa/remotion-v06.json",
+      "qa_sha256": "2dec693b5eefe9406861824d171fac46a997626e7a586aac9b75cae656544aac",
+      "media": ".local/motion-issue8-final/re-render/source/intro-remotion-v06.mp4",
+      "media_sha256": "d7f50465fbfa033477a03808f1d1f6722a6e609e3d3b0c090a733386ada0384b"
+    }
+  },
+  "frame_comparison": {
+    "hyperframes": {
+      "frames": [
+        0,
+        15,
+        90,
+        180,
+        360,
+        389,
+        390,
+        402,
+        449
+      ],
+      "mean_absolute_rgb8_error": 0.0,
+      "max_rgb8_error": 0,
+      "decoded_samples_identical": true,
+      "status": "passed"
+    },
+    "remotion": {
+      "frames": [
+        0,
+        15,
+        90,
+        180,
+        360,
+        389,
+        390,
+        402,
+        449
+      ],
+      "mean_absolute_rgb8_error": 0.0,
+      "max_rgb8_error": 0,
+      "decoded_samples_identical": true,
+      "status": "passed"
+    }
+  },
+  "interruption_and_rerender": {
+    "interruption": "passed",
+    "capturing_reached": true,
+    "interrupted_exit_code": 1,
+    "preserved_video_sha256": "74362e51fd4d4b222448b9b254f9e80e39963fc2aa570696d14dd42863b25605",
+    "rerender_commands": [
+      [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "D:\\workspace\\Fullops-Squad-issue7\\.local\\motion-issue8-final\\re-render\\source\\node_modules\\hyperframes\\bin\\hyperframes.mjs",
+        "render",
+        "general",
+        "--strict",
+        "--fps",
+        "30",
+        "--workers",
+        "1",
+        "--output",
+        "intro-hyperframes-v06.mp4"
+      ],
+      [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "D:\\workspace\\Fullops-Squad-issue7\\.local\\motion-issue8-final\\re-render\\source\\node_modules\\@remotion\\cli\\remotion-cli.js",
+        "render",
+        "src/index.jsx",
+        "Intro",
+        "intro-remotion-v06.mp4",
+        "--browser-executable",
+        "D:\\workspace\\Fullops-Squad-issue7\\.local\\motion-issue8-final\\browser\\chrome-headless-shell\\win64-150.0.7871.124\\chrome-headless-shell-win64\\chrome-headless-shell.exe",
+        "--color-space",
+        "bt709",
+        "--concurrency",
+        "2"
+      ]
+    ],
+    "rerender": "passed"
+  },
+  "visual_observation": {
+    "status": "passed for inspected representative frames",
+    "frames": [
+      389,
+      390,
+      405
+    ],
+    "scope": "no text immediately before 13s; exact Korean closing after 13s; no clipping or broken glyphs observed",
+    "limits": "sampled frames; not a claim that every rendered frame was visually reviewed"
+  },
+  "prior_attempts": {
+    "edge_attempt2": "browser launch failed; log preserved",
+    "hyperframes_attempt3": "rendered; PCM check rejected mono/stereo gain mismatch; media and source narration preserved",
+    "interrupted_v05": "render was killed during capture; v04 SHA unchanged; partial attempt preserved"
+  },
+  "media_service_api_calls": 0,
+  "cloud_render": false,
+  "telemetry": "DO_NOT_TRACK=1",
+  "security_boundary": "trusted project sources; upstream default browser sandbox settings; no additional security disabling",
+  "remotion_license_use": "noncommercial suitability evaluation; commercial eligibility not asserted",
+  "listening": "not_run",
+  "user_aesthetic_acceptance": "not_run",
+  "limitations": [
+    "human listening/aesthetic acceptance pending",
+    "8kHz mono unity-gain PCM comparison",
+    "same Windows host; cross-OS byte reproducibility not asserted",
+    "no alpha/HDR or paid/cloud workflow"
+  ]
+}
