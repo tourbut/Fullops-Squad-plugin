@@ -821,6 +821,17 @@ def boundary(repo, session, command, files, commands, context=None):
     jobs = [j for j in state['jobs'].values() if j['status'] not in FINAL and j.get('epoch') == owner['epoch']]
     if not jobs and job is None:
         return None
+    if coordinator and len(commands) == 1 and not files:
+        words = commands[0]
+        if len(words) > 2 and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name.lower()) and (
+                Path(words[1].strip('\'"')).resolve() == Path(__file__).resolve()):
+            index = 2
+            while index + 1 < len(words) and words[index] in ('--repo', '--orca'):
+                if words[index] == '--repo' and Path(words[index + 1].strip('\'"')).resolve() != Path(repo).resolve():
+                    break
+                index += 2
+            if words[index:] in (['status'], ['disable', '--session', owner['session']]):
+                return None  # 만료 후에도 현재 소유자가 상태를 확인하고 안전하게 중지할 수 있어야 한다.
     try:
         guard(state, owner['token'])
     except ValueError as error:
@@ -917,15 +928,35 @@ def reserve_dispatch(repo, session, commands):
         record(state, 'dispatch_intent', task_key=job['task_key'], run=owner['run'])
 
 
-def watch(store, github, token):
+def renew(store, orca, token, background=False):
+    owner = guard(store.read(), token)
+    if owner_identity(store, orca, owner) != owner['incarnation']:
+        raise ValueError('coor terminal incarnation이 바뀌었습니다; 명시적으로 재활성화하세요')
+    expires = time.time() + 90
+    if background and owner['session'].startswith('provider_session:'):
+        # Native terminal bindings can outlive a crashed host; stale output must not keep its lease alive.
+        pane = orca.call('terminal', 'show', '--terminal', owner['terminal'])['terminal']
+        last_output = pane.get('lastOutputAt')
+        if type(last_output) not in (int, float) or not 0 <= last_output <= time.time() * 1000:
+            return
+        expires = min(expires, last_output / 1000 + 90)
+    with store.edit() as state:
+        guard(state, token)
+        state['owner']['expires'] = max(state['owner']['expires'], expires)
+
+
+def watch(store, github, orca, token):
     """선택한 동일 세션의 lease 동안 busy 상태에도 수집한다. claim/dispatch/모델 호출은 하지 않는다."""
-    failures, next_poll = 0, 0
+    failures, next_poll, next_auth = 0, 0, 0
     while True:
         state = store.read()
         try:
             owner = guard(state, token)
         except ValueError:
             return
+        if time.time() >= next_auth:
+            renew(store, orca, token, background=True)
+            next_auth = time.time() + 30
         if not owner['paused'] and time.time() >= next_poll:
             try:
                 poll(store, github, token)
@@ -964,12 +995,7 @@ def wait(store, github, orca, token):
         owner = guard(state, token)
         now = time.time()
         if now >= next_auth:
-            incarnation = owner_identity(store, orca, owner)
-            if incarnation != owner['incarnation']:
-                raise ValueError('coor terminal incarnation이 바뀌었습니다; 명시적으로 재활성화하세요')
-            with store.edit() as state:
-                guard(state, token)
-                state['owner']['expires'] = time.time() + 90
+            renew(store, orca, token)
             next_auth = now + 30
         if owner.get('blocked'):
             raise ValueError(owner['blocked'])
@@ -1077,7 +1103,7 @@ def main():
         elif args.command == 'watch':
             token = json.load(sys.stdin)['token']
             try:
-                watch(store, github, token)
+                watch(store, github, Orca(args.orca), token)
             except (ValueError, OSError, APIError, KeyError):
                 with store.edit() as state:
                     if state['owner'] and state['owner']['token'] == token:
