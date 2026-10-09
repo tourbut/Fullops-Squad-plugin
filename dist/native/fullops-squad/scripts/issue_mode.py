@@ -271,7 +271,7 @@ def activate(store, orca, session, run, terminal, provider_session, now=None):
                  'epoch': state['epoch'], 'token': secrets.token_hex(24), 'enabled': True, 'paused': False,
                  'expires': now + 90, 'end_marker': str(store.path.parent / f'lease-stop-{state["epoch"]}.json')}
         state['owner'] = owner
-        if state['cursor'] is None:
+        if state['cursor'] is None or (not config['backlog'] and state['since_created'] == '1970-01-01T00:00:00Z'):
             state['cursor'] = '1970-01-01T00:00:00Z' if config['backlog'] else iso(now)
             state['since_created'] = state['cursor']
         record(state, 'activated', session=session, run=run, epoch=owner['epoch'])
@@ -348,8 +348,10 @@ def poll(store, github, token):
     if saved['owner']['paused']:
         return
     config = saved['config']
-    since = iso(timestamp(saved['cursor']) - 1)  # 같은 초 경계와 오프라인 복귀를 포함한다.
-    path = f"/repos/{config['repository']}/issues?state=all&sort=created&direction=asc&per_page=100&since={since}"
+    path = f"/repos/{config['repository']}/issues?state=all&sort=created&direction=asc&per_page=100"
+    # Initial backlog is an unfiltered listing; GitHub can return no rows for epoch date filters.
+    if not config['backlog'] or saved['cursor'] != '1970-01-01T00:00:00Z':
+        path += '&since=' + iso(timestamp(saved['cursor']) - 1)
     issues, cache = github.pages(path, safe_pages(saved['pages']))
     # 모든 네트워크 결과가 준비된 뒤 cursor와 enqueue를 함께 commit한다.
     with store.edit() as state:
@@ -671,7 +673,7 @@ def resolve_answers(store, github, token, identifier, decision, reason):
         # 다음 claim이 새 attempt를 발행한다. 기존 검색/지시/packet은 같은 시도로 재사용하지 않는다.
 
 
-def reconcile(store, orca, token, identifier, reason, syncing=False):
+def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatched=False):
     if not reason.strip():
         raise ValueError('기존 task/worker/receipt 확인 근거가 필요합니다')
     saved = store.read()
@@ -682,10 +684,26 @@ def reconcile(store, orca, token, identifier, reason, syncing=False):
     run = job.get('run')
     if not run:
         raise ValueError('기존 Run identity가 없어 재배정하지 않습니다. 수동 확인 필요')
-    tasks = orca.call('orchestration', 'task-list', '--run', run).get('tasks') or []
+    task_listing = orca.call('orchestration', 'task-list', '--run', run)
+    tasks = task_listing.get('tasks') or []
     workers = orca.call('orchestration', 'worker-list', '--run', run)
     if workers.get('page', {}).get('hasMore'):
         raise ValueError('전체 worker receipt를 확인하지 못했습니다. 다음 페이지 확인 필요')
+    if not_dispatched:
+        if (syncing or job.get('dispatch_intents') or tasks or workers.get('workers') or
+                task_listing.get('count') != 0 or workers.get('page', {}).get('total') != 0 or
+                workers.get('page', {}).get('hasMore') is not False):
+            raise ValueError('dispatch 이력 또는 task/worker 조회 불확실성 때문에 미배정 복구를 허용하지 않습니다')
+        with store.edit() as state:
+            owner = guard(state, token)
+            current = state['jobs'][str(identifier)]
+            if current['status'] != 'reconciling' or current.get('dispatch_intents') or current['digest'] != job['digest']:
+                raise ValueError('dispatch 또는 인계 상태가 바뀌었습니다; 다시 확인하세요')
+            current['history'].append({'phase': 'reconciled_not_dispatched', 'reason': reason,
+                                       'run': run, 'tasks': task_listing, 'workers': workers, 'receipt': current.get('receipt')})
+            current.update(status='claimed', epoch=owner['epoch'], run=owner['run'], receipt=None,
+                           reason=reason, resume='현재 coor의 새 수신 receipt로 running checkpoint')
+        return
     relevant = [t for t in tasks if integration.key_present(job['task_key'], str(t.get('spec') or ''))]
     if not relevant:
         raise ValueError('기존 task의 부재는 실행하지 않았다는 증거가 아닙니다; 수동 확인 필요')
@@ -819,6 +837,17 @@ def boundary(repo, session, command, files, commands, context=None):
     jobs = [j for j in state['jobs'].values() if j['status'] not in FINAL and j.get('epoch') == owner['epoch']]
     if not jobs and job is None:
         return None
+    if coordinator and len(commands) == 1 and not files:
+        words = commands[0]
+        if len(words) > 2 and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name.lower()) and (
+                Path(words[1].strip('\'"')).resolve() == Path(__file__).resolve()):
+            index = 2
+            while index + 1 < len(words) and words[index] in ('--repo', '--orca'):
+                if words[index] == '--repo' and Path(words[index + 1].strip('\'"')).resolve() != Path(repo).resolve():
+                    break
+                index += 2
+            if words[index:] in (['status'], ['disable', '--session', owner['session']]):
+                return None  # 만료 후에도 현재 소유자가 상태를 확인하고 안전하게 중지할 수 있어야 한다.
     try:
         guard(state, owner['token'])
     except ValueError as error:
@@ -915,15 +944,35 @@ def reserve_dispatch(repo, session, commands):
         record(state, 'dispatch_intent', task_key=job['task_key'], run=owner['run'])
 
 
-def watch(store, github, token):
+def renew(store, orca, token, background=False):
+    owner = guard(store.read(), token)
+    if owner_identity(store, orca, owner) != owner['incarnation']:
+        raise ValueError('coor terminal incarnation이 바뀌었습니다; 명시적으로 재활성화하세요')
+    expires = time.time() + 90
+    if background and owner['session'].startswith('provider_session:'):
+        # Native terminal bindings can outlive a crashed host; stale output must not keep its lease alive.
+        pane = orca.call('terminal', 'show', '--terminal', owner['terminal'])['terminal']
+        last_output = pane.get('lastOutputAt')
+        if type(last_output) not in (int, float) or not 0 <= last_output <= time.time() * 1000:
+            return
+        expires = min(expires, last_output / 1000 + 90)
+    with store.edit() as state:
+        guard(state, token)
+        state['owner']['expires'] = max(state['owner']['expires'], expires)
+
+
+def watch(store, github, orca, token):
     """선택한 동일 세션의 lease 동안 busy 상태에도 수집한다. claim/dispatch/모델 호출은 하지 않는다."""
-    failures, next_poll = 0, 0
+    failures, next_poll, next_auth = 0, 0, 0
     while True:
         state = store.read()
         try:
             owner = guard(state, token)
         except ValueError:
             return
+        if time.time() >= next_auth:
+            renew(store, orca, token, background=True)
+            next_auth = time.time() + 30
         if not owner['paused'] and time.time() >= next_poll:
             try:
                 poll(store, github, token)
@@ -962,12 +1011,7 @@ def wait(store, github, orca, token):
         owner = guard(state, token)
         now = time.time()
         if now >= next_auth:
-            incarnation = owner_identity(store, orca, owner)
-            if incarnation != owner['incarnation']:
-                raise ValueError('coor terminal incarnation이 바뀌었습니다; 명시적으로 재활성화하세요')
-            with store.edit() as state:
-                guard(state, token)
-                state['owner']['expires'] = time.time() + 90
+            renew(store, orca, token)
             next_auth = now + 30
         if owner.get('blocked'):
             raise ValueError(owner['blocked'])
@@ -1026,6 +1070,8 @@ def main():
             p.add_argument('--reason', required=True)
             if name == 'answers':
                 p.add_argument('--decision', choices=['sufficient', 'insufficient', 'conflicting'], required=True)
+            elif name == 'reconcile':
+                p.add_argument('--not-dispatched', action='store_true', help='정본 기록으로 이전 coor가 실제 배정 전 중단됐음을 수동 확인')
         else:
             for field in ('worktree', 'review-key', 'base', 'head'):
                 p.add_argument('--' + field, required=True)
@@ -1075,7 +1121,7 @@ def main():
         elif args.command == 'watch':
             token = json.load(sys.stdin)['token']
             try:
-                watch(store, github, token)
+                watch(store, github, Orca(args.orca), token)
             except (ValueError, OSError, APIError, KeyError):
                 with store.edit() as state:
                     if state['owner'] and state['owner']['token'] == token:
@@ -1094,7 +1140,8 @@ def main():
         elif args.command == 'answers':
             result = resolve_answers(store, github, args.token, args.issue_id, args.decision, args.reason)
         elif args.command in ('reconcile', 'sync'):
-            result = reconcile(store, Orca(args.orca), args.token, args.issue_id, args.reason, syncing=args.command == 'sync')
+            result = reconcile(store, Orca(args.orca), args.token, args.issue_id, args.reason,
+                               syncing=args.command == 'sync', not_dispatched=getattr(args, 'not_dispatched', False))
         elif args.command == 'complete':
             result = complete(store, github, args.token, args.issue_id, args.worktree, args.review_key, args.base, args.head, args.pr_number)
         else:

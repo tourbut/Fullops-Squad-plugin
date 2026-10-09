@@ -356,6 +356,16 @@ def main():
         mode.heartbeat(root, 'provider')
         assert store.read()['owner']['expires'] == 0  # 만료된 lease를 hook이 부활시키지 않음
         fails(lambda: mode.guard(store.read(), newer['token']))
+        fails(lambda: mode.renew(store, Orca(), newer['token']))
+        script = str(ROOT / 'plugins/fullops-squad/scripts/issue_mode.py')
+        for words in (['python3', script, '--repo', str(root), '--orca', 'orca', 'status'],
+                      ['python3', script, 'disable', '--session', 'new-coor']):
+            assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None
+        for words in (['python3', 'build.py', script, 'status'], ['python3', '-c', 'product_change()', script, 'status'],
+                      ['python3', script, '--repo', str(root / 'foreign'), 'status'],
+                      ['python3', script, 'disable', '--session', 'foreign']):
+            assert mode.boundary(root, 'provider', ' '.join(words), [], [words])
+        assert mode.boundary(root, 'provider', 'python3 build.py', [], [['python3', 'build.py']])
 
         # 실제 review gate가 실패하면 completed가 되지 않는다.
         with store.edit() as state:
@@ -399,16 +409,84 @@ def main():
         bstart.write_text(json.dumps({'provider_session': 'backlog-provider'}))
         bowner = mode.activate(bstore, Orca(), 'backlog-coor', 'backlog-run', 'term', 'backlog-provider')
         bapi.issues = [issue(20, created_at='2000-01-01T00:00:00Z')]
-        mode.poll(bstore, bapi, bowner['token'])
+        with patch.object(bapi, 'pages', wraps=bapi.pages) as pages:
+            mode.poll(bstore, bapi, bowner['token'])
+            assert 'since=' not in pages.call_args_list[0].args[0], 'initial backlog must not use an epoch date filter'
+            mode.poll(bstore, bapi, bowner['token'])
+            assert 'since=' in pages.call_args_list[1].args[0], 'subsequent polls must preserve incremental intake'
         assert bstore.read()['jobs']['120']['status'] == 'queued'
-        clock = [time.time()]
+        clock, deadlines = [time.time()], []
         def tick(_):
+            deadlines.append(bstore.read()['owner']['expires'])
             clock[0] += 61
             if clock[0] > bowner['expires']:
                 mode.stop(bstore, 'backlog-provider')
         with patch.object(mode.time, 'time', side_effect=lambda: clock[0]), patch.object(mode.time, 'sleep', side_effect=tick), patch.object(mode, 'claim', side_effect=AssertionError('poller dispatched')):
-            mode.watch(bstore, bapi, bowner['token'])
+            mode.watch(bstore, bapi, Orca(), bowner['token'])
+        assert max(deadlines) > bowner['expires'] + 60, 'busy coor must retain its lease without a foreground wait'
         assert bstore.read()['jobs']['120']['attempt'] == 0 and bapi.posts == 0
+        # 최초 backlog 수집 전에 신규 이슈 전용으로 바꾸면 과거 이슈를 실행하지 않는다.
+        new_only = root / 'new-only'
+        new_only.mkdir()
+        subprocess.run(['git', 'init', '-q', '-b', 'main', str(new_only)], check=True)
+        subprocess.run(['git', '-C', str(new_only), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
+        (new_only / '.fullops-squad').mkdir()
+        (new_only / '.fullops-squad/fullops.json').write_text((root / '.fullops-squad/fullops.json').read_text())
+        nstore, napi = mode.Store(new_only), API()
+        mode.configure(nstore, napi, 'owner/service', ['author'], backlog=True, approved=True)
+        nstart = mode.hook_path(new_only, 'new-only-provider')
+        nstart.parent.mkdir()
+        nstart.write_text(json.dumps({'provider_session': 'new-only-provider'}))
+        mode.activate(nstore, Orca(), 'new-only-coor', 'new-only-run', 'term', 'new-only-provider')
+        mode.stop(nstore, 'new-only-provider')
+        mode.configure(nstore, napi, 'owner/service', ['author'], backlog=False, approved=True)
+        nowner = mode.activate(nstore, Orca(), 'new-only-coor', 'new-only-run', 'term', 'new-only-provider')
+        deadline = nstore.read()['owner']['expires']
+        with patch.object(mode, 'owner_identity', return_value='replacement-incarnation'):
+            fails(lambda: mode.renew(nstore, Orca(), nowner['token']), 'incarnation')
+        assert nstore.read()['owner']['expires'] == deadline
+        now = time.time()
+        with nstore.edit() as state:
+            state['owner'].update(session='provider_session:new-only-provider', expires=now + 10)
+        with patch.object(mode, 'owner_identity', return_value='incarnation'), patch.object(mode.time, 'time', return_value=now):
+            for output in (None, (now - 100) * 1000, (now + 100) * 1000):
+                with patch.object(adapter, 'call', return_value={'terminal': {'lastOutputAt': output}}):
+                    mode.renew(nstore, adapter, nowner['token'], background=True)
+                assert nstore.read()['owner']['expires'] == now + 10, 'stale or missing native activity must not renew a lease'
+            with patch.object(adapter, 'call', return_value={'terminal': {'lastOutputAt': (now - 5) * 1000}}):
+                mode.renew(nstore, adapter, nowner['token'], background=True)
+            assert nstore.read()['owner']['expires'] == now + 85, 'native lease must expire within 90 seconds of activity'
+        with nstore.edit() as state:
+            state['owner']['session'] = 'new-only-coor'
+        napi.issues = [issue(21, created_at='2000-01-01T00:00:00Z'), issue(22)]
+        with patch.object(napi, 'pages', wraps=napi.pages) as pages:
+            mode.poll(nstore, napi, nowner['token'])
+            assert 'since=' in pages.call_args.args[0], 'new-only mode must use a date filter after reconfiguration'
+        assert '121' not in nstore.read()['jobs'], 'recent updates must not admit historical issues in new-only mode'
+        assert nstore.read()['jobs']['122']['status'] == 'queued'
+        pending = mode.claim(nstore, napi, nowner['token'])
+        mode.checkpoint(nstore, napi, nowner['token'], 122, 'running',
+                        receipt={'task_key': pending['task_key'], 'session': 'new-only-coor', 'received': True})
+        mode.stop(nstore, 'new-only-provider')
+        next_owner = mode.activate(nstore, Orca(), 'next-coor', 'next-run', 'term', 'new-only-provider')
+        class EmptyRun(Orca):
+            def call(self, *args):
+                return {'tasks': [], 'count': 0, 'workers': [], 'page': {'total': 0, 'hasMore': False}}
+        empty_run = EmptyRun()
+        fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'absence alone is not proof'), '수동')
+        with nstore.edit() as state:
+            state['jobs']['122']['dispatch_intents'] = [{'run': 'previous-dispatch'}]
+        fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), 'dispatch')
+        with nstore.edit() as state:
+            state['jobs']['122']['dispatch_intents'] = []
+        with patch.object(empty_run, 'call', return_value={'tasks': [], 'count': 0, 'workers': []}):
+            fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), 'dispatch')
+        mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manually verified owner stopped before dispatch', not_dispatched=True)
+        resumed = nstore.read()['jobs']['122']
+        assert resumed['status'] == 'claimed' and resumed['epoch'] == next_owner['epoch']
+        assert resumed['attempt'] == 1 and resumed['task_key'] == pending['task_key'] and resumed['receipt'] is None
+        mode.checkpoint(nstore, napi, next_owner['token'], 122, 'running',
+                        receipt={'task_key': pending['task_key'], 'session': 'next-coor', 'received': True})
         # 미확인 POST가 조회에 없을 때 재게시하지 않는다.
         with store.edit() as state:
             state['owner']['expires'] = time.time() + 90
