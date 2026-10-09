@@ -376,6 +376,64 @@ def route_key_denial(root, command):
             f'그 과제 키를 spec에 적어야 합니다. 최근 분류된 키: {recent}. 새 과제면 먼저 분류하고, 기존 과제의 후속이면 그 키를 spec에 넣으세요.')
 
 
+def native_delegation(event):
+    name = str(field(event, 'tool_name') or '').replace('__', '.').split('.')[-1]
+    return name in ('Agent', 'Task', 'spawn_agent', 'followup_task')
+
+
+def dispatch_spec(command, dispatch):
+    """직접 spec·PowerShell 변수·저장된 Task를 동일한 배정 검사 입력으로 읽는다."""
+    result = dispatch
+    variable = re.search(r'--spec\s+(\$[A-Za-z_][A-Za-z0-9_]*)\b', dispatch)
+    if variable:
+        assignment = re.search(rf'{re.escape(variable.group(1))}\s*=\s*(?:@\'([\s\S]*?)\'@|@"([\s\S]*?)"@|\'([^\']*)\'|"([^"]*)")', command)
+        if assignment:
+            result += ' ' + next(value for value in assignment.groups() if value is not None)
+    task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
+    if task:
+        run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
+        listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
+        if listing is not None:
+            found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
+            result += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')
+    return result
+
+
+def delegation_denial(root, event, state, config, starting, lead):
+    """선택 위임만 제한한다. 최상위 coor의 역할 배정과 필수 snapshot 리뷰는 유지한다."""
+    native = native_delegation(event)
+    optional = native or bool(starting and (state.get('dispatch') or (lead and config['mode'] == 'dev')))
+    if not optional:
+        return None
+    if native:
+        import issue_mode
+        if (integration.directory(root).parent / 'fullops-issues/state.sqlite').is_file():
+            automatic = issue_mode.Store(root).read()
+            owner = automatic.get('owner') or {}
+            session = field(event, 'session_id')
+            if owner.get('provider_session') == session or any(
+                    session in job.get('worker_sessions', {}) for job in automatic['jobs'].values()):
+                return '자동 이슈의 하위 작업은 권한·중지·완료를 추적할 수 있는 Orca worker-start와 자기 child Run을 사용하세요'
+        text = json.dumps(field(event, 'tool_input') or {}, ensure_ascii=False)
+    else:
+        text = '\n'.join(starting)
+    level = config['subagent_level']
+    # 필수 독립 리뷰는 기존 clean snapshot/작성자 분리 검사를 이어서 통과해야 한다.
+    mandatory_review = (not native and lead and not state.get('dispatch') and
+                        all(re.search(r'Purpose\s*:\s*review\b', item, re.I) and
+                            all(label in item for label in ('Review SHA:', 'Implementer session:', 'Reviewer session:'))
+                            for item in starting))
+    if level == 'off' and not mandatory_review:
+        return 'subagent_level=off입니다. 선택형 하위 위임 대신 직접 작업하거나 setup.py --subagent-level로 설정하세요'
+    for item in ([text] if native else starting):
+        purpose = re.search(r'Purpose\s*:\s*(research|review|implementation)\b', item, re.I)
+        if not purpose:
+            return '하위 작업에 Purpose: research|review|implementation과 파일 소유권·완료 조건을 명시하세요'
+        if level == 'lite' and purpose.group(1).lower() == 'implementation':
+            return 'subagent_level=lite는 읽기 전용 조사·리뷰만 허용합니다. 병렬 구현은 standard 또는 full을 선택하세요'
+    return None
+
+
 def tool_denial(root, event, state):
     tool = field(event, 'tool_input') or {}
     if not isinstance(tool, dict):
@@ -400,6 +458,11 @@ def tool_denial(root, event, state):
     role, designer = context(root)
     lead = primary(root, state)
     config = policy.load(root)
+    creating = operation_commands(command, 'task-create')
+    specs = {item: dispatch_spec(command, item) for item in starting + creating}
+    denial = delegation_denial(root, event, state, config, [specs[item] for item in starting], lead)
+    if denial:
+        return denial
     direct_role = config.get('primary_role') if lead and config['mode'] == 'dev' else None
     for name, content in files:
         denial = inbox_denial(root, name, content)
@@ -424,24 +487,11 @@ def tool_denial(root, event, state):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
                 '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
-    creating = operation_commands(command, 'task-create')
     for dispatch in starting:
         if '--run' not in dispatch:
             return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
     for dispatch in (starting + creating if lead else []):
-        integration_spec = dispatch
-        variable = re.search(r'--spec\s+(\$[A-Za-z_][A-Za-z0-9_]*)\b', dispatch)
-        if variable:
-            assignment = re.search(rf'{re.escape(variable.group(1))}\s*=\s*(?:@\'([\s\S]*?)\'@|@"([\s\S]*?)"@|\'([^\']*)\'|"([^"]*)")', command)
-            if assignment:
-                integration_spec += ' ' + next(value for value in assignment.groups() if value is not None)
-        task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
-        if task:
-            run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
-            listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
-            if listing is not None:
-                found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
-                integration_spec += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')
+        integration_spec = specs[dispatch]
         denial = dispatch_inbox_denial(integration_spec)
         if denial:
             return denial
@@ -534,7 +584,7 @@ def main():
                     Path(words[1].strip('\'"')).resolve() == Path(__file__).with_name('setup.py').resolve()) and '--repo' in words:
                 index = words.index('--repo')
                 if index + 1 < len(words) and Path(words[index + 1].strip('\'"')).resolve() == root and (
-                        any(flag in words for flag in ('--rollback', '--mode', '--primary-role'))):
+                        any(flag in words for flag in ('--rollback', '--mode', '--primary-role', '--test-level', '--subagent-level'))):
                     return {}
         raise
     current = [config['mode'], config.get('primary_role'), config.get('primary_branch')]
@@ -556,6 +606,7 @@ def main():
                 else 'tester' if role == marked_role(root, 'tester') else 'worker')
         brief = PRODUCT_BRIEF.get(kind, BRIEF[kind]) if product_roles(root) else BRIEF[kind]
         brief += ' ' + policy.test_brief(config['test_level'])
+        brief += ' ' + policy.subagent_brief(config['subagent_level'])
         brief += (' 현재 작업은 역할별 handovers/to_<역할>.md 한 곳에 쓴다. 다음 과제는 PLANS.md에 대기시키고, '
                   '완료하면 work.py finish로 지시서·결과 전문을 로그에 보존한 뒤 인박스를 재사용한다. '
                   '과제명 파일·pending·logs를 현재 지시서로 dispatch하지 않는다.')
@@ -595,7 +646,8 @@ def main():
                 kind = 'designer' if role == designer else 'tester' if role == marked_role(root, 'tester') else 'worker'
                 brief = PRODUCT_BRIEF.get(kind, BRIEF[kind]) if product_roles(root) else BRIEF[kind]
                 output = {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
-                          'additionalContext': brief + ' ' + policy.test_brief(config['test_level'])}}
+                          'additionalContext': brief + ' ' + policy.test_brief(config['test_level']) +
+                          ' ' + policy.subagent_brief(config['subagent_level'])}}
     elif mode == 'tool':
         denial = tool_denial(root, event, state)
         if denial:
@@ -604,7 +656,11 @@ def main():
         else:
             import issue_mode
             command, _ = targets(field(event, 'tool_input') or {})
-            issue_mode.reserve_dispatch(root, field(event, 'session_id'), shell_commands(command))
+            try:
+                issue_mode.reserve_dispatch(root, field(event, 'session_id'), shell_commands(command), context=state)
+            except (OSError, ValueError, KeyError, TypeError, issue_mode.sqlite3.Error) as error:
+                output = {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
+                                                 'permissionDecisionReason': 'FullOps: 배정 기록을 확인하지 못했습니다: ' + str(error)}}
     elif mode == 'post':
         if delivered(event, state):
             state['settled'] = True

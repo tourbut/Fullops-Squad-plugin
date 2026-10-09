@@ -5,6 +5,8 @@ description: FullOps 활성 저장소에서 사용자가 GitHub 이슈 자동 �
 
 # 선택형 이슈 작업
 
+선택형 하위 작업은 `.fullops-squad/rules/delegation.md`의 레벨·동시 예산을 적용한다. 부모 host/Dispatch와 자기 child Run을 증명하는 Orca supervised worker만 같은 이슈에 연결한다. 하위에도 현재 테스트 레벨·자동 범위를 전달하고 결과를 취합한 뒤 부모가 완료를 보고한다.
+
 사용자의 모드 활성화 요청 때만 실행한다. 이 기능 구현, 플러그인 설치·갱신, setup, 저장된 설정은 활성화 요청이 아니다. 기본 OFF이며 다른 coor를 생성하거나 선택하지 않는다. `.fullops-squad/fullops.json`이 없으면 해당 서비스 저장소의 setup을 안내한다.
 
 이 스킬 기준 `../../scripts/issue_mode.py`를 사용한다. 먼저 `fullops-orca`와 선택한 Orca 실행 파일의 실제 `skills get orchestration` 가이드를 읽는다. 기존 route → 역할 인박스 → 탐색 packet → `worker-start --run` → `worker_done` → lint/독립 리뷰 절차를 그대로 사용한다. **이 모드에서는 fullops-orca의 자동 main 병합 절을 실행하지 않는다.**

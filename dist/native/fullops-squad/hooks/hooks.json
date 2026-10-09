@@ -64,7 +64,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|apply_patch|shell|exec_command|local_shell|run_terminal_command|search_replace",
+        "matcher": "Bash|Write|Edit|MultiEdit|apply_patch|shell|exec_command|local_shell|run_terminal_command|search_replace|Agent|Task|spawn_agent|followup_task",
         "hooks": [
           {
             "type": "command",

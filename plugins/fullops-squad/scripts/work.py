@@ -69,7 +69,9 @@ def new(repo, role, key, goal, base=None, rework=False):
     content = TEMPLATE.read_text().replace("<과제 키>", key, 1).replace("<목표>", goal.strip(), 1)
     meta = {'title': f'{key} — {goal.strip()}', 'status': 'draft', 'updated': date.today().isoformat(),
             'owner': role, 'tasks': [key], 'summary': goal.strip(), 'attempt': uuid.uuid4().hex}
-    meta['test_level'] = policy.load(repo)['test_level']
+    operating = policy.load(repo)
+    meta['test_level'] = operating['test_level']
+    meta['subagent_level'] = operating['subagent_level']
     if base:
         meta['base'] = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', base + '^{commit}'], text=True).strip()
     if previous:
