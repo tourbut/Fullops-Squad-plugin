@@ -148,8 +148,12 @@ def instruction_digest(text):
 def input_identity(repo, role, key, options):
     _, text = instruction(repo, role, key)
     text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
-    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    from jev_observe import git_env, MODEL, offline
+    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True, env=git_env()).strip()
     meta = deliverables.front_matter(text) or {}
+    if str(options.get('policy', '')).startswith(('find-', 'route-', 'context-')):
+        options = {'model': MODEL, 'offline': offline(),
+                   'payload_cache_bypass': os.environ.get('FULLOPS_JEV_CACHE_BYPASS') == '1', **options}
     value = {'task_key': key, 'role': role, 'head': head, 'attempt': meta.get('attempt'),
              'instruction_sha256': instruction_digest(text), 'options': options}
     return {**value, 'input_sha256': hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()}

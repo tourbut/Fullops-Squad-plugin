@@ -33,6 +33,11 @@ def main():
             seen.clear()
             cached, _ = jev.request({'model': 'm', 'questions': {'q': 1}}, 'sk-or-test_KEY-1')
             assert cached.get('cached') and not seen  # 같은 요청은 캐시에서
+            path = jev.cache_path({'model': 'm', 'questions': {'q': 1}})
+            path.write_text(json.dumps({'note': 'TOKEN=synthetic-sensitive-value'}), encoding='utf-8')
+            safe, _ = jev.request({'model': 'm', 'questions': {'q': 1}}, 'sk-or-test_KEY-1')
+            assert not safe.get('cached') and seen  # 민감 문자열이 든 캐시는 반환·재사용하지 않는다.
+            assert 'synthetic-sensitive-value' not in path.read_text()
         finally:
             jev.subprocess.run = original
 

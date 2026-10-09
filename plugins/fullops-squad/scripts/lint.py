@@ -49,8 +49,8 @@ SECRET_OK = re.compile(r"""[:=]\s*["'](?:test|example|dummy|placeholder|changeme
 DEPENDENCY_FILES = ('package.json', 'pyproject.toml', 'requirements*.txt', 'go.mod', 'build.gradle*')
 
 
-def git(repo, *args, data=False):
-    output = subprocess.check_output(['git', '-C', str(repo), *args])
+def git(repo, *args, data=False, env=None):
+    output = subprocess.check_output(['git', '-C', str(repo), *args], env=env)
     return output if data else output.decode().strip()
 
 
@@ -149,8 +149,8 @@ def is_test(path):
             or bool({'test', 'tests', 'spec', 'specs', '__tests__'} & set(parts[:-1])))
 
 
-def changed(repo, base, head):
-    fields = git(repo, 'diff', '--name-status', '-z', '-M', '--no-ext-diff', base, head, data=True).decode().split('\0')
+def changed(repo, base, head, env=None):
+    fields = git(repo, 'diff', '--name-status', '-z', '-M', '--no-ext-diff', base, head, data=True, env=env).decode().split('\0')
     items, i = [], 0
     while i < len(fields) - 1:
         status = fields[i]

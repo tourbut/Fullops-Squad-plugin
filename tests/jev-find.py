@@ -21,14 +21,15 @@ def stub(sent, prefer, found=0.95):
         sent.append(payload)
         answers = {}
         for qid, question in payload['questions'].items():
-            labels = list(question['criteria'])
             if qid == 'exists':
-                probabilities = {'found': found, 'absent': 1 - found}
-            else:
+                answers[qid] = {'type': 'noul', 'noul': found}
+                continue
+            labels = list(question['criteria'])
+            if qid == 'where':
                 weights = {label: 0.001 for label in labels}
                 for rank, needle in enumerate(prefer):
                     for label in labels:
-                        if needle in question['criteria'][label] and weights[label] == 0.001:
+                        if needle in payload['state']['entries'][label] and weights[label] == 0.001:
                             weights[label] = [0.85, 0.1, 0.03][rank]
                 total = sum(weights.values())
                 probabilities = {label: w / total for label, w in weights.items()}
@@ -85,7 +86,7 @@ def main():
         assert result['existence']['status'] == 'found' and result['error'] is None
         assert len(sent) == 1 and set(sent[0]['questions']) == {'where', 'exists'} and 'F-1' in sent[0]['state']['task']
         assert result['usage']['cost'] == 0.0001 and result['passes'] == [{'level': 'file', 'options': len(mapped)}]
-        assert jev.find(repo, 'dev', 'F-1', stub([], ['auth/login'], found=0.1))['existence']['status'] == 'absent'
+        assert jev.find(repo, 'dev', 'F-1', stub([], ['auth/login'], found=0.1))['existence']['status'] == 'not_confirmed'
         assert jev.find(repo, 'dev', 'F-1', stub([], ['auth/login'], found=0.5))['existence']['status'] == 'unclear'
         side = repo / '.fullops-squad/handovers/F-1-dev.md'
         side.write_text('# F-1 — 사이드 지시서\n로그인만 고친다.\n', encoding='utf-8')
@@ -110,7 +111,7 @@ def main():
         def broken(payload):
             raise RuntimeError('OpenRouter request failed')
         failed = jev.find(repo, 'dev', 'F-1', broken)
-        assert failed['candidates'] == [] and failed['error'].startswith('API or response validation failed')
+        assert failed['candidates'] and failed['candidates'][0]['probability'] is None and failed['error'].startswith('API or response validation failed')
         try:
             jev.find(repo, 'dev', 'OTHER', broken)
         except ValueError:
@@ -151,7 +152,7 @@ def main():
         env = {**{k: v for k, v in os.environ.items() if k != 'OPENROUTER_API_KEY'},  # Windows는 SYSTEMROOT 등이 필요하다
                'HOME': tmp, 'FULLOPS_JEV_CACHE': str(repo / '.git/jev-cache')}
         done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
-        assert done.returncode == 0 and 'paths: \n' in done.stdout + '\n' and 'API or response' in done.stdout, done.stdout + done.stderr
+        assert done.returncode == 0 and 'local ' in done.stdout and 'API or response' in done.stdout, done.stdout + done.stderr
         assert subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8').returncode == 0
         score_cmd = [sys.executable, str(SCRIPTS / 'jev_find.py'), 'score', '--repo', tmp, '--key', 'F-1',
                      '--from', base, '--to', 'HEAD']

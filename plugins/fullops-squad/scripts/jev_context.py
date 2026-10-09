@@ -8,7 +8,7 @@ import re
 import subprocess
 import time
 
-from jev_observe import api_key, digest, excerpt, local_file, observe, request, safe_text
+from jev_observe import api_key, digest, excerpt, local_file, observe, request, safe_text, git_env
 from deliverables import front_matter
 from work import KEY, active_repo, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
 
@@ -43,7 +43,7 @@ def candidate(repo, head, rel, n, task=''):
         excerpt(raw, span)  # observe()는 후보 하나의 원문 거부로 전체 호출을 건너뛴다
     except ValueError:
         return item, 'sensitive or oversized passage'
-    saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{rel}'], capture_output=True)  # 체크아웃 변환(CRLF) 적용
+    saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{rel}'], capture_output=True, env=git_env())  # 체크아웃 변환(CRLF) 적용
     item['source'] = {'sha256': digest(raw), 'at_head': saved.returncode == 0 and saved.stdout == raw, 'span': span}
     item['total_lines'], item['partial'] = len(lines), start != 0 or end < len(lines)
     item['search_hits'] = [n + 1 for n in hits]
@@ -56,7 +56,7 @@ def context(repo, role, key, paths, call, required=(), handover=None):
     paths = list(dict.fromkeys(paths))
     if len(paths) > 20:
         raise ValueError('후보는 20개 이하로 좁히세요')
-    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True, env=git_env()).strip()
     candidates, unsent, refused = [], {}, []
     for n, name in enumerate(dict.fromkeys(paths)):
         try:

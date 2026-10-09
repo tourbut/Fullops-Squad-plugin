@@ -45,6 +45,21 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def offline():
+    return os.environ.get('FULLOPS_OFFLINE') == '1' or os.environ.get('FULLOPS_JEV_ENABLED') == '0'
+
+
+def git_env():
+    # 탐색은 로컬 객체만 읽는다. 누락 객체를 promisor remote에서 자동 fetch하지 않는다.
+    return {**os.environ, 'GIT_NO_LAZY_FETCH': '1', 'GIT_TERMINAL_PROMPT': '0',
+            'GIT_NO_REPLACE_OBJECTS': '1', **({'GIT_ALLOW_PROTOCOL': ''} if offline() else {})}
+
+
+def require_online():
+    if offline():
+        raise RuntimeError('Jev disabled: offline local search only')
+
+
 def local_file(repo, name, historical=False):
     if not isinstance(name, str) or not name or name.startswith('-'):
         raise ValueError('invalid path')
@@ -185,7 +200,7 @@ def verified_bytes(repo, head, path, spec):
         raise ValueError('source hash or size mismatch')
     if spec.get('at_head'):
         saved = subprocess.check_output(['git', '-C', str(repo), 'cat-file', '--filters',  # 체크아웃 변환(CRLF) 적용
-                                         f'{head}:{path.relative_to(repo).as_posix()}'], stderr=subprocess.DEVNULL)
+                                         f'{head}:{path.relative_to(repo).as_posix()}'], stderr=subprocess.DEVNULL, env=git_env())
         if saved != raw:
             raise ValueError('source differs from head')
     return raw
@@ -207,6 +222,8 @@ def key_from_file(path):
 
 def api_key(env_file=None, repo=None):
     """--env-file → 환경 변수 → .fullops-squad/.env 순으로 키를 찾는다. 없으면 빈 문자열."""
+    if offline():
+        return ''
     if env_file:
         return key_from_file(env_file)
     if os.environ.get('OPENROUTER_API_KEY'):
@@ -228,11 +245,16 @@ def cache_path(payload):
 def request(payload, key):
     """Same payload, same answer: Jev drifts between runs, so answers are cached by content (as Canny does)."""
     import tempfile
+    require_online()  # 응답 캐시도 읽지 않는다. offline은 의미 판단을 수행하지 않는다.
+    serialized = json.dumps(payload, ensure_ascii=False)
+    safe_text(serialized, len(serialized))
     cached = cache_path(payload)
     try:
         if os.environ.get('FULLOPS_JEV_CACHE_BYPASS') == '1':
             raise OSError('cache bypass')
-        response = json.loads(cached.read_text(encoding='utf-8'))
+        raw = cached.read_text(encoding='utf-8')
+        safe_text(raw, len(raw))
+        response = json.loads(raw)
         response['usage'] = {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}  # no new spend
         response['cached'] = True
         return response, 0.0
@@ -256,6 +278,7 @@ def request(payload, key):
         os.unlink(body)
     if result.returncode:
         raise RuntimeError('OpenRouter request failed')
+    safe_text(result.stdout, len(result.stdout))
     response = json.loads(result.stdout)
     try:  # a cache that cannot be written is not an error; the answer is already in hand
         cached.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -275,7 +298,7 @@ def observe(data, repo, call):
     head = data.get('head')
     if not isinstance(head, str) or not re.fullmatch(r'[0-9a-f]{40}', head):
         raise ValueError('full head SHA is required')
-    actual = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', head + '^{commit}'], text=True).strip()
+    actual = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', head + '^{commit}'], text=True, env=git_env()).strip()
     if actual != head:
         raise ValueError('head SHA does not resolve exactly')
     input_hash = digest(json.dumps(data, sort_keys=True, ensure_ascii=False).encode())
@@ -406,6 +429,10 @@ def observe(data, repo, call):
                'context': context, 'evidence_checks': evidence_checks, 'claims': verdicts,
                'usage': None, 'latency_seconds': None,
                'response_model': None, 'error': None}
+    if offline():
+        context['fallback'] = 'Jev disabled: offline local search only'
+        outcome['semantic_search'] = False
+        return outcome
     sensitive = any(check.get('reason') in ('sensitive path', 'symlink path',
                     'sensitive or invalid input text') for check in evidence_checks.values())
     if context['missing_required_paths'] or context['fallback'] or sensitive:
