@@ -322,7 +322,22 @@ def main():
         with patch.object(mode.integration, 'orca', return_value=authority):
             assert mode.boundary(root, 'worker', ' '.join(nested), [], [nested], context) is None
             assert 'child-run' not in store.read()['jobs']['101'].get('child_runs', {})  # validation does not reserve
+        # A fresh worker proof is saved after the reserve snapshot, then checked inside the writer.
+        with store.edit() as state:
+            state['jobs']['101']['worker_sessions'].pop('worker')
+        with patch.object(mode.integration, 'orca', side_effect=[projection, listing, authority]):
             mode.reserve_dispatch(root, 'worker', [nested], context=context)
+        parent_session_binding = deepcopy(store.read()['jobs']['101']['worker_sessions']['worker'])
+        def changed_parent(*args, **kwargs):
+            with store.edit() as state:
+                state['jobs']['101']['worker_sessions']['worker']['dispatch'] = 'replacement-dispatch'
+            return authority
+        before_intents = store.read()['jobs']['101']['dispatch_intents']
+        with patch.object(mode.integration, 'orca', side_effect=changed_parent):
+            fails(lambda: mode.reserve_dispatch(root, 'worker', [nested], context=context), '부모 worker')
+        assert store.read()['jobs']['101']['dispatch_intents'] == before_intents
+        with store.edit() as state:
+            state['jobs']['101']['worker_sessions']['worker'] = parent_session_binding
         parent_binding = store.read()['jobs']['101']['child_runs']['child-run']
         assert parent_binding == {'epoch': owner['epoch'], 'parent_dispatch': 'ctx_auto',
                                   'parent_session': 'worker', 'task_key': resumed['task_key']}
@@ -370,14 +385,23 @@ def main():
         class NestedOrca:
             child_status = 'running'
             child_page = {'total': 1, 'hasMore': False}
+            child_task_count = 1
+            child_task_page = None
+            extra_worker = False
             def call(self, *args):
                 child = args[-1] == 'child-run'
                 task_id = 'task_child' if child else 'task_auto'
                 status = self.child_status if child else 'completed'
                 if 'task-list' in args:
-                    return {'tasks': [{'id': task_id, 'status': status, 'spec': resumed['task_key']}]}
-                return {'workers': [{'taskId': task_id, 'projection': {'liveness': {'verdict': 'live' if status == 'running' else 'exited'}}}],
-                        'page': self.child_page if child else {'total': 1, 'hasMore': False}}
+                    result = {'tasks': [{'id': task_id, 'status': status, 'spec': resumed['task_key']}],
+                              'count': self.child_task_count if child else 1}
+                    if child and self.child_task_page is not None:
+                        result['page'] = self.child_task_page
+                    return result
+                workers = [{'taskId': task_id, 'projection': {'liveness': {'verdict': 'live' if status == 'running' else 'exited'}}}]
+                if child and self.extra_worker:
+                    workers.append({'taskId': 'new-task-after-listing', 'projection': {'liveness': {'verdict': 'live'}}})
+                return {'workers': workers, 'page': self.child_page if child else {'total': 1, 'hasMore': False}}
         nested_runtime = NestedOrca()
         mode.reconcile(store, nested_runtime, token, 101, 'parent exited, child live', syncing=True)
         assert not store.read()['jobs']['101']['settled']
@@ -389,6 +413,17 @@ def main():
             state['jobs']['101']['status'] = 'reviewing'
         fails(lambda: mode.complete(store, api, token, 101, root, 'key', 'base', 'head', 1), '종료')
         nested_runtime.child_status = 'completed'
+        for count, page in ((2, None), (None, None), (1, {'hasMore': True, 'total': 2}),
+                            (1, {'hasMore': False, 'total': 2})):
+            nested_runtime.child_task_count, nested_runtime.child_task_page = count, page
+            fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'truncated child tasks', syncing=True), '하위')
+            assert not store.read()['jobs']['101']['settled']
+        nested_runtime.child_task_count, nested_runtime.child_task_page = 1, {'hasMore': False, 'total': 1}
+        nested_runtime.extra_worker = True
+        nested_runtime.child_page = {'total': 2, 'hasMore': False}
+        fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'worker started after task listing', syncing=True), '하위')
+        assert not store.read()['jobs']['101']['settled']
+        nested_runtime.extra_worker = False
         for page in ({}, {'total': 1, 'hasMore': True}, {'total': 2, 'hasMore': False}):
             nested_runtime.child_page = page
             fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'unknown child fleet', syncing=True), '하위')

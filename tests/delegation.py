@@ -75,6 +75,18 @@ class Delegation(unittest.TestCase):
         event['session_id'] = 'manual'
         self.assertIsNone(flow_gate.delegation_denial(self.repo, event, {}, self.config, [], True))
 
+    def test_saved_task_and_variable_specs_reach_optional_policy(self):
+        dispatch = 'orca orchestration worker-start --run r --spec $instructions'
+        command = "$instructions = 'Task key: K; Purpose: research; read only'; " + dispatch
+        spec = flow_gate.dispatch_spec(command, dispatch)
+        self.assertIsNone(flow_gate.delegation_denial(self.repo, {}, {'dispatch': 'parent'}, self.config, [spec], False))
+        dispatch = 'orca orchestration worker-start --run r --task task_saved'
+        review = 'Task key: K; Purpose: review; Review SHA: abc; Implementer session: a; Reviewer session: b'
+        with patch.object(flow_gate, 'orca', return_value={'tasks': [{'id': 'task_saved', 'spec': review}]}):
+            spec = flow_gate.dispatch_spec(dispatch, dispatch)
+        config = {**self.config, 'mode': 'dev', 'subagent_level': 'off'}
+        self.assertIsNone(flow_gate.delegation_denial(self.repo, {}, {}, config, [spec], True))
+
     def test_session_and_dispatch_briefs_include_both_policies(self):
         self.config['test_level'] = 'exhaustive'
         self.config['subagent_level'] = 'standard'

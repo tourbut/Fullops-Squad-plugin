@@ -711,6 +711,9 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     live = any(t.get('status') not in ('completed', 'failed', 'cancelled') for t in relevant)
     failed = any(t.get('status') in ('failed', 'cancelled') for t in relevant)
     entries = workers.get('workers') or []
+    listed_ids = {t.get('id') for t in tasks} - {None}
+    if any(w.get('taskId') not in listed_ids for w in entries):
+        raise ValueError('Run의 worker와 전체 task 목록이 일치하지 않습니다; 다시 sync하세요')
     # 예전 런타임/미확인 fleet의 부재는 종료 증거가 아니다.
     task_ids = {t.get('id') for t in relevant} - {None}
     relevant_workers = [w for w in entries if w.get('taskId') in task_ids]
@@ -722,13 +725,25 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
         if binding.get('task_key') != job['task_key']:
             continue
         child_tasks = orca.call('orchestration', 'task-list', '--run', child_run)
+        listed_tasks = child_tasks.get('tasks')
+        task_page = child_tasks.get('page')
+        if (not isinstance(listed_tasks, list) or type(child_tasks.get('count')) is not int or
+                child_tasks['count'] != len(listed_tasks) or
+                (task_page is not None and (not isinstance(task_page, dict) or
+                 task_page.get('hasMore') is not False or
+                 ('total' in task_page and (type(task_page['total']) is not int or
+                                           task_page['total'] != len(listed_tasks)))))):
+            raise ValueError('하위 Run의 전체 task 목록을 확인하지 못했습니다')
         fleet = orca.call('orchestration', 'worker-list', '--run', child_run)
         entries = fleet.get('workers')
         page = fleet.get('page') or {}
         if (not isinstance(entries, list) or page.get('hasMore') is not False or
                 type(page.get('total')) is not int or page['total'] != len(entries)):
             raise ValueError('하위 Run의 전체 worker receipt를 확인하지 못했습니다')
-        relevant_children = [t for t in child_tasks.get('tasks', [])
+        listed_ids = {t.get('id') for t in listed_tasks} - {None}
+        if any(w.get('taskId') not in listed_ids for w in entries):
+            raise ValueError('하위 Run의 worker와 전체 task 목록이 일치하지 않습니다; 다시 sync하세요')
+        relevant_children = [t for t in listed_tasks
                              if integration.key_present(job['task_key'], str(t.get('spec') or ''))]
         if not relevant_children:
             raise ValueError('하위 task 부재는 종료 증거가 아닙니다; 수동 확인 필요')
@@ -1024,6 +1039,12 @@ def reserve_dispatch(repo, session, commands, context=None):
                 current.get('receipt') != job.get('receipt') or
                 current.get('child_runs') != job.get('child_runs')):
             raise ValueError('하위 배정 중 owner/attempt/작업 상태가 바뀌었습니다')
+        if not coordinator:
+            parent_binding = current.get('worker_sessions', {}).get(session) or {}
+            if (parent_binding.get('dispatch') != (context or {}).get('dispatch') or
+                    parent_binding.get('task') != (context or {}).get('task') or
+                    parent_binding.get('epoch') != epoch or parent_binding.get('task_key') != current['task_key']):
+                raise ValueError('하위 배정 중 부모 worker의 dispatch/task binding이 바뀌었습니다')
         if (str(current['snapshot']['user']['id']) not in state['config']['allowed'] or
                 time.time() - current.get('started', time.time()) > state['config']['max_seconds'] or
                 current['tokens'] > state['config']['max_tokens']):

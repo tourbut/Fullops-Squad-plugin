@@ -381,6 +381,24 @@ def native_delegation(event):
     return name in ('Agent', 'Task', 'spawn_agent', 'followup_task')
 
 
+def dispatch_spec(command, dispatch):
+    """직접 spec·PowerShell 변수·저장된 Task를 동일한 배정 검사 입력으로 읽는다."""
+    result = dispatch
+    variable = re.search(r'--spec\s+(\$[A-Za-z_][A-Za-z0-9_]*)\b', dispatch)
+    if variable:
+        assignment = re.search(rf'{re.escape(variable.group(1))}\s*=\s*(?:@\'([\s\S]*?)\'@|@"([\s\S]*?)"@|\'([^\']*)\'|"([^"]*)")', command)
+        if assignment:
+            result += ' ' + next(value for value in assignment.groups() if value is not None)
+    task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
+    if task:
+        run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
+        listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
+        if listing is not None:
+            found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
+            result += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')
+    return result
+
+
 def delegation_denial(root, event, state, config, starting, lead):
     """선택 위임만 제한한다. 최상위 coor의 역할 배정과 필수 snapshot 리뷰는 유지한다."""
     native = native_delegation(event)
@@ -440,7 +458,9 @@ def tool_denial(root, event, state):
     role, designer = context(root)
     lead = primary(root, state)
     config = policy.load(root)
-    denial = delegation_denial(root, event, state, config, starting, lead)
+    creating = operation_commands(command, 'task-create')
+    specs = {item: dispatch_spec(command, item) for item in starting + creating}
+    denial = delegation_denial(root, event, state, config, [specs[item] for item in starting], lead)
     if denial:
         return denial
     direct_role = config.get('primary_role') if lead and config['mode'] == 'dev' else None
@@ -467,24 +487,11 @@ def tool_denial(root, event, state):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
                 '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
-    creating = operation_commands(command, 'task-create')
     for dispatch in starting:
         if '--run' not in dispatch:
             return '`worker-start`에 `--run <run id>`를 붙이세요. 없으면 완료 보고가 다른 Run으로 갈 수 있습니다.'
     for dispatch in (starting + creating if lead else []):
-        integration_spec = dispatch
-        variable = re.search(r'--spec\s+(\$[A-Za-z_][A-Za-z0-9_]*)\b', dispatch)
-        if variable:
-            assignment = re.search(rf'{re.escape(variable.group(1))}\s*=\s*(?:@\'([\s\S]*?)\'@|@"([\s\S]*?)"@|\'([^\']*)\'|"([^"]*)")', command)
-            if assignment:
-                integration_spec += ' ' + next(value for value in assignment.groups() if value is not None)
-        task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
-        if task:
-            run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
-            listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
-            if listing is not None:
-                found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
-                integration_spec += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')
+        integration_spec = specs[dispatch]
         denial = dispatch_inbox_denial(integration_spec)
         if denial:
             return denial
