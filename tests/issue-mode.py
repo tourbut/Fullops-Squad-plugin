@@ -399,7 +399,11 @@ def main():
         bstart.write_text(json.dumps({'provider_session': 'backlog-provider'}))
         bowner = mode.activate(bstore, Orca(), 'backlog-coor', 'backlog-run', 'term', 'backlog-provider')
         bapi.issues = [issue(20, created_at='2000-01-01T00:00:00Z')]
-        mode.poll(bstore, bapi, bowner['token'])
+        with patch.object(bapi, 'pages', wraps=bapi.pages) as pages:
+            mode.poll(bstore, bapi, bowner['token'])
+            assert 'since=' not in pages.call_args_list[0].args[0], 'initial backlog must not use an epoch date filter'
+            mode.poll(bstore, bapi, bowner['token'])
+            assert 'since=' in pages.call_args_list[1].args[0], 'subsequent polls must preserve incremental intake'
         assert bstore.read()['jobs']['120']['status'] == 'queued'
         clock = [time.time()]
         def tick(_):

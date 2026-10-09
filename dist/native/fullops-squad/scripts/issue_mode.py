@@ -348,8 +348,10 @@ def poll(store, github, token):
     if saved['owner']['paused']:
         return
     config = saved['config']
-    since = iso(timestamp(saved['cursor']) - 1)  # 같은 초 경계와 오프라인 복귀를 포함한다.
-    path = f"/repos/{config['repository']}/issues?state=all&sort=created&direction=asc&per_page=100&since={since}"
+    path = f"/repos/{config['repository']}/issues?state=all&sort=created&direction=asc&per_page=100"
+    # Initial backlog is an unfiltered listing; GitHub can return no rows for epoch date filters.
+    if saved['cursor'] != '1970-01-01T00:00:00Z':
+        path += '&since=' + iso(timestamp(saved['cursor']) - 1)
     issues, cache = github.pages(path, safe_pages(saved['pages']))
     # 모든 네트워크 결과가 준비된 뒤 cursor와 enqueue를 함께 commit한다.
     with store.edit() as state:
