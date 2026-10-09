@@ -464,6 +464,29 @@ def main():
             assert 'since=' in pages.call_args.args[0], 'new-only mode must use a date filter after reconfiguration'
         assert '121' not in nstore.read()['jobs'], 'recent updates must not admit historical issues in new-only mode'
         assert nstore.read()['jobs']['122']['status'] == 'queued'
+        pending = mode.claim(nstore, napi, nowner['token'])
+        mode.checkpoint(nstore, napi, nowner['token'], 122, 'running',
+                        receipt={'task_key': pending['task_key'], 'session': 'new-only-coor', 'received': True})
+        mode.stop(nstore, 'new-only-provider')
+        next_owner = mode.activate(nstore, Orca(), 'next-coor', 'next-run', 'term', 'new-only-provider')
+        class EmptyRun(Orca):
+            def call(self, *args):
+                return {'tasks': [], 'count': 0, 'workers': [], 'page': {'total': 0, 'hasMore': False}}
+        empty_run = EmptyRun()
+        fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'absence alone is not proof'), '수동')
+        with nstore.edit() as state:
+            state['jobs']['122']['dispatch_intents'] = [{'run': 'previous-dispatch'}]
+        fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), 'dispatch')
+        with nstore.edit() as state:
+            state['jobs']['122']['dispatch_intents'] = []
+        with patch.object(empty_run, 'call', return_value={'tasks': [], 'count': 0, 'workers': []}):
+            fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), 'dispatch')
+        mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manually verified owner stopped before dispatch', not_dispatched=True)
+        resumed = nstore.read()['jobs']['122']
+        assert resumed['status'] == 'claimed' and resumed['epoch'] == next_owner['epoch']
+        assert resumed['attempt'] == 1 and resumed['task_key'] == pending['task_key'] and resumed['receipt'] is None
+        mode.checkpoint(nstore, napi, next_owner['token'], 122, 'running',
+                        receipt={'task_key': pending['task_key'], 'session': 'next-coor', 'received': True})
         # 미확인 POST가 조회에 없을 때 재게시하지 않는다.
         with store.edit() as state:
             state['owner']['expires'] = time.time() + 90

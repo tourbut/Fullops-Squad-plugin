@@ -47,3 +47,5 @@ wait의 `answer_candidates`는 같은 이슈 원 작성자 stable ID이며 현�
 `complete --token-file <lease JSON 경로> --issue-id <id> --worktree <검증 체크아웃> --review-key <키> --base <SHA> --head <SHA> --pr-number <번호>`가 review gate와 draft/base/head/repository를 확인한 뒤만 completed이다. 사용자에게 의미 있는 시작·블로커·완료를 알리고 주기 성공 댓글은 남기지 않는다.
 
 `pause|resume|disable --session <enable에 사용한 session>`과 `status`를 사용한다. pause는 수집/새 claim을 멈추며 진행 worker는 별도 자연 경계 정책으로 처리한다. SessionEnd는 OFF, crash/접속 불명확은 lease 만료로 차단된다. 종료된 coor를 자동 재기동하지 않는다. 새 coor는 사용자가 명시적으로 enable하며 기존 active attempt는 reconciling이다. `reconcile --token-file <새 lease JSON 경로> --issue-id <id> --reason <정본 task/worker/receipt 확인 근거>`에서 기존 Run을 조회한 뒤 기존 작업을 인계한다. worker 부재/unverifiable는 재실행 허가가 아니다. 질문·댓글·대기열·증거는 보존하고 사람의 worktree/dirty 파일은 삭제하지 않는다.
+
+이전 coor가 실제 worker 배정 전에 중단됐음을 수신 receipt·명령 기록·종료 증거로 수동 확인한 경우에만 `reconcile --not-dispatched --token-file <새 lease JSON 경로> --issue-id <id> --reason <확인 근거>`를 쓴다. dispatch intent가 없고 기존 Run의 task/worker 전체 조회가 모두 명시적 0건일 때만 같은 attempt를 claimed로 인계한다. 단순 조회 부재만으로 이 옵션을 선택하지 않는다. 이전 receipt는 이력으로 보존하며 현재 coor가 새 수신 receipt로 running checkpoint를 기록한다.

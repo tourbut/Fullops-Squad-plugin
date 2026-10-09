@@ -673,7 +673,7 @@ def resolve_answers(store, github, token, identifier, decision, reason):
         # 다음 claim이 새 attempt를 발행한다. 기존 검색/지시/packet은 같은 시도로 재사용하지 않는다.
 
 
-def reconcile(store, orca, token, identifier, reason, syncing=False):
+def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatched=False):
     if not reason.strip():
         raise ValueError('기존 task/worker/receipt 확인 근거가 필요합니다')
     saved = store.read()
@@ -684,10 +684,26 @@ def reconcile(store, orca, token, identifier, reason, syncing=False):
     run = job.get('run')
     if not run:
         raise ValueError('기존 Run identity가 없어 재배정하지 않습니다. 수동 확인 필요')
-    tasks = orca.call('orchestration', 'task-list', '--run', run).get('tasks') or []
+    task_listing = orca.call('orchestration', 'task-list', '--run', run)
+    tasks = task_listing.get('tasks') or []
     workers = orca.call('orchestration', 'worker-list', '--run', run)
     if workers.get('page', {}).get('hasMore'):
         raise ValueError('전체 worker receipt를 확인하지 못했습니다. 다음 페이지 확인 필요')
+    if not_dispatched:
+        if (syncing or job.get('dispatch_intents') or tasks or workers.get('workers') or
+                task_listing.get('count') != 0 or workers.get('page', {}).get('total') != 0 or
+                workers.get('page', {}).get('hasMore') is not False):
+            raise ValueError('dispatch 이력 또는 task/worker 조회 불확실성 때문에 미배정 복구를 허용하지 않습니다')
+        with store.edit() as state:
+            owner = guard(state, token)
+            current = state['jobs'][str(identifier)]
+            if current['status'] != 'reconciling' or current.get('dispatch_intents') or current['digest'] != job['digest']:
+                raise ValueError('dispatch 또는 인계 상태가 바뀌었습니다; 다시 확인하세요')
+            current['history'].append({'phase': 'reconciled_not_dispatched', 'reason': reason,
+                                       'run': run, 'tasks': task_listing, 'workers': workers, 'receipt': current.get('receipt')})
+            current.update(status='claimed', epoch=owner['epoch'], run=owner['run'], receipt=None,
+                           reason=reason, resume='현재 coor의 새 수신 receipt로 running checkpoint')
+        return
     relevant = [t for t in tasks if integration.key_present(job['task_key'], str(t.get('spec') or ''))]
     if not relevant:
         raise ValueError('기존 task의 부재는 실행하지 않았다는 증거가 아닙니다; 수동 확인 필요')
@@ -1054,6 +1070,8 @@ def main():
             p.add_argument('--reason', required=True)
             if name == 'answers':
                 p.add_argument('--decision', choices=['sufficient', 'insufficient', 'conflicting'], required=True)
+            elif name == 'reconcile':
+                p.add_argument('--not-dispatched', action='store_true', help='정본 기록으로 이전 coor가 실제 배정 전 중단됐음을 수동 확인')
         else:
             for field in ('worktree', 'review-key', 'base', 'head'):
                 p.add_argument('--' + field, required=True)
@@ -1122,7 +1140,8 @@ def main():
         elif args.command == 'answers':
             result = resolve_answers(store, github, args.token, args.issue_id, args.decision, args.reason)
         elif args.command in ('reconcile', 'sync'):
-            result = reconcile(store, Orca(args.orca), args.token, args.issue_id, args.reason, syncing=args.command == 'sync')
+            result = reconcile(store, Orca(args.orca), args.token, args.issue_id, args.reason,
+                               syncing=args.command == 'sync', not_dispatched=getattr(args, 'not_dispatched', False))
         elif args.command == 'complete':
             result = complete(store, github, args.token, args.issue_id, args.worktree, args.review_key, args.base, args.head, args.pr_number)
         else:
