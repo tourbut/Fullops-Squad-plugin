@@ -5,11 +5,20 @@ import re
 import subprocess
 
 
-LEVELS = ('lite', 'standard', 'full')
+LEVELS = ('minimal', 'lite', 'standard', 'full', 'exhaustive')
+SUBAGENT_LEVELS = ('off', 'lite', 'standard', 'full')
 TEST_BRIEF = {
+    'minimal': '기동과 변경 경로의 스모크 검사만 수행한다.',
     'lite': '변경한 핵심 동작과 필요한 실패 경계만 짧게 검증한다. 사소한 문구 변경에는 새 테스트를 만들지 않는다.',
     'standard': '변경 동작·실패 경계와 영향을 받는 연동의 회귀를 검증한다.',
-    'full': '안정된 통합 후보에서 전체 회귀와 필요한 통합·수락 검사를 담당자별로 한 번 수행한다.',
+    'full': '안정된 통합 후보에서 전체 자동 회귀와 필요한 통합·수락 검사를 담당자별로 한 번 수행한다.',
+    'exhaustive': 'full 범위에 프로젝트에 필요한 E2E·성능·장시간·환경 검수를 더해 안정된 후보에서 한 번 수행한다.',
+}
+SUBAGENT_BRIEF = {
+    'off': '선택형 하위 위임을 사용하지 않는다.',
+    'lite': '독립 조사·리뷰 하위 에이전트를 최대 1개 활용한다.',
+    'standard': '파일 소유를 분리한 병렬 구현을 포함해 하위 에이전트를 최대 2개 활용한다.',
+    'full': '독립 작업의 하위 에이전트를 최대 4개 활용한다.',
 }
 
 
@@ -27,17 +36,20 @@ def validate(config):
         raise PolicyError('FullOps 설정의 schema_version·roles를 확인하세요')
     mode = config.get('mode', 'coor')
     level = config.get('test_level', 'standard')
+    subagent_level = config.get('subagent_level', 'off')
     if mode not in ('coor', 'dev'):
         raise PolicyError('mode는 coor 또는 dev여야 합니다. setup.py --mode로 수정하세요')
     if level not in LEVELS:
-        raise PolicyError('test_level은 lite, standard 또는 full이어야 합니다')
+        raise PolicyError('test_level은 ' + ', '.join(LEVELS) + ' 중 하나여야 합니다')
+    if subagent_level not in SUBAGENT_LEVELS:
+        raise PolicyError('subagent_level은 ' + ', '.join(SUBAGENT_LEVELS) + ' 중 하나여야 합니다')
     role, branch = config.get('primary_role'), config.get('primary_branch')
     if role is not None and (not isinstance(role, str) or role not in config.get('roles', {})):
         raise PolicyError('primary_role은 등록된 역할이어야 합니다')
     if mode == 'dev' and (not role or not isinstance(branch, str) or branch == 'HEAD' or
                          not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*', branch)):
         raise PolicyError('dev 모드의 primary_role·primary_branch를 setup.py에서 지정하세요')
-    return {**config, 'mode': mode, 'test_level': level}
+    return {**config, 'mode': mode, 'test_level': level, 'subagent_level': subagent_level}
 
 
 def load(root):
@@ -76,9 +88,19 @@ def command_selected(command, level):
         raise PolicyError('검사 test_level·required(boolean)를 확인하세요')
     minimum = command.get('level')
     if minimum is not None and (minimum not in LEVELS or command.get('kind') != 'test'):
-        raise PolicyError('검사 level은 test 명령의 lite, standard, full만 허용합니다')
+        raise PolicyError('검사 level은 test 명령의 ' + ', '.join(LEVELS) + '만 허용합니다')
     # Untagged commands remain mandatory; adopting levels cannot silently weaken an existing gate.
     return minimum is None or command.get('required', False) or LEVELS.index(minimum) <= LEVELS.index(level)
+
+
+def subagent_brief(level):
+    if level not in SUBAGENT_LEVELS:
+        raise PolicyError('알 수 없는 하위 에이전트 레벨')
+    return (f'하위 에이전트 레벨 {level}: {SUBAGENT_BRIEF[level]} 테스트 레벨과 독립된 선택형 위임 예산이며 '
+            '호스트 전체 프로세스의 강제 제한이 아니다. 필수 역할 배정·독립 리뷰는 별도 계약으로 유지한다. '
+            '하위 에이전트는 부모 권한·테스트 레벨을 상속하고 런타임 깊이 제한을 따른다. '
+            '위임 전 rules/delegation.md를 읽고 지시에 Purpose: research|review|implementation을 선언한다. '
+            '부모는 결과를 취합하고 완료 전에 하위 작업을 회수한다.')
 
 
 def at_ref(root, ref):

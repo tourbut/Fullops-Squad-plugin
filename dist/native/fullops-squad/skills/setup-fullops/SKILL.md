@@ -5,9 +5,9 @@ description: 사용자가 현재 레포에 FullOps Squad 하네스 setup 또는 
 
 # 레포별 setup
 
-운영 모드는 `coor`(주 담당 조율·위임)와 `dev`(주 담당 직접 개발·필요 전문가 호출) 중 선택한다. 신규 coor 구성은 `coor designer dev ops tester`를 먼저 제안하고 사용자가 추가·제외·이름 변경한 역할로 실행한다. 고정 필수 역할 세트가 아니며 기존 역할·모델·effort·브랜치 구성을 우선한다. 신규 테스트 기본값은 `lite`이며 `standard`·`full`도 선택할 수 있다. 누락된 기존 설정은 coor/standard로 읽는다. 모드 선택이 없으면 기존 모드를 유지한다.
+운영 모드는 `coor`(주 담당 조율·위임)와 `dev`(주 담당 직접 개발·필요 전문가 호출) 중 선택한다. 신규 coor 구성은 `coor designer dev ops tester`를 먼저 제안하고 사용자가 추가·제외·이름 변경한 역할로 실행한다. 고정 필수 역할 세트가 아니며 기존 역할·모델·effort·브랜치 구성을 우선한다. 테스트는 minimal·lite·standard·full·exhaustive, 하위 에이전트는 off·lite·standard·full 중 별도로 선택한다. 신규 기본값은 두 설정 모두 lite다. 기존 설정 누락은 coor/standard/subagent off로 읽으며 선택하지 않은 기존 값은 유지한다.
 
-`setup.py --mode <coor|dev> --primary-role <등록 역할> --test-level <lite|standard|full>`를 기존 setup 옵션에 추가한다. dev 주 담당 기본 역할은 dev이며 전환 체크아웃의 브랜치와 등록 역할 별칭을 기록한다. 기술 계획·코드 작성 권한과 제품 범위 판단 책임을 구분해 배정표에 적는다. 실제 worker 위임은 아래 역할 인박스 계약을 유지한다.
+`setup.py --mode <coor|dev> --primary-role <등록 역할> --test-level <minimal|lite|standard|full|exhaustive> --subagent-level <off|lite|standard|full>` 중 변경할 옵션을 기존 setup 옵션에 추가한다. 테스트 범위는 rules/common/testing.md, 선택형 위임은 rules/delegation.md가 정본이다. dev 주 담당 기본 역할은 dev이며 전환 체크아웃의 브랜치와 등록 역할 별칭을 기록한다. 기술 계획·코드 작성 권한과 제품 범위 판단 책임을 구분해 배정표에 적는다. 실제 worker 위임은 아래 역할 인박스 계약을 유지한다.
 
 기존 coor → dev 전환은 요청받았을 때만 수행한다. `--dry-run --verbose`로 책임·변경 파일을 확인하고 작업 공간의 dirty/untracked, 활성 dispatch/run, 미처리 메시지, 진행 리뷰·통합·hold를 해결한 작업 경계에서 실행한다. 전환 원본 백업과 공용 복구 기록은 Git common-dir에 남으며 중단 중에는 새 작업이 차단된다. 같은 옵션으로 재시도하거나 같은 체크아웃에서 `--rollback`으로 원본을 복구한다. 복구 중 사용자 변경은 덮어쓰지 않는다. 완료 후 새 세션을 열고 기존 worker 공간은 다음 배정 전에 준비 커밋을 동기화한다. 일반 dev → coor 전환은 이 기능 범위 밖이다.
 

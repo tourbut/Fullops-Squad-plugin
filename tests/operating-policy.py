@@ -58,15 +58,20 @@ class OperatingPolicy(unittest.TestCase):
 
     def test_defaults_legacy_and_invalid_values(self):
         self.assertEqual(policy.load(self.repo)['test_level'], 'lite')
+        self.assertEqual(policy.load(self.repo)['subagent_level'], 'lite')
         self.assertEqual(jev_route.coordinator_role(self.repo), 'coor')
         self.assertEqual(jev_route.marked_role(self.repo, 'tester'), 'tester')
         path = self.repo / '.fullops-squad/fullops.json'
         old = self.config()
-        for key in ('mode', 'primary_role', 'test_level'):
+        for key in ('mode', 'primary_role', 'test_level', 'subagent_level'):
             old.pop(key, None)
         storage.write_json(path, old)
         self.assertEqual((policy.load(self.repo)['mode'], policy.load(self.repo)['test_level']), ('coor', 'standard'))
-        for key in ('mode', 'test_level'):
+        self.assertEqual(policy.load(self.repo)['subagent_level'], 'off')
+        # An ordinary setup update must not opt a legacy repository into delegation.
+        self.apply(local_only=True)
+        self.assertEqual(policy.load(self.repo)['subagent_level'], 'off')
+        for key in ('mode', 'test_level', 'subagent_level'):
             storage.write_json(path, {**old, key: 'unknown'})
             with self.assertRaises(policy.PolicyError):
                 work.active_repo(self.repo)
@@ -90,7 +95,7 @@ class OperatingPolicy(unittest.TestCase):
         agents.write_text(content + '\nUSER MODEL CHOICE\n', encoding='utf-8')
         self.commit()
         before = self.snapshot()
-        options = {'local_only': True, 'mode': 'dev', 'test_level': 'lite'}
+        options = {'local_only': True, 'mode': 'dev', 'test_level': 'minimal', 'subagent_level': 'standard'}
         self.apply(dry_run=True, verbose=True, **options)
         self.assertEqual(before, self.snapshot())
         original = setup.atomic_write
@@ -118,6 +123,8 @@ class OperatingPolicy(unittest.TestCase):
                 self.apply(**options)
         self.apply(**options)
         self.assertEqual(policy.load(self.repo)['mode'], 'dev')
+        self.assertEqual(policy.load(self.repo)['test_level'], 'minimal')
+        self.assertEqual(policy.load(self.repo)['subagent_level'], 'standard')
         self.assertIn('USER MODEL CHOICE', agents.read_text(encoding='utf-8'))
         self.assertEqual(json.loads(before['.fullops-squad/fullops.json'])['roles'], policy.load(self.repo)['roles'])
         self.assertEqual(self.apply(**options), [])
@@ -188,25 +195,54 @@ class OperatingPolicy(unittest.TestCase):
         jev_route.classify(self.repo, 'K', 'implement existing requirement', classify)
 
     def test_levels_run_required_and_reject_branch_weakening(self):
+        self.assertEqual(policy.LEVELS, ('minimal', 'lite', 'standard', 'full', 'exhaustive'))
         commands = [{'name': level, 'kind': 'test', 'level': level, 'run': [sys.executable, '-c', 'print("ok")']}
                     for level in policy.LEVELS]
-        commands += [{'name': 'security', 'kind': 'test', 'level': 'full', 'required': True,
-                      'run': [sys.executable, '-c', 'print("security")']}]
+        commands += [{'name': 'security', 'kind': 'test', 'level': 'exhaustive', 'required': True,
+                      'run': [sys.executable, '-c', 'print("security")']},
+                     {'name': 'existing', 'kind': 'test', 'run': [sys.executable, '-c', 'print("existing")']}]
+        for index, level in enumerate(policy.LEVELS):
+            with self.subTest(level=level):
+                self.assertEqual([policy.command_selected(command, level) for command in commands],
+                                 [i <= index for i in range(5)] + [True, True])
+                self.assertIn(level, policy.test_brief(level))
         config_path = self.repo / lint.CONFIG
         settings = json.loads(config_path.read_text())
         storage.write_json(config_path, {**settings, 'commands': commands})
         base = self.commit()
-        self.config(test_level='full')
+        self.config(test_level='exhaustive')
         head = self.commit()
         result = lint.lint(self.repo, base)
         self.assertEqual(result['head'], head)
         self.assertEqual(result['test_level'], 'lite')
-        self.assertEqual([c['status'] for c in result['commands']], ['passed', 'skipped', 'skipped', 'passed'])
+        self.assertEqual([c['status'] for c in result['commands']],
+                         ['passed', 'passed', 'skipped', 'skipped', 'skipped', 'passed', 'passed'])
         self.assertTrue(policy.command_selected({'kind': 'test'}, 'lite'))
         with self.assertRaises(policy.PolicyError):
             policy.command_selected({'kind': 'lint', 'level': 'full'}, 'lite')
         with self.assertRaises(policy.PolicyError):
             policy.command_selected({'kind': 'test', 'required': 'false'}, 'lite')
+
+    def test_subagent_update_and_handover_inherit_independent_levels(self):
+        self.assertEqual(policy.SUBAGENT_LEVELS, ('off', 'lite', 'standard', 'full'))
+        for level in policy.SUBAGENT_LEVELS:
+            self.assertIn(level, policy.subagent_brief(level))
+        with self.assertRaises(policy.PolicyError):
+            policy.subagent_brief('unknown')
+        guide = self.repo / '.fullops-squad/FULLOPS.md'
+        guide.write_text(guide.read_text(encoding='utf-8') + '\nUSER WORKFLOW\n', encoding='utf-8')
+        before = self.snapshot()
+        self.apply(local_only=True, test_level='exhaustive', subagent_level='off', dry_run=True)
+        self.assertEqual(before, self.snapshot())
+        self.apply(local_only=True, test_level='exhaustive', subagent_level='off')
+        operating = policy.load(self.repo)
+        self.assertEqual((operating['test_level'], operating['subagent_level']), ('exhaustive', 'off'))
+        self.assertIn('USER WORKFLOW', guide.read_text(encoding='utf-8'))
+        self.assertIn('rules/delegation.md', guide.read_text(encoding='utf-8'))
+        with redirect_stdout(io.StringIO()):
+            work.new(self.repo, 'dev', 'INHERIT', 'use configured levels')
+        meta = work.deliverables.front_matter((self.repo / '.fullops-squad/handovers/to_dev.md').read_text(encoding='utf-8'))
+        self.assertEqual((meta['test_level'], meta['subagent_level']), ('exhaustive', 'off'))
 
     def test_direct_review_requires_current_author_and_independent_session(self):
         path = self.repo / '.fullops-squad/docs/evaluations/qa-reports/K-review/result.json'

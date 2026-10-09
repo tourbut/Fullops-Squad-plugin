@@ -5,6 +5,8 @@ description: FullOps setup이 완료된 레포에서 기능 개발을 역할별�
 
 # 핸드오버와 작업 기록
 
+선택형 하위 작업은 `.fullops-squad/rules/delegation.md`를 읽고 `fullops.json.subagent_level`의 범위·동시 예산으로 나눈다. work.py new가 테스트·하위 에이전트 레벨을 지시서에 기록한다. 부모는 하위 결과를 취합한 뒤 자기 완료를 보고한다.
+
 운영 모드·주 담당자·테스트 레벨은 `fullops.json`과 FULLOPS.md의 운영 모드 절을 먼저 읽는다. dev 주 담당자는 기술 계획·구현·검증을 직접 수행할 수 있다. 직접 작업도 과제 키·기준 SHA·완료 조건·산출물·검증 결과를 기록하고 현재 HEAD의 lint와 다른 세션의 독립 snapshot 리뷰를 받는다. 부모 dispatch나 worker_done을 꾸며내지 않는다. 배정된 dev worker는 아래 인박스·복귀 주소 계약을 따른다. 테스트 범위는 rules/common/testing.md의 레벨을 적용하며 work.py new가 선택 레벨을 지시서에 기록한다.
 
 문서를 작성하거나 검토할 때 `.fullops-squad/docs/agents/document-writing.md`의 front matter와 한국어 STE 작성 원칙을 적용한다. 기존 레포에 이 파일이 없으면 `setup-fullops` 갱신으로 추가한다.

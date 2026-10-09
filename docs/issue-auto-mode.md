@@ -2,6 +2,8 @@
 
 설정과 활성화는 별도이며 기본 OFF이다. 구현 또는 설치 요청으로 실제 저장소의 폴러를 켜지 않는다. `fullops-issues` 스킬이 초기 질문·명시 범위·CLI 순서의 정본이다.
 
+선택형 하위 작업은 `fullops.json.subagent_level`과 `rules/delegation.md`를 따른다. dispatched 부모가 자기 child Run을 만들고 같은 자동 task key로 Orca worker를 배정하면, 부모 host/Dispatch와 Run coordinator를 확인한 뒤 같은 이슈에 연결한다. 하위에도 동일 권한·epoch·보류·예산 제한을 적용한다. 부모는 child 결과를 취합한 뒤 자기 완료를 보고하며 sync/reconcile은 등록된 child Run까지 확인한다. 이 모드에서는 추적되지 않는 호스트 내부 서브에이전트를 사용하지 않는다.
+
 ```
 사용자 설정 → API 사용자 ID/remote 확인 → configured_OFF
 현재 coor 명시 enable → lease + 로컬 수집 폴러

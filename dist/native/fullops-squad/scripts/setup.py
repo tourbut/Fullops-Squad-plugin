@@ -147,18 +147,18 @@ def operating_block(content, name):
     if content.count(start) != content.count(end) or content.count(start) > 1:
         raise ValueError(f'손상된 운영 모드 관리 블록: {name}')
     if name.endswith('FULLOPS.md'):
-        body = ('## 운영 모드와 테스트 범위\n\n'
-                '`fullops.json`의 mode·primary_role·primary_branch·test_level이 정본이다. mode 누락은 coor, 테스트 레벨 누락은 standard다.\n'
+        body = ('## 운영 모드와 작업 범위\n\n'
+                '`fullops.json`의 mode·primary_role·primary_branch·test_level·subagent_level이 정본이다. mode 누락은 coor, 테스트 레벨 누락은 standard, 하위 위임 레벨 누락은 off다.\n'
                 'coor에서는 기존 조율·배정 책임을 유지한다. dev에서는 주 담당자가 직접 기술 계획·구현·검증을 수행하고 필요한 전문가를 배정·통합한다.\n'
                 'dev 주 담당자는 제품 범위 판단을 사용자/기획 담당과 확인하고, 작성자와 다른 세션의 고정 SHA 리뷰를 받는다. 부모 dispatch나 가짜 worker_done은 만들지 않는다.\n'
                 '아래 coor 전용 배정/직접 설계 제한은 dev 주 담당자의 직접 개발에 적용하지 않는다. 라우팅·인박스·독립 리뷰·통합·산출물 보존은 두 모드에서 유지한다.\n'
-                '테스트 범위는 rules/common/testing.md의 레벨을 따르고, 모드 전환 뒤에는 새 세션을 시작한다. 기존 worker 공간과 기록은 보존하며 다음 배정 전에 동기화한다.\n')
+                '테스트 범위는 rules/common/testing.md, 선택형 하위 위임은 rules/delegation.md의 레벨을 따른다. 두 레벨은 독립적이다. 모드 전환 뒤에는 새 세션을 시작한다. 기존 worker 공간과 기록은 보존하며 다음 배정 전에 동기화한다.\n')
     elif name.endswith('testing.md'):
         template = (PLUGIN / 'assets/repository' / name).read_text(encoding='utf-8')
         body = template.split(start + '\n', 1)[1].split(end, 1)[0]
     else:
         body = ('## 운영 책임\n\n'
-                '현재 모드·주 담당자·테스트 레벨은 fullops.json을 읽는다. FULLOPS.md의 운영 모드 절을 우선 적용한다.\n'
+                '현재 모드·주 담당자·테스트 레벨·하위 위임 레벨은 fullops.json을 읽는다. FULLOPS.md의 운영 모드 절을 우선 적용한다.\n'
                 'dev 주 담당자는 직접 구현과 전문가 배정·통합을 맡는다. dispatched dev-worker는 기존 worker 권한과 worker_done 계약을 따른다.\n')
     block = f'{start}\n{body}{end}'
     frontmatter = re.match(r'\A(?:\ufeff)?---\r?\n.*?^---(?:\r?\n|\Z)', content, re.M | re.S)
@@ -175,7 +175,7 @@ def operating_block(content, name):
 
 
 def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None, local_only=False,
-          mode=None, primary_role=None, test_level=None, rollback=False):
+          mode=None, primary_role=None, test_level=None, rollback=False, subagent_level=None):
     repo = Path(repo).expanduser().resolve(strict=True)
     root = Path(subprocess.check_output(
         ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
@@ -185,7 +185,8 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     mode_journal = policy.transition_path(repo)
     journal = mode_journal if mode_journal.exists() else local_journal
     invocation = {'roles': roles, 'remote': remote, 'base': base, 'local_only': local_only}
-    for name, value in (('mode', mode), ('primary_role', primary_role), ('test_level', test_level)):
+    for name, value in (('mode', mode), ('primary_role', primary_role), ('test_level', test_level),
+                        ('subagent_level', subagent_level)):
         if value is not None:
             invocation[name] = value
     if journal.is_file():
@@ -240,6 +241,10 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         config['test_level'] = test_level
     elif not marker.exists():
         config['test_level'] = 'lite'
+    if subagent_level is not None:
+        config['subagent_level'] = subagent_level
+    elif not marker.exists():
+        config['subagent_level'] = 'lite'
     if primary_role is not None:
         config['primary_role'] = primary_role
     elif config.get('mode') == 'dev' and old_mode != 'dev':
@@ -255,7 +260,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
             raise ValueError('일반 dev → coor 전환은 지원하지 않습니다. 중단 복구는 --rollback을 사용하세요')
         transition_preflight(repo)
         journal = mode_journal
-    print(f"운영 모드: {config.get('mode', 'coor')} / 주 담당: {config.get('primary_role') or '기존 coordinator'} / 테스트: {config.get('test_level', 'standard')}")
+    print(f"운영 모드: {config.get('mode', 'coor')} / 주 담당: {config.get('primary_role') or '기존 coordinator'} / 테스트: {config.get('test_level', 'standard')} / 하위 위임: {config.get('subagent_level', 'off')}")
     templates = PLUGIN / "assets/repository"
     files = {p.relative_to(templates).as_posix(): p.read_bytes()
              for p in sorted(templates.rglob("*")) if p.is_file()}
@@ -298,7 +303,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         if conflicts:
             raise ValueError("기존 하네스와 충돌합니다. 먼저 수동으로 통합하세요: " + ", ".join(conflicts))
     changes = {name: content for name, content in files.items() if not (repo / name).exists()}
-    if mode is not None or test_level is not None or not marker.exists():
+    if mode is not None or test_level is not None or subagent_level is not None or not marker.exists():
         for name in ('.fullops-squad/FULLOPS.md', '.fullops-squad/orca-agents.md',
                      '.fullops-squad/rules/common/testing.md'):
             current = (repo / name).read_bytes() if (repo / name).exists() else changes[name]
@@ -356,11 +361,13 @@ def main():
     parser.add_argument('--mode', choices=['coor', 'dev'], help='신규 운영 모드 또는 기존 coor → dev 전환')
     parser.add_argument('--primary-role', help='주 담당 등록 역할. dev 모드 기본 dev')
     parser.add_argument('--test-level', choices=policy.LEVELS, help='개발 검증 범위. 신규 기본 lite, 기존 누락 standard')
+    parser.add_argument('--subagent-level', choices=policy.SUBAGENT_LEVELS, help='선택형 하위 위임 범위. 신규 기본 lite, 기존 누락 off')
     parser.add_argument('--rollback', action='store_true', help='중단된 운영 모드 전환의 원본 복구')
     args = parser.parse_args()
     try:
         setup(args.repo, args.dry_run, args.verbose, args.roles,
-              args.remote, args.base, args.local_only, args.mode, args.primary_role, args.test_level, args.rollback)
+              args.remote, args.base, args.local_only, args.mode, args.primary_role, args.test_level, args.rollback,
+              subagent_level=args.subagent_level)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"setup 실패: {error}\n")
 

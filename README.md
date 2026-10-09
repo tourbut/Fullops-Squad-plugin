@@ -18,7 +18,19 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 
 운영 모드는 `coor`와 `dev`입니다. 아래 흐름은 coor 기준이며, dev에서는 주 담당자가 사용자와 직접 기술 계획·구현·검증을 진행하고 필요한 전문가를 배정합니다. 직접 구현도 lint와 다른 세션의 고정 SHA 리뷰를 받습니다. 역할 ID·모델·effort와 운영 책임은 따로 관리합니다.
 
-개발 테스트 비중은 `lite`(핵심 검증), `standard`(영향 범위 회귀), `full`(전체 회귀·통합)로 정합니다. 신규 setup 기본값은 lite이고 기존 설정 누락은 standard를 유지합니다. 필수 검사·보안·데이터 손실 방지·최종 수락은 모든 레벨에서 유지합니다. 기존 coor → dev 전환과 레벨 설정은 [setup 안내](plugins/fullops-squad/skills/setup-fullops/SKILL.md)를 따릅니다.
+개발 테스트 비중과 하위 에이전트 활용 정도를 별도로 정합니다. 신규 setup 기본값은 두 설정 모두 `lite`입니다.
+
+| 테스트 레벨 | 검증 범위 |
+|---|---|
+| `minimal` | 기동·변경 경로 스모크 |
+| `lite` | 변경 핵심·필요한 실패 경계 |
+| `standard` | 영향 범위 회귀 |
+| `full` | 전체 회귀·필요한 통합·수락 |
+| `exhaustive` | full + 필요한 E2E·성능·장시간·환경 검수 |
+
+선택형 하위 에이전트는 `off`(직접 작업), `lite`(읽기 전용 조사·리뷰, 동시 1개), `standard`(파일 소유권을 나눈 병렬 구현 포함, 2개), `full`(독립 작업을 넓게 병렬 처리, 4개)로 정합니다. 동시 개수는 부모가 관리하는 운영 예산입니다. 짧은 직렬 작업은 직접 처리하고, 하위 결과는 부모가 취합합니다. [하위 작업 기준](plugins/fullops-squad/assets/repository/.fullops-squad/rules/delegation.md)을 따릅니다.
+
+기존 설정 누락은 테스트 `standard` / 하위 에이전트 `off`를 유지합니다. 필수 검사·보안·데이터 손실 방지·독립 리뷰·최종 수락 조건은 모든 레벨에서 유지합니다. `setup.py --repo <레포> --test-level lite --subagent-level lite`로 선택하며 [setup 안내](plugins/fullops-squad/skills/setup-fullops/SKILL.md)를 따릅니다.
 
 1. coordinator가 요청과 과제 키를 받습니다. 운영 작업은 직접 처리합니다.
 2. 코드·산출물 작업은 Jev가 `simple` 또는 `design`으로 분류합니다. 담당 역할, 모델·effort, 갱신할 산출물도 추천합니다.

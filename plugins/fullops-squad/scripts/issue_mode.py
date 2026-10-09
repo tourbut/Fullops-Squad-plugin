@@ -690,14 +690,15 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     if workers.get('page', {}).get('hasMore'):
         raise ValueError('전체 worker receipt를 확인하지 못했습니다. 다음 페이지 확인 필요')
     if not_dispatched:
-        if (syncing or job.get('dispatch_intents') or tasks or workers.get('workers') or
+        if (syncing or job.get('dispatch_intents') or job.get('child_runs') or tasks or workers.get('workers') or
                 task_listing.get('count') != 0 or workers.get('page', {}).get('total') != 0 or
                 workers.get('page', {}).get('hasMore') is not False):
             raise ValueError('dispatch 이력 또는 task/worker 조회 불확실성 때문에 미배정 복구를 허용하지 않습니다')
         with store.edit() as state:
             owner = guard(state, token)
             current = state['jobs'][str(identifier)]
-            if current['status'] != 'reconciling' or current.get('dispatch_intents') or current['digest'] != job['digest']:
+            if (current['status'] != 'reconciling' or current.get('dispatch_intents') or current.get('child_runs') or
+                    current['digest'] != job['digest']):
                 raise ValueError('dispatch 또는 인계 상태가 바뀌었습니다; 다시 확인하세요')
             current['history'].append({'phase': 'reconciled_not_dispatched', 'reason': reason,
                                        'run': run, 'tasks': task_listing, 'workers': workers, 'receipt': current.get('receipt')})
@@ -716,13 +717,41 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     exited = (task_ids and task_ids <= {w.get('taskId') for w in relevant_workers} and
               all(w.get('projection', {}).get('liveness', {}).get('verdict') == 'exited'
                   for w in relevant_workers))
+    child_receipts = {}
+    for child_run, binding in job.get('child_runs', {}).items():
+        if binding.get('task_key') != job['task_key']:
+            continue
+        child_tasks = orca.call('orchestration', 'task-list', '--run', child_run)
+        fleet = orca.call('orchestration', 'worker-list', '--run', child_run)
+        entries = fleet.get('workers')
+        page = fleet.get('page') or {}
+        if (not isinstance(entries, list) or page.get('hasMore') is not False or
+                type(page.get('total')) is not int or page['total'] != len(entries)):
+            raise ValueError('하위 Run의 전체 worker receipt를 확인하지 못했습니다')
+        relevant_children = [t for t in child_tasks.get('tasks', [])
+                             if integration.key_present(job['task_key'], str(t.get('spec') or ''))]
+        if not relevant_children:
+            raise ValueError('하위 task 부재는 종료 증거가 아닙니다; 수동 확인 필요')
+        ids = {t.get('id') for t in relevant_children} - {None}
+        child_workers = [w for w in entries if w.get('taskId') in ids]
+        live = live or any(t.get('status') not in ('completed', 'failed', 'cancelled') for t in relevant_children)
+        failed = failed or any(t.get('status') in ('failed', 'cancelled') for t in relevant_children)
+        exited = bool(exited and ids and ids <= {w.get('taskId') for w in child_workers} and
+                      all(w.get('projection', {}).get('liveness', {}).get('verdict') == 'exited'
+                          for w in child_workers))
+        child_receipts[child_run] = {'tasks': relevant_children, 'workers': fleet}
     with store.edit() as state:
         owner = guard(state, token)
-        job = state['jobs'][str(identifier)]
+        current = state['jobs'][str(identifier)]
+        if (current['task_key'] != job['task_key'] or current.get('child_runs') != job.get('child_runs') or
+                current.get('dispatch_intents') != job.get('dispatch_intents')):
+            raise ValueError('worker 조회 중 하위 배정/attempt가 바뀌었습니다; 다시 sync하세요')
+        job = current
         job.update(status=('held' if failed else job['status']) if syncing else ('running' if live else 'held'), epoch=owner['epoch'],
                    settled=bool(not live and exited),
                    reason=('기존 task 실패/취소: ' if failed else '') + reason, resume='기존 worker 완료 후 검증; 같은 task를 재배정하지 않음')
-        job['history'].append(json.loads(redact(json.dumps({'phase': 'reconciled', 'reason': reason, 'tasks': relevant, 'workers': workers}))))
+        job['history'].append(json.loads(redact(json.dumps({'phase': 'reconciled', 'reason': reason, 'tasks': relevant,
+                                                          'workers': workers, 'child_runs': child_receipts}))))
 
 
 def complete(store, github, token, identifier, worktree, review_key, base, head, pr_number):
@@ -784,9 +813,12 @@ def worker_job(store, state, session, context):
     if listing is None:
         raise ValueError('worker의 정본 task를 확인하지 못했습니다')
     task = next((t for t in listing.get('tasks', []) if t.get('id') == projection.get('taskId')), {})
-    jobs = [j for j in state['jobs'].values() if j.get('run') == run and j.get('task_key') and
+    registered = [j for j in state['jobs'].values() if run in j.get('child_runs', {})]
+    jobs = [j for j in state['jobs'].values() if (j.get('run') == run or run in j.get('child_runs', {})) and j.get('task_key') and
             integration.key_present(j['task_key'], str(task.get('spec') or ''))]
     if not jobs:
+        if registered:
+            raise ValueError('등록된 자동 하위 Run의 task key가 현재 attempt와 다릅니다')
         return None, None
     pane = status.get('terminal') or {}
     receipt = hook_path(store.repo, session)
@@ -798,14 +830,50 @@ def worker_job(store, state, session, context):
             Path(pane.get('worktreePath') or '').resolve() != store.repo):
         raise ValueError('worker의 host session/terminal/task 작업 공간 binding이 다릅니다')
     job = jobs[0]
+    child = job.get('child_runs', {}).get(run)
+    epoch = child['epoch'] if child else job['epoch']
+    if child and child.get('task_key') != job['task_key']:
+        raise ValueError('이전 attempt의 하위 Run입니다')
     with store.edit() as current:
         if current['epoch'] != state['epoch']:
             raise ValueError('worker 연결 중 coor 소유자가 바뀌었습니다')
-        target = next(j for j in current['jobs'].values() if j.get('task_key') == job['task_key'])
+        target = next((j for j in current['jobs'].values() if j.get('task_key') == job['task_key']), None)
+        if target is None or target.get('child_runs') != job.get('child_runs'):
+            raise ValueError('worker 연결 중 attempt/하위 Run binding이 바뀌었습니다')
         target.setdefault('worker_sessions', {})[session] = {
-            'epoch': job['epoch'], 'dispatch': context['dispatch'], 'task': context['task'],
-            'task_key': job['task_key']}
-    return job, job['epoch']
+            'epoch': epoch, 'dispatch': context['dispatch'], 'task': context['task'],
+            'task_key': job['task_key'], 'run': run}
+    return job, epoch
+
+
+def dispatch_run(store, state, session, context, job, words):
+    owner = state['owner']
+    index = words.index('--run') if '--run' in words else len(words)
+    run = words[index + 1] if index + 1 < len(words) else None
+    if (job['status'] != 'running' or not job.get('receipt') or not run or
+            not integration.key_present(job['task_key'], ' '.join(words))):
+        raise ValueError('실제 동일 coor 수신 receipt와 현재 task key/Run을 기록한 뒤 기존 route/dispatch를 수행하세요')
+    if owner.get('provider_session', owner['session']) == session:
+        if run != owner['run']:
+            raise ValueError('coor는 현재 소유 Run으로만 역할을 배정할 수 있습니다')
+        return run, None
+    import policy
+    if policy.load(store.repo)['subagent_level'] == 'off':
+        raise ValueError('선택형 하위 위임 레벨이 off입니다')
+    if run == owner['run']:
+        raise ValueError('하위 worker는 부모 coor Run 대신 자신의 child Run으로 배정해야 합니다')
+    receipt = hook_path(store.repo, session)
+    native = json.loads(receipt.read_text()) if receipt.is_file() else {}
+    authority = integration.orca('orchestration', 'run-show', '--id', run, cwd=store.repo)
+    if (not context.get('dispatch') or not native.get('orca_terminal') or
+            native.get('provider_session') != session or not authority or
+            authority.get('run', {}).get('coordinator_handle') != native['orca_terminal']):
+        raise ValueError('하위 Run의 coordinator와 부모 worker host receipt를 증명하지 못했습니다')
+    binding = {'epoch': owner['epoch'], 'parent_dispatch': context['dispatch'],
+               'parent_session': session, 'task_key': job['task_key']}
+    if run in job.get('child_runs', {}) and job['child_runs'][run] != binding:
+        raise ValueError('하위 Run의 기존 parent/attempt binding이 다릅니다')
+    return run, binding
 
 
 def boundary(repo, session, command, files, commands, context=None):
@@ -895,10 +963,10 @@ def boundary(repo, session, command, files, commands, context=None):
                 except ValueError as error:
                     return str(error)
         if 'worker-start' in words:
-            if (job['status'] != 'running' or not job.get('receipt') or '--run' not in words or
-                    words[words.index('--run') + 1] != owner['run'] or
-                    not integration.key_present(job['task_key'], ' '.join(words))):
-                return '실제 동일 coor 수신 receipt와 현재 task key/Run을 기록한 뒤 기존 route/dispatch를 수행하세요'
+            try:
+                dispatch_run(store, state, session, context or {}, job, words)
+            except (ValueError, OSError) as error:
+                return str(error)
         if executable == 'gh':
             if any(w in words for w in ('merge', 'close', '--ready', 'api', 'auth', 'repo', 'release', 'workflow', 'run', 'secret', 'variable', 'extension')):
                 return '자동 모드의 병합/종료/배포/credential/임의 API 조작은 허용하지 않습니다'
@@ -929,19 +997,43 @@ def boundary(repo, session, command, files, commands, context=None):
     return None
 
 
-def reserve_dispatch(repo, session, commands):
+def reserve_dispatch(repo, session, commands, context=None):
     path = integration.directory(repo).parent / 'fullops-issues/state.sqlite'
     if not path.is_file() or not any('worker-start' in words for words in commands):
         return
-    with Store(repo).edit() as state:
-        owner = state['owner']
-        if not owner or owner['provider_session'] != session:
-            return
-        guard(state, owner['token'])
-        job = next(j for j in state['jobs'].values() if j['status'] == 'running' and j.get('epoch') == owner['epoch'])
-        job.setdefault('dispatch_intents', []).append({'at': iso(time.time()), 'digest': digest(commands), 'run': owner['run']})
-        job['settled'] = False
-        record(state, 'dispatch_intent', task_key=job['task_key'], run=owner['run'])
+    store = Store(repo)
+    saved = store.read()
+    owner = saved['owner']
+    if not owner:
+        return
+    coordinator = owner.get('provider_session', owner['session']) == session
+    if coordinator:
+        job = next((j for j in saved['jobs'].values() if j['status'] == 'running' and j.get('epoch') == owner['epoch']), None)
+        epoch = owner['epoch']
+    else:
+        job, epoch = worker_job(store, saved, session, context or {})
+    if job is None:
+        return
+    starts = [dispatch_run(store, saved, session, context or {}, job, words)
+              for words in commands if 'worker-start' in words]
+    with store.edit() as state:
+        owner = guard(state, owner['token'])
+        current = next((j for j in state['jobs'].values() if j.get('task_key') == job['task_key']), None)
+        if (epoch != owner['epoch'] or owner['paused'] or current is None or
+                current['status'] != 'running' or current.get('epoch') != owner['epoch'] or
+                current.get('receipt') != job.get('receipt') or
+                current.get('child_runs') != job.get('child_runs')):
+            raise ValueError('하위 배정 중 owner/attempt/작업 상태가 바뀌었습니다')
+        if (str(current['snapshot']['user']['id']) not in state['config']['allowed'] or
+                time.time() - current.get('started', time.time()) > state['config']['max_seconds'] or
+                current['tokens'] > state['config']['max_tokens']):
+            raise ValueError('배정 중 작성자 권한/자동 작업 예산이 바뀌었습니다')
+        for run, binding in starts:
+            if binding:
+                current.setdefault('child_runs', {})[run] = binding
+            current.setdefault('dispatch_intents', []).append({'at': iso(time.time()), 'digest': digest(commands), 'run': run})
+            record(state, 'dispatch_intent', task_key=current['task_key'], run=run)
+        current['settled'] = False
 
 
 def renew(store, orca, token, background=False):
