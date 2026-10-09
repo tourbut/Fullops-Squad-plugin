@@ -44,9 +44,11 @@ CLI는 OpenRouter `https://openrouter.ai/api/v1/systemone`에 `~typesafe/jev-lat
 
 ## 코드 탐색 (jev_find)
 
-`jev_find.py find`는 TypeSafe [semantic_find](https://docs.typesafe.ai/cookbooks/semantic_find) 예제를 코드에 옮겼다. HEAD의 일반 파일(lint `exclude`·민감 경로·바이너리·심볼릭 링크·서브모듈 제외)과 파일 헤더 설명 한 줄로 지도를 만든다. Choice 질문 하나로 파일에 확률 분포를 받고, 두 값짜리 존재 질문(`found`/`absent`)으로 관련 코드가 있기는 한지 판정한다. Choice 확률은 답이 없어도 합이 1이라 존재 판정을 따로 둔다. 두 질문은 한 요청에 들어간다.
+`jev_find.py find`는 HEAD의 파일·헤더·Python 정의·문서 메타데이터 지도에서 위치를 추천한다. Git 원문은 유지하고 작업 트리별 Git 디렉터리의 `fullops-search/`에 최소 JSON 메타데이터만 재사용한다. [캐시·안전 경계·비교 평가](search-index.md)에 재생성, 장애 fallback과 제약을 기록한다.
 
-전체 선택지를 255개 이하의 배치로 나눠 빠짐없이 묻고 각 배치에서 존재 질문도 확인한다. 배치별 후보는 Choice 분포 누적 0.99 또는 `--limit`(기본 12)까지다. 0.99는 관련 파일 회수율이 아니다. 서로 다른 배치의 확률은 공통 척도가 아니므로 합친 순위는 추천이며, 최종 예산에서 빠진 후보는 `remaining_candidates`에 남긴다. `presented_files`·`partial`·`input_partial`은 입력/탐색의 미확인 범위를 보여 준다. 존재 경계는 예제의 0.7/0.35이며 코드 검색에 맞는 값은 아래 score 기록으로 다시 정한다. 존재 판정의 현행 두 값짜리 Choice 정책은 유지한다. context의 Noul 응답은 별도의 검증 경로다. 실패하면 후보 없이 오류를 기록하고 검색으로 대신한다. 결과는 `.fullops-squad/docs/evaluations/jev/<과제 키>-find.json`에 남는다.
+후보 ID/설명은 shared state의 `entries`에 한 번만 둔다. Choice는 ID의 상대 순위, Noul은 같은 지도에서 관련 근거를 확인한다. `not_confirmed`는 저장소의 코드 부재를 뜻하지 않는다. 전체 후보를 255개·24,000자 예산의 배치로 탐색하고 배치 간 확률을 섞지 않는다. 문자 예산은 토큰 한도가 아니다. 기존 0.7/0.35와 누적 0.99는 예제 정책이며 교정된 운영 기준이 아니다. 명시 경로·심볼·오류 문자열은 별도 seed로 유지한다. 실패하면 unknown과 로컬 검색 후보를 반환한다. `partial`·`input_partial`·`remaining_candidates`·`unselected_files`와 필수 문서를 확인한다. 기본 전략은 배치이며 재정렬·폴더 전략은 비교 실험에서만 사용한다.
+
+`FULLOPS_OFFLINE=1` 또는 `FULLOPS_JEV_ENABLED=0`은 find/route/context/observe 및 공통 요청을 통한 조작 판단의 외부 호출을 차단한다. 응답 캐시도 사용하지 않으며 의미 판단을 수행한 것으로 표시하지 않는다. 관련 Git 읽기는 누락 객체를 자동 fetch하지 않는다. 과제 결과 캐시는 모델·정책·파서·offline 설정을 구분하며 `--force`와 API 응답 캐시 우회는 별개다.
 
 `jev_find.py score`는 과제가 끝난 뒤 merge-base..worker 결과의 실제 변경 파일과 추천의 교집합을 측정한다. 과거 지도는 현재 체크아웃의 파일 존재 여부와 독립적으로 구성하며 Git 상태로 추가/삭제/rename을 구분한다. 지도에 있던 파일 중 바뀐 것 대비 recall·precision, 존재 판정의 정오, 새로 만든 파일 수를 기록한다. 같은 과제의 `-context.json`이 있으면 제외 추천했는데 실제로 바뀐 파일(`context_wrong_omits`)도 센다. `review.py check`는 코드/문서 find를 각각 자동 채점해 리뷰 폴더의 `jev-find-score.json`·`jev-documents-find-score.json`에 남긴다(`--task-key`, 기본은 리뷰 키). 계산 실패는 수락 결과를 바꾸지 않는다. 변경 교집합은 필수 읽기나 영향 범위의 정확도가 아니다. `--labels`와 과제의 `packet-labels.json`을 통해 직접 수정/영향 확인/문서 read/update의 명시적 기대 경로를 별도로 평가한다. label이 없으면 이 평가는 not_run이다.
 
@@ -60,4 +62,4 @@ CLI는 OpenRouter `https://openrouter.ai/api/v1/systemone`에 `~typesafe/jev-lat
 
 ## 탐색 패킷
 
-`jev_packet.py`는 기존 route/find/context와 실제 정의·문자열·Markdown 링크·산출물 원천 검색을 결합한다. 직접 수정, 영향 확인, 문서 read, 문서 update를 복수 범주와 경로/줄/seed/이유로 전달한다. `--write-inbox`로 현재 지시서에 연결하고 worker 판단은 `--decisions`로 원본 추천과 함께 보존한다. 필수 후보는 예산/제외 추천으로 탈락하지 않는다. 지원하지 않는 언어·동적 참조·민감/큰 원문은 명시적 fallback/unknown이며 영향 완전성을 보증하지 않는다. 다른 SHA의 결과는 갱신이 필요하다.
+`jev_packet.py`는 기존 route/find/context와 실제 정의·문자열·Markdown 링크·산출물 원천 검색을 결합한다. 직접 수정, 영향 확인, 문서 read, 문서 update를 복수 범주와 경로/줄/seed/이유로 전달한다. `--write-inbox`로 현재 지시서에 연결하고 worker 판단은 `--decisions`로 원본 추천과 함께 보존한다. 필수 후보는 예산/제외 추천으로 탈락하지 않는다. 지원하지 않는 언어·동적 참조·민감/큰 원문은 명시적 fallback/unknown이며 영향 완전성을 보증하지 않는다. 다른 SHA의 결과는 갱신이 필요하다. find의 읽기 추천은 직접 수정 대상으로 자동 승격하지 않는다. 패킷은 HEAD·tracked 작업 폴더 overlay·명시/필수 untracked 원천을 표시한다. worker 시작 전 원문 해시 변경도 패킷 재생성을 요구한다. 완료 시에는 구현 변경을 허용하고 기존 항목별 처리 근거를 검사한다.

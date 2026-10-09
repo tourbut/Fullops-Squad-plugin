@@ -1,0 +1,1519 @@
+{
+  "version": 1,
+  "fixture_head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+  "fixture_sha256": "14e14ea5cdfea21901186a7fcb3784b625cc703471402ca65348caab5efd4c11",
+  "implementation_sha256": {
+    "jev_find.py": "8a7e6d0c04a9a54babb26fd12ad037b9628c181b229857ba6098d911fdb47df0",
+    "jev_observe.py": "3d9009667b97a2337f1830a59e73c3a536d171ea6e90ed0251d09c2f062f5713",
+    "jev_packet.py": "ee65fbe594fb14304b99017feff14071ea7fb8dadc1372c1a0710c675a029a32",
+    "search_index.py": "166ede1e33136c1728be5b5115b13ba4ffa1dd227ef324f084c4e826ef386b97",
+    "work.py": "3d0c282ccbf3999bc1904442d233eca2f04e36034cca8c309c0ce99b32cf1dae"
+  },
+  "runner_sha256": "21f5c42e5331db9542dc4b08dd819985c6dd6bfecba001c88605760f7e123b38",
+  "policy": "find-v3-shared-noul",
+  "cache_metrics": {
+    "cold_seconds": 21.661,
+    "warm_seconds": 0.507
+  },
+  "tasks": [
+    {
+      "key": "SEMANTIC",
+      "request": "Deny access after membership termination; inspect the eligibility decision and its written agreement.",
+      "labels": {
+        "direct_edit": [
+          "src/access/ledger.py"
+        ],
+        "impact_check": [
+          "src/caller.py",
+          "tests/test_admission.py"
+        ],
+        "document_read": [
+          "docs/contract.md"
+        ],
+        "document_update": []
+      },
+      "retrieval": [
+        "src/access/ledger.py",
+        "docs/contract.md"
+      ]
+    },
+    {
+      "key": "EXPLICIT",
+      "request": "Change `src/access/ledger.py` can_enter, update its callers/tests and `docs/contract.md` account admission contract.",
+      "seeds": [
+        "src/access/ledger.py",
+        "docs/contract.md"
+      ],
+      "labels": {
+        "direct_edit": [
+          "src/access/ledger.py"
+        ],
+        "impact_check": [
+          "src/caller.py",
+          "tests/test_admission.py"
+        ],
+        "document_read": [
+          "docs/contract.md"
+        ],
+        "document_update": [
+          "docs/contract.md"
+        ]
+      },
+      "retrieval": [
+        "src/access/ledger.py",
+        "docs/contract.md"
+      ]
+    },
+    {
+      "key": "MISSING",
+      "request": "Locate the existing orbital collision prediction engine and spacecraft trajectory equations.",
+      "labels": {
+        "direct_edit": [],
+        "impact_check": [],
+        "document_read": [],
+        "document_update": []
+      },
+      "retrieval": []
+    }
+  ],
+  "results": [
+    {
+      "task_key": "SEMANTIC",
+      "strategy": "batch",
+      "retrieval_recall": 1.0,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.79,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.88,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md",
+        ".fullops-squad/rules/common/security.md",
+        "docs/contract.md"
+      ],
+      "usage": {
+        "input_tokens": 20241,
+        "output_tokens": 2991,
+        "known_cost": 0.000850122
+      },
+      "calls": 3,
+      "elapsed_seconds": 33.02,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "7c78a966bf94ae6859054d7272ba9cb2d26396969bea2a5e0146e07bebbc72ce",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [
+              "src/access/ledger.py"
+            ],
+            "selected": [],
+            "hits": [],
+            "missed": [
+              "src/access/ledger.py"
+            ],
+            "extra": [],
+            "recall": 0.0,
+            "precision": null
+          },
+          "impact_check": {
+            "expected": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py"
+            ],
+            "recall": 1.0,
+            "precision": 0.6666666666666666
+          },
+          "document_read": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md"
+            ],
+            "recall": 1.0,
+            "precision": 0.07692307692307693
+          },
+          "document_update": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          }
+        }
+      },
+      "packet_context_chars": 558,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "SEMANTIC",
+      "strategy": "rerank",
+      "retrieval_recall": 1.0,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.79,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.87,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md",
+        ".fullops-squad/rules/common/security.md",
+        "docs/contract.md"
+      ],
+      "usage": {
+        "input_tokens": 22519,
+        "output_tokens": 3041,
+        "known_cost": 0.0009457980000000001
+      },
+      "calls": 4,
+      "elapsed_seconds": 29.685,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "9b03d758d38217e392f2924d44b569812401611fb7d04a21f5e7f55b253325ad",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [
+              "src/access/ledger.py"
+            ],
+            "selected": [],
+            "hits": [],
+            "missed": [
+              "src/access/ledger.py"
+            ],
+            "extra": [],
+            "recall": 0.0,
+            "precision": null
+          },
+          "impact_check": {
+            "expected": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py"
+            ],
+            "recall": 1.0,
+            "precision": 0.6666666666666666
+          },
+          "document_read": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md"
+            ],
+            "recall": 1.0,
+            "precision": 0.07692307692307693
+          },
+          "document_update": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          }
+        }
+      },
+      "packet_context_chars": 558,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "SEMANTIC",
+      "strategy": "hierarchical",
+      "retrieval_recall": 1.0,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.83,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.86,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "src/caller.py",
+        "src/util0/sample000.py",
+        "src/util0/sample258.py",
+        "src/util1/sample001.py",
+        "src/util1/sample259.py",
+        "src/util2/sample002.py",
+        "src/util3/sample003.py",
+        "src/util4/sample004.py",
+        "src/util5/sample005.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/docs/agents/domain.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md",
+        "docs/contract.md"
+      ],
+      "usage": {
+        "input_tokens": 41673,
+        "output_tokens": 3407,
+        "known_cost": 0.001750266
+      },
+      "calls": 12,
+      "elapsed_seconds": 32.941,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "94a5604108fe299d674c13294e910fa37bee732d311981b2613fb2453fe726ff",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [
+              "src/access/ledger.py"
+            ],
+            "selected": [],
+            "hits": [],
+            "missed": [
+              "src/access/ledger.py"
+            ],
+            "extra": [],
+            "recall": 0.0,
+            "precision": null
+          },
+          "impact_check": {
+            "expected": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util0/sample258.py",
+              "src/util1/sample001.py",
+              "src/util1/sample259.py",
+              "src/util2/sample002.py",
+              "src/util3/sample003.py",
+              "src/util4/sample004.py",
+              "src/util5/sample005.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py",
+              "src/util0/sample000.py",
+              "src/util0/sample258.py",
+              "src/util1/sample001.py",
+              "src/util1/sample259.py",
+              "src/util2/sample002.py",
+              "src/util3/sample003.py",
+              "src/util4/sample004.py",
+              "src/util5/sample005.py"
+            ],
+            "recall": 1.0,
+            "precision": 0.18181818181818182
+          },
+          "document_read": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md"
+            ],
+            "recall": 1.0,
+            "precision": 0.07142857142857142
+          },
+          "document_update": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          }
+        }
+      },
+      "packet_context_chars": 1234,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "EXPLICIT",
+      "strategy": "batch",
+      "retrieval_recall": 1.0,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.91,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.89,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/docs/agents/domain.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md",
+        "docs/contract.md"
+      ],
+      "usage": {
+        "input_tokens": 20352,
+        "output_tokens": 2991,
+        "known_cost": 0.0008547839999999999
+      },
+      "calls": 3,
+      "elapsed_seconds": 28.959,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "582dfd98b464b40a1a92b3ff494acf7c9c451f77ecabc3fa39c39e04e3896014",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [
+              "src/access/ledger.py"
+            ],
+            "selected": [
+              "src/access/ledger.py"
+            ],
+            "hits": [
+              "src/access/ledger.py"
+            ],
+            "missed": [],
+            "extra": [],
+            "recall": 1.0,
+            "precision": 1.0
+          },
+          "impact_check": {
+            "expected": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py"
+            ],
+            "recall": 1.0,
+            "precision": 0.6666666666666666
+          },
+          "document_read": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/agents/issue-tracker.md",
+              ".fullops-squad/docs/agents/triage-labels.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/lint/README.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/agents/issue-tracker.md",
+              ".fullops-squad/docs/agents/triage-labels.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/lint/README.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md"
+            ],
+            "recall": 1.0,
+            "precision": 0.05555555555555555
+          },
+          "document_update": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [],
+            "recall": 1.0,
+            "precision": 1.0
+          }
+        }
+      },
+      "packet_context_chars": 558,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "EXPLICIT",
+      "strategy": "rerank",
+      "retrieval_recall": 1.0,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.9,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.89,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/architecture.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md",
+        ".fullops-squad/rules/common/security.md",
+        "docs/contract.md"
+      ],
+      "usage": {
+        "input_tokens": 22667,
+        "output_tokens": 3041,
+        "known_cost": 0.0009520139999999999
+      },
+      "calls": 4,
+      "elapsed_seconds": 29.826,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "d4577f7134cbc54f281f8bf0acc388d7e5cf08aab7d6cdc713e7931b331878b8",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [
+              "src/access/ledger.py"
+            ],
+            "selected": [
+              "src/access/ledger.py"
+            ],
+            "hits": [
+              "src/access/ledger.py"
+            ],
+            "missed": [],
+            "extra": [],
+            "recall": 1.0,
+            "precision": 1.0
+          },
+          "impact_check": {
+            "expected": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py"
+            ],
+            "recall": 1.0,
+            "precision": 0.6666666666666666
+          },
+          "document_read": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/agents/issue-tracker.md",
+              ".fullops-squad/docs/agents/triage-labels.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/lint/README.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/agents/issue-tracker.md",
+              ".fullops-squad/docs/agents/triage-labels.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/lint/README.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md"
+            ],
+            "recall": 1.0,
+            "precision": 0.05263157894736842
+          },
+          "document_update": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [],
+            "recall": 1.0,
+            "precision": 1.0
+          }
+        }
+      },
+      "packet_context_chars": 558,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "EXPLICIT",
+      "strategy": "hierarchical",
+      "retrieval_recall": 1.0,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.92,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.89,
+          "status": "found",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "src/caller.py",
+        "src/util0/sample000.py",
+        "src/util0/sample258.py",
+        "src/util1/sample001.py",
+        "src/util1/sample007.py",
+        "src/util2/sample002.py",
+        "src/util3/sample003.py",
+        "src/util4/sample004.py",
+        "src/util5/sample005.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md",
+        "docs/contract.md"
+      ],
+      "usage": {
+        "input_tokens": 42117,
+        "output_tokens": 3407,
+        "known_cost": 0.0017689139999999997
+      },
+      "calls": 12,
+      "elapsed_seconds": 33.243,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "b2c67ba11f947d3bd00cfc65d03d104a563078700cc9b9868e8e84b3dad343ae",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [
+              "src/access/ledger.py"
+            ],
+            "selected": [
+              "src/access/ledger.py"
+            ],
+            "hits": [
+              "src/access/ledger.py"
+            ],
+            "missed": [],
+            "extra": [],
+            "recall": 1.0,
+            "precision": 1.0
+          },
+          "impact_check": {
+            "expected": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util0/sample258.py",
+              "src/util1/sample001.py",
+              "src/util1/sample007.py",
+              "src/util2/sample002.py",
+              "src/util3/sample003.py",
+              "src/util4/sample004.py",
+              "src/util5/sample005.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [
+              "src/caller.py",
+              "tests/test_admission.py"
+            ],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py",
+              "src/util0/sample000.py",
+              "src/util0/sample258.py",
+              "src/util1/sample001.py",
+              "src/util1/sample007.py",
+              "src/util2/sample002.py",
+              "src/util3/sample003.py",
+              "src/util4/sample004.py",
+              "src/util5/sample005.py"
+            ],
+            "recall": 1.0,
+            "precision": 0.18181818181818182
+          },
+          "document_read": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/agents/issue-tracker.md",
+              ".fullops-squad/docs/agents/triage-labels.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/lint/README.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/agents/issue-tracker.md",
+              ".fullops-squad/docs/agents/triage-labels.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/lint/README.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md"
+            ],
+            "recall": 1.0,
+            "precision": 0.05555555555555555
+          },
+          "document_update": {
+            "expected": [
+              "docs/contract.md"
+            ],
+            "selected": [
+              "docs/contract.md"
+            ],
+            "hits": [
+              "docs/contract.md"
+            ],
+            "missed": [],
+            "extra": [],
+            "recall": 1.0,
+            "precision": 1.0
+          }
+        }
+      },
+      "packet_context_chars": 1065,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "MISSING",
+      "strategy": "batch",
+      "retrieval_recall": null,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.07,
+          "status": "not_confirmed",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.32,
+          "status": "not_confirmed",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "src/caller.py",
+        "src/util0/sample000.py",
+        "src/util3/sample057.py",
+        "src/util3/sample063.py",
+        "src/util3/sample093.py",
+        "src/util4/sample004.py",
+        "src/util4/sample034.py",
+        "src/util5/sample233.py",
+        "src/util5/sample239.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/architecture.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/docs/agents/domain.md",
+        ".fullops-squad/docs/deliverables/README.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md"
+      ],
+      "usage": {
+        "input_tokens": 20202,
+        "output_tokens": 2991,
+        "known_cost": 0.0008484839999999999
+      },
+      "calls": 3,
+      "elapsed_seconds": 28.076,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "5a797a303e8223f4bf5f85a4bb014b5f836177579ab385b89eaeec41bd996fbc",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          },
+          "impact_check": {
+            "expected": [],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util3/sample057.py",
+              "src/util3/sample063.py",
+              "src/util3/sample093.py",
+              "src/util4/sample004.py",
+              "src/util4/sample034.py",
+              "src/util5/sample233.py",
+              "src/util5/sample239.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util3/sample057.py",
+              "src/util3/sample063.py",
+              "src/util3/sample093.py",
+              "src/util4/sample004.py",
+              "src/util4/sample034.py",
+              "src/util5/sample233.py",
+              "src/util5/sample239.py",
+              "tests/test_admission.py"
+            ],
+            "recall": null,
+            "precision": 0.0
+          },
+          "document_read": {
+            "expected": [],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "recall": null,
+            "precision": 0.0
+          },
+          "document_update": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          }
+        }
+      },
+      "packet_context_chars": 1246,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "MISSING",
+      "strategy": "rerank",
+      "retrieval_recall": null,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.06,
+          "status": "not_confirmed",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.35,
+          "status": "not_confirmed",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "src/caller.py",
+        "src/util0/sample000.py",
+        "src/util3/sample039.py",
+        "src/util3/sample045.py",
+        "src/util3/sample093.py",
+        "src/util4/sample004.py",
+        "src/util4/sample034.py",
+        "src/util5/sample227.py",
+        "src/util5/sample233.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/architecture.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/docs/agents/domain.md",
+        ".fullops-squad/docs/deliverables/README.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/rules/common/README.md"
+      ],
+      "usage": {
+        "input_tokens": 23330,
+        "output_tokens": 3231,
+        "known_cost": 0.00097986
+      },
+      "calls": 4,
+      "elapsed_seconds": 28.543,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "0e0c9b1601a935da5776b4b48cc5bf0571b20abcd25f4bf7734359a7e5a7892a",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          },
+          "impact_check": {
+            "expected": [],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util3/sample039.py",
+              "src/util3/sample045.py",
+              "src/util3/sample093.py",
+              "src/util4/sample004.py",
+              "src/util4/sample034.py",
+              "src/util5/sample227.py",
+              "src/util5/sample233.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util3/sample039.py",
+              "src/util3/sample045.py",
+              "src/util3/sample093.py",
+              "src/util4/sample004.py",
+              "src/util4/sample034.py",
+              "src/util5/sample227.py",
+              "src/util5/sample233.py",
+              "tests/test_admission.py"
+            ],
+            "recall": null,
+            "precision": 0.0
+          },
+          "document_read": {
+            "expected": [],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "recall": null,
+            "precision": 0.0
+          },
+          "document_update": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          }
+        }
+      },
+      "packet_context_chars": 1246,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    },
+    {
+      "task_key": "MISSING",
+      "strategy": "hierarchical",
+      "retrieval_recall": null,
+      "required_document_missed": [],
+      "false_absence": false,
+      "existence": {
+        "code": {
+          "found_probability": 0.14,
+          "status": "not_confirmed",
+          "basis": "metadata map only; not repository absence"
+        },
+        "documents": {
+          "found_probability": 0.36,
+          "status": "unclear",
+          "basis": "metadata map only; not repository absence"
+        }
+      },
+      "code_candidates": [
+        "docs/contract.md",
+        "src/access/ledger.py",
+        "src/caller.py",
+        "src/util0/sample000.py",
+        "src/util0/sample258.py",
+        "src/util1/sample001.py",
+        "src/util1/sample259.py",
+        "src/util2/sample002.py",
+        "src/util3/sample003.py",
+        "src/util4/sample004.py",
+        "src/util5/sample005.py",
+        "tests/test_admission.py"
+      ],
+      "document_candidates": [
+        ".fullops-squad/FULLOPS.md",
+        ".fullops-squad/PLANS.md",
+        ".fullops-squad/contexts/architecture.md",
+        ".fullops-squad/contexts/dev.md",
+        ".fullops-squad/docs/agents/domain.md",
+        ".fullops-squad/docs/deliverables/README.md",
+        ".fullops-squad/handovers/_TEMPLATE.md",
+        ".fullops-squad/project.md",
+        ".fullops-squad/rules/common/README.md"
+      ],
+      "usage": {
+        "input_tokens": 41517,
+        "output_tokens": 3407,
+        "known_cost": 0.0017437140000000002
+      },
+      "calls": 12,
+      "elapsed_seconds": 33.33,
+      "errors": [],
+      "models": [
+        "typesafe/jev-1.13-20260917"
+      ],
+      "packet_evaluation": {
+        "status": "evaluated",
+        "head": "f80f67ccfefd6ca291c30234c3985fa30ed56f50",
+        "input_sha256": "00afe82fa3e46bf1c670e879eba9965004c516cbb3c15c4c67abbcf16704b675",
+        "metric": "explicit labels; independent of changed-file overlap",
+        "categories": {
+          "direct_edit": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          },
+          "impact_check": {
+            "expected": [],
+            "selected": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util0/sample258.py",
+              "src/util1/sample001.py",
+              "src/util1/sample259.py",
+              "src/util2/sample002.py",
+              "src/util3/sample003.py",
+              "src/util4/sample004.py",
+              "src/util5/sample005.py",
+              "tests/test_admission.py"
+            ],
+            "hits": [],
+            "missed": [],
+            "extra": [
+              "src/access/ledger.py",
+              "src/caller.py",
+              "src/util0/sample000.py",
+              "src/util0/sample258.py",
+              "src/util1/sample001.py",
+              "src/util1/sample259.py",
+              "src/util2/sample002.py",
+              "src/util3/sample003.py",
+              "src/util4/sample004.py",
+              "src/util5/sample005.py",
+              "tests/test_admission.py"
+            ],
+            "recall": null,
+            "precision": 0.0
+          },
+          "document_read": {
+            "expected": [],
+            "selected": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "hits": [],
+            "missed": [],
+            "extra": [
+              ".fullops-squad/FULLOPS.md",
+              ".fullops-squad/PLANS.md",
+              ".fullops-squad/contexts/architecture.md",
+              ".fullops-squad/contexts/dev.md",
+              ".fullops-squad/docs/agents/domain.md",
+              ".fullops-squad/docs/deliverables/README.md",
+              ".fullops-squad/docs/operations/transition.md",
+              ".fullops-squad/docs/planning/business-plan.md",
+              ".fullops-squad/handovers/_TEMPLATE.md",
+              ".fullops-squad/handovers/to_dev.md",
+              ".fullops-squad/project.md",
+              ".fullops-squad/rules/common/README.md",
+              ".fullops-squad/rules/common/coding-style.md",
+              ".fullops-squad/rules/common/security.md",
+              ".fullops-squad/rules/common/testing.md",
+              "docs/contract.md"
+            ],
+            "recall": null,
+            "precision": 0.0
+          },
+          "document_update": {
+            "expected": [],
+            "selected": [],
+            "hits": [],
+            "missed": [],
+            "extra": [],
+            "recall": null,
+            "precision": null
+          }
+        }
+      },
+      "packet_context_chars": 1234,
+      "map_sha256": {
+        "code": "d144e8c1e6c6c95aed31393422de3eb6e10168b2ab21f50ece6141010660d7c0",
+        "documents": "1687a45db88f2c3dd72cc8ebd0a62b6a2f5a83ad02d151c15930914c4fa9c6d6"
+      }
+    }
+  ],
+  "limitations": [
+    "synthetic corpus only; thresholds and limit are not calibrated",
+    "hierarchical visits alternative folders exhaustively; no recall or cost reduction guarantee",
+    "recommendations stay read/impact candidates; direct edit requires explicit seed/diff",
+    "document update requires explicit update/route; evaluation does not feed labels to retrieval",
+    "packet_context_chars is fixture text volume, not host agent token use or whole-task cost"
+  ]
+}

@@ -497,7 +497,7 @@ class Stabilization(unittest.TestCase):
                     labels = list(question['criteria'])
                     pick = next((label for label in labels if label in ('dev', 'simple', 'found')), labels[0])
                     if qid == 'where':
-                        pick = next((label for label in labels if 'api.py' in question['criteria'][label] or 'interface-design.md' in question['criteria'][label]), labels[0])
+                        pick = next((label for label in labels if 'api.py' in payload['state']['entries'][label] or 'interface-design.md' in payload['state']['entries'][label]), labels[0])
                     answers[qid] = web_test.answer(labels, pick)
             return {'model': 'typesafe/jev-test', 'answers': answers, 'usage': {'cost': 0.001, 'input_tokens': 1, 'output_tokens': 1}}, 0.01
         route = jev_route.route(self.repo, 'K1', 'rename fetch_user to lookup_user and update D05', call)
@@ -713,7 +713,7 @@ class Stabilization(unittest.TestCase):
             probabilities = {name: 1 / len(labels) for name in labels}
             return {'model': 'typesafe/jev-test', 'usage': {'input_tokens': 1, 'output_tokens': 1, 'cost': 0.001}, 'answers': {
                 'where': {'type': 'choice', 'choice': labels[0], 'confidence': probabilities[labels[0]], 'probabilities': probabilities},
-                'exists': web_test.answer(list(payload['questions']['exists']['criteria']), 'found')}}, 0.01
+                'exists': {'type': 'noul', 'noul': 0.95}}}, 0.01
         with patch.object(jev_find, 'code_map', return_value=entries):
             result = jev_find.find(self.repo, 'dev', 'K1', call, limit=2)
         self.assertTrue(result['partial'])

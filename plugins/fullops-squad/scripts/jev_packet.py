@@ -10,7 +10,7 @@ import subprocess
 from board import deliverables
 from deliverables import front_matter
 from jev_find import code_map, git, result_path, MAX_BLOB
-from jev_observe import local_file, REQUIRED, digest, safe_text
+from jev_observe import local_file, REQUIRED, digest, safe_text, git_env
 from work import active_repo, instruction, instruction_digest, input_identity, previous_result, save_result, task_excerpt, KEY
 from storage import atomic_write
 
@@ -59,23 +59,24 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                     producer_status[suffix]['context_fallback'] = ctx_status['fallback']
                 if data.get('error') or data.get('partial') or data.get('input_partial') or data.get('docs_status') == 'partial' or data.get('unresolved_deliverables') or data.get('remaining_candidates') or data.get('refused_paths') or data.get('unsent_sources') or data.get('fallback') or ctx_status.get('fallback'):
                     unknown.append({'source': suffix, 'reason': 'producer uncertainty; inspect producer_status', **producer_status[suffix]})
-    recommended = {c['path'] for c in sources.get('find', {}).get('candidates', [])}
+    recommended = {c['path'] for c in sources.get('find', {}).get('candidates', [])} | set(sources.get('find', {}).get('seed_paths', []))
     explicit = set(seeds)
     dirty = git(repo, 'status', '--porcelain', '--untracked-files=all')
     explicit.update(p for p in git(repo, 'diff', '--name-only', 'HEAD').splitlines() if not p.startswith(
                   ('.fullops-squad/handovers/', '.fullops-squad/board/', '.fullops-squad/docs/evaluations/jev/')))
-    direct = explicit | {p for p in recommended if not p.endswith('.md')}
+    direct = explicit
     mandatory = set(REQUIRED) | set(required) | {inbox.relative_to(repo).as_posix()}
     route = sources.get('route', {})
     update_ids = set(updates) | set(route.get('deliverables', [])) | set(route.get('additional_deliverables', []))
-    documents = {c['path'] for c in sources.get('documents-find', {}).get('candidates', [])} | {p for p in recommended if p.endswith('.md')}
+    documents = {c['path'] for c in sources.get('documents-find', {}).get('candidates', [])} | set(sources.get('documents-find', {}).get('seed_paths', [])) | {p for p in recommended if p.endswith('.md')}
     ctx = sources.get('context', {}).get('context') or {}
     contexts = {path: cid for cid, path in ctx.get('candidate_paths', {}).items()}
     optional = {p for p, cid in contexts.items() if (ctx.get('signals', {}).get(cid) or {}).get('decision') == 'suggest_omit'}
     mandatory.update(path for path in ctx.get('required_paths', []) if path)
     mapped = {path for scope in ('code', 'documents') for path, _ in code_map(repo, head, scope)}
     mapped.update(direct | mandatory | documents | set(contexts))
-    texts, file_hashes = {}, {}
+    texts, file_hashes, source_basis = {}, {}, {}
+    tracked = set(git(repo, 'ls-files', '-z').split('\0'))
     for name in sorted(mapped):
         try:
             path = local_file(repo, name)
@@ -84,14 +85,20 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                 raise ValueError('oversized or empty; read manually')
             safe_text(raw.decode('utf-8'), MAX_BLOB)
             body = text if path == inbox else raw.decode('utf-8')
-            texts[name], file_hashes[name] = body, digest(body.encode())
+            texts[name] = body
+            file_hashes[name] = instruction_digest(body) if path == inbox else digest(body.replace('\r\n', '\n').encode())
+            saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{name}'],
+                                   capture_output=True, env=git_env())
+            source_basis[name] = ('HEAD' if saved.returncode == 0 and saved.stdout == raw else
+                                  'tracked_worktree_overlay' if name in tracked else 'explicit_untracked_or_required')
         except (OSError, ValueError, UnicodeError):
             unknown.append({'path': name, 'reason': 'missing, oversized, sensitive or invalid; manual inspection'})
 
     def add(path, category, reason, evidence=None, doc_id=None):
         item = entries.setdefault(path, {'path': path, 'categories': [], 'reasons': [], 'evidence': [],
             'doc_ids': [], 'required': path in mandatory, 'status': 'inferred' if path in texts else 'unknown',
-            'priority': 0 if path in mandatory else 1, 'source_sha256': file_hashes.get(path)})
+            'priority': 0 if path in mandatory else 1, 'source_sha256': file_hashes.get(path),
+            'source_basis': source_basis.get(path)})
         if category not in item['categories']:
             item['categories'].append(category)
         if reason not in item['reasons']:
@@ -103,7 +110,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
 
     for path in direct:
         add(path, 'document_update' if path.endswith('.md') else 'direct_edit', 'explicit edit seed/diff' if path in explicit else 'code find recommendation')
-    for path in mandatory | documents | (set(contexts) - optional):
+    for path in mandatory | documents | recommended | (set(contexts) - optional):
         add(path, 'document_read' if path.endswith('.md') else 'impact_check', 'required or existing context recommendation')
         if path in contexts:
             entries[path]['context_signal'] = ctx.get('signals', {}).get(contexts[path])
@@ -174,12 +181,16 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
             raise ValueError('worker decision needs existing path, action and reason; use --seeds to add a path')
         if decision['action'] == 'exclude' and entries[decision['path']]['required']:
             raise ValueError('mandatory context cannot be excluded')
-    identity = input_identity(repo, role, key, {'policy': 'packet-v2', 'seeds': sorted(explicit), 'required': sorted(mandatory),
+    identity = input_identity(repo, role, key, {'policy': 'packet-v3', 'seeds': sorted(explicit), 'required': sorted(mandatory),
         'updates': sorted(update_ids), 'sources': file_hashes, 'search_results': {k: digest(json.dumps(v, sort_keys=True).encode()) for k, v in sources.items()},
         'decisions': decisions})
+    if identity['head'] != head:
+        raise ValueError('HEAD changed while preparing packet; regenerate')
     items = sorted(entries.values(), key=lambda item: (bool(item.get('optional')), item['priority'], item['path']))
     primary = [i['path'] for i in items if not i['required'] and not i.get('optional')]
     return {**identity, 'version': 'jev-packet-v2', 'base': head, 'worktree_dirty': bool(dirty), 'items': items,
+        'snapshot': 'HEAD search with tracked worktree and explicit/required local overlays',
+        'source_hash_policy': 'verify before worker start; regenerate on change; completion allows implementation changes',
         'categories': {c: [i['path'] for i in items if c in i['categories']] for c in CATEGORIES},
         'input_partial': len(text) > 3500, 'task_excerpt': task_excerpt(text), 'instruction': inbox.relative_to(repo).as_posix(),
         'partial': bool(unknown), 'unknown': unknown, 'producer_status': producer_status,
@@ -224,13 +235,18 @@ def check(repo, role, key, completion=False, required=False, head=None, text=Non
             raise ValueError('packet task/role/attempt/instruction identity differs')
         current_head = head or git(repo, 'rev-parse', 'HEAD')
         if completion:
-            subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', result['head'], current_head], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', result['head'], current_head], check=True, capture_output=True, env=git_env())
         elif result.get('head') != current_head:
             raise ValueError('packet SHA differs from worker HEAD')
         if not completion:
             for item in result['items']:
                 if not item.get('optional') and (item.get('required') or item.get('status') != 'unknown'):
-                    read(item['path'])  # 워크트리 간 파일 공유를 가정하지 않는다.
+                    body = read(item['path'])  # 워크트리 간 파일 공유를 가정하지 않는다.
+                    if item['path'] == result.get('instruction'):
+                        body = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', body)
+                    actual = instruction_digest(body) if item['path'] == result.get('instruction') else digest(body.replace('\r\n', '\n').encode())
+                    if item.get('source_sha256') and actual != item['source_sha256']:
+                        raise ValueError('packet source changed; regenerate packet before worker start')
             return
         outcomes = json.loads(read(result_path(repo, key, 'packet-outcomes').relative_to(repo).as_posix()))
         if outcomes.get('packet_input_sha256') != result['input_sha256'] or outcomes.get('attempt') != result['attempt']:

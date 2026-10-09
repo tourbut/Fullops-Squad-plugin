@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 
 from board import deliverables
-from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text, validated
+from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text, validated, require_online, git_env
 from work import KEY, active_repo, safe_file, input_identity, save_result
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
@@ -136,6 +136,7 @@ def pick_model(repo, role, text, call):
             criteria[c['id']] = label
     question = {'model': {'type': 'choice', 'criteria': criteria, 'instructions': MODEL_HINT}}
     try:
+        require_online()
         values, usage, elapsed, model = validated(call({'model': MODEL, 'state': {'role': role, 'request': safe_text(text)}, 'questions': question}), question)
         answer = checked_answer(values['model'], criteria)
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
@@ -199,7 +200,7 @@ def route(repo, key, text, call, override_role=None, reason=None):
         result['override_reason'] = reason
     result['model'] = pick_model(repo, result['role'], text, call) if result.get('role') else None
     result['candidate_hash'] = candidate_hash(repo, result['role'])
-    head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
+    head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True, env=git_env())
     result['head'] = head.stdout.strip() if head.returncode == 0 else None
     result['requires_packet'] = True
     if result.get('role'):
@@ -260,6 +261,7 @@ def classify(repo, key, text, call):
     try:
         state = {'guide': safe_text(body), 'request': safe_text(text), **({'deliverables': docs} if docs else {})}
         safe_text(json.dumps(state, ensure_ascii=False), 20000)
+        require_online()
         values, usage, elapsed, model = validated(call({'model': MODEL, 'state': state, 'questions': questions}), questions, partial=True)
         answers = {q: checked_answer(values[q], questions[q]['criteria']) for q in ('scope', 'role')}
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
