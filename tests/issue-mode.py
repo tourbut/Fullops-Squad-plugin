@@ -413,6 +413,28 @@ def main():
         with patch.object(mode.time, 'time', side_effect=lambda: clock[0]), patch.object(mode.time, 'sleep', side_effect=tick), patch.object(mode, 'claim', side_effect=AssertionError('poller dispatched')):
             mode.watch(bstore, bapi, bowner['token'])
         assert bstore.read()['jobs']['120']['attempt'] == 0 and bapi.posts == 0
+        # 최초 backlog 수집 전에 신규 이슈 전용으로 바꾸면 과거 이슈를 실행하지 않는다.
+        new_only = root / 'new-only'
+        new_only.mkdir()
+        subprocess.run(['git', 'init', '-q', '-b', 'main', str(new_only)], check=True)
+        subprocess.run(['git', '-C', str(new_only), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
+        (new_only / '.fullops-squad').mkdir()
+        (new_only / '.fullops-squad/fullops.json').write_text((root / '.fullops-squad/fullops.json').read_text())
+        nstore, napi = mode.Store(new_only), API()
+        mode.configure(nstore, napi, 'owner/service', ['author'], backlog=True, approved=True)
+        nstart = mode.hook_path(new_only, 'new-only-provider')
+        nstart.parent.mkdir()
+        nstart.write_text(json.dumps({'provider_session': 'new-only-provider'}))
+        mode.activate(nstore, Orca(), 'new-only-coor', 'new-only-run', 'term', 'new-only-provider')
+        mode.stop(nstore, 'new-only-provider')
+        mode.configure(nstore, napi, 'owner/service', ['author'], backlog=False, approved=True)
+        nowner = mode.activate(nstore, Orca(), 'new-only-coor', 'new-only-run', 'term', 'new-only-provider')
+        napi.issues = [issue(21, created_at='2000-01-01T00:00:00Z'), issue(22)]
+        with patch.object(napi, 'pages', wraps=napi.pages) as pages:
+            mode.poll(nstore, napi, nowner['token'])
+            assert 'since=' in pages.call_args.args[0], 'new-only mode must use a date filter after reconfiguration'
+        assert '121' not in nstore.read()['jobs'], 'recent updates must not admit historical issues in new-only mode'
+        assert nstore.read()['jobs']['122']['status'] == 'queued'
         # 미확인 POST가 조회에 없을 때 재게시하지 않는다.
         with store.edit() as state:
             state['owner']['expires'] = time.time() + 90

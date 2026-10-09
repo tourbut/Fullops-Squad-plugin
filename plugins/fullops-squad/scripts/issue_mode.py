@@ -271,7 +271,7 @@ def activate(store, orca, session, run, terminal, provider_session, now=None):
                  'epoch': state['epoch'], 'token': secrets.token_hex(24), 'enabled': True, 'paused': False,
                  'expires': now + 90, 'end_marker': str(store.path.parent / f'lease-stop-{state["epoch"]}.json')}
         state['owner'] = owner
-        if state['cursor'] is None:
+        if state['cursor'] is None or (not config['backlog'] and state['since_created'] == '1970-01-01T00:00:00Z'):
             state['cursor'] = '1970-01-01T00:00:00Z' if config['backlog'] else iso(now)
             state['since_created'] = state['cursor']
         record(state, 'activated', session=session, run=run, epoch=owner['epoch'])
@@ -350,7 +350,7 @@ def poll(store, github, token):
     config = saved['config']
     path = f"/repos/{config['repository']}/issues?state=all&sort=created&direction=asc&per_page=100"
     # Initial backlog is an unfiltered listing; GitHub can return no rows for epoch date filters.
-    if saved['cursor'] != '1970-01-01T00:00:00Z':
+    if not config['backlog'] or saved['cursor'] != '1970-01-01T00:00:00Z':
         path += '&since=' + iso(timestamp(saved['cursor']) - 1)
     issues, cache = github.pages(path, safe_pages(saved['pages']))
     # 모든 네트워크 결과가 준비된 뒤 cursor와 enqueue를 함께 commit한다.
