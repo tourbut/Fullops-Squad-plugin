@@ -571,7 +571,7 @@ def main():
         with patch.object(mode, 'owner_identity', return_value='replacement-incarnation'):
             fails(lambda: mode.renew(nstore, Orca(), nowner['token']), 'incarnation')
         assert nstore.read()['owner']['expires'] == deadline
-        now = time.time()
+        now = 1791541507.000005  # ms→s 환산에서 1 ULP 차이가 발생하는 고정 시각
         with nstore.edit() as state:
             state['owner'].update(session='provider_session:new-only-provider', expires=now + 10)
         with patch.object(mode, 'owner_identity', return_value='incarnation'), patch.object(mode.time, 'time', return_value=now):
@@ -581,9 +581,9 @@ def main():
                 assert nstore.read()['owner']['expires'] == now + 10, 'stale or missing native activity must not renew a lease'
             with patch.object(adapter, 'call', return_value={'terminal': {'lastOutputAt': (now - 5) * 1000}}):
                 mode.renew(nstore, adapter, nowner['token'], background=True)
-            assert nstore.read()['owner']['expires'] == now + 85, 'native lease must expire within 90 seconds of activity'
+            assert abs(nstore.read()['owner']['expires'] - (now + 85)) < 1e-6, 'native lease must expire within 90 seconds of activity'
         with nstore.edit() as state:
-            state['owner']['session'] = 'new-only-coor'
+            state['owner'].update(session='new-only-coor', expires=time.time() + 90)
         napi.issues = [issue(21, created_at='2000-01-01T00:00:00Z'), issue(22)]
         with patch.object(napi, 'pages', wraps=napi.pages) as pages:
             mode.poll(nstore, napi, nowner['token'])

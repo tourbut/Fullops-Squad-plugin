@@ -814,6 +814,8 @@ def worker_job(store, state, session, context):
     for job in state['jobs'].values():
         binding = job.get('worker_sessions', {}).get(session)
         if binding:
+            if job['status'] in FINAL and not context.get('dispatch'):
+                continue  # 완료된 worker의 새 일반 작업을 옛 dispatch에 다시 묶지 않는다.
             if context.get('dispatch') != binding['dispatch'] or context.get('task') != binding['task']:
                 raise ValueError('자동 worker의 dispatch/task binding이 바뀌었습니다')
             return job, binding['epoch'] if binding['task_key'] == job.get('task_key') else None
