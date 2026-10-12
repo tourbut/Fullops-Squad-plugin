@@ -242,9 +242,11 @@ def cache_path(payload):
     return root / (digest(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()) + '.json')
 
 
-def request(payload, key):
+def request(payload, key, timeout=30):
     """Same payload, same answer: Jev drifts between runs, so answers are cached by content (as Canny does)."""
     import tempfile
+    if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError('request timeout must be finite and positive')
     require_online()  # 응답 캐시도 읽지 않는다. offline은 의미 판단을 수행하지 않는다.
     serialized = json.dumps(payload, ensure_ascii=False)
     safe_text(serialized, len(serialized))
@@ -270,9 +272,9 @@ def request(payload, key):
             json.dump(payload, output, ensure_ascii=False)
         config = f'header = "Authorization: Bearer {key}"\n'  # 키는 명령줄이 아니라 표준입력으로 넘긴다
         result = subprocess.run(
-            [shutil.which('curl') or 'curl', '--config', '-', '--silent', '--show-error', '--fail', '--max-time', '30',
+            [shutil.which('curl') or 'curl', '--config', '-', '--silent', '--show-error', '--fail', '--max-time', str(timeout),
              '--header', 'Content-Type: application/json', '--data-binary', '@' + body, URL],
-            input=config, text=True, capture_output=True,
+            input=config, text=True, capture_output=True, timeout=timeout + 2,
         )
     finally:
         os.unlink(body)

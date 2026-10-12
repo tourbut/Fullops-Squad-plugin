@@ -1,0 +1,151 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.3.0",
+  "target_sha": "dc67829adefd9a6a126af7a0e6aa2f1c2a06004b",
+  "worktree_dirty": true,
+  "executor_sha256": "626e4ec17621cd49e54f589adb750875f187c5e73df40abc2c03d8d57c08717e",
+  "scenario_sha256": "853e5c5ffb369377b69d58329ab4405db30c7165b7939b1fefecbdaa033582a5",
+  "executor_files_sha256": {
+    "jev_test_web.py": "626e4ec17621cd49e54f589adb750875f187c5e73df40abc2c03d8d57c08717e",
+    "web_contract.py": "1dc5354dabdf39207ed27fbbdeae52eef8fbab455f67600f5bea29cfc15a5ce9",
+    "web_dom.js": "ba49ebce983775988f13992f90ead7e8a88449d091cc5ec892b2aca092e6a5ca",
+    "web_playwright.py": "64d9b1538b13d2a21916ba96efc32ff322089f9610a5a0e1063fd0b112ae59c9",
+    "web_playwright.cjs": "20bc5dff0ba2bd4cecba57d9c5395a1f9d36755513020d2e6eff99f407f6ea02"
+  },
+  "result": "passed",
+  "passed": true,
+  "steps": 2,
+  "scope": "scenario_checks",
+  "executor": {
+    "name": "orca",
+    "version": "1.4.223",
+    "request_filtering": false,
+    "attached": true
+  },
+  "coverage": {
+    "total": 48,
+    "offset": 0,
+    "observed": 48,
+    "remaining": 0,
+    "unsupported": [],
+    "complete": true
+  },
+  "assertions_passed": true,
+  "jev_calls": 2,
+  "calls": [
+    {
+      "cost": 6.8586e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "ec0bc6b2d6f8d4e979d3bb0481964bb0e3916c455f7a658af4a8179963080605",
+      "question_sha256": "23c1ac8f820ad381c175fbb87b7524eace7ac07990da49c54dfe1befc1381918",
+      "usage": {
+        "input_tokens": 1633,
+        "output_tokens": 443,
+        "cost": 6.8586e-05
+      },
+      "latency_s": 0.728,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    },
+    {
+      "cost": 7.0308e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "c2a30af44346ef498f8b93fd7417d8a93b5ec3a06be8e00792e167c491aa7c9c",
+      "question_sha256": "23c1ac8f820ad381c175fbb87b7524eace7ac07990da49c54dfe1befc1381918",
+      "usage": {
+        "input_tokens": 1674,
+        "output_tokens": 442,
+        "cost": 7.0308e-05
+      },
+      "latency_s": 0.457,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    }
+  ],
+  "cost": 0.000139,
+  "known_cost": 0.000139,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 120,
+    "max_cost": 0.02,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 32000
+  },
+  "latency_s": 1.185,
+  "elapsed_s": 8.457,
+  "checks": [
+    {
+      "condition": {
+        "js": "location.pathname === '/home'",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('main h1')?.textContent.trim() === 'Home'",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelectorAll('main article').length",
+        "equals": 2
+      },
+      "value": 2,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "[...document.querySelectorAll('textarea,input')].some(e => (e.labels?.[0]?.textContent || e.getAttribute('aria-label') || '').includes('Pet의 소식') && e.disabled)",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "(() => {const controls=[...document.querySelectorAll('button')].filter(e => /^(게시|Like|Comment|Share|Save)$/.test(e.textContent.trim()));return controls.length >= 9 && controls.every(e => e.disabled);})()",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "text": "로그인이 만료됐습니다. 다시 로그인하세요."
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.documentElement.scrollWidth <= innerWidth",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "window.scrollY > 0",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    }
+  ],
+  "url": "https://pet.knowslog.com/home",
+  "goal": "On JeV Pet Home demo, first scroll_down once to inspect the lower feed. Use history: after one successful scroll_down, choose done. This is a read-only test. Never click or fill any control, post, like, share, save, navigate, or enter credentials.",
+  "covers": [
+    "HOME-STRUCTURE",
+    "DEMO-NO-WRITES",
+    "AUTH-EXPIRED-STATE",
+    "DESKTOP-OVERFLOW",
+    "JEV-CHOOSES-SCROLL-THEN-DONE"
+  ]
+}

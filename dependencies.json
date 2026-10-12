@@ -3,6 +3,7 @@
     "ponytail": "DietrichGebert/ponytail",
     "claude-plugins-official": "anthropics/claude-plugins-official"
   },
+  "skill_cli": "skills@1.7.2",
   "skills": [
     {
       "source": "JuliusBrussee/caveman",
@@ -27,6 +28,46 @@
       "names": [
         "diagram-design"
       ]
+    },
+    {
+      "source": "anthropics/skills",
+      "ref": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+      "path": "skills/frontend-design",
+      "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3",
+      "license": "Apache-2.0 (skills/frontend-design/LICENSE.txt)",
+      "names": [
+        "frontend-design"
+      ]
+    },
+    {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "ref": "67803eac81607188194aea9842a723b89326d90d",
+      "path": ".claude/skills/ui-ux-pro-max",
+      "sha256": "ea087c341bfb5b23195c7302027268ede86da802554c18a5c4896a6017b439f9",
+      "license": "MIT",
+      "names": [
+        "ui-ux-pro-max"
+      ]
+    },
+    {
+      "source": "pbakaus/impeccable",
+      "ref": "c63b8dd7dd5a5f3c32eaabe1af76d0694f863ed2",
+      "path": ".agents/skills/impeccable",
+      "sha256": "58c0252bca04521de87007aeb495f7ec99dc4c7341bc890fe82b6d577573af91",
+      "license": "Apache-2.0",
+      "names": [
+        "impeccable"
+      ]
+    },
+    {
+      "source": "vercel-labs/agent-skills",
+      "ref": "063bee94c3f4df8453406c830b0a7df0f2860278",
+      "path": "skills/web-design-guidelines",
+      "sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f",
+      "license": "NOASSERTION (verify upstream before redistribution)",
+      "names": [
+        "web-design-guidelines"
+      ]
     }
   ],
   "portable_skills": [
@@ -37,6 +78,26 @@
       ]
     }
   ],
+  "frontend_tools": {
+    "playwright": {
+      "source": "https://github.com/microsoft/playwright-cli",
+      "package": "@playwright/cli@0.1.22",
+      "command": "playwright-cli",
+      "license": "Apache-2.0"
+    },
+    "impeccable-engine": {
+      "source": "https://github.com/pbakaus/impeccable",
+      "package": "impeccable@4.5.2",
+      "command": "impeccable",
+      "license": "Apache-2.0"
+    },
+    "shadcn": {
+      "source": "https://ui.shadcn.com/docs/mcp",
+      "package": "shadcn@4.21.4",
+      "command": "shadcn",
+      "license": "MIT"
+    }
+  },
   "tools": [
     {
       "package": "@alibaba-group/open-code-review@1.12.12",
@@ -61,5 +122,17 @@
         ]
       }
     ]
-  }
+  },
+  "optional_skills": [
+    {
+      "source": "microsoft/CUAWright",
+      "ref": "ff44a0524e0812b69814efcec5e583f0d8cdde0c",
+      "path": "skills/cuawright-web",
+      "sha256": "ee012d70f5f468da3aa28777aca03090918e06188261e6343f63156852e47745",
+      "license": "MIT AND Apache-2.0 (pyproject.toml; preserve LICENSE/NOTICE/licenses)",
+      "names": [
+        "cuawright-web"
+      ]
+    }
+  ]
 }

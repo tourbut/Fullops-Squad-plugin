@@ -229,7 +229,8 @@ class Stabilization(unittest.TestCase):
 
     def test_web_invalid_risk_and_midrun_exception_evidence(self):
         scenario = {'url': 'https://example.test', 'goal': 'Add milk', 'values': {'milk': 'milk'},
-                    'checks': [{'text': 'milk'}], 'max_steps': 2}
+                    'checks': [{'text': 'milk'}], 'covers': ['TODO-1'], 'max_steps': 2,
+                    'safety': {'fixture': 'todo', 'allowed_operations': ['fill_submit']}}
         for n, risk in enumerate((None, True, float('nan'), float('inf'), -1, 1.1)):
             browser = web_test.FakeBrowser()
             out = self.root / str(n)
@@ -256,7 +257,8 @@ class Stabilization(unittest.TestCase):
         self.assertIsNone(result['cost'])
         out = self.root / 'maxsteps'
         passed = web.run({**scenario, 'max_steps': 1}, web_test.FakeBrowser(), web_test.jev([('fill_submit', 'e3', 'milk')]), out, log=lambda _: None)
-        self.assertTrue(passed['passed'])
+        self.assertFalse(passed['passed'])
+        self.assertTrue(passed['assertions_passed'])
         self.assertEqual(passed['result'], 'max_steps')
 
     def test_unity_failure_keeps_first_event_and_kills_player(self):
@@ -786,7 +788,7 @@ class Stabilization(unittest.TestCase):
                     runtime.write_text(shared.read_text())
                 with patch.object(deps, 'run', side_effect=install) as run:
                     deps.install_host('claude-code', [command])
-                    self.assertEqual(deps.read_receipt(deps.receipt_path('claude-code'))['skill_files'], [str(runtime)])
+                    self.assertEqual(deps.read_receipt(deps.receipt_path('claude-code'))['skill_files'], [str(runtime), str(shared)])
                     self.assertEqual(deps.check_host('claude-code'), [])
                     runtime.unlink()
                     self.assertTrue(deps.check_host('claude-code'))

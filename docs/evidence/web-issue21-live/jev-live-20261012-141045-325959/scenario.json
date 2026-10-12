@@ -1,0 +1,47 @@
+{
+  "url": "https://pet.knowslog.com/home",
+  "goal": "On JeV Pet Home demo, first scroll_down once to inspect the lower feed. Use history: after one successful scroll_down, choose done. This is a read-only test. Never click or fill any control, post, like, share, save, navigate, or enter credentials.",
+  "covers": [
+    "HOME-STRUCTURE",
+    "DEMO-NO-WRITES",
+    "AUTH-EXPIRED-STATE",
+    "DESKTOP-OVERFLOW",
+    "JEV-CHOOSES-SCROLL-THEN-DONE"
+  ],
+  "checks": [
+    {
+      "js": "location.pathname === '/home'",
+      "equals": true
+    },
+    {
+      "js": "document.querySelector('main h1')?.textContent.trim() === 'Home'",
+      "equals": true
+    },
+    {
+      "js": "document.querySelectorAll('main article').length",
+      "equals": 2
+    },
+    {
+      "js": "[...document.querySelectorAll('textarea,input')].some(e => (e.labels?.[0]?.textContent || e.getAttribute('aria-label') || '').includes('Pet의 소식') && e.disabled)",
+      "equals": true
+    },
+    {
+      "js": "(() => {const controls=[...document.querySelectorAll('button')].filter(e => /^(게시|Like|Comment|Share|Save)$/.test(e.textContent.trim()));return controls.length >= 9 && controls.every(e => e.disabled);})()",
+      "equals": true
+    },
+    {
+      "text": "로그인이 만료됐습니다. 다시 로그인하세요."
+    },
+    {
+      "js": "document.documentElement.scrollWidth <= innerWidth",
+      "equals": true
+    },
+    {
+      "js": "window.scrollY > 0",
+      "equals": true
+    }
+  ],
+  "max_steps": 4,
+  "max_seconds": 120,
+  "max_cost": 0.02
+}

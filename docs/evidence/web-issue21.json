@@ -1,0 +1,215 @@
+{
+  "checked_at": "2026-10-12T04:38:06.296878+00:00",
+  "scope": "Issue 21 web engine and user-requested existing Orca page verification; local uncommitted development checkout",
+  "base_commit": "dc67829adefd9a6a126af7a0e6aa2f1c2a06004b",
+  "state": {
+    "committed": false,
+    "pushed": false,
+    "deployed": false,
+    "user_global_install_performed": false,
+    "temporary_test_only_playwright_install": true
+  },
+  "issue": {
+    "url": "https://github.com/tourbut/Fullops-Squad-plugin/issues/21",
+    "reviewed_update": "2026-10-12T03:04:27Z"
+  },
+  "implementation": {
+    "P0": "bounded observation and NONE/STOP + valid-target Noul; state/candidate IDs; stale/actionability/origin/fixture checks; one-submit Enter; budgets and independent scoped assertions",
+    "P1": "optional advisory shadow classifier; no gate/skip changes; failed assertions remain undetermined pending review",
+    "P2": "shared contract and optional explicitly selected Playwright adapter; Orca default preserved; no installation or engine fallback at execution",
+    "P3": "default-off pinned optional CUAWright host-skill preparation only; actual generation, reviewed code execution and visual PoC are UNVERIFIED/not run",
+    "P4": "passed trace promotion into scenario-bound deterministic replay; actual promoted replay and matched healthy/inserted-bug fixtures verified without model calls"
+  },
+  "current_page": {
+    "url": "https://pet.knowslog.com/home",
+    "title": "JeV Pet",
+    "page_id": "a680472c-33e5-4bae-a59f-660201a8ca66",
+    "executor": {
+      "name": "orca",
+      "version": "1.4.223",
+      "request_filtering": false,
+      "attached": true
+    },
+    "observed_elements": 48,
+    "independent_checks_passed": 7,
+    "assertions_record": "docs/evidence/web-issue21-live/assertions-checked/result.json",
+    "replay_record": "docs/evidence/web-issue21-live/replay-checked/result.json",
+    "probes": {
+      "disabled_post": "disabled_or_sensitive_target",
+      "unknown_candidate": "candidate_not_in_observation",
+      "elements": 48,
+      "checks_passed": 7,
+      "jev_calls": 0,
+      "original_scroll_restored": true
+    },
+    "original_tab_preserved": true,
+    "temporary_fixture_tabs_closed": true,
+    "jev_calls": 0,
+    "real_jev_decision": "not_run; OPENROUTER_API_KEY unavailable in this repository environment",
+    "scope_limit": "Home read-only checks and scroll only. Login-expired alert and disabled composer/social actions observed; authenticated workflows and visual quality were not tested."
+  },
+  "matched_fixtures": {
+    "comparison": "docs/evidence/web-issue21-fixture/release-check/comparison.json",
+    "same_app_scenario_sha_and_assertions": true,
+    "executors": {
+      "playwright": {
+        "identity": {
+          "name": "playwright",
+          "cli_version": "0.1.22",
+          "version": "1.64.0-alpha-1790635538000",
+          "browser_version": "155.0.4283.45",
+          "request_filtering": true,
+          "attached": false,
+          "blocked_requests": 0
+        },
+        "metrics": {
+          "sample": "one healthy fixture and one known counter bug; deterministic replay only",
+          "healthy_passes": 1,
+          "inserted_bugs_detected": 1,
+          "false_passes": 0,
+          "false_failures": 0,
+          "measured_jev_calls": 0,
+          "measured_api_cost": 0,
+          "unmeasured": [
+            "model exploration quality",
+            "general bug recall",
+            "CUAWright",
+            "visual quality"
+          ],
+          "timing_claim": "per-run elapsed_s only; this small sequential sample does not establish performance gains"
+        },
+        "healthy_seconds": 1.714,
+        "inserted_bug_seconds": 1.736,
+        "probes": {
+          "identical_dom_replacement": "stale_state",
+          "occlusion": "not_actionable",
+          "external_origin": "origin_not_allowed",
+          "unapproved_same_origin_post": "blocked"
+        }
+      },
+      "orca": {
+        "identity": {
+          "name": "orca",
+          "version": "1.4.223",
+          "request_filtering": false,
+          "attached": false
+        },
+        "metrics": {
+          "sample": "one healthy fixture and one known counter bug; deterministic replay only",
+          "healthy_passes": 1,
+          "inserted_bugs_detected": 1,
+          "false_passes": 0,
+          "false_failures": 0,
+          "measured_jev_calls": 0,
+          "measured_api_cost": 0,
+          "unmeasured": [
+            "model exploration quality",
+            "general bug recall",
+            "CUAWright",
+            "visual quality"
+          ],
+          "timing_claim": "per-run elapsed_s only; this small sequential sample does not establish performance gains"
+        },
+        "healthy_seconds": 38.077,
+        "inserted_bug_seconds": 40.895,
+        "probes": {
+          "identical_dom_replacement": "stale_state",
+          "occlusion": "not_actionable",
+          "external_origin": "origin_not_allowed"
+        }
+      }
+    },
+    "known_inserted_bug": "Submit counter increments twice; independent expected count 1 reads 2. Both engines fail; not a product bug report against JeV Pet.",
+    "performance_claim": "None. One healthy and one known-bug fixture per engine; no model exploration or general bug recall measurements."
+  },
+  "platforms": {
+    "actual": "Windows",
+    "Windows": "actual Orca and Playwright/Edge runs passed",
+    "macOS": "process cleanup unit path and CI matrix added; actual macOS CI not run because changes were not pushed"
+  },
+  "optional_defaults": {
+    "exploration": false,
+    "shadow_triage": false,
+    "CUAWright": false,
+    "CUAWright_skill_installed": false,
+    "new_model_keys_required": false
+  },
+  "validation": [
+    {
+      "command": "npm ci --ignore-scripts",
+      "exit_code": 0,
+      "note": "Existing ajv 8.17.1 moderate dev-dependency advisory retained; no unrelated forced upgrade."
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "note": "Final complete run includes 20 web engine and 28 stabilization tests. An earlier run exposed missing covers in an old fixture; the fixture was corrected before this run."
+    },
+    {
+      "command": "npm exec --yes --package=@alibaba-group/open-code-review@1.12.12 -- python3 tests/review-check.py",
+      "exit_code": 0,
+      "scope": "OCR preparation/record gate infrastructure regression; not independent reasoning review of this change."
+    },
+    {
+      "command": "python3 tests/web-browser.py --engine both --playwright-package <temporary pinned CLI> --browser-executable <installed Edge> --out docs/evidence/web-issue21-fixture/release-check",
+      "exit_code": 0
+    },
+    {
+      "command": "web_analysis.py --promote plus actual promoted Playwright replay",
+      "exit_code": 0,
+      "jev_calls": 0,
+      "record": "docs/evidence/web-issue21-fixture/release-check/playwright/promoted-replay/result.json"
+    },
+    {
+      "command": "web_analysis.py --shadow",
+      "exit_code": 0,
+      "record": "docs/evidence/web-issue21-fixture/release-check/playwright/inserted-bug/shadow.json",
+      "gates_changed": false
+    },
+    {
+      "command": "python3 scripts/build.py; compare package file hashes before/after fresh build",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "independent_code_review": "not_run; no merge/push requested",
+  "limitations": [
+    "Orca remote effectful actions/setup blocked because this adapter cannot intercept requests; loopback fixture only for effects.",
+    "Frames, shadow roots and custom/select widgets are reported unsupported for complete exploration.",
+    "Scenario JS is trusted author code, not a sandbox; fixture/tenant and server-side effect isolation remain required.",
+    "Masking is heuristic; sensitive real datasets are outside the model exploration contract.",
+    "Confirmed-cost budget cannot pre-authorize the exact cost of an in-flight API request."
+  ],
+  "retained_history": {
+    "acceptance_evidence": "Only *-checked and fixture release-check records above are final acceptance evidence.",
+    "earlier_runs": "Preserved separately with their original fingerprints, including diagnostic failures.",
+    "cleanup": "Recursive removal of owned old test evidence folders was rejected by automatic approval review as blocked by policy; no deletion retried. Temporary test runtime retained in OS temp."
+  },
+  "source_sha256": {
+    "plugins/fullops-squad/scripts/jev_test_web.py": "626e4ec17621cd49e54f589adb750875f187c5e73df40abc2c03d8d57c08717e",
+    "plugins/fullops-squad/scripts/web_contract.py": "1dc5354dabdf39207ed27fbbdeae52eef8fbab455f67600f5bea29cfc15a5ce9",
+    "plugins/fullops-squad/scripts/web_dom.js": "ba49ebce983775988f13992f90ead7e8a88449d091cc5ec892b2aca092e6a5ca",
+    "plugins/fullops-squad/scripts/web_playwright.py": "64d9b1538b13d2a21916ba96efc32ff322089f9610a5a0e1063fd0b112ae59c9",
+    "plugins/fullops-squad/scripts/web_playwright.cjs": "20bc5dff0ba2bd4cecba57d9c5395a1f9d36755513020d2e6eff99f407f6ea02",
+    "plugins/fullops-squad/scripts/web_analysis.py": "13c457735324e2ac518ca3849130ffa11c9cc6c4ecea9a94705401751c6a8cb0",
+    "plugins/fullops-squad/scripts/web_poc.py": "324f46d817c3fba218bfa493aaf6035ef4cfdb4b18eef14886c57ee43d9c25d7",
+    "plugins/fullops-squad/scripts/jev_observe.py": "fc41f29d6b0c72e1f5f9915be8a427f256c9156d3b5b4f9fc2c7531937521afb",
+    "plugins/fullops-squad/scripts/test_record.py": "951f8617ce93f2b742d86dca0e630cee531ea71bd669c3c7c1eac59e268d9293",
+    "plugins/fullops-squad/scripts/deps.py": "53492193946720e0654d8b99012bc2e52a9fe39453a238d96fddf8a268b67d73",
+    "dependencies.json": "2f8ad670d94d42f7425fd12fe6a7353ba3943d086bdae30d79656f5e54763542",
+    ".github/workflows/ci.yml": "0cc1d9dc71ebfd7b7f7516df727046c687e4dc65d96b2ef1da0e3704086c02b2",
+    "tests/web-engine.py": "c81a6a3838ff16c116694ee579e2ffe33b809e20f04f6522e3ff95c8dc1c63b8",
+    "tests/web-browser.py": "0ff06bfe548083c2dd4d5e28b4be24da03e02a57b0d77e615d0d174d4e6c77c9"
+  },
+  "followups": [
+    {
+      "checked_at": "2026-10-12T05:12:08.320391+00:00",
+      "record": "docs/evidence/web-issue21-jev-live.json",
+      "result": "passed",
+      "real_jev_calls": 2
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "version": "web-replay-v1",
+  "scenario_sha256": "16d4ee677c24ee4586133c355840526be7fda84a389df793f44c46bb75d190b0",
+  "steps": [
+    {
+      "operation": "scroll_down"
+    }
+  ]
+}

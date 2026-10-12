@@ -17,6 +17,7 @@ SNAPSHOT = '''- textbox "What needs to be done?" [ref=e3]
 
 
 class FakeBrowser:
+    request_filtering = True
     def __init__(self):
         self.todos, self.acts = [], []
 
@@ -37,6 +38,12 @@ class FakeBrowser:
             self.todos.append(value)
         return 'ok'
 
+    def preflight(self, page, operation, ref, safety):
+        return None
+
+    def close(self):
+        pass
+
     def check(self, condition):
         return {'condition': condition, 'value': condition['text'] in self.todos, 'passed': condition['text'] in self.todos}
 
@@ -56,6 +63,7 @@ def jev(plan, risk=0.05, seen=None):
         operation, target, value = next(steps)
         q = payload['questions']
         answers = {'operation': answer(list(q['operation']['criteria']), operation), 'risky': {'type': 'noul', 'noul': risk}}
+        answers.update({name: {'type': 'noul', 'noul': 1.0} for name in q if name.startswith('valid_')})
         for name, pick in (('click_target', target), ('check_target', target), ('fill_target', target), ('fill_value', value)):
             if name in q:
                 labels = list(q[name]['criteria'])
@@ -67,10 +75,10 @@ def jev(plan, risk=0.05, seen=None):
 def main():
     scenario = {'url': 'https://example.test/todo', 'goal': 'Add 우유 사기 and complete it.',
                 'values': {'milk': '우유 사기'}, 'checks': [{'text': '우유 사기'}], 'max_steps': 6,
-                'covers': ['TODO-1 할 일 추가']}
+                'covers': ['TODO-1 할 일 추가'], 'safety': {'fixture': 'todo', 'allowed_operations': ['fill_submit', 'check']}}
     assert web.problems(scenario) == []
     bad = web.problems({'url': 'file:///x', 'goal': '', 'checks': [{'text': 'a', 'url': 'b'}], 'values': {'pw': 'PASSWORD=hunter2'}})
-    assert len(bad) == 5, bad  # url·goal·covers·checks 모양·비밀값
+    assert len(bad) == 6, bad  # url·goal·covers·checks 모양·비밀값·origin
     with tempfile.TemporaryDirectory(prefix='fullops-jev-web-') as tmp:
         seen = []
         browser = FakeBrowser()
@@ -94,9 +102,11 @@ def main():
         stalled = web.run(scenario, stuck, jev([('scroll_down', None, None)] * 6), Path(tmp) / 'stall', log=lambda _: None)
         assert stalled['result'] == 'stalled' and len(stuck.acts) == 3, stalled  # 같은 동작을 세 번 반복하면 멈춘다
 
-        empty = web.run({**scenario, 'checks': []}, FakeBrowser(), jev([('done', None, None), ('blocked', None, None)]),
-                        Path(tmp) / 'empty', log=lambda _: None)
-        assert not empty['passed']  # 검증 조건이 없으면 통과가 아니다
+        try:
+            web.run({**scenario, 'checks': []}, FakeBrowser(), None, Path(tmp) / 'empty', log=lambda _: None)
+            raise AssertionError('검증 조건 없는 시나리오를 실행함')
+        except ValueError:
+            pass  # 조작·모델 호출 전에 거절한다.
 
         premature = web.run({**scenario, 'max_steps': 2}, FakeBrowser(), jev([('done', None, None), ('blocked', None, None)]),
                             Path(tmp) / 'early', log=lambda _: None)

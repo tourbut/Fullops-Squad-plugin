@@ -93,6 +93,33 @@ jobs:
         run: |
           node --test tests/npm-installer.cjs
           python tests/stabilization.py
+          python tests/web-engine.py
           python tests/search-index.py
           python tests/issue-mode.py
           python scripts/build.py
+
+  web-browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.10'
+      - name: Prepare optional browser runtime only for this isolated CI fixture
+        run: |
+          npm install --prefix .fullops-web-test --ignore-scripts --no-save --package-lock=false @playwright/cli@0.1.22
+          node .fullops-web-test/node_modules/playwright/cli.js install chromium
+      - name: Replay healthy and inserted-bug fixtures without a model API
+        run: python tests/web-browser.py --engine playwright --playwright-package .fullops-web-test/node_modules/@playwright/cli/package.json
