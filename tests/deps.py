@@ -20,6 +20,17 @@ def main():
         assert plan[0][:3] == ['npm', 'install', '--global'] and '@alibaba-group/open-code-review@1.12.12' in plan[0]
         assert not any('fullops-squad' in line for line in flat), (host, flat)  # 자신은 마켓플레이스가 설치한다
         assert any('JuliusBrussee/caveman' in line for line in flat)
+        agents = ('codex', 'claude-code', 'grok', 'antigravity-cli') if host in ('all', 'agy') else deps.COMMON_HOSTS
+        for source, name in (('anthropics/skills', 'frontend-design'),
+                             ('nextlevelbuilder/ui-ux-pro-max-skill', 'ui-ux-pro-max'),
+                             ('pbakaus/impeccable', 'impeccable'),
+                             ('vercel-labs/agent-skills', 'web-design-guidelines')):
+            item = next(s for s in deps.manifest()['skills'] if s['source'] == source)
+            expected = deps.skill_command(item, list(agents))
+            assert plan.count(expected) == 1, (host, expected)
+            assert len(item['ref']) == 40 and len(item['sha256']) == 64
+        assert not any('--trust' in cmd for cmd in plan)
+        assert not any('playwright' in str(cmd) or 'shadcn' in str(cmd) or 'impeccable@' in str(cmd) for cmd in plan)
     codex = [' '.join(c) for c in deps.commands('codex')]
     assert 'codex plugin marketplace add DietrichGebert/ponytail' in codex and 'codex plugin add ponytail@ponytail' in codex
     assert not [c for c in deps.commands('codex', {'codex': {'ponytail': 'https://github.com/DietrichGebert/ponytail.git'}})

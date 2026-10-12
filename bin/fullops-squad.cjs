@@ -167,7 +167,7 @@ function compareVersion(a, b) {
 function operations(target, command, installed) {
   const refresh = target.host === 'codex' ? ['plugin', 'marketplace', 'upgrade', 'fullops-squad'] : ['plugin', 'marketplace', 'update', 'fullops-squad'];
   const install = target.host === 'codex' ? ['plugin', 'add', PLUGIN] : target.host === 'claude-code' ?
-    ['plugin', 'install', PLUGIN, '--scope', 'user'] : ['plugin', 'install', PLUGIN, '--trust'];
+    ['plugin', 'install', PLUGIN, '--scope', 'user'] : ['plugin', 'install', PLUGIN];
   const update = target.host === 'claude-code' ? ['plugin', 'update', PLUGIN, '--scope', 'user'] : ['plugin', 'update', 'fullops-squad'];
   return [[target.cli, refresh], [target.cli, command === 'update' && installed && target.host !== 'codex' ? update : install]];
 }

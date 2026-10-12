@@ -95,7 +95,8 @@ function flow(t, { fresh = false, failInstall = false, depsMissing = false, corr
 test('fresh update installs native plugin, dependencies and verifies the result', t => {
   const { calls, execute } = flow(t, { fresh: true });
   assert.equal(installer.main(['update', '--hosts', 'grok'], execute), 0);
-  assert.ok(calls.some(c => c.args.join(' ') === 'plugin install fullops-squad@fullops-squad --trust'));
+  assert.ok(calls.some(c => c.args.join(' ') === 'plugin install fullops-squad@fullops-squad'));
+  assert.ok(calls.every(c => !c.args.includes('--trust')));
   assert.ok(calls.some(c => c.args.includes('--host') && c.args.includes('grok')));
   assert.ok(calls.some(c => c.args.includes('--check')));
 });

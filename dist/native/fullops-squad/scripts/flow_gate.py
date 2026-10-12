@@ -402,7 +402,9 @@ def dispatch_spec(command, dispatch):
 def delegation_denial(root, event, state, config, starting, lead):
     """선택 위임만 제한한다. 최상위 coor의 역할 배정과 필수 snapshot 리뷰는 유지한다."""
     native = native_delegation(event)
-    optional = native or bool(starting and (state.get('dispatch') or (lead and config['mode'] == 'dev')))
+    optional = native or bool(starting and (state.get('dispatch') or (lead and config['mode'] == 'dev') or
+                                            any(re.search(r'Purpose\s*:\s*(research|review)\b', item, re.I)
+                                                for item in starting)))
     if not optional:
         return None
     if native:
@@ -411,10 +413,19 @@ def delegation_denial(root, event, state, config, starting, lead):
             automatic = issue_mode.Store(root).read()
             owner = automatic.get('owner') or {}
             session = field(event, 'session_id')
-            if owner.get('provider_session') == session or any(
-                    session in job.get('worker_sessions', {}) for job in automatic['jobs'].values()):
+            try:
+                owner = issue_mode.guard(automatic, owner.get('token'))
+            except ValueError:
+                owner = None
+            if owner and session and (owner.get('provider_session') == session or any(
+                    job.get('status') in issue_mode.ACTIVE and job.get('epoch') == owner['epoch'] and
+                    (binding := job.get('worker_sessions', {}).get(session, {})).get('epoch') == owner['epoch'] and
+                    binding.get('task_key') == job.get('task_key') and state.get('dispatch') and state.get('task') and
+                    binding.get('dispatch') == state['dispatch'] and binding.get('task') == state['task']
+                    for job in automatic['jobs'].values())):
                 return '자동 이슈의 하위 작업은 권한·중지·완료를 추적할 수 있는 Orca worker-start와 자기 child Run을 사용하세요'
-        text = json.dumps(field(event, 'tool_input') or {}, ensure_ascii=False)
+        tool = field(event, 'tool_input') or {}
+        text = '\n'.join(str(tool[key]) for key in ('prompt', 'message', 'description') if key in tool)
     else:
         text = '\n'.join(starting)
     level = config['subagent_level']
@@ -423,14 +434,20 @@ def delegation_denial(root, event, state, config, starting, lead):
                         all(re.search(r'Purpose\s*:\s*review\b', item, re.I) and
                             all(label in item for label in ('Review SHA:', 'Implementer session:', 'Reviewer session:'))
                             for item in starting))
-    if level == 'off' and not mandatory_review:
+    if mandatory_review:
+        return None
+    if level == 'off':
         return 'subagent_level=off입니다. 선택형 하위 위임 대신 직접 작업하거나 setup.py --subagent-level로 설정하세요'
     for item in ([text] if native else starting):
         purpose = re.search(r'Purpose\s*:\s*(research|review|implementation)\b', item, re.I)
         if not purpose:
             return '하위 작업에 Purpose: research|review|implementation과 파일 소유권·완료 조건을 명시하세요'
-        if level == 'lite' and purpose.group(1).lower() == 'implementation':
-            return 'subagent_level=lite는 읽기 전용 조사·리뷰만 허용합니다. 병렬 구현은 standard 또는 full을 선택하세요'
+        if level == 'lite':
+            read_only = re.search(r'(?:^|[;\n])\s*(?:read[ -]only|읽기\s*전용)(?:\s*:\s*(?:true|yes|예))?(?=\s*(?:[;.\n]|$))', item, re.I)
+            writing = re.search(r'(?:^|[;,\n.!]|\b(?:and|then|please)\b)\s*(?:edit|modify|write|create|delete|remove|implement|patch|commit|push|refactor|fix|update|replace)\b|'
+                                r'(?:수정|구현|삭제|생성|변경|커밋|푸시)(?:해|하(?:라|세요|고|여)|한다|합니다)', item, re.I)
+            if purpose.group(1).lower() == 'implementation' or not read_only or writing:
+                return 'subagent_level=lite는 읽기 전용 계약이 있는 조사·리뷰만 허용합니다. 수정 지시를 제거하거나 standard 또는 full을 선택하세요'
     return None
 
 

@@ -266,18 +266,15 @@ def main():
         assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@4.1.1', '@alibaba-group/open-code-review@1.12.12']
         assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
         for source, name in (('JuliusBrussee/caveman', 'caveman'), ('typesafe-ai/skills', 'typesafe-ai')):
-            targets = {cmd[cmd.index('--agent') + 1] for cmd in skills
-                       if cmd[4] == source and cmd[5:7] == ['--skill', name]}
-            assert targets == {'all': {'codex', 'claude-code', 'grok', 'antigravity-cli'},
-                               'both': {'codex', 'claude-code'},
-                               'agy': {'antigravity-cli'}}.get(host, {host})
+            targets = {target for cmd in skills if cmd[4] == source and cmd[5:7] == ['--skill', name]
+                       for target in cmd[cmd.index('--agent') + 1:-1]}
+            assert targets == ({'codex', 'claude-code', 'grok', 'antigravity-cli'} if host in ('all', 'agy') else
+                               {'codex', 'claude-code', 'grok'})
         if host in ('grok', 'agy'):
             target = 'antigravity-cli' if host == 'agy' else 'grok'
-            assert all(cmd[cmd.index('--agent') + 1] == target for cmd in skills)
-            assert {cmd[4] for cmd in skills} == {'cathrynlavery/diagram-design',
-                                                'mattpocock/skills', 'DietrichGebert/ponytail', 'alibaba/open-code-review',
-                                                'JuliusBrussee/caveman', 'typesafe-ai/skills'}
-            assert plan[-1] == [host, 'plugin', 'install', str(install.PLUGIN)] + (['--trust'] if host == 'grok' else [])
+            private = [cmd for cmd in skills if cmd[4] in ('mattpocock/skills', 'DietrichGebert/ponytail')]
+            assert private and all(cmd[cmd.index('--agent') + 1:-1] == [target] for cmd in private)
+            assert plan[-1] == [host, 'plugin', 'install', str(install.PLUGIN)]
     registered = {'codex': {'fullops-squad': str(ROOT), 'ponytail': 'https://github.com/DietrichGebert/ponytail.git'}}
     assert not any(cmd[2:4] == ['marketplace', 'add'] for cmd in install.commands('codex', registered))
     try:

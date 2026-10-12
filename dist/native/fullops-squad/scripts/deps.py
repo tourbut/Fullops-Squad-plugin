@@ -13,10 +13,12 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 from storage import write_json
 
 HERE = Path(__file__).resolve().parents[1]
 HOSTS = ("codex", "claude-code", "grok", "agy")
+COMMON_HOSTS = ("codex", "claude-code", "grok")
 
 
 def manifest():
@@ -31,6 +33,19 @@ def normalize_source(source):
     return source.removeprefix("https://github.com/").removesuffix(".git").rstrip("/")
 
 
+def skill_source(skill):
+    return f"https://github.com/{skill['source']}/tree/{skill['ref']}/{skill['path']}" if skill.get('ref') else skill['source']
+
+
+def skill_command(skill, agents):
+    return ["npx", "--yes", manifest().get('skill_cli', 'skills@latest'), "add", skill_source(skill),
+            "--skill", *skill['names'], "--global", "--agent", *agents, "--yes"]
+
+
+def common_hosts(host):
+    return (*COMMON_HOSTS, 'agy') if host in ('all', 'agy') else COMMON_HOSTS
+
+
 def commands(host, registered=None, plugin=None):
     """설치 명령 목록. plugin이 있으면 FullOps 자신의 마켓플레이스 등록·설치도 넣는다({'source', 'package'}).
 
@@ -40,15 +55,15 @@ def commands(host, registered=None, plugin=None):
     agents = {"all": list(HOSTS), "both": ["codex", "claude-code"]}.get(host, [host])
     yield ["npm", "install", "--global", *[server["package"] for server in deps["mcp"].values()],
            *[tool["package"] for tool in deps["tools"]]]
+    for skill in deps['skills']:
+        yield skill_command(skill, ['antigravity-cli' if h == 'agy' else h for h in common_hosts(host)])
     for agent in agents:
         cli = "claude" if agent == "claude-code" else agent
         if agent in ("grok", "agy"):
-            for skill in deps["skills"] + deps["codex"]["skills"] + deps["portable_skills"]:
-                yield ["npx", "--yes", "skills@latest", "add", skill["source"],
-                       "--skill", *skill["names"], "--global", "--agent",
-                       "antigravity-cli" if agent == "agy" else agent, "--yes"]
+            for skill in deps["codex"]["skills"] + deps["portable_skills"]:
+                yield skill_command(skill, ["antigravity-cli" if agent == "agy" else agent])
             if plugin:
-                yield [cli, "plugin", "install", str(plugin["package"])] + (["--trust"] if agent == "grok" else [])
+                yield [cli, "plugin", "install", str(plugin["package"])]
             continue
         markets = dict(deps["marketplaces"]) if cli == "claude" else {"ponytail": deps["marketplaces"]["ponytail"]}
         if plugin:
@@ -62,9 +77,8 @@ def commands(host, registered=None, plugin=None):
                 yield [cli, "plugin", "marketplace", "add", source]
         for name in dependency_plugins(agent):
             yield [cli, "plugin", "install" if cli == "claude" else "add", name]
-        for skill in deps["skills"] + (deps["codex"]["skills"] if cli == "codex" else []):
-            yield ["npx", "--yes", "skills@latest", "add", skill["source"],
-                   "--skill", *skill["names"], "--global", "--agent", agent, "--yes"]
+        for skill in deps["codex"]["skills"] if cli == "codex" else []:
+            yield skill_command(skill, [agent])
         if plugin:
             yield [cli, "plugin", "install" if cli == "claude" else "add", "fullops-squad@fullops-squad"]
 
@@ -125,9 +139,51 @@ def skill_files(host, wanted=None):
             path = next((root / name / 'SKILL.md' for root in roots if (root / name / 'SKILL.md').is_file()), None)
             if path:
                 paths.append(str(path))
+                if item.get('sha256') and hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest() != item['sha256']:
+                    absent.append('skill content differs from pinned ref: ' + name)
+                if item.get('ref') and normalize_source(installed.get(name, {}).get('source', '')) != normalize_source(item['source']):
+                    absent.append('skill source unverified: ' + name)
             else:
                 absent.append('skill: ' + name)
     return paths, absent
+
+
+def required_skills(host):
+    paths, absent = skill_files(host)
+    for other in COMMON_HOSTS:
+        if other != host:
+            found, problems = skill_files(other, manifest()['skills'])
+            paths.extend(found)
+            absent.extend(f'{other}: {p}' for p in problems)
+    return list(dict.fromkeys(paths)), absent
+
+
+def command_skills(host, command):
+    item = next((s for s in [*manifest()['skills'], *manifest().get('optional_skills', [])] if skill_source(s) == command[4]),
+                {'source': command[4], 'names': command[command.index('--skill') + 1:command.index('--global')]})
+    agents = command[command.index('--agent') + 1:command.index('--yes', 2)] if '--agent' in command else [host]
+    return [('agy' if agent == 'antigravity-cli' else agent, item) for agent in agents]
+
+
+def command_skill_problems(host, command):
+    return [p for agent, item in command_skills(host, command) for p in skill_files(agent, [item])[1]]
+
+
+def backup_skills(host, command):
+    """고정 디자인 스킬을 교체하기 전에 기존 내용·사용자 수정을 로컬에 보존한다."""
+    saved = set()
+    for agent, item in command_skills(host, command):
+        if not item.get('sha256'):
+            continue
+        paths, _ = skill_files(agent, [item])
+        for path in paths:  # SKILL.md가 같아도 참조·스크립트에는 사용자 수정이 있을 수 있다.
+            folder = Path(path).parent.resolve()
+            if folder in saved:
+                continue
+            target = receipt_path(agent).parent / 'fullops-skill-backups' / str(time.time_ns()) / folder.name
+            shutil.copytree(folder, target, symlinks=True)
+            saved.add(folder)
+            print(f'기존 스킬 보존: {target}', flush=True)
 
 
 def tool_problems():
@@ -201,7 +257,7 @@ def fingerprint():
 
 
 def check_host(host):
-    paths, absent = skill_files(host)
+    paths, absent = required_skills(host)
     absent += python_problem() + tool_problems() + plugin_problems(host)
     path = receipt_path(host)
     receipt = read_receipt(path)
@@ -229,17 +285,19 @@ def install_host(host, plan, plugin=None):
     for command in plan:
         token = hashlib.sha256(json.dumps(command).encode()).hexdigest()
         valid = not tool_problems() if command[:3] == ['npm', 'install', '--global'] else \
-            not skill_files(host, [{'source': command[4], 'names': command[command.index('--skill') + 1:command.index('--global')]}])[1] \
+            not command_skill_problems(host, command) \
             if command[0] == 'npx' else not plugin_problems(host, [command[3]], identity.get('plugin') if command[3] == 'fullops-squad@fullops-squad' else None) \
             if command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and host in ('codex', 'claude-code') else False
         if token not in receipt['completed'] or not valid:
+            if command[0] == 'npx':
+                backup_skills(host, command)
             run([command], False)
             if command[:4] == ['claude', 'plugin', 'install', 'fullops-squad@fullops-squad'] and plugin_problems(host, [command[3]], identity.get('plugin')):
                 run([['claude', 'plugin', 'update', command[3], '--scope', 'user']], False)
         if token not in receipt['completed']:
             receipt['completed'].append(token)
         write_json(path, receipt)
-    paths, absent = skill_files(host)
+    paths, absent = required_skills(host)
     absent += tool_problems() + plugin_problems(host)
     if identity.get('plugin'):
         absent += plugin_problems(host, ['fullops-squad@fullops-squad'], identity['plugin'])

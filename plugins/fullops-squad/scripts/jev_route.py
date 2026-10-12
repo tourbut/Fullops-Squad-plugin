@@ -119,6 +119,16 @@ def checked_request(text):
         raise ValueError('입력에 비밀값으로 보이는 표현이 있습니다. 해당 값을 제거해 다시 실행하세요') from None
 
 
+def fixed_model(agent=None, model=None, effort=None):
+    """사용자가 고정한 tuple은 후보·Jev보다 우선한다. 일부만 주면 임의로 채우지 않는다."""
+    if all(v is None for v in (agent, model, effort)):
+        return None
+    agent = 'claude' if agent == 'claude-code' else agent
+    if agent not in PROVIDER or not isinstance(model, str) or not re.fullmatch(r'[A-Za-z0-9._:/-]+', model) or not isinstance(effort, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', effort):
+        raise ValueError('고정 배정에는 --agent <CLI> --model <모델> --effort <effort> 전체를 지정하세요')
+    return {'agent': agent, 'provider': PROVIDER[agent], 'model': model, 'effort': effort, 'source': 'user'}
+
+
 def pick_model(repo, role, text, call):
     """역할의 후보 중 작업에 맞는 것을 고른다. 후보가 없으면 None, 하나면 그것, Jev가 실패하면 품질 쪽인 마지막(가장 강한) 후보."""
     candidates = model_candidates(repo).get(role or '', [])
@@ -178,8 +188,9 @@ def picked(probabilities):
     return [doc for doc, probability in ranked if probability >= DOC][:DOC_MAX]
 
 
-def route(repo, key, text, call, override_role=None, reason=None):
+def route(repo, key, text, call, override_role=None, reason=None, agent=None, model=None, effort=None):
     """역할·산출물을 분류하고, 배정할 역할의 모델 후보가 있으면 모델도 고른다."""
+    chosen = fixed_model(agent, model, effort)
     result = classify(repo, key, text, call)
     if override_role:
         roles = json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8'))['roles']
@@ -198,7 +209,7 @@ def route(repo, key, text, call, override_role=None, reason=None):
             result['original_route'] = result['route']
             result['route'] = 'product' if override_role == split[0] else 'implementation'
         result['override_reason'] = reason
-    result['model'] = pick_model(repo, result['role'], text, call) if result.get('role') else None
+    result['model'] = (chosen or pick_model(repo, result['role'], text, call)) if result.get('role') else None
     result['candidate_hash'] = candidate_hash(repo, result['role'])
     head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True, env=git_env())
     result['head'] = head.stdout.strip() if head.returncode == 0 else None
@@ -211,14 +222,17 @@ def route(repo, key, text, call, override_role=None, reason=None):
     return result
 
 
-def model_only(repo, key, role, call, text=None):
+def model_only(repo, key, role, call, text=None, agent=None, model=None, effort=None):
     """설계를 거친 worker용. 요청 원문 대신 그 역할의 지시서(없으면 --request)로 모델을 고른다."""
+    from work import validate_role
+    validate_role(repo, role)
+    chosen = fixed_model(agent, model, effort)
     handover = safe_file(repo, f'.fullops-squad/handovers/to_{role}.md')
     body = text or (handover.read_text(encoding='utf-8')[:3500] if handover.is_file() else '')
     if not body.strip():
         raise ValueError(f'{role} 지시서가 비어 있습니다. 지시서를 먼저 쓰거나 --request를 주세요')
     checked_request(body)
-    return {'version': 'jev-model-v1', 'task_key': key, 'role': role, 'model': pick_model(repo, role, body, call),
+    return {'version': 'jev-model-v1', 'task_key': key, 'role': role, 'model': chosen or pick_model(repo, role, body, call),
             'candidate_hash': candidate_hash(repo, role)}
 
 
@@ -296,6 +310,9 @@ def main():
     parser.add_argument('--request', help='사용자 요청 원문 (4000자 이하, 비밀값 금지). --model-only면 생략 시 지시서를 읽는다')
     parser.add_argument('--model-only', action='store_true', help='분류 없이 --role의 모델만 고른다(설계 뒤 worker 배정용)')
     parser.add_argument('--role', help='--model-only 대상 역할')
+    parser.add_argument('--agent', choices=[*PROVIDER, 'claude-code'], help='사용자 고정 CLI. --model·--effort와 함께 지정')
+    parser.add_argument('--model', help='사용자 고정 모델 (후보·Jev보다 우선)')
+    parser.add_argument('--effort', help='사용자 고정 effort')
     parser.add_argument('--bind-inbox', action='store_true', help='API 호출 없이 기존 route를 현재 역할 지시서와 연결한다')
     parser.add_argument('--override-role', help='담당 역할 변경(사유 기록; 제품/기술 책임 분리 레포에서는 unresolved도 명시 배정)')
     parser.add_argument('--reason', help='--override-role의 근거(500자 이하)')
@@ -307,8 +324,9 @@ def main():
         if not KEY.fullmatch(args.key):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
+        fixed_model(args.agent, args.model, args.effort)
         if args.bind_inbox:
-            if not args.role or args.model_only or args.request or args.override_role:
+            if not args.role or args.model_only or args.request or args.override_role or args.agent:
                 raise ValueError('--bind-inbox에는 --role만 함께 지정하세요')
             output = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{args.key}-route.json')
             result = json.loads(output.read_text())
@@ -357,8 +375,8 @@ def main():
     def call(payload):
         return request(payload, api_key(args.env_file, repo))
     try:
-        result = (model_only(repo, args.key, args.role, call, args.request) if args.model_only else
-                  route(repo, args.key, args.request, call, args.override_role, args.reason))
+        result = (model_only(repo, args.key, args.role, call, args.request, args.agent, args.model, args.effort) if args.model_only else
+                  route(repo, args.key, args.request, call, args.override_role, args.reason, args.agent, args.model, args.effort))
     except (OSError, ValueError) as error:
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
     errors = [error for error in (result.get('error'), (result.get('model') or {}).get('error')) if error]

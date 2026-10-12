@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -56,24 +57,108 @@ class Delegation(unittest.TestCase):
         self.assertIn('off', flow_gate.delegation_denial(self.repo, {}, {}, config, start, True))
         review = ['orca orchestration worker-start --run r --spec "Purpose: review; Review SHA: abc; '
                   'Implementer session: a; Reviewer session: b"']
-        self.assertIsNone(flow_gate.delegation_denial(self.repo, {}, {}, config, review, True))
+        for level in policy.SUBAGENT_LEVELS:
+            config['subagent_level'] = level
+            self.assertIsNone(flow_gate.delegation_denial(self.repo, {}, {}, config, review, True), level)
         config['subagent_level'] = 'lite'
         self.assertIn('읽기 전용', flow_gate.delegation_denial(self.repo, {}, {'dispatch': 'd'}, config, start, False))
 
     def test_automatic_native_delegation_requires_supervised_orca(self):
         store = issue_mode.Store(self.repo)
+        owner = {'session': 'coor', 'provider_session': 'host', 'enabled': True, 'expires': time.time() + 90,
+                 'token': 'test', 'epoch': 1, 'end_marker': str(self.repo / '.git/lease-stop')}
         with store.edit() as state:
-            state['owner'] = {'provider_session': 'host'}
+            state.update(owner=owner, epoch=1)
         self.assertIn('child Run', flow_gate.delegation_denial(
             self.repo, self.event('Agent'), {}, self.config, [], True))
         with store.edit() as state:
-            state['owner'] = {'provider_session': 'coor'}
-            state['jobs']['1'] = {'worker_sessions': {'host': {'dispatch': 'd'}}}
+            state['owner']['provider_session'] = 'coor'
+            state['jobs']['1'] = {'status': 'running', 'epoch': 1, 'task_key': 'K',
+                                  'worker_sessions': {'host': {'dispatch': 'd', 'task': 't', 'epoch': 1, 'task_key': 'K'}}}
         self.assertIn('추적', flow_gate.delegation_denial(
-            self.repo, self.event('collaboration.spawn_agent'), {'dispatch': 'd'}, self.config, [], False))
+            self.repo, self.event('collaboration.spawn_agent'), {'dispatch': 'd', 'task': 't'}, self.config, [], False))
         event = self.event('Agent')
         event['session_id'] = 'manual'
         self.assertIsNone(flow_gate.delegation_denial(self.repo, event, {}, self.config, [], True))
+
+    def test_lite_requires_read_only_contract_and_rejects_write_requests(self):
+        config = {**self.config, 'subagent_level': 'lite'}
+        for name in ('Agent', 'Task', 'collaboration.spawn_agent', 'functions__followup_task'):
+            for prompt in ('Purpose: research; inspect x.py',
+                           'Purpose: review; edit x.py and implement the fix',
+                           'Purpose: research; read only; edit x.py and implement the fix',
+                           'Purpose: review; Read only: false; inspect x.py',
+                           'Purpose: review; read only; 파일을 수정하고 보고해'):
+                event = self.event(name)
+                event['tool_input'] = {'prompt' if name in ('Agent', 'Task') else 'message': prompt}
+                self.assertIn('읽기 전용', flow_gate.delegation_denial(self.repo, event, {}, config, [], True) or '', prompt)
+            for prompt in ('Purpose: research; read only; inspect x.py and report findings',
+                           'Purpose: review; Read only: true; inspect x.py; do not edit files',
+                           'Purpose: research; 읽기 전용; x.py를 읽고 결과만 보고해'):
+                event['tool_input'] = {'message': prompt}
+                self.assertIsNone(flow_gate.delegation_denial(self.repo, event, {}, config, [], True), prompt)
+        write = ['orca orchestration worker-start --run r --spec "Purpose: research; read only; edit x.py"']
+        self.assertIn('읽기 전용', flow_gate.delegation_denial(self.repo, {}, {'dispatch': 'd'}, config, write, False) or '')
+
+    def test_coor_off_blocks_optional_research_and_review(self):
+        config = {**self.config, 'subagent_level': 'off'}
+        for purpose in ('research', 'review'):
+            start = [f'orca orchestration worker-start --run r --spec "Task key: K; Purpose: {purpose}; read only"']
+            self.assertIn('off', flow_gate.delegation_denial(self.repo, {}, {}, config, start, True) or '')
+        config['subagent_level'] = 'lite'
+        start = ['orca orchestration worker-start --run r --spec "Task key: K; Purpose: research; read only; edit x.py"']
+        self.assertIn('읽기 전용', flow_gate.delegation_denial(self.repo, {}, {}, config, start, True) or '')
+
+    def test_inactive_automatic_records_do_not_block_native_delegation(self):
+        config = {**self.config, 'subagent_level': 'standard'}
+        store = issue_mode.Store(self.repo)
+        owner = {'session': 'coor', 'provider_session': 'host', 'enabled': True, 'expires': time.time() + 90,
+                 'token': 'test', 'epoch': 1, 'end_marker': str(self.repo / '.git/lease-stop')}
+        for change in ({'enabled': False}, {'expires': 0}):
+            with store.edit() as state:
+                state.update(owner={**owner, **change}, epoch=1)
+            self.assertIsNone(flow_gate.delegation_denial(self.repo, self.event('Agent'), {}, config, [], True), change)
+            with patch.object(policy, 'load', return_value=config):
+                self.assertIsNone(flow_gate.tool_denial(self.repo, self.event('Agent'), {}), change)
+        with store.edit() as state:
+            state.update(owner=owner, epoch=1)
+        Path(owner['end_marker']).touch()
+        self.assertIsNone(flow_gate.delegation_denial(self.repo, self.event('Agent'), {}, config, [], True))
+        Path(owner['end_marker']).unlink()
+        for status, epoch, binding_epoch, context in (
+                ('completed', 1, 1, {'dispatch': 'd', 'task': 't'}),
+                ('running', 0, 0, {'dispatch': 'd', 'task': 't'}),
+                ('running', 1, 0, {'dispatch': 'd', 'task': 't'}),
+                ('running', 1, 1, {})):
+            with store.edit() as state:
+                state['owner']['provider_session'] = 'coor'
+                state['jobs']['1'] = {'status': status, 'epoch': epoch, 'task_key': 'K',
+                                      'worker_sessions': {'host': {'dispatch': 'd', 'task': 't',
+                                                                 'epoch': binding_epoch, 'task_key': 'K'}}}
+            self.assertIsNone(flow_gate.delegation_denial(self.repo, self.event('Agent'), context, config, [], False))
+            if status == 'completed':
+                with patch.object(policy, 'load', return_value=config):
+                    self.assertIsNone(flow_gate.tool_denial(self.repo, self.event('Agent'), {}))
+
+    def test_fresh_setup_delegation_document_has_one_metadata_block(self):
+        text = (self.repo / '.fullops-squad/rules/delegation.md').read_text(encoding='utf-8')
+        metadata, body = text[4:].split('\n---\n', 1)
+        self.assertIn('title:', metadata)
+        self.assertTrue(body.lstrip().startswith('# 하위 에이전트 활용'), body[:200])
+
+    def test_hook_blocks_optional_coor_and_lite_write_prompts(self):
+        for level, event in (
+                ('off', {'tool_name': 'Bash', 'tool_input': {'command':
+                    'orca orchestration worker-start --run r --spec "Purpose: research; read only"'}}),
+                ('lite', {'tool_name': 'Agent', 'tool_input': {'prompt':
+                    'Purpose: review; read only; edit x.py and implement the fix'}})):
+            write_json(self.repo / '.fullops-squad/fullops.json', {**self.config, 'subagent_level': level})
+            event.update(cwd=str(self.repo), session_id='host')
+            with patch.object(sys, 'argv', ['flow_gate.py', 'tool']), patch.object(
+                    sys, 'stdin', io.StringIO(json.dumps(event))):
+                output = flow_gate.main()['hookSpecificOutput']
+            self.assertEqual(output['permissionDecision'], 'deny')
+            self.assertIn(level, output['permissionDecisionReason'])
 
     def test_saved_task_and_variable_specs_reach_optional_policy(self):
         dispatch = 'orca orchestration worker-start --run r --spec $instructions'

@@ -1,0 +1,163 @@
+{
+  "checked_at": "2026-10-12T03:30:33.461985+00:00",
+  "scope": "Issue 20 frontend integration and user-requested common skills for all three hosts; local uncommitted worktree only",
+  "base_commit": "dc67829adefd9a6a126af7a0e6aa2f1c2a06004b",
+  "state": {
+    "committed": false,
+    "pushed": false,
+    "deployed": false,
+    "user_global_install_performed": false
+  },
+  "issue21": {
+    "url": "https://github.com/tourbut/Fullops-Squad-plugin/issues/21",
+    "updated_at": "2026-10-12T03:04:27Z",
+    "body_sha256": "b1dc453c656c0e0647df3f933ade112a0f6c4f43116bef0cf83913b465ff3a9c",
+    "integration": "QA handoff contract only: actual executor, fixture/tenant, allowed origins/effects, independent assertions, budgets, coverage, existing test_record evidence",
+    "P0_P4_execution_changes": "not_implemented_in_this_change",
+    "CUAWright": "not_installed_or_enabled"
+  },
+  "validation": [
+    {
+      "command": "npm ci",
+      "exit_code": 0,
+      "note": "One existing moderate dev-dependency advisory reported; no forced audit update"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "note": "Full suite passed. After the final backup-preservation change, related tests below were rerun."
+    },
+    {
+      "command": "python3 tests/frontend.py",
+      "exit_code": 0,
+      "tests": 8,
+      "note": "Final state: includes preserving script/reference edits when SKILL.md still matches the pin"
+    },
+    {
+      "command": "python3 tests/deps.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tests/check.py",
+      "exit_code": 0
+    },
+    {
+      "command": "node tests/standard.cjs",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tests/review-check.py",
+      "exit_code": 0,
+      "environment": "@alibaba-group/open-code-review@1.12.12 through temporary npx environment; global OCR unchanged",
+      "note": "Review infrastructure regression, not an independent review of this diff"
+    },
+    {
+      "command": "python3 scripts/build.py",
+      "exit_code": 0
+    },
+    {
+      "command": "Fresh temporary build file-set and SHA-256 comparison",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "common_skills": {
+    "installer": "skills@1.7.2",
+    "environment": "Isolated temporary HOME/USERPROFILE/CODEX_HOME/CLAUDE_CONFIG_DIR; Node homedir isolation asserted before installs; removed afterwards",
+    "fresh_install": {
+      "frontend-design": {
+        "codex": "file_source_and_SKILL_sha256_verified",
+        "claude-code": "file_source_and_SKILL_sha256_verified",
+        "grok": "file_source_and_SKILL_sha256_verified"
+      },
+      "ui-ux-pro-max": {
+        "codex": "file_source_and_SKILL_sha256_verified",
+        "claude-code": "file_source_and_SKILL_sha256_verified",
+        "grok": "file_source_and_SKILL_sha256_verified"
+      },
+      "impeccable": {
+        "codex": "file_source_and_SKILL_sha256_verified",
+        "claude-code": "file_source_and_SKILL_sha256_verified",
+        "grok": "file_source_and_SKILL_sha256_verified"
+      },
+      "web-design-guidelines": {
+        "codex": "file_source_and_SKILL_sha256_verified",
+        "claude-code": "file_source_and_SKILL_sha256_verified",
+        "grok": "file_source_and_SKILL_sha256_verified"
+      }
+    },
+    "repeated_install": {
+      "frontend-design": "passed"
+    },
+    "ui_ux_pro_max_search": {
+      "arguments": "scripts/search.py dashboard --design-system",
+      "exit_code": 0,
+      "output": "nonempty"
+    },
+    "limit": "Filesystem/installer verification; not authenticated host sessions or UI-task compatibility"
+  },
+  "optional_tools": {
+    "environment": "Separate temporary npm prefixes, pinned packages, --ignore-scripts; removed afterwards",
+    "impeccable@4.5.2": {
+      "install_exit_code": 0,
+      "version_exit_code": 0,
+      "context_detect": "not_run"
+    },
+    "shadcn@4.21.4": {
+      "install_exit_code": 0,
+      "version_exit_code": 0,
+      "MCP_capability_registry": "not_run"
+    },
+    "@playwright/cli@0.1.22": {
+      "install_exit_code": 0,
+      "initial_version_check": {
+        "exit_code": 3221226505,
+        "stdout": "0.1.22",
+        "stderr": "Windows libuv assertion: !(handle->flags & UV_HANDLE_CLOSING), src/win/async.c:76"
+      },
+      "fresh_prefix_recheck": {
+        "attempts": 3,
+        "exit_codes": [
+          0,
+          0,
+          0
+        ],
+        "stdout": "0.1.22",
+        "stderr": ""
+      },
+      "conclusion": "Intermittent failure observed; root cause unconfirmed. Nonzero exit is not cli_verified.",
+      "browser_launch_capture_assertions": "not_run"
+    },
+    "user_runtime_tools_installed": false
+  },
+  "not_run": [
+    "Authenticated Codex/Claude Code/Grok Build sessions and the same UI design/implementation/critique/browser-QA task on all three",
+    "Live host switching and preservation of real UI artifacts",
+    "Browser launch, captures and visual/accessibility acceptance",
+    "Impeccable context/detect, native hooks, browser extension and internal agents",
+    "shadcn MCP connection/capability and authenticated external registries",
+    "Independent fixed-SHA review of this uncommitted diff",
+    "Issue 21 P0-P4 implementation and comparative performance evaluation"
+  ],
+  "known_limits": [
+    "Pinned skills check SKILL.md content and installer source; whole-tree scripts/references integrity and runtime behavior are not proven",
+    "Vercel skill repository license is unconfirmed; external skill content is not bundled or redistributed",
+    "Optional tool authentication/browser/MCP states remain not_run until actual execution",
+    "Context7 documentation lookup hit the monthly quota; official upstream documentation was used as fallback"
+  ],
+  "source_sha256": {
+    "dependencies.json": "3da3eba1f5f7c518ebeb86e19dfd5984c7267d748301bedd60b1ee788b288008",
+    "bin/fullops-squad.cjs": "71a5217d82c8b14e6703349402861e3636ab25903bfa718bb72f24c81e3768e4",
+    "plugins/fullops-squad/scripts/deps.py": "5d7f3199379e65a08ab389660ec2ffd939da40ec61d893af425ab8bb6034009d",
+    "plugins/fullops-squad/scripts/frontend.py": "b1d26dcf5ae8d0fd567c5188bc73236c6c3b8e916d83abf37b40581c4cf59ecc",
+    "plugins/fullops-squad/scripts/jev_route.py": "2839c82cacb5ae21672994aed4e5c9fe976209c183e6e3ebe6b00d1f9d3d586d",
+    "plugins/fullops-squad/skills/fullops-frontend/SKILL.md": "7676fbca2e9cf2af4a60beae329a69ac06832197f012163f299f11707e4679f5",
+    "plugins/fullops-squad/skills/fullops-frontend/toolchain.md": "86aa4f6bff7be5ea9f929b5e46f45687f97188d48faa50d469fc96a7bae23a4d",
+    "plugins/fullops-squad/skills/fullops-frontend/delivery.md": "88cbf4937825d0a3ec4850ece073ba6e252390c8cc0d57f0fb25ef53ddb0b2ee",
+    "plugins/fullops-squad/skills/fullops-test/SKILL.md": "d4c3270a24be3777af836c61247a0caae1898e27179e022177f64ccbc13c7cc2",
+    "tests/frontend.py": "3977caad7295f7b3e3ce1366afd9418702b75de9298bd833e68ce085d3ba5079"
+  }
+}

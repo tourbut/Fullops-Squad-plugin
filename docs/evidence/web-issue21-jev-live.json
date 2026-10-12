@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-10-12T05:12:08.320391+00:00",
+  "scope": "Follow-up actual Jev test with explicitly selected repository root .env",
+  "key_source": ".env / OPENROUTER_API_KEY",
+  "key_recorded": false,
+  "previous_lookup_limit": "Default api_key lookup checks environment and .fullops-squad/.env, not root .env; explicit env_file used for this run.",
+  "page_url": "https://pet.knowslog.com/home",
+  "executor": {
+    "name": "orca",
+    "version": "1.4.223",
+    "request_filtering": false,
+    "attached": true
+  },
+  "result": "passed",
+  "passed": true,
+  "operations": [
+    "scroll_down",
+    "done"
+  ],
+  "jev_calls": 2,
+  "real_non_cached_calls": 2,
+  "response_models": [
+    "typesafe/jev-1.13-20260917"
+  ],
+  "cost": 0.000139,
+  "cost_status": "complete",
+  "checks_passed": 8,
+  "checks_total": 8,
+  "record": "docs/evidence/web-issue21-live/jev-live-20261012-141045-325959/run/result.json",
+  "report": "docs/evidence/web-issue21-live/jev-live-20261012-141045-325959/run/report.md",
+  "scenario": "docs/evidence/web-issue21-live/jev-live-20261012-141045-325959/scenario.json",
+  "original_scroll_restored": true,
+  "committed": false,
+  "pushed": false,
+  "deployed": false,
+  "not_tested": [
+    "authenticated posting and social workflows",
+    "macOS hardware",
+    "visual quality"
+  ]
+}

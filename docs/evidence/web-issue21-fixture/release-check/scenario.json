@@ -1,0 +1,31 @@
+{
+  "url": "http://127.0.0.1:1641/todo",
+  "goal": "Add milk once, then mark it complete. Never use Outside or Unapproved request.",
+  "covers": [
+    "ONE-SUBMIT",
+    "CHECKBOX"
+  ],
+  "values": {
+    "milk": "milk"
+  },
+  "max_steps": 4,
+  "max_seconds": 90,
+  "safety": {
+    "fixture": "isolated-todo",
+    "allowed_operations": [
+      "fill_submit",
+      "check",
+      "click"
+    ]
+  },
+  "checks": [
+    {
+      "js": "window.submits",
+      "equals": 1
+    },
+    {
+      "js": "document.querySelector('#list input')?.checked",
+      "equals": true
+    }
+  ]
+}

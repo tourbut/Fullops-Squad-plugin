@@ -1,0 +1,113 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.3.0",
+  "target_sha": "dc67829adefd9a6a126af7a0e6aa2f1c2a06004b",
+  "worktree_dirty": true,
+  "executor_sha256": "626e4ec17621cd49e54f589adb750875f187c5e73df40abc2c03d8d57c08717e",
+  "scenario_sha256": "16d4ee677c24ee4586133c355840526be7fda84a389df793f44c46bb75d190b0",
+  "executor_files_sha256": {
+    "jev_test_web.py": "626e4ec17621cd49e54f589adb750875f187c5e73df40abc2c03d8d57c08717e",
+    "web_contract.py": "1dc5354dabdf39207ed27fbbdeae52eef8fbab455f67600f5bea29cfc15a5ce9",
+    "web_dom.js": "ba49ebce983775988f13992f90ead7e8a88449d091cc5ec892b2aca092e6a5ca",
+    "web_playwright.py": "64d9b1538b13d2a21916ba96efc32ff322089f9610a5a0e1063fd0b112ae59c9",
+    "web_playwright.cjs": "20bc5dff0ba2bd4cecba57d9c5395a1f9d36755513020d2e6eff99f407f6ea02"
+  },
+  "result": "passed",
+  "passed": true,
+  "steps": 0,
+  "scope": "assertions_only",
+  "executor": {
+    "name": "orca",
+    "version": "1.4.223",
+    "request_filtering": false,
+    "attached": true
+  },
+  "coverage": {
+    "total": 48,
+    "offset": 0,
+    "observed": 48,
+    "remaining": 0,
+    "unsupported": [],
+    "complete": true
+  },
+  "assertions_passed": true,
+  "jev_calls": 0,
+  "calls": [],
+  "cost": 0,
+  "known_cost": 0,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 60,
+    "max_cost": 0.05,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 32000
+  },
+  "latency_s": 0,
+  "elapsed_s": 3.558,
+  "checks": [
+    {
+      "condition": {
+        "js": "location.pathname === '/home'",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('main h1')?.textContent.trim() === 'Home'",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelectorAll('main article').length",
+        "equals": 2
+      },
+      "value": 2,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "[...document.querySelectorAll('textarea,input')].some(e => (e.labels?.[0]?.textContent || e.getAttribute('aria-label') || '').includes('Pet의 소식') && e.disabled)",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "(() => {const controls=[...document.querySelectorAll('button')].filter(e => /^(게시|Like|Comment|Share|Save)$/.test(e.textContent.trim()));return controls.length >= 9 && controls.every(e => e.disabled);})()",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "text": "로그인이 만료됐습니다. 다시 로그인하세요."
+      },
+      "value": true,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.documentElement.scrollWidth <= innerWidth",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    }
+  ],
+  "url": "https://pet.knowslog.com/home",
+  "goal": "Verify the read-only Home demo and unauthenticated state. Never post, like, share, save, or enter credentials.",
+  "covers": [
+    "HOME-STRUCTURE",
+    "DEMO-NO-WRITES",
+    "AUTH-EXPIRED-STATE",
+    "DESKTOP-OVERFLOW"
+  ]
+}

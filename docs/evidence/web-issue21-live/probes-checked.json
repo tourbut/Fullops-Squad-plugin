@@ -1,0 +1,8 @@
+{
+  "disabled_post": "disabled_or_sensitive_target",
+  "unknown_candidate": "candidate_not_in_observation",
+  "elements": 48,
+  "checks_passed": 7,
+  "jev_calls": 0,
+  "original_scroll_restored": true
+}

@@ -17,10 +17,12 @@ def begin(out, scenario):
     plugin = json.loads((Path(__file__).resolve().parents[1] / 'plugin.json').read_text())
     target = subprocess.run(['git', '-C', str(out), 'rev-parse', 'HEAD'], capture_output=True, text=True)
     dirty = subprocess.run(['git', '-C', str(out), 'status', '--porcelain'], capture_output=True, text=True)
+    files = ('jev_test_web.py', 'web_contract.py', 'web_dom.js', 'web_playwright.py', 'web_playwright.cjs') if 'url' in scenario else ('jev_test_unity.py',)
     return {'plugin_version': plugin['version'], 'target_sha': target.stdout.strip() if target.returncode == 0 else None,
             'worktree_dirty': bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
             'executor_sha256': hashlib.sha256(Path(__file__).with_name('jev_test_' + ('web.py' if 'url' in scenario else 'unity.py')).read_bytes()).hexdigest(),
-            'scenario_sha256': hashlib.sha256(json.dumps(scenario, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}
+            'scenario_sha256': hashlib.sha256(json.dumps(scenario, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
+            'executor_files_sha256': {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in files}}
 
 
 def append(out, event):
@@ -33,12 +35,16 @@ def append(out, event):
 def finish(out, summary, events, kind):
     write_json(out / 'result.json', summary)
     if kind == 'web':
-        rows = [(e['step'], e['operation'], e['target'], e['value'], f"{e['confidence']:.2f}", e['outcome']) for e in events]
+        rows = [(e['step'], e['operation'], e['target'], e['value'], confidence(e), e['outcome']) for e in events]
         header = ['스텝', '동작', '대상', '입력값 키', '확신', '결과']
     else:
         rows = [(e['step'], e['action'], f"{e['confidence']:.2f}", e['lastOutcome'] or '-') for e in events]
         header = ['스텝', '행동', '확신', '직전 행동 결과']
     write(out, summary, rows, header)
+
+
+def confidence(event):
+    return f"{event['confidence']:.2f}" if event.get('confidence') is not None else '-'
 
 
 def costs(events, failed=False):
@@ -98,6 +104,10 @@ def write(out, summary, rows, header):
         lines.append('| - | - | 판정 전에 끝남 |')
     if summary.get('error_type'):
         lines += ['', f"오류: {summary['error_type']} / {summary.get('evidence_unavailable', '')}"]
+    if summary.get('executor'):
+        lines += ['', f"실행기: `{summary['executor'].get('name')}` / `{summary['executor'].get('version')}` · 범위: `{summary.get('scope')}`",
+                  f"관측: `{json.dumps(summary.get('coverage'), ensure_ascii=False)}`",
+                  f"중단 사유: `{summary['result']}` · 독립 assertions: `{summary.get('assertions_passed')}`"]
     lines += ['', '## 진행', '', '| ' + ' | '.join(header) + ' |', '|' + '---|' * len(header)]
     lines += ['| ' + ' | '.join(cell(v) for v in row) + ' |' for row in rows]
     lines += ['', '원본: `result.json`(판정), `events.jsonl`(스텝별 선택·확률·비용).', '']

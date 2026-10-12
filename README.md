@@ -84,8 +84,9 @@ heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 �
 
 | 도구 | 확인하는 것 |
 |---|---|
-| `fullops-test` | 코드 테스트와 웹·Unity 조작 테스트. 조작 테스트의 통과 판정은 시나리오 `checks`가 담당 |
+| `fullops-test` | 코드·웹·Unity 검증. 웹 기본 Orca/현재 탭, 선택 Playwright, 모델 없는 회귀와 독립 checks. [실행기 계약](plugins/fullops-squad/skills/fullops-test/web-engine.md) |
 | `fullops-motion` | 선택형 모션그래픽 제작. HyperFrames/Remotion 공식 스킬, 로컬 렌더·클립 합성·검수·재렌더 인계 |
+| `fullops-frontend` | UI/UX 작업별 주 스킬·호스트/고정 모델 선택, 기존 디자인 정본·비평·브라우저 QA 연결 |
 | `fullops-review` | OCR CLI가 준비한 파일·규칙을 호스트 AI가 리뷰. 별도 OCR LLM API 키는 불필요 |
 | `lint.py` | 프로젝트 검사·테스트 명령, 코드·디자인 경고, 변경 규모·의존성 선언, 억제·비밀값·문서 메타데이터 |
 | flow-gate | route 기록, `worker-start --run`, 역할별 행동과 완료 보고. 터미널 주입으로 배정하는 행동 차단 |
@@ -209,7 +210,7 @@ codex plugin add fullops-squad@fullops-squad
 
 ```bash
 grok plugin marketplace add tourbut/Fullops-Squad-plugin
-grok plugin install fullops-squad@fullops-squad --trust
+grok plugin install fullops-squad@fullops-squad
 ```
 
 ### 외부 의존성
@@ -221,6 +222,8 @@ FullOps의 Context7은 라이브러리 문서 조회용 MCP입니다. OCR은 del
 python3 <설치된 플러그인>/scripts/deps.py --host codex  # claude-code, grok, agy
 python3 <설치된 플러그인>/scripts/deps.py --check --host codex  # 위와 같은 CLI
 ```
+
+공통 스킬은 Claude Code·Codex·Grok Build 셋 모두에 설치하고, 호스트 전용 플러그인은 선택한 CLI에만 설치합니다. UI/UX 공통 스킬 네 개는 설치 후 `fullops-frontend`가 작업별로 주 스킬 하나와 필요한 검토만 호출합니다. 선택형 Playwright·Impeccable 엔진·shadcn 도구는 기본 설치에 포함되지 않습니다. [프런트엔드 도구 안내](plugins/fullops-squad/skills/fullops-frontend/toolchain.md)를 따릅니다.
 
 에이전트에게 설치를 맡길 때는 다음 지시를 사용합니다.
 

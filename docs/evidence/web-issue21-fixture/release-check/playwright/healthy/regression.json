@@ -1,0 +1,23 @@
+{
+  "version": "web-replay-v1",
+  "scenario_sha256": "8aaa8ab49b46520dd70e356cf8c58ab55c41e1368d62b3309158ac205f0934fc",
+  "steps": [
+    {
+      "operation": "fill_submit",
+      "target": {
+        "role": "textbox",
+        "name": "New todo",
+        "near": "New todo"
+      },
+      "value": "milk"
+    },
+    {
+      "operation": "check",
+      "target": {
+        "role": "checkbox",
+        "name": "Toggle milk",
+        "near": "milk"
+      }
+    }
+  ]
+}

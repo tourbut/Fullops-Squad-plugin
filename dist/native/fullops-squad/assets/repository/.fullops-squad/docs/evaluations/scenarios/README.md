@@ -19,6 +19,12 @@
 | `setup_js` | 선택 | | 시작 전에 실행할 식(하나 또는 목록). 저장 데이터 초기화 등 |
 | `player_args` | | 선택 | 플레이어에 넘길 인자. 테스트 씬·세이브 폴더 지정 등 |
 | `max_steps` | 선택 | 선택 | 최대 결정 횟수 |
+| `safety` | 조작 시 필수 | | 격리 fixture, 허용 origin/동작/요청. 기본 동작 권한은 없음 |
+| `max_seconds`, `max_cost`, `max_visits` | 선택 | | 웹 시간·확인된 비용·같은 상태 방문 중단선 |
+| `candidate_limit`, `max_input_chars` | 선택 | | 웹 모델 후보/입력 크기 제한. 후보는 NONE을 포함해 최대 255개 |
+| `exploration` | 선택 | | 새 후보 탐색. 기본 false |
+
+웹 실행·기존 Orca 탭 연결·권한·선택 Playwright·shadow/CUAWright·모델 없는 회귀의 정본은 플러그인의 `fullops-test/web-engine.md`다. 일반 조작은 격리 fixture가 필요하다. 원격 효과를 요청 차단으로 제한할 수 없는 Orca는 읽기/스크롤/검사만 허용하고, 조작은 loopback fixture에서 수행한다. `--assert-only`는 setup도 실행하지 않는다. `setup_js`와 checks JS는 검토한 신뢰 코드이며 sandbox가 아니다.
 
 checks 종류:
 - 웹: `{"text": "보일 글자"}`, `{"url": "주소 일부"}`, `{"js": "<식>", "equals": <값>}`
@@ -39,13 +45,13 @@ checks 종류:
 - 일어나지 않아야 할 일도 확인한다. 예: 다른 항목이 완료되지 않았는지, 적이 아닌 NPC가 그대로인지.
 - 값 비교는 필드나 식으로 한다. 화면 문구는 바뀌기 쉬우니 보조로 쓴다.
 
-**출발 상태를 고정한다.** 재실행해도 같은 결과가 나와야 한다. 웹은 `setup_js`로 저장 데이터를 비우고 다시 불러온다(예: `"localStorage.clear(); location.reload()"`). Unity는 `player_args`로 테스트 씬과 세이브 폴더를 지정한다.
+**출발 상태를 고정한다.** 재실행해도 같은 결과가 나와야 한다. 웹은 소유한 격리 fixture에서만 `setup_js`로 테스트 저장 데이터를 초기화한다. 실제 사용자 탭의 데이터를 비우지 않는다. Unity는 `player_args`로 테스트 씬과 세이브 폴더를 지정한다.
 
 **입력값은 values에.** 입력할 글자는 모두 `values`에 적는다. 비밀번호·토큰은 넣지 않는다(점검에서 거절된다). 로그인이 필요하면 테스트 전용 계정과 별도 절차를 쓴다.
 
 **실패 흐름도 쓴다.** 잘못된 입력, 경계값, 거절·취소 흐름을 별도 시나리오로 둔다. 기능 추가 과제라면 정상 흐름 하나와 실패 흐름 하나 이상을 권한다.
 
-**max_steps는 여유 있게.** 사람이 하는 단계 수의 1.5~2배로 잡는다. 너무 크면 헤매는 실행이 비용을 쓴다.
+**max_steps는 여유 있게.** 사람이 하는 단계 수의 1.5~2배로 잡는다. 너무 크면 헤매는 실행이 비용을 쓴다. 스텝/시간/비용이 소진되면 checks가 참이어도 완료 PASS로 처리하지 않는다.
 
 **실패하면 원인을 나눈다.** `events.jsonl`에서 Jev의 선택과 확률, `lastOutcome`을 읽는다.
 - Jev가 헤맸다(확률이 낮고 같은 행동을 반복): goal을 보강하거나, Unity라면 브리지 설정의 이름과 설명을 고친다.
@@ -58,7 +64,8 @@ checks 종류:
 {
   "goal": "On this TodoMVC page, add two todos: '우유 사기' and '보고서 제출'. Then mark only '우유 사기' as completed. Do not delete anything.",
   "covers": ["TODO-1 할 일을 추가할 수 있다", "TODO-2 할 일을 완료로 표시할 수 있다"],
-  "url": "https://demo.playwright.dev/todomvc/",
+  "url": "http://127.0.0.1:3000/todomvc/",
+  "safety": {"fixture": "isolated-todomvc", "allowed_operations": ["fill_submit", "check"]},
   "setup_js": "localStorage.clear(); location.reload()",
   "values": {"milk": "우유 사기", "report": "보고서 제출"},
   "checks": [
