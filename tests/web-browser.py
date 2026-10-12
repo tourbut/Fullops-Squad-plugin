@@ -19,7 +19,9 @@ HTML = '''<!doctype html><meta charset="utf-8"><title>Isolated engine fixture</t
 <style>body{font:16px sans-serif}input{width:240px;height:32px}li{padding:12px}</style>
 <main><h1>Todo fixture</h1><form><label>New todo <input id="todo" autocomplete="off"></label><button>Add</button></form>
 <ul id="list"></ul><button disabled>Restricted</button><a href="https://blocked.invalid/">Outside</a>
-<button id="network">Unapproved request</button></main><script>
+<button id="network">Unapproved request</button>
+<form action="https://blocked.invalid/"><button>Foreign form submit</button></form>
+<form><button formaction="https://blocked.invalid/override">Foreign submit override</button></form></main><script>
 window.submits=0;const form=document.querySelector('form'),input=document.querySelector('input');
 form.onsubmit=event=>{event.preventDefault();window.submits++;const li=document.createElement('li');
 const label=document.createElement('label');const box=document.createElement('input');box.type='checkbox';box.setAttribute('aria-label','Toggle milk');
@@ -83,6 +85,11 @@ def exercise(factory, url, out):
         outside = next(e for e in page['elements'] if e['role'] == 'link' and e['name'] == 'Outside')
         assert browser.preflight(page, 'click', outside['ref'], contract.policy(scenario)) == 'origin_not_allowed'
         probes['external_origin'] = 'origin_not_allowed'
+        for name in ('Foreign form submit', 'Foreign submit override'):
+            page = contract.observation(browser.snapshot(), scenario)
+            target = next(e for e in page['elements'] if e['role'] == 'button' and e['name'] == name)
+            assert browser.preflight(page, 'click', target['ref'], contract.policy(scenario)) == 'origin_not_allowed'
+        probes['foreign_form_submit_and_override'] = 'origin_not_allowed'
     finally:
         browser.close()
     if browser.request_filtering:

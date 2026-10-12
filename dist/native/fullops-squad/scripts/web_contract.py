@@ -10,6 +10,7 @@ from jev_observe import safe_text
 
 NONE = '_NONE_'
 STOP = '_STOP_'
+SENSITIVE_KEY = r'password|secret|token|api[_-]?key|authorization|cookie'
 BOUNDS = {'max_seconds': (120, 1, 1800), 'max_cost': (0.05, 0.000001, 100),
           'max_visits': (4, 1, 20), 'candidate_limit': (80, 1, 254), 'max_input_chars': (32000, 4000, 100000)}
 
@@ -38,12 +39,12 @@ def loopback(url):
 
 def redact(value):
     if isinstance(value, dict):
-        return {k: redact(v) for k, v in value.items()}
+        return {k: '[REDACTED]' if re.search(SENSITIVE_KEY, str(k), re.I) else redact(v) for k, v in value.items()}
     if isinstance(value, list):
         return [redact(v) for v in value]
     if not isinstance(value, str):
         return value
-    value = re.sub(r'(?i)(?:[\w.-]*(?:password|secret|token|api[_-]?key)[\w.-]*)\s*[:=]\s*[^\s,;]+|'
+    value = re.sub(r'''(?i)['"]?[\w.-]*(?:''' + SENSITIVE_KEY + r''')[\w.-]*['"]?\s*[:=]\s*(?:"(?:\\.|[^"\\])*(?:"|$)|'(?:\\.|[^'\\])*(?:'|$)|[^\s,;]+)|'''
                    r'\bBearer\s+[^\s,;]+|\bsk-(?:or-)?[A-Za-z0-9_-]{12,}|'
                    r'-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)', '[REDACTED]', value)
     value = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b|\b(?:\+?\d[\d ()-]{8,}\d)\b', '[REDACTED]', value)
@@ -160,10 +161,12 @@ def validate_replay(scenario, plan, operations):
             not isinstance(plan['steps'], list) or len(plan['steps']) > 99:
         raise ValueError('replay must bind exact scenario and bounded steps')
     for step in plan['steps']:
-        if not isinstance(step, dict) or set(step) - {'operation', 'target', 'value'} or step.get('operation') not in operations or step['operation'] in ('done', 'blocked', 'observe_more'):
+        if not isinstance(step, dict) or set(step) - {'operation', 'target', 'value'} or step.get('operation') not in operations or step['operation'] in ('done', 'blocked'):
             raise ValueError('invalid replay operation')
+        if step['operation'] == 'observe_more' and not scenario.get('exploration', False):
+            raise ValueError('replay observation requires explicit exploration')
         target = step.get('target')
-        if step['operation'] != 'scroll_down':
+        if step['operation'] not in ('scroll_down', 'observe_more'):
             if not isinstance(target, dict) or not {'role', 'name'} <= set(target) <= {'role', 'name', 'near'} or any(not isinstance(v, str) or not v or redact(v) != v for v in target.values()):
                 raise ValueError('replay needs unredacted exact role/name and optional near')
             for value in target.values():

@@ -34,9 +34,10 @@ def promote(scenario, summary, events):
         raise ValueError('scenario differs from the recorded trace')
     steps = []
     for event in events:
-        if event['operation'] in ('done', 'observe_more'):
+        if event['operation'] == 'done':
             continue
-        if event['outcome'] != 'ok':
+        expected = 'observed next candidate group' if event['operation'] == 'observe_more' else 'ok'
+        if event['outcome'] != expected:
             raise ValueError('held, blocked or failed actions cannot be promoted')
         step = {'operation': event['operation']}
         if event.get('target'):

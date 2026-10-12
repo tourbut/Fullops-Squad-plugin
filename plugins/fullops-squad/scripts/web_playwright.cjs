@@ -64,7 +64,7 @@ async function handle(message) {
     const target = current.elements.find(e => e.ref === data.ref);
     if (!target || !target.visible || target.occluded || target.sensitive || target.state.includes('disabled=true')) return 'not_actionable';
     if (target.tag === 'SELECT') return 'unsupported_widget';
-    const destinations = [target.href, ...(['fill_submit', 'press_enter'].includes(data.operation) ? [target.form_action] : [])];
+    const destinations = [target.href, target.form_action];
     if (destinations.some(url => url && !destinationAllowed(url))) return 'origin_not_allowed';
     const index = Number(data.ref.slice(1));
     const element = await page.locator(SELECTOR).nth(index).elementHandle();

@@ -193,13 +193,49 @@ global.document = {activeElement: {
             return raw
         seen = []
         with patch.object(browser, 'snapshot', side_effect=snapshot):
-            self.execute(self.scenario(values={'milk': 'person@example.test'}), browser=browser,
+            self.execute(self.scenario(goal='Find person@example.test at 010-1234-5678', values={'milk': 'person@example.test'}), browser=browser,
                          call=fixture.jev([('blocked', None, None)], seen=seen))
         serialized = json.dumps(seen)
         self.assertNotIn('hidden-value', serialized)
         self.assertNotIn('person@example.test', serialized)
         self.assertNotIn('fragment-secret', serialized)
+        self.assertNotIn('010-1234-5678', serialized)
         self.assertIn('[REDACTED]', serialized)
+
+    def test_structured_and_quoted_secrets_are_redacted(self):
+        value = {'access_token': 'sensitive-session-value', 'nested': [{'Authorization': 'opaque credential'}], 'safe': 'public'}
+        self.assertEqual(contract.redact(value)['access_token'], '[REDACTED]')
+        self.assertEqual(contract.redact(value)['safe'], 'public')
+        for text in (json.dumps(value), "{'api_key': 'private value with spaces'}", '"secret": "unterminated private value'):
+            cleaned = contract.redact(text)
+            for secret in ('sensitive-session-value', 'opaque credential', 'private value'):
+                self.assertNotIn(secret, cleaned)
+            self.assertIn('[REDACTED]', cleaned)
+
+    def test_paginated_exploration_promotes_and_replays_observations(self):
+        scenario = self.scenario(exploration=True, candidate_limit=80, max_steps=6,
+                                 safety={'fixture': 'paged', 'allowed_operations': ['click']})
+        def browser():
+            instance = fixture.FakeBrowser()
+            original = instance.snapshot
+            instance.snapshot = lambda: {**original(), 'elements': [
+                {'ref': f'e{i}', 'role': 'button', 'name': f'Button {i}'} for i in range(82)]}
+            instance.check = lambda c: {'condition': c, 'value': True, 'passed': True}
+            return instance
+        out = Path(self.temp.name) / 'paged'
+        summary = web.run(scenario, browser(), fixture.jev([
+            ('observe_more', None, None), ('click', 'e81', None),
+            ('observe_more', None, None), ('done', None, None)]), out, log=lambda _: None)
+        self.assertTrue(summary['passed'])
+        events = [json.loads(line) for line in (out / 'events.jsonl').read_text().splitlines()]
+        plan = web_analysis.promote(scenario, summary, events)
+        self.assertEqual([s['operation'] for s in plan['steps']], ['observe_more', 'click', 'observe_more'])
+        replayed = web.run(scenario, browser(), None, Path(self.temp.name) / 'paged-replay', replay=plan, log=lambda _: None)
+        self.assertTrue(replayed['passed'])
+        self.assertEqual(replayed['jev_calls'], 0)
+        disabled = {**scenario, 'exploration': False}
+        with self.assertRaisesRegex(ValueError, 'explicit exploration'):
+            contract.validate_replay(disabled, contract.replay_plan(disabled, plan['steps']), web.OPERATIONS)
 
     def test_model_free_replay_and_scenario_binding(self):
         scenario = self.scenario()

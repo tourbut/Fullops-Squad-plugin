@@ -233,7 +233,7 @@ class Browser:
         expected = next(e for e in page['elements'] if e['ref'] == ref)
         if target['role'] != expected['role'] or target['name'] != expected['name']:
             return 'focused_target_mismatch'
-        for destination in (target.get('href'), target.get('form_action') if operation in ('fill_submit', 'press_enter') else None):
+        for destination in (target.get('href'), target.get('form_action')):
             if destination and contract.origin(destination) not in safety['allowed_origins']:
                 return 'origin_not_allowed'
         self.pending = {'digest': local['digest'], 'safety': safety, 'ref': ref}
@@ -303,7 +303,7 @@ def ask(call, scenario, page, history, step):
         questions['fill_value'] = {'type': 'choice', 'instructions': 'Choose a scenario fixture value or _NONE_.',
                                    'criteria': {**values, contract.NONE: 'No valid fixture value.'}}
     # 각 대상의 문맥과 fixture 값은 criteria에 한 번만 있다.
-    state = {'goal': safe_text(scenario['goal'], 1000), 'page': {k: public[k] for k in ('url', 'state_id', 'coverage')},
+    state = {'goal': contract.redact(safe_text(scenario['goal'], 1000)), 'page': {k: public[k] for k in ('url', 'state_id', 'coverage')},
              'history': contract.redact(history[-6:]), 'step': step, 'steps_left': scenario.get('max_steps', 20) - step}
     payload = {'model': MODEL, 'state': state, 'questions': questions}
     if len(json.dumps(payload, ensure_ascii=False)) > scenario.get('max_input_chars', contract.BOUNDS['max_input_chars'][0]):

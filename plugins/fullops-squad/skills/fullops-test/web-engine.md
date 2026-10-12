@@ -63,7 +63,7 @@ DONE은 독립 checks 실행 요청이다. PASS는 해당 scope의 checks가 모
 
 `../../scripts/web_analysis.py --record <run-dir> --shadow`는 별도 `shadow.json`에 참고 분류를 쓴다. 기존 result·게이트·검사 범위를 변경하지 않는다. 환경/탐색/미확정 분류는 가설이며 `human_label`과 수정 이유를 별도로 검토한다. 실제 제품 결함을 자동 확정하거나 실패 검사를 건너뛰지 않는다.
 
-`web_analysis.py --record <run-dir> --promote --scenario <original.json>`는 통과한 조작 기록을 `regression.json`으로 승격한다. role/name/near와 fixture 값 ID만 남기고 원래 scenario SHA에 결합한다. 이 JSON은 `jev_test_web.py --replay`에서 Orca 또는 Playwright로 재생하며 모델 호출이 없다. 대상이 없거나 둘 이상이면 중단한다. 수정한 시나리오·마스킹된 대상은 사람이 다시 검토한다. 프로젝트의 독립 Playwright E2E 코드로 옮길 수도 있다. 모델 회귀를 필수 의존성으로 만들지 않는다.
+`web_analysis.py --record <run-dir> --promote --scenario <original.json>`는 통과한 조작 기록을 `regression.json`으로 승격한다. role/name/near와 fixture 값 ID, 후보 묶음을 넘기는 `observe_more` 순서를 남기고 원래 scenario SHA에 결합한다. 탐색 관측은 원래 시나리오에서 exploration을 명시한 경우에만 재생한다. 이 JSON은 `jev_test_web.py --replay`에서 Orca 또는 Playwright로 재생하며 모델 호출이 없다. 대상이 없거나 둘 이상이면 중단한다. 수정한 시나리오·마스킹된 대상은 사람이 다시 검토한다. 프로젝트의 독립 Playwright E2E 코드로 옮길 수도 있다. 모델 회귀를 필수 의존성으로 만들지 않는다.
 
 ## CUAWright PoC — 기본 OFF
 

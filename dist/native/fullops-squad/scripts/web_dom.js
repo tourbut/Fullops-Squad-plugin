@@ -24,7 +24,8 @@ async (activeOnly = false) => {
     return {ref:'e' + index, role:role(el), name:name(el), near:(el.closest('li,[role=listitem],label')?.innerText || '').trim().slice(0, 100),
       state:[`disabled=${!!(el.disabled || el.getAttribute('aria-disabled') === 'true')}`, ...(el.type === 'checkbox' || el.type === 'radio' ? [`checked=${el.checked}`] : [])],
       visible, occluded:!(hit && (hit === el || el.contains(hit))), sensitive:el.type === 'password' || /password|token|secret|api.?key/i.test(el.autocomplete + ' ' + el.name),
-      href:el.closest('a[href]')?.href || null, form_action:el.form?.action || null, tag:el.tagName};
+      href:el.closest('a[href]')?.href || null,
+      form_action:el.form ? (el.hasAttribute('formaction') ? el.formAction : el.form.action) : null, tag:el.tagName};
   };
   const raw = JSON.stringify([globalThis[key].id, globalThis[key].read(), performance.timeOrigin, location.href, document.documentElement.outerHTML,
     nodes.map(el => [el.value, el.checked, el.selectedIndex]), scrollX, scrollY]);
