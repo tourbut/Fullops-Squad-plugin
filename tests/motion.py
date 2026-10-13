@@ -157,7 +157,7 @@ with tempfile.TemporaryDirectory() as directory:
         print('not_run: optional FFmpeg/FFprobe codec regression (tools unavailable)')
 
 with tempfile.TemporaryDirectory() as directory:
-    root = Path(directory)
+    root = Path(directory).resolve()
     script = root / 'prepare.py'
     shutil.copyfile(ROOT / 'tests/motion-example/prepare.py', script)
     font = root / 'licensed.ttf'
