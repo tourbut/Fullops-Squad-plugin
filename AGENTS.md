@@ -11,4 +11,4 @@ Installation is global to the selected CLI. Activate the harness in a service re
 
 For development, edit `plugins/fullops-squad/` (portable source) and `adapters/` (host-specific metadata). Run `python3 scripts/build.py` to regenerate `dist/native/fullops-squad/` and commit the result; never edit generated files by hand. The GitHub marketplace serves the committed `dist/`, and CI fails when it differs from a fresh build. Run `npm ci` and `npm test` for standard-schema and packaging checks. The root marketplace catalogs point to the generated native package, so build before host validation or direct marketplace installation.
 
-With the pinned OCR CLI installed, run `python3 tests/review-check.py` to verify delegate preparation and review-record gates in a temporary repository. `fullops-review` uses the host agent for reasoning; the OCR CLI dependency is a tool, not an MCP server.
+With the latest OCR CLI installed, run `python3 tests/review-check.py` to verify delegate preparation and review-record gates in a temporary repository. `fullops-review` uses the host agent for reasoning; the OCR CLI dependency is a tool, not an MCP server.

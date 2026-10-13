@@ -34,7 +34,7 @@ def normalize_source(source):
 
 
 def skill_source(skill):
-    return f"https://github.com/{skill['source']}/tree/{skill['ref']}/{skill['path']}" if skill.get('ref') else skill['source']
+    return skill['source']
 
 
 def skill_command(skill, agents):
@@ -75,8 +75,12 @@ def commands(host, registered=None, plugin=None):
                     raise ValueError(f"{cli}: {name} 마켓플레이스 출처 충돌: {current} != {source}")
             else:
                 yield [cli, "plugin", "marketplace", "add", source]
+            if name in deps['marketplaces']:
+                yield [cli, "plugin", "marketplace", "update" if cli == "claude" else "upgrade", name]
         for name in dependency_plugins(agent):
             yield [cli, "plugin", "install" if cli == "claude" else "add", name]
+            if cli == 'claude':
+                yield [cli, 'plugin', 'update', name, '--scope', 'user']
         for skill in deps["codex"]["skills"] if cli == "codex" else []:
             yield skill_command(skill, [agent])
         if plugin:
@@ -139,9 +143,7 @@ def skill_files(host, wanted=None):
             path = next((root / name / 'SKILL.md' for root in roots if (root / name / 'SKILL.md').is_file()), None)
             if path:
                 paths.append(str(path))
-                if item.get('sha256') and hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest() != item['sha256']:
-                    absent.append('skill content differs from pinned ref: ' + name)
-                if item.get('ref') and normalize_source(installed.get(name, {}).get('source', '')) != normalize_source(item['source']):
+                if normalize_source(installed.get(name, {}).get('source', '')) != normalize_source(item['source']):
                     absent.append('skill source unverified: ' + name)
             else:
                 absent.append('skill: ' + name)
@@ -170,17 +172,17 @@ def command_skill_problems(host, command):
 
 
 def backup_skills(host, command):
-    """고정 디자인 스킬을 교체하기 전에 기존 내용·사용자 수정을 로컬에 보존한다."""
+    """스킬을 교체하기 전에 기존 내용·사용자 수정을 로컬에 보존한다."""
     saved = set()
     for agent, item in command_skills(host, command):
-        if not item.get('sha256'):
-            continue
         paths, _ = skill_files(agent, [item])
         for path in paths:  # SKILL.md가 같아도 참조·스크립트에는 사용자 수정이 있을 수 있다.
             folder = Path(path).parent.resolve()
             if folder in saved:
                 continue
             target = receipt_path(agent).parent / 'fullops-skill-backups' / str(time.time_ns()) / folder.name
+            if target.resolve().is_relative_to(folder):
+                raise ValueError('스킬 백업 경로는 원본 폴더 밖이어야 합니다')
             shutil.copytree(folder, target, symlinks=True)
             saved.add(folder)
             print(f'기존 스킬 보존: {target}', flush=True)
@@ -193,10 +195,10 @@ def tool_problems():
     try:
         root = Path(subprocess.check_output([shutil.which('npm') or 'npm', 'root', '--global'], text=True).strip())
         for item in [*manifest()['tools'], *manifest()['mcp'].values()]:
-            package, version = item['package'].rsplit('@', 1)
-            installed = json.loads((root / package / 'package.json').read_text())['version']
-            if version != 'latest' and installed != version:
-                absent.append(f"{item['command']}: version {installed} != {version}")
+            package = item['package'].rsplit('@', 1)[0]
+            installed = json.loads((root / package / 'package.json').read_text())
+            if installed.get('name') != package or not isinstance(installed.get('version'), str) or not installed['version']:
+                absent.append(f"{item['command']}: package identity/version unavailable")
         subprocess.run([shutil.which('ocr') or 'ocr', '--version'], check=True, capture_output=True, timeout=15)
     except (OSError, ValueError, KeyError, subprocess.SubprocessError):
         absent.append('tool package/version/execution verification unavailable')
@@ -284,11 +286,13 @@ def install_host(host, plan, plugin=None):
     write_json(path, receipt)
     for command in plan:
         token = hashlib.sha256(json.dumps(command).encode()).hexdigest()
+        refresh = command[:3] == ['npm', 'install', '--global'] or command[0] == 'npx' or (
+            command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and command[3] in dependency_plugins(host))
         valid = not tool_problems() if command[:3] == ['npm', 'install', '--global'] else \
             not command_skill_problems(host, command) \
             if command[0] == 'npx' else not plugin_problems(host, [command[3]], identity.get('plugin') if command[3] == 'fullops-squad@fullops-squad' else None) \
             if command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and host in ('codex', 'claude-code') else False
-        if token not in receipt['completed'] or not valid:
+        if refresh or token not in receipt['completed'] or not valid:
             if command[0] == 'npx':
                 backup_skills(host, command)
             run([command], False)

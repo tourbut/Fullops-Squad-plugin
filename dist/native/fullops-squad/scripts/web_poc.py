@@ -51,7 +51,7 @@ def prepare(repo, key, scenario, host, model, effort, python, max_tokens, dry_ru
     out = local_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-test/cuawright-poc-{datetime.now().strftime("%Y%m%d-%H%M%S-%f")}')
     out.mkdir(parents=True, exist_ok=False)
     result = {'version': 'cuawright-poc-v1', 'enabled': True, 'status': 'UNVERIFIED' if ready else 'BLOCKED',
-              'host_tuple': tuple_, 'skill': {'source': skill()['source'], 'ref': skill()['ref'], 'files': paths, 'problems': absent},
+              'host_tuple': tuple_, 'skill': {'source': skill()['source'], 'files': paths, 'problems': absent},
               'runtime': checked, 'python': python, 'max_seconds': scenario.get('max_seconds', 120), 'max_tokens': max_tokens,
               'budget_enforcement': 'host session and isolated runtime must enforce; this preparer launches neither',
               'generation': 'not_run', 'code_review': 'not_run', 'independent_assertions': 'not_run', 'visual_review': 'not_run',
@@ -61,7 +61,7 @@ def prepare(repo, key, scenario, host, model, effort, python, max_tokens, dry_ru
     (out / 'plan.md').write_text(
         '# CUAWright 선택형 웹 PoC\n\n'
         f'호스트/모델/effort: {host} / {model} / {effort}\n\n'
-        '1. 연결된 고정 cuawright-web 스킬을 읽고 host-native 방식으로 수행한다. 별도 모델 API 키를 추가하지 않는다.\n'
+        '1. 연결된 최신 cuawright-web 스킬을 읽고 host-native 방식으로 수행한다. 별도 모델 API 키를 추가하지 않는다.\n'
         '2. scenario.json의 목표·fixture·origin·허용 동작·금지 효과·독립 checks가 정본이다. 이 폴더 안에서만 생성한다.\n'
         '3. 시간/토큰 예산을 호스트에서 먼저 설정·확인한다. 설정할 수 없으면 BLOCKED로 남긴다.\n'
         '4. plan.md의 수락 조건을 구체화하고 final_runs/run_<id>/final_script.py와 로그·캡처를 남긴다.\n'

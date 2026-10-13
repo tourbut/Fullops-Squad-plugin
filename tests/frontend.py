@@ -1,6 +1,5 @@
 """프런트엔드 선택·격리·실패 상태와 고정 모델 보존. 실제 호스트·유료 API·전역 설치는 사용하지 않는다."""
 from contextlib import redirect_stdout
-import hashlib
 import io
 import json
 import os
@@ -119,21 +118,22 @@ class Frontend(unittest.TestCase):
     def test_tool_version_failure_and_execution(self):
         self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'not_installed_or_unavailable')
         root = frontend.tool_root(self.repo, 'playwright') / 'node_modules'
-        write_json(root / '@playwright/cli/package.json', {'version': '0.0.0'})
-        self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'version_mismatch')
-        write_json(root / '@playwright/cli/package.json', {'version': '0.1.22'})
-        with patch.object(frontend.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '0.1.22\n', '')):
+        write_json(root / '@playwright/cli/package.json', {'name': 'other-cli', 'version': '9.2.0'})
+        self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'package_identity_mismatch')
+        write_json(root / '@playwright/cli/package.json', {'name': '@playwright/cli', 'version': '9.2.0'})
+        with patch.object(frontend.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '9.2.0\n', '')):
             self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'cli_verified')
-        with patch.object(frontend.subprocess, 'run', return_value=subprocess.CompletedProcess([], 3221226505, '0.1.22\n', 'assertion failed')):
+        with patch.object(frontend.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '8.0.0\n', '')):
+            self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'execution_failed')
+        with patch.object(frontend.subprocess, 'run', return_value=subprocess.CompletedProcess([], 3221226505, '9.2.0\n', 'assertion failed')):
             self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'execution_failed')
         with patch.object(frontend.subprocess, 'run', side_effect=subprocess.TimeoutExpired('test', 15)):
             self.assertEqual(frontend.tool_status(self.repo, 'playwright'), 'not_installed_or_unavailable')
 
-    def test_common_skill_checks_other_hosts_and_pinned_content(self):
+    def test_common_skill_checks_other_hosts_and_preserves_latest_content(self):
         home = Path(self.temp.name) / 'home'
-        raw = b'---\nname: x\n---\nPinned instructions\n'
-        item = {'source': 'official/skills', 'names': ['x'], 'ref': 'a' * 40, 'path': 'skills/x',
-                'sha256': hashlib.sha256(raw).hexdigest()}
+        raw = b'---\nname: x\n---\nLatest instructions\n'
+        item = {'source': 'official/skills', 'names': ['x']}
         data = {'skills': [item], 'codex': {'skills': []}, 'portable_skills': []}
         write_json(home / '.agents/.skill-lock.json', {'skills': {'x': {'source': item['source']}}})
         common = home / '.agents/skills/x/SKILL.md'
@@ -156,7 +156,7 @@ class Frontend(unittest.TestCase):
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(), 'locally changed reference')
             claude.write_text('locally changed')
-            self.assertTrue(deps.required_skills('codex')[1])
+            self.assertEqual(deps.required_skills('codex')[1], [])
             with redirect_stdout(io.StringIO()):
                 deps.backup_skills('codex', command)
             backups = list((home / '.claude/fullops-skill-backups').glob('*/x/SKILL.md'))
@@ -165,6 +165,16 @@ class Frontend(unittest.TestCase):
             self.assertEqual(claude.read_text(), 'locally changed')
             write_json(home / '.agents/.skill-lock.json', {'skills': {'x': {'source': 'other/skills'}}})
             self.assertTrue(any('source unverified' in p for p in deps.skill_files('codex')[1]))
+
+    def test_skill_backup_rejects_destination_inside_source(self):
+        folder = Path(self.temp.name)
+        item = {'source': 'official/skills', 'names': ['x']}
+        with patch.object(deps, 'command_skills', return_value=[('codex', item)]), \
+             patch.object(deps, 'skill_files', return_value=([str(folder / 'SKILL.md')], [])), \
+             patch.object(deps, 'receipt_path', return_value=folder / 'deps.json'):
+            with self.assertRaisesRegex(ValueError, '원본 폴더 밖'):
+                deps.backup_skills('codex', [])
+        self.assertFalse((folder / 'fullops-skill-backups').exists())
 
     def test_fixed_tuple_is_offline_and_does_not_call_model_picker(self):
         agents = self.repo / '.fullops-squad/orca-agents.md'

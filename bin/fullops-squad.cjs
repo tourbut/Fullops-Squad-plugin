@@ -238,11 +238,7 @@ function main(argv = process.argv.slice(2), execute = run) {
       if (after.version !== expected) throw new Error(`목표 ${expected}에 도달하지 못했습니다: 설치 ${after.version}`);
       if (before && compareVersion(after.version, before.version) < 0) throw new Error('설치 버전 downgrade를 거부합니다');
       const depsScript = path.join(after.root, 'scripts/deps.py');
-      let needsDeps = options.command === 'install' || !before || before.dependencies !== after.dependencies;
-      if (!needsDeps) {
-        try { execute(python, [depsScript, '--check', '--host', target.host], target.env, true); } catch { needsDeps = true; }
-      }
-      if (needsDeps) execute(python, [depsScript, '--host', target.host], target.env);
+      execute(python, [depsScript, '--host', target.host], target.env);
       execute(python, [depsScript, '--check', '--host', target.host], target.env);
       completed.push('host dependencies verified');
       if (options.repo) execute(python, [path.join(after.root, 'scripts/update.py'), '--repo', options.repo,

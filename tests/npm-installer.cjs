@@ -101,11 +101,11 @@ test('fresh update installs native plugin, dependencies and verifies the result'
   assert.ok(calls.some(c => c.args.includes('--check')));
 });
 
-test('unchanged dependencies are checked; missing dependencies are repaired', t => {
+test('update refreshes latest dependencies even when the manifest is unchanged', t => {
   for (const missing of [false, true]) {
     const { calls, execute } = flow(t, { depsMissing: missing });
     assert.equal(installer.main(['update', '--hosts', 'grok'], execute), 0);
-    assert.equal(calls.some(c => c.args.includes('--host') && !c.args.includes('--check')), missing);
+    assert.equal(calls.some(c => c.args.includes('--host') && !c.args.includes('--check')), true);
     assert.ok(calls.some(c => c.args.join(' ') === 'plugin update fullops-squad'));
   }
 });
