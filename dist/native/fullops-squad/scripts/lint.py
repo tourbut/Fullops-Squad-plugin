@@ -62,6 +62,7 @@ def config_blob(repo, ref):
 
 def load_config(repo, ref):
     """검사 대상 브랜치가 스스로 규칙을 느슨하게 하지 못하도록 기준 시점(merge-base)의 설정을 쓴다."""
+    repo = repo.resolve()
     raw = config_blob(repo, ref)
     if raw is None:
         return DEFAULT, None
