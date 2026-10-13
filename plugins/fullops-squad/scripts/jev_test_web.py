@@ -302,8 +302,9 @@ def ask(call, scenario, page, history, step):
     if fillable and values:
         questions['fill_value'] = {'type': 'choice', 'instructions': 'Choose a scenario fixture value or _NONE_.',
                                    'criteria': {**values, contract.NONE: 'No valid fixture value.'}}
-    # 각 대상의 문맥과 fixture 값은 criteria에 한 번만 있다.
-    state = {'goal': contract.redact(safe_text(scenario['goal'], 1000)), 'page': {k: public[k] for k in ('url', 'state_id', 'coverage')},
+    # 질문들은 서로의 criteria/답을 보지 못한다. 동작·위험·유효성 판단에도 관측과 입력값이 필요하다.
+    state = {'goal': contract.redact(safe_text(scenario['goal'], 1000)),
+             'page': {k: public[k] for k in ('url', 'state_id', 'coverage', 'elements')}, 'values': values,
              'history': contract.redact(history[-6:]), 'step': step, 'steps_left': scenario.get('max_steps', 20) - step}
     payload = {'model': MODEL, 'state': state, 'questions': questions}
     if len(json.dumps(payload, ensure_ascii=False)) > scenario.get('max_input_chars', contract.BOUNDS['max_input_chars'][0]):
