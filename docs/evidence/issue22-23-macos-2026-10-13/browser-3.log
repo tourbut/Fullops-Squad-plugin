@@ -1,0 +1,17 @@
+ 1 fill_submit  e0    milk       → ok
+ 2 check        e2               → ok
+ 3 done                          → checks passed
+ 1 fill_submit  e0    milk       → ok
+ 2 check        e2               → ok
+ 3 done                          → done but checks failed
+ 4 done                          → done but checks failed
+ 1 click        e4               → ok
+ 2 done                          → checks passed
+ 1 fill_submit  e8    milk       → ok
+ 2 check        e9               → ok
+ 3 done                          → checks passed
+ 1 fill_submit  e8    milk       → ok
+ 2 check        e9               → ok
+ 3 done                          → done but checks failed
+ 4 done                          → done but checks failed
+PASS: real browser single-submit, independent assertions, stale DOM, occlusion, origin and optional network guard; no model calls

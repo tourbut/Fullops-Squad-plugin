@@ -1,0 +1,9 @@
+PASS: changed-only scope, size growth, suppressions, eval, secrets, custom rules, commands, review lint gate
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+생성 예정: 49개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 49개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 0개
+PASS: default slop warnings, diff budget, dependency changes, baseline settings, test evidence gate
+PASS: design warnings, token/path/content exceptions, project severity and setup command preservation

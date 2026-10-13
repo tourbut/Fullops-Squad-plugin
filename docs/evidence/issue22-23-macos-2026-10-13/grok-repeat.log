@@ -1,0 +1,5 @@
+Installing from directory /private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad requires confirmation.
+Plugins can run hooks, MCP servers, and skills on your machine, so installation needs explicit trust.
+
+To proceed, re-run with --trust:
+  grok plugin install /private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad --trust

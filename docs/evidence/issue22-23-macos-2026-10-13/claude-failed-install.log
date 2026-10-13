@@ -1,0 +1,2 @@
+{"command":"install","outcome":"failed","plugin":"not-present@fullops-squad","scope":"user","message":"Plugin \"not-present\" not found in marketplace \"fullops-squad\". Your local copy may be out of date — try `claude plugin marketplace update fullops-squad`.","failureCode":"not_found"}
+✘ Failed to install plugin "not-present@fullops-squad": Plugin "not-present" not found in marketplace "fullops-squad". Your local copy may be out of date — try `claude plugin marketplace update fullops-squad`.

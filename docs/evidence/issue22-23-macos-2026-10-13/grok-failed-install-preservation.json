@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "grok",
+    "plugin",
+    "install",
+    "/private/tmp/fullops-macos-20261013-4vksnsnw/missing-plugin"
+  ],
+  "exit_code": 1,
+  "installed_inventory_unchanged": true
+}

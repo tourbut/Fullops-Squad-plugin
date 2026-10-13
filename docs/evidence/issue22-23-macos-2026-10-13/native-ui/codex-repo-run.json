@@ -1,0 +1,31 @@
+{
+  "host": "codex",
+  "argv": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--sandbox",
+    "read-only",
+    "--ephemeral",
+    "--json",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-"
+  ],
+  "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/native-workspace",
+  "exit_code": 0,
+  "elapsed_s": 26.813320416025817,
+  "html_status": "generated",
+  "html_sha256": "2a78cce91d7227190ac642361460f82ecd387774039fedae34b96533b5fb14c3",
+  "usage": [
+    {
+      "input_tokens": 18063,
+      "cached_input_tokens": 12288,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 858,
+      "reasoning_output_tokens": 47
+    }
+  ]
+}

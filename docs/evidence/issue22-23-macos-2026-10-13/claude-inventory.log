@@ -1,0 +1,40 @@
+[
+  {
+    "id": "fullops-squad@fullops-squad",
+    "version": "1.4.1",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/private/tmp/fullops-macos-20261013-4vksnsnw/claude-config/plugins/cache/fullops-squad/fullops-squad/1.4.1",
+    "readFromFolder": "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad",
+    "folderVersion": "1.4.1",
+    "installedAt": "2026-10-13T12:06:13.972Z",
+    "lastUpdated": "2026-10-13T12:06:13.972Z",
+    "mcpServers": {
+      "context7": {
+        "command": "context7-mcp",
+        "args": []
+      }
+    },
+    "projectEnabled": false
+  },
+  {
+    "id": "mattpocock-skills@claude-plugins-official",
+    "version": "1.2.3",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/private/tmp/fullops-macos-20261013-4vksnsnw/claude-config/plugins/cache/claude-plugins-official/mattpocock-skills/1.2.3",
+    "installedAt": "2026-10-13T12:06:15.684Z",
+    "lastUpdated": "2026-10-13T12:06:15.684Z",
+    "projectEnabled": false
+  },
+  {
+    "id": "ponytail@ponytail",
+    "version": "5.2.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/private/tmp/fullops-macos-20261013-4vksnsnw/claude-config/plugins/cache/ponytail/ponytail/5.2.0",
+    "installedAt": "2026-10-13T12:06:14.024Z",
+    "lastUpdated": "2026-10-13T12:06:14.024Z",
+    "projectEnabled": false
+  }
+]

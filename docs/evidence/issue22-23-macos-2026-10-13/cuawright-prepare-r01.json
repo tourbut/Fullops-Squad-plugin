@@ -1,0 +1,68 @@
+{
+  "argv": [
+    "python3",
+    "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/web_poc.py",
+    "--repo",
+    "/private/tmp/fullops-macos-20261013-4vksnsnw/poc-service",
+    "--key",
+    "ISSUE23-MACOS",
+    "--scenario",
+    "/private/tmp/fullops-macos-20261013-4vksnsnw/poc-service/scenario.json",
+    "--host",
+    "codex",
+    "--model",
+    "gpt-6.1-sol",
+    "--effort",
+    "medium",
+    "--max-tokens",
+    "20000",
+    "--prepare"
+  ],
+  "exit_code": 1,
+  "result": {
+    "version": "cuawright-poc-v1",
+    "enabled": true,
+    "status": "BLOCKED",
+    "host_tuple": {
+      "agent": "codex",
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source": "user"
+    },
+    "skill": {
+      "source": "microsoft/CUAWright",
+      "files": [],
+      "problems": [
+        "skill: cuawright-web"
+      ]
+    },
+    "runtime": {
+      "playwright": null,
+      "firefox_installed": false
+    },
+    "python": "/Users/shin/.local/bin/python3",
+    "max_seconds": 90,
+    "max_tokens": 20000,
+    "budget_enforcement": "host session and isolated runtime must enforce; this preparer launches neither",
+    "generation": "not_run",
+    "code_review": "not_run",
+    "independent_assertions": "not_run",
+    "visual_review": "not_run",
+    "optional_install": [
+      "npx",
+      "--yes",
+      "skills@latest",
+      "add",
+      "microsoft/CUAWright",
+      "--skill",
+      "cuawright-web",
+      "--global",
+      "--agent",
+      "codex",
+      "--yes"
+    ],
+    "workspace": ".fullops-squad/docs/evaluations/qa-reports/ISSUE23-MACOS-test/cuawright-poc-20261013-212910-588756"
+  },
+  "execution_decision": "not_run; enforceable total-token host budget not established"
+}

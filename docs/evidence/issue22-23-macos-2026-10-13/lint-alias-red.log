@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/lint.py", line 27, in command_cwd_aliases
+    checks.load_config(alias, 'HEAD')
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/lint.py", line 78, in load_config
+    raise ValueError(f'레포 밖 cwd: {command["name"]}')
+ValueError: 레포 밖 cwd: test
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/lint.py", line 404, in <module>
+    command_cwd_aliases()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/lint.py", line 29, in command_cwd_aliases
+    assert not allowed and str(error) == '레포 밖 cwd: test', error
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 레포 밖 cwd: test

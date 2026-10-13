@@ -1,0 +1,21 @@
+..F........
+======================================================================
+FAIL: test_direct_stop_cannot_skip_lint_or_independent_review (__main__.OperatingPolicy.test_direct_stop_cannot_skip_lint_or_independent_review)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/operating-policy.py", line 296, in test_direct_stop_cannot_skip_lint_or_independent_review
+    check.assert_called_once_with(self.repo, base, head, 'author')
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/unittest/mock.py", line 989, in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/unittest/mock.py", line 977, in assert_called_with
+    raise AssertionError(_error_message()) from cause
+AssertionError: expected call not found.
+Expected: direct_check(PosixPath('/var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-mode-7xjwchhx'), '0962a3c465361a330e5bb82b93bb2495ea8658ae', '1c45adafcdb0c8e22b11564027febb9d63e9c729', 'author')
+  Actual: direct_check(PosixPath('/private/var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-mode-7xjwchhx'), '0962a3c465361a330e5bb82b93bb2495ea8658ae', '1c45adafcdb0c8e22b11564027febb9d63e9c729', 'author')
+
+----------------------------------------------------------------------
+Ran 11 tests in 4.040s
+
+FAILED (failures=1)

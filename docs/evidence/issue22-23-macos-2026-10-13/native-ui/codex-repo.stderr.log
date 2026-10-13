@@ -1,0 +1,1 @@
+2026-10-13T12:15:11.305287Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer realm=\"wiki_mcp\", resource_metadata=\"https://mcp.knowslog.com/.well-known/oauth-protected-resource/mcp\", scope=\"wiki:read\"" })

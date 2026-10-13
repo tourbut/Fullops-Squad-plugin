@@ -1,0 +1,11 @@
+[
+  {
+    "status": "installed",
+    "name": "fullops-squad",
+    "repo_key": "fullops-squad-10a42790",
+    "version": "1.4.1",
+    "path": "/private/tmp/fullops-macos-20261013-4vksnsnw/grok-config/installed-plugins/fullops-squad-10a42790",
+    "source": "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad",
+    "marketplace": null
+  }
+]

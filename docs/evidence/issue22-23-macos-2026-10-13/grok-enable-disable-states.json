@@ -1,0 +1,26 @@
+[
+  {
+    "argv": [
+      "grok",
+      "plugin",
+      "disable",
+      "fullops-squad"
+    ],
+    "exit_code": 0,
+    "enabled_in_config": false,
+    "disabled_in_config": true,
+    "passed": true
+  },
+  {
+    "argv": [
+      "grok",
+      "plugin",
+      "enable",
+      "fullops-squad"
+    ],
+    "exit_code": 0,
+    "enabled_in_config": true,
+    "disabled_in_config": false,
+    "passed": true
+  }
+]

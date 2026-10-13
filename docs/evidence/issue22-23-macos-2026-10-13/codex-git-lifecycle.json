@@ -1,0 +1,56 @@
+[
+  {
+    "stage": "add",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "add",
+      "file:///private/tmp/fullops-macos-20261013-4vksnsnw/source",
+      "--json"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.015675541013479233,
+    "log": "codex-git-add.log"
+  },
+  {
+    "stage": "install",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.01684987498447299,
+    "log": "codex-git-install.log"
+  },
+  {
+    "stage": "upgrade",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "upgrade",
+      "fullops-squad",
+      "--json"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.014961750013753772,
+    "log": "codex-git-upgrade.log"
+  },
+  {
+    "stage": "reinstall",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.015194583917036653,
+    "log": "codex-git-reinstall.log"
+  }
+]

@@ -1,0 +1,63 @@
+[
+  {
+    "name": "npm-ci",
+    "argv": [
+      "npm",
+      "ci",
+      "--ignore-scripts"
+    ],
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/verified-source",
+    "exit_code": 0,
+    "elapsed_s": 0.5,
+    "log": "npm-ci.log"
+  },
+  {
+    "name": "build",
+    "argv": [
+      "python3",
+      "scripts/build.py"
+    ],
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/verified-source",
+    "exit_code": 0,
+    "elapsed_s": 0.13,
+    "log": "build.log"
+  },
+  {
+    "name": "npm-test",
+    "argv": [
+      "npm",
+      "test"
+    ],
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/verified-source",
+    "exit_code": 1,
+    "elapsed_s": 112.904,
+    "log": "npm-test.log"
+  },
+  {
+    "name": "review-check",
+    "argv": [
+      "python3",
+      "tests/review-check.py"
+    ],
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/verified-source",
+    "exit_code": 0,
+    "elapsed_s": 5.063,
+    "log": "review-check.log"
+  },
+  {
+    "name": "build-diff",
+    "argv": [
+      "git",
+      "diff",
+      "--exit-code",
+      "--",
+      "dist",
+      ".agents/plugins/marketplace.json",
+      ".claude-plugin/marketplace.json"
+    ],
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/verified-source",
+    "exit_code": 0,
+    "elapsed_s": 0.024,
+    "log": "build-diff.log"
+  }
+]

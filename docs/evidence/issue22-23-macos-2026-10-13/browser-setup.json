@@ -1,0 +1,30 @@
+[
+  {
+    "name": "browser-tools",
+    "argv": [
+      "npm",
+      "install",
+      "--prefix",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/tools",
+      "--ignore-scripts",
+      "--no-save",
+      "--package-lock=false",
+      "@playwright/cli@latest"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 1.9443335409741849,
+    "log": "browser-tools.log"
+  },
+  {
+    "name": "browser-install",
+    "argv": [
+      "node",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/tools/node_modules/playwright/cli.js",
+      "install",
+      "chromium"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 31.505804083077237,
+    "log": "browser-install.log"
+  }
+]

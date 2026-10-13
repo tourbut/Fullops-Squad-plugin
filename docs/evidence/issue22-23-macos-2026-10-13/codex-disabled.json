@@ -1,0 +1,23 @@
+{
+  "installed": [
+    {
+      "pluginId": "fullops-squad@fullops-squad",
+      "name": "fullops-squad",
+      "marketplaceName": "fullops-squad",
+      "version": "1.4.1",
+      "installed": true,
+      "enabled": false,
+      "source": {
+        "source": "local",
+        "path": "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad"
+      },
+      "marketplaceSource": {
+        "sourceType": "local",
+        "source": "/private/tmp/fullops-macos-20261013-4vksnsnw/source"
+      },
+      "installPolicy": "AVAILABLE",
+      "authPolicy": "ON_INSTALL"
+    }
+  ],
+  "available": []
+}

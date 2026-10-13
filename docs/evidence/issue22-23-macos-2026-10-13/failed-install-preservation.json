@@ -1,0 +1,32 @@
+[
+  {
+    "host": "codex",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "not-present@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 1,
+    "settings_unchanged": true,
+    "before_sha256": "5a26c17fd94c19a3ad94d7c16b8fe94d8934d97d9c6a501e2637e0b2b15b3a06",
+    "after_sha256": "5a26c17fd94c19a3ad94d7c16b8fe94d8934d97d9c6a501e2637e0b2b15b3a06"
+  },
+  {
+    "host": "claude",
+    "argv": [
+      "claude",
+      "plugin",
+      "install",
+      "not-present@fullops-squad",
+      "--scope",
+      "user",
+      "--json"
+    ],
+    "exit_code": 1,
+    "settings_unchanged": true,
+    "before_sha256": "9955aa54e4e601d5149cce278f1cf96c4987971f43dc7eebceacdee4e70ea72e",
+    "after_sha256": "9955aa54e4e601d5149cce278f1cf96c4987971f43dc7eebceacdee4e70ea72e"
+  }
+]

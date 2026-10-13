@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "npm",
+    "view",
+    "@alibaba-group/open-code-review",
+    "version",
+    "--json"
+  ],
+  "exit_code": 0,
+  "latest": "\"1.13.0\"",
+  "stderr": ""
+}

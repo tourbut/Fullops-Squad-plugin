@@ -1,0 +1,289 @@
+[
+  {
+    "host": "codex",
+    "stage": "marketplace",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "add",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/source",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.054,
+    "log": "codex-marketplace.log"
+  },
+  {
+    "host": "codex",
+    "stage": "install",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.047,
+    "log": "codex-install.log"
+  },
+  {
+    "host": "codex",
+    "stage": "repeat",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.049,
+    "log": "codex-repeat.log"
+  },
+  {
+    "host": "codex",
+    "stage": "update",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "upgrade",
+      "fullops-squad",
+      "--json"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.017,
+    "log": "codex-update.log"
+  },
+  {
+    "host": "codex",
+    "stage": "inventory",
+    "argv": [
+      "codex",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.018,
+    "log": "codex-inventory.log"
+  },
+  {
+    "host": "claude",
+    "stage": "marketplace-ponytail",
+    "argv": [
+      "claude",
+      "plugin",
+      "marketplace",
+      "add",
+      "DietrichGebert/ponytail",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 3.609,
+    "log": "claude-marketplace-ponytail.log"
+  },
+  {
+    "host": "claude",
+    "stage": "marketplace-claude-plugins-official",
+    "argv": [
+      "claude",
+      "plugin",
+      "marketplace",
+      "add",
+      "anthropics/claude-plugins-official",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 3.282,
+    "log": "claude-marketplace-claude-plugins-official.log"
+  },
+  {
+    "host": "claude",
+    "stage": "marketplace-fullops-squad",
+    "argv": [
+      "claude",
+      "plugin",
+      "marketplace",
+      "add",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/source",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.467,
+    "log": "claude-marketplace-fullops-squad.log"
+  },
+  {
+    "host": "claude",
+    "stage": "install",
+    "argv": [
+      "claude",
+      "plugin",
+      "install",
+      "fullops-squad@fullops-squad",
+      "--scope",
+      "user",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 2.929,
+    "log": "claude-install.log"
+  },
+  {
+    "host": "claude",
+    "stage": "repeat",
+    "argv": [
+      "claude",
+      "plugin",
+      "install",
+      "fullops-squad@fullops-squad",
+      "--scope",
+      "user",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.445,
+    "log": "claude-repeat.log"
+  },
+  {
+    "host": "claude",
+    "stage": "update",
+    "argv": [
+      "claude",
+      "plugin",
+      "update",
+      "fullops-squad@fullops-squad",
+      "--scope",
+      "user",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.418,
+    "log": "claude-update.log"
+  },
+  {
+    "host": "claude",
+    "stage": "disable",
+    "argv": [
+      "claude",
+      "plugin",
+      "disable",
+      "fullops-squad@fullops-squad",
+      "--scope",
+      "user",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.441,
+    "log": "claude-disable.log"
+  },
+  {
+    "host": "claude",
+    "stage": "enable",
+    "argv": [
+      "claude",
+      "plugin",
+      "enable",
+      "fullops-squad@fullops-squad",
+      "--scope",
+      "user",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.406,
+    "log": "claude-enable.log"
+  },
+  {
+    "host": "claude",
+    "stage": "inventory",
+    "argv": [
+      "claude",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.408,
+    "log": "claude-inventory.log"
+  },
+  {
+    "host": "grok",
+    "stage": "install",
+    "argv": [
+      "grok",
+      "plugin",
+      "install",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.204,
+    "log": "grok-install.log"
+  },
+  {
+    "host": "grok",
+    "stage": "repeat",
+    "argv": [
+      "grok",
+      "plugin",
+      "install",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.149,
+    "log": "grok-repeat.log"
+  },
+  {
+    "host": "grok",
+    "stage": "update",
+    "argv": [
+      "grok",
+      "plugin",
+      "update",
+      "fullops-squad"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.151,
+    "log": "grok-update.log"
+  },
+  {
+    "host": "grok",
+    "stage": "disable",
+    "argv": [
+      "grok",
+      "plugin",
+      "disable",
+      "fullops-squad"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.15,
+    "log": "grok-disable.log"
+  },
+  {
+    "host": "grok",
+    "stage": "enable",
+    "argv": [
+      "grok",
+      "plugin",
+      "enable",
+      "fullops-squad"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.145,
+    "log": "grok-enable.log"
+  },
+  {
+    "host": "grok",
+    "stage": "inventory",
+    "argv": [
+      "grok",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.15,
+    "log": "grok-inventory.log"
+  }
+]
