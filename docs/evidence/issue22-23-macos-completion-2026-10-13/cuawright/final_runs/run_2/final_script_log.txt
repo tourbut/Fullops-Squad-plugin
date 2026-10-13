@@ -1,0 +1,4 @@
+step 1 action: click Dark theme control
+step 2 action: fill New todo with milk and click Add once
+step 3 action: click milk checkbox once
+FINAL_RESPONSE theme=dark submits=1 list_li=1 checkbox.checked=True

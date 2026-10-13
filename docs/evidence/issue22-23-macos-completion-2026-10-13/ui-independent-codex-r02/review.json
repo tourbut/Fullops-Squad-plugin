@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "review_key": "UI-INDEPENDENT-CODEX-R02",
+  "reviewed_at_utc": "2026-10-13T13:47:34.609105+00:00",
+  "reviewer": "/root/macos_standards_review",
+  "independent_review": true,
+  "source_sha": "3a361d576441b9bd7633b4641911c3388416e7b1",
+  "canonical_base_sha": "c4a74a0",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/ui-codex-review-r02",
+  "index_sha256": "6c219f8ce669bb3b337c58a79af77ac810728b1ccfa9d889b791759fdd9cf912",
+  "decision": "verified within requested source, QA and visual supporting scope",
+  "findings": [],
+  "source_review": {
+    "standards_findings": [],
+    "spec_findings": [],
+    "canonical_files_unchanged": true,
+    "canonical_sha256": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "source_delta": "Only aria-keyshortcuts=\"Alt+n\" and one document keydown handler added to index.html; existing IDs, labels, handlers, layout, tokens and form behavior preserved.",
+    "shortcut_boundary": "Actual UI shortcut focuses New todo, prevents default, excludes Ctrl/Meta/composition and does not escape an open confirmation dialog.",
+    "safe_execution_review": "No network APIs, storage, dependencies, external resources or arbitrary code execution introduced. Implementer qa.py was inspected as source and was not executed."
+  },
+  "independent_qa": {
+    "evidence": "qa.json",
+    "reviewer_helper": "reviewer.py",
+    "helper_sha256": "e3bd535cd10aa19cbc5598c70bb56ea18c785130db82c43c91b6335033477ebf",
+    "observed_process_exit_code": 0,
+    "browser": "155.0",
+    "checks_total": 60,
+    "checks_passed": 60,
+    "passed": true,
+    "widths": [
+      320,
+      390,
+      1280
+    ],
+    "height": 900,
+    "fresh_context_per_width": true,
+    "service_workers": "block",
+    "reduced_motion": "reduce",
+    "network_requests_allowed": 0,
+    "model_calls": 0,
+    "content_provenance": "Each fresh context navigated to a synthetic loopback review URL; document route fulfilled only immutable index.html bytes matching the recorded hash; all other page requests aborted.",
+    "checked": [
+      "Initial theme and aria-keyshortcuts",
+      "Alt+n focus without submit",
+      "Draft preservation",
+      "Ctrl/Meta modifier exclusions",
+      "Enter submits exactly once",
+      "Checkbox completion",
+      "Shortcut after add does not resubmit",
+      "Alt+n preserves Cancel and Confirm focus inside modal",
+      "Modal backwards Tab",
+      "Escape and cancel restore focus and preserve row",
+      "Confirmed clear",
+      "Details/history Back focus restoration",
+      "Keyboard theme switching",
+      "Focus outline",
+      "Reduced motion",
+      "Overflow in light and dark themes"
+    ],
+    "page_errors": [],
+    "console_errors": []
+  },
+  "direct_visual_review": {
+    "performed": true,
+    "supplied_screenshots_viewed": [
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/ui-codex-review-r02/qa-evidence/320-dark.png",
+        "sha256": "34154f47a1a4787c3fd9bf0864344e16bfca607cf658319c1e1b1b5d569aab6d"
+      },
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/ui-codex-review-r02/qa-evidence/390-dark.png",
+        "sha256": "b1b73fdf5ec1c6dffad6878d6d3f9cbfe1e50f34cf7386af91db1c8833946cba"
+      },
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/ui-codex-review-r02/qa-evidence/1280-dark.png",
+        "sha256": "59e85eceef83ace2fc01c0341e54e657cb3a2e262bf6dc18465c3b12d6e267c8"
+      }
+    ],
+    "fresh_screenshots_viewed": [
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/320-dark-independent.png",
+        "sha256": "eb41ac746f05bbc8b17b0769f10136cdb2d2e0e0f60ea5e97d2fe8e039e96eb1"
+      },
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/390-dark-independent.png",
+        "sha256": "ef73d3d84944806bf1c2fb876697453c789d340d4a24f288c202142a226373a4"
+      },
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/1280-dark-independent.png",
+        "sha256": "95a6847a6641bc5cdc4eba4f9637200625988755ff5b7cc5782c318c6b11297e"
+      },
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/320-modal-independent.png",
+        "sha256": "0d38b7b28938a98a655ace5edfa17d58a904d8b6d8379f36175077531864ba37"
+      },
+      {
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/320-light-independent.png",
+        "sha256": "b0f20305ef151d198501ffe425b54936e894329805e599890ac9b73d6a6ccf67"
+      }
+    ],
+    "observations": [
+      "All three supplied dark screenshots show readable neutral fixture controls with no horizontal clipping; 320px stacks input and Add while wider viewports retain an inline form.",
+      "Fresh dark screenshots show one checked milk row, submissions=1 and the visible New todo focus outline at each viewport.",
+      "Fresh 320px modal screenshot shows both dialog actions contained within the viewport and visible Cancel focus.",
+      "Fresh 320px light screenshot shows readable preserved labels and boundaries, unclipped controls, and the empty state after confirmed clear."
+    ],
+    "visual_findings": []
+  },
+  "critique_review": {
+    "path": "/private/tmp/fullops-completion-z_ii0xr2/ui-codex-review-r02/critique.md",
+    "sha256": "eee2f2fe78625f0a9abb34a9c10206637c4551e8faae91424aeb4faa1cec11aa",
+    "assessment": "Preservation and shortcut/modal claims agree with the source diff and independent interaction evidence. The stated browser/OS interception limitation is appropriate. Implementer PASS is supporting provenance only, not the independent verdict."
+  },
+  "limitations": [
+    "This is a narrow review of the requested shortcut and preserved fixture; no broad product acceptance is asserted.",
+    "No screen-reader or real operating-system keyboard integration test; Playwright dispatches browser keyboard input.",
+    "IME composition exclusion was inspected statically, not exercised using a real IME.",
+    "Supplied screenshots depict a later loaded row and cannot by themselves prove milk checkbox completion; fresh independent screenshots provide that evidence.",
+    "The connected Firefox broker is outside the outer OS sandbox; the reviewer restricted all page requests, but no claim is made about browser background traffic."
+  ],
+  "snapshot_preserved": true
+}

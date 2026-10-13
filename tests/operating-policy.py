@@ -27,7 +27,7 @@ class OperatingPolicy(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='fullops-mode-')
         self.addCleanup(self.temp.cleanup)
-        self.repo = Path(self.temp.name)
+        self.repo = Path(self.temp.name).resolve()
         self.git('init', '-q', '-b', 'main')
         self.git('config', 'core.autocrlf', 'false')
         self.apply(roles=['coor', 'designer', 'dev', 'tester'], local_only=True)

@@ -1,0 +1,7 @@
+error: unexpected argument '--prompt' found
+
+  tip: a similar argument exists: '--prompt-file'
+
+Usage: grok --cwd <CWD> --sandbox <PROFILE> --tools <TOOLS> --no-subagents --max-turns <N> --output-format <OUTPUT_FORMAT> --disable-web-search --prompt-file <PATH> [PROMPT]
+
+For more information, try '--help'.

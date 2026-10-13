@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "review_key": "SOURCE-REVIEW-STANDARDS-R04",
+  "reviewer": "/root/macos_standards_review",
+  "independent_review": true,
+  "reviewed_at_utc": "2026-10-13T13:59:12.360853+00:00",
+  "axis": "Standards",
+  "source_sha": "2da4ebe65ceb0b27e267275650ca9853686e04bb",
+  "base_sha": "18d6571de6e9e9d4400772aedadbb221ad203a95",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/source-review-r04",
+  "decision": "no Standards findings",
+  "findings": [],
+  "artifact_sha256": {
+    "portable_source": "74e41bf58149bded4d255dc4c0a9c0b14e1ee7ee52a844c6ecb1653663e88fd4",
+    "generated_source": "74e41bf58149bded4d255dc4c0a9c0b14e1ee7ee52a844c6ecb1653663e88fd4",
+    "regression_test": "b8b311c068e78bb61b4219bd4ed14f35fe1681a629cb0e99916f1e6832370aa2",
+    "supplied_green_log": "ed136acfd6d0d8131bf0ad6ebea9b853d9353e8622e5becd6a57d56a470714d7",
+    "local_api_reference": "6b760275f89341fe15cff80c28aacae94d7d0c0c99afcd987ec0bca680b5713a"
+  },
+  "standards_sources": [
+    "AGENTS.md",
+    "docs/development.md"
+  ],
+  "prior_review": "/private/tmp/fullops-completion-z_ii0xr2/evidence/source-review-standards-r03.json",
+  "scope": "Only portable jev_test_web.py, generated dist copy, and tests/jev-test-web.py changed.",
+  "checks": [
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        284,
+        285,
+        296,
+        300,
+        301,
+        302,
+        303
+      ],
+      "result": "Each validity Noul gets its own sanitized candidates map and an explicit click/check/fill operation, eliminating dependence on an unseen sibling question. Candidate presence alone remains insufficient and page text is identified as data."
+    },
+    {
+      "path": "evidence/typesafe-api.md",
+      "lines": [
+        58,
+        79,
+        80
+      ],
+      "result": "Locally supplied API reference explicitly permits structured object instructions for Noul, including question plus referenced data."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        287,
+        312,
+        313,
+        318,
+        320,
+        323,
+        329,
+        330,
+        335
+      ],
+      "result": "Candidate/input budgets, risk/answer validation, selected-target consumption, confidence0.6 and valid-target0.5 holds remain unchanged. No action guard or threshold relaxed."
+    },
+    {
+      "path": "tests/jev-test-web.py",
+      "lines": [
+        97,
+        98,
+        99
+      ],
+      "result": "Regression checks exact self-contained validity candidates with checkbox state and nearby todo text; existing choice criteria assertion is preserved. This detects missing/wrong local validity context rather than accepting a fabricated model outcome."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_test_web.py",
+      "result": "Portable and generated scripts are byte-identical and committed together, following repository packaging standards."
+    },
+    {
+      "path": "smell baseline",
+      "result": "No actionable new smell. Operation-name split is bounded by the local fixed tuple. Required generated duplication and independent-question context duplication have explicit purposes."
+    }
+  ],
+  "supplied_test_evidence": {
+    "green": "Inspected targeted log contains PASS for Jev web-loop regression.",
+    "limitation": "Log itself lacks argv/exit status; reviewer did not execute implementation/test code or rerun a suite."
+  },
+  "limitations": [
+    "Static Standards review only; no provider, model, browser, build or test execution by reviewer.",
+    "Parent reports R03 operation confidence improved while valid_click held; this is context, not an independently verified live result in this review.",
+    "R04 repeated live measurement is ongoing. Regression establishes payload shape/context, not live model acceptance or sole causal attribution.",
+    "Self-contained question context adds serialized input size; existing max_input_chars denial remains active."
+  ],
+  "snapshot_preserved": true,
+  "prior_reviews_preserved": true,
+  "live_model_acceptance": false,
+  "whole_issue_acceptance": false
+}

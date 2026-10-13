@@ -87,6 +87,17 @@ def main():
         assert summary['passed'] and summary['result'] == 'passed' and summary['steps'] == 3, summary
         assert browser.acts == [('fill_submit', 'e3', '우유 사기'), ('check', 'e7', None)]
         q = seen[1]['questions']
+        # Each fan-out question sees state, but cannot see another question's criteria/answer.
+        assert seen[0]['state']['page']['elements'] == [
+            {'ref': 'e3', 'role': 'textbox', 'name': 'What needs to be done?'}]
+        assert seen[1]['state']['page']['elements'][1] == {
+            'ref': 'e7', 'role': 'checkbox', 'name': 'Toggle Todo',
+            'state': ['checked=false'], 'near': '우유 사기'}
+        assert seen[0]['state']['values'] == {'milk': '우유 사기'}
+        assert seen[0]['state']['allowed_operations'] == ['fill_submit', 'check']
+        assert not {'fill', 'press_enter'} & set(seen[0]['questions']['operation']['criteria'])
+        assert 'page.elements' in q['valid_check_target']['instructions']['question']
+        assert q['valid_check_target']['instructions']['allowed_roles'] == ['checkbox']
         assert q['check_target']['criteria']['e7'] == 'checkbox "Toggle Todo" next to "우유 사기" (checked=false)'
         assert set(q) >= {'operation', 'risky', 'fill_target', 'fill_value', 'check_target'}  # 한 요청에 모두
         assert 'done' in q['operation']['criteria'] and 'check' not in seen[0]['questions']['operation']['criteria']

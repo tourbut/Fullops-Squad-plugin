@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "grok",
+    "--cwd",
+    "/private/tmp/fullops-completion-z_ii0xr2/grok-unauth",
+    "--tools",
+    "read_file",
+    "--no-subagents",
+    "--max-turns",
+    "1",
+    "--output-format",
+    "json",
+    "--disable-web-search",
+    "Reply OK without tools."
+  ],
+  "exit_code": 1,
+  "elapsed_s": 0.22858495800755918,
+  "config_before": "e13e72854c050cb73b345c73291b83ad03aca5ce57f72ec22944c0a246139d98",
+  "config_after": "e13e72854c050cb73b345c73291b83ad03aca5ce57f72ec22944c0a246139d98",
+  "auth_created": false
+}

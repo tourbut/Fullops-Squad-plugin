@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "reviewer": "/root/macos_spec_review",
+  "source_sha": "7e7a4d2f5830233317abcca787ec180b3041625e",
+  "index_html_sha256": "133c157781079120ddda050db7fada97d54fb7a9ee761255702e1d5df2a50631",
+  "method": "Each of seven PNGs was separately opened with view_image at original detail and inspected directly. Supplied implementation images are supplemental; fresh independent images establish the tested states.",
+  "inspected_images": [
+    {
+      "origin": "supplied implementation capture",
+      "file": "/private/tmp/fullops-completion-z_ii0xr2/ui-grok-review-r02/qa-evidence/320-dark.png",
+      "sha256": "34154f47a1a4787c3fd9bf0864344e16bfca607cf658319c1e1b1b5d569aab6d",
+      "observations": "Dark screen at narrow width. Heading, input and Add wrap without clipping. One loaded row and Submissions: 1 are visible; Restricted wraps onto its own line."
+    },
+    {
+      "origin": "supplied implementation capture",
+      "file": "/private/tmp/fullops-completion-z_ii0xr2/ui-grok-review-r02/qa-evidence/390-dark.png",
+      "sha256": "b1b73fdf5ec1c6dffad6878d6d3f9cbfe1e50f34cf7386af91db1c8833946cba",
+      "observations": "Dark mobile screen with readable loaded row. New todo input and Add fit on one line, as do the four action buttons. No visible right clipping."
+    },
+    {
+      "origin": "supplied implementation capture",
+      "file": "/private/tmp/fullops-completion-z_ii0xr2/ui-grok-review-r02/qa-evidence/1280-dark.png",
+      "sha256": "59e85eceef83ace2fc01c0341e54e657cb3a2e262bf6dc18465c3b12d6e267c8",
+      "observations": "Dark desktop screen with the existing left-aligned neutral fixture, readable controls, one loaded row and submission counter."
+    },
+    {
+      "origin": "fresh independent capture",
+      "file": "320-dark-independent.png",
+      "sha256": "a5bbdad2bdf364a8edcd696ca67dc679442faa58f3e41579d7b1216683188143",
+      "observations": "Dark 320px screen shows one milk row with a blue checked checkbox and Submissions: 1. Controls wrap, all labels remain visible, and no content is visibly clipped at the right edge."
+    },
+    {
+      "origin": "fresh independent capture",
+      "file": "390-dark-independent.png",
+      "sha256": "63d9323265f407e264925811fa4477711d94dd1f4ca5bc454ca3455fd47a792b",
+      "observations": "Dark 390px screen shows checked milk and Submissions: 1. Input/Add and action buttons fit within the viewport with readable labels."
+    },
+    {
+      "origin": "fresh independent capture",
+      "file": "1280-dark-independent.png",
+      "sha256": "428c7faa9325025b9b7d090b4e857ab1c2f5fee2e80a35660668d730c4df587c",
+      "observations": "Dark desktop screen clearly shows checked milk, one submission and all existing controls; the neutral fixture layout is preserved."
+    },
+    {
+      "origin": "fresh independent capture",
+      "file": "320-modal-independent.png",
+      "sha256": "a30f553a2b4e3d3157eb9d873ecf1e701adae92ad1155e7c38e01dee84d46af9",
+      "observations": "The modal fits within 320px and visibly shows Clear all todos?, Cancel and Confirm clear. Cancel has a clear blue focus outline. The background retains the draft kept during modal and checked milk row."
+    }
+  ],
+  "findings": [],
+  "verdict": "PASS for the requested neutral fixture visual scope at 320, 390 and 1280px, including the inspected mobile modal state.",
+  "limitations": [
+    "Images cannot by themselves establish keyboard, history, hidden DOM or request isolation; those are recorded separately in qa-result.json.",
+    "Only Firefox on this macOS environment and the captured viewports were inspected; this is not a screen-reader or cross-browser audit.",
+    "This visual result does not accept issues 22 or 23 as a whole."
+  ]
+}

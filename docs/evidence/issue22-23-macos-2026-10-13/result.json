@@ -1,0 +1,99 @@
+{
+  "checked_at": "2026-10-13T12:44:22.242569+00:00",
+  "source_sha": "2c562905d5bd274dd6ff50fe4af0c163a4c2a362",
+  "baseline_sha": "1bf607826b5f806d27d11ab278319c63528edae7",
+  "branch": "test/macos-issues-22-23",
+  "environment": {
+    "os": "macOS",
+    "version": "26.6.2",
+    "build": "25G83",
+    "architecture": "arm64",
+    "node": "22.21.1",
+    "npm": "10.9.4",
+    "python": "3.13.2",
+    "git_default": "2.38.0",
+    "git_for_pass": "2.50.1 (Apple Git-155)",
+    "orca": "1.4.224",
+    "codex": "0.162.1",
+    "claude": "2.1.296",
+    "grok": "1.0.52",
+    "ocr_initial": "1.12.12",
+    "ocr_latest_verified": "1.13.0"
+  },
+  "issue22": {
+    "state": "OPEN",
+    "status": "PARTIAL",
+    "native_plugin_lifecycle": "PASS in bounded temporary settings; version transition and complete dependency receipts unverified",
+    "authenticated_ui_authoring": {
+      "codex": "PASS for response artifact generation; tool editing/browser integration not_run",
+      "grok": "PASS for response generation and same-session revision; tool editing/browser integration not_run",
+      "claude": "BLOCKED: session usage limit"
+    },
+    "ui_qa": "PASS: 102 Playwright checks plus 6 Orca checks for two reviewed artifacts",
+    "independent_review": "PASS for fixed source and final two-host UI artifacts; not full issue acceptance",
+    "global_config_preservation": "UNVERIFIED: 2 of 8 hashes changed",
+    "unverified": [
+      "full three-host integrated UI lifecycle",
+      "React/non-React full workflow",
+      "actual native auth/hook rejection matrix",
+      "loading/error/cancel/back/product states",
+      "complete source provenance and host dependency completion"
+    ]
+  },
+  "issue23": {
+    "state": "OPEN",
+    "status": "PARTIAL",
+    "macos_orca": "PASS: real local runtime and native-artifact replay",
+    "native_hosts": "Codex/Grok authoring plus parent real QA; Claude blocked",
+    "cuawright": "BLOCKED: missing skill/Python Playwright/Firefox; enforceable total-token budget not established",
+    "generation_execution_promotion": "not_run",
+    "browser_repetition": "PASS: 3 healthy and 3 seeded-defect runs per engine; agent-labelled only",
+    "human_ground_truth": "not_run",
+    "cold_warm": "not_controlled",
+    "four_way_comparison": "not_run",
+    "general_bug_recall": "unmeasured"
+  },
+  "source_checks": "PASS with system Git 2.50.1; old Git 2.38 failure retained",
+  "ocr_latest_gate": "PASS at 1.13.0, infrastructure check not code review",
+  "native_usage": {
+    "codex": {
+      "cost_usd": null,
+      "reason": "CLI did not report cost"
+    },
+    "grok": {
+      "reported_cost_usd": 0.04349824,
+      "completed_model_calls": 2,
+      "billing_verification": "not_run"
+    },
+    "claude": {
+      "reported_cost_usd": 0,
+      "status": "session-limit error; provider request count not inferred"
+    }
+  },
+  "visual_review": {
+    "reviewer": "parent agent",
+    "method": "direct view_image inspection",
+    "files": [
+      "native-ui/qa-r01/codex-320-light.png",
+      "native-ui/qa-r01/grok-320-light.png",
+      "native-ui/qa-r01/grok-1280-dark.png"
+    ],
+    "result": "no clipping/overlap/readability issue in selected fixture captures",
+    "full_capture_independent_visual_review": "not_run",
+    "product_visual_acceptance": "not_claimed"
+  },
+  "external_writes": {
+    "issues_closed": false,
+    "issue_comments_posted": false,
+    "push": false,
+    "main_merge": false,
+    "deploy": false,
+    "global_dependency_install": false,
+    "global_config_hash_changes": [
+      ".codex/config.toml",
+      ".claude.json"
+    ],
+    "automatic_config_rollback": false,
+    "temporary_grok_trust": "explicitly approved by user"
+  }
+}

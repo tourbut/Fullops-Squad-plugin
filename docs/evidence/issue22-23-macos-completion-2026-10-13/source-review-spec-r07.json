@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "review_key": "SOURCE-SPEC-R07",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "independent readonly Spec review of final narrow operation-policy delta",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/source-review-r07",
+  "fixed_sha": "5469cc96a2d49166817128aed5f552682f5d2407",
+  "base_sha": "2e6075c07ba04e34f80bd1d8f5d5c2067595cbcd",
+  "source_sha256": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+  "request_test_sha256": "40ee59d54a6daaeca2f1aa687e72bfb242b9bec0439b146c8fe3bb0ca66777cc",
+  "engine_test_sha256": "59daa8389db4427085012950cfdf899aa304638ffd9f86789098f3e1880f8848",
+  "git_status_clean": true,
+  "source_dist_byte_parity": true,
+  "spec_scope": "Restrict effectful model operation choices to the existing isolated fixture policy while preserving non-effectful control choices and the independent runtime policy gate. Do not lower thresholds, enlarge budgets or weaken negative policy assertions.",
+  "findings": [],
+  "verified_by_static_inspection": [
+    "The operation candidates now require both observed availability and either an existing control operation or a fixture plus membership in the existing allowed_operations list.",
+    "done, blocked, scroll_down and observe_more retain their existing control status; observe_more still requires exploration and remaining coverage, and _STOP_ remains available.",
+    "A single contract.policy(scenario) value supplies both the choice filter and shared state. The runtime safety policy continues to come from the same contract helper.",
+    "The regression explicitly rejects unauthorized fill and press_enter in the model operation criteria for the fill_submit/check-only scenario.",
+    "No confidence/validity/risk thresholds, input or cost budgets, origin checks, freshness checks or effectful execution permissions changed.",
+    "The downstream run() path still invokes contract.action_denial before preflight and browser.act; filtering model choices supplements rather than replaces that gate."
+  ],
+  "negative_oracle_assessment": {
+    "weakened": false,
+    "test": "tests/web-engine.py:122-139",
+    "reason": "Because the new choice filter cannot naturally emit the forbidden operation under an empty policy, the test constructs a valid high-confidence risk-zero decision under an allowed fixture, then injects that already-formed decision only at the ask boundary of a run with safety={}. This intentionally bypasses the new upstream filter while leaving the actual runtime gate under test.",
+    "preserved_assertions": ["result is blocked_policy", "browser.acts remains []"],
+    "preserved_independence": "The injected decision is not a hold or a high-risk stop, so these assertions still require the independent policy gate to reject it. The outside-origin-before-model and disabled-target assertions remain unchanged."
+  },
+  "regression_evidence_inspected": {
+    "red": "/private/tmp/fullops-completion-z_ii0xr2/evidence/jev-operation-policy-red.log",
+    "red_observation": "The new assertion fails because unauthorized fill/press_enter are present in the old operation criteria.",
+    "engine_green": "/private/tmp/fullops-completion-z_ii0xr2/evidence/web-engine-r07.log",
+    "engine_green_observation": "22 tests ran, OK.",
+    "tests_rerun_by_reviewer": false,
+    "live_comparison_reused_as_acceptance": false
+  },
+  "separate_bounded_CUA_reproduction_acknowledgement": {
+    "generation_record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-reproduction-run.json",
+    "budget_record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-reproduction-budget.json",
+    "configured_completion_cap": 8192,
+    "reported_output_tokens": 2013,
+    "configured_max_turns": 2,
+    "reported_model_calls": 2,
+    "input_total_hardcap_claimed": false,
+    "source_byte_identity_independently_checked": true,
+    "matched_paths": [
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-generated.py",
+      "/private/tmp/fullops-completion-z_ii0xr2/cua-work/final_runs/run_19/final_script.py",
+      "/private/tmp/fullops-completion-z_ii0xr2/cua-review-r03/final_script.py"
+    ],
+    "matched_script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "format_recovery": "The generation record reports deterministic preface/response-format recovery; independently compared recovered code bytes match the already reviewed CUA R03 script.",
+    "run_19_proof": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-replay/run-19.json",
+    "run_19_external_oracle_pass": true,
+    "run_19_reported_model_calls": 0,
+    "run_19_screenshots_directly_viewed_by_this_review": false,
+    "prior_4096_violation_reclassified_as_pass": false,
+    "prior_timeout_usage_and_cost": "unknown, preserved",
+    "prior_R00_and_R03_visual_records_modified": false
+  },
+  "limitations": [
+    "The change prevents disallowed operations from being offered as choices; it does not prove all remaining model selections or validity judgments will be correct.",
+    "The reported R06 fill versus fill_submit ambiguity is task context, not proof of a sole model root cause.",
+    "Full npm results and the ongoing 12-case live comparison require their own completed evidence and do not follow from this Spec review.",
+    "The new bounded CUA attempt and run19 are separate evidence. They do not erase the prior output-cap violation, timeout unknowns or establish whole issue acceptance."
+  ],
+  "reviewer_provider_calls": 0,
+  "implementation_modified": false,
+  "prior_failure_or_unknown_evidence_modified": false,
+  "conclusion": "No missing, wrong or out-of-scope behavior found in the narrow R07 operation-choice restriction. Security enforcement and the independent negative policy oracle are preserved.",
+  "whole_issue_acceptance": false
+}

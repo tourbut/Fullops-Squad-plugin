@@ -127,7 +127,8 @@ def main():
         if pipeline['status'] != 'passed':
             errors.append('persisted route not consumed by packet')
         page = {'url': 'https://example.test', 'elements': [{'ref': 'e1', 'role': 'textbox', 'name': 'New todo'}]}
-        web_decision = web.ask(call, {'goal': 'Add milk to the todo list', 'values': {'milk': 'milk'}}, page, [], 1)
+        web_decision = web.ask(call, {'url': page['url'], 'goal': 'Add milk to the todo list', 'values': {'milk': 'milk'},
+                                     'safety': {'fixture': 'synthetic-todo', 'allowed_operations': ['fill_submit']}}, page, [], 1)
         unity_decision = unity.ask(call, {'goal': 'All enemies are defeated; finish the check.'},
                                   {'step': 1, 'actors': [], 'actorCounts': [{'group': 'enemy', 'count': 0}], 'actions': []}, [])
         payload = last_payload[0]

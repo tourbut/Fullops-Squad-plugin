@@ -1,0 +1,45 @@
+{
+  "version": "cuawright-poc-v1",
+  "enabled": true,
+  "status": "BLOCKED",
+  "host_tuple": {
+    "agent": "codex",
+    "provider": "openai",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "source": "user"
+  },
+  "skill": {
+    "source": "microsoft/CUAWright",
+    "files": [],
+    "problems": [
+      "skill: cuawright-web"
+    ]
+  },
+  "runtime": {
+    "playwright": null,
+    "firefox_installed": false
+  },
+  "python": "/Users/shin/.local/bin/python3",
+  "max_seconds": 90,
+  "max_tokens": 20000,
+  "budget_enforcement": "host session and isolated runtime must enforce; this preparer launches neither",
+  "generation": "not_run",
+  "code_review": "not_run",
+  "independent_assertions": "not_run",
+  "visual_review": "not_run",
+  "optional_install": [
+    "npx",
+    "--yes",
+    "skills@latest",
+    "add",
+    "microsoft/CUAWright",
+    "--skill",
+    "cuawright-web",
+    "--global",
+    "--agent",
+    "codex",
+    "--yes"
+  ],
+  "workspace": ".fullops-squad/docs/evaluations/qa-reports/ISSUE23-MACOS-test/cuawright-poc-20261013-212910-588756"
+}

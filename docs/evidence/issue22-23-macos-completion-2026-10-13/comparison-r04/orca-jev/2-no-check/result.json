@@ -1,0 +1,129 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.4.1",
+  "target_sha": null,
+  "worktree_dirty": null,
+  "executor_sha256": "74e41bf58149bded4d255dc4c0a9c0b14e1ee7ee52a844c6ecb1653663e88fd4",
+  "scenario_sha256": "7e3b1a38c16b84f7300efb57389b889d9e1797bd42096bfa4fa771fbbe5ae0e9",
+  "executor_files_sha256": {
+    "jev_test_web.py": "74e41bf58149bded4d255dc4c0a9c0b14e1ee7ee52a844c6ecb1653663e88fd4",
+    "web_contract.py": "560a3e7999f5fc47f0f1f6c94cb49d9b9d971c5552b4a5e24e80e8924a4f7486",
+    "web_dom.js": "d2a00f772382200e966d2983a6c72116757d90952fdc27eb5e89248b730d0bcd",
+    "web_playwright.py": "1b56aaa2c03a8cf2b143aa0b03fdf25fbb951724a0c61b118a36a45876889a56",
+    "web_playwright.cjs": "08b315793e03e31d762e66278e7cdec71b1eecb90b9c5698ee4921b9bb4a5d2c"
+  },
+  "result": "uncertain",
+  "passed": false,
+  "steps": 2,
+  "scope": "scenario_checks",
+  "executor": {
+    "name": "orca",
+    "version": "unverified",
+    "request_filtering": false,
+    "attached": false
+  },
+  "coverage": {
+    "total": 12,
+    "offset": 0,
+    "observed": 12,
+    "remaining": 0,
+    "unsupported": [
+      "custom_or_select_widgets"
+    ],
+    "complete": false
+  },
+  "assertions_passed": false,
+  "jev_calls": 2,
+  "calls": [
+    {
+      "cost": 7.5306e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "800f6461270e4b35bd9f848511debe78c6aa40d974d87097a5488901fe0a39a4",
+      "question_sha256": "98a3fa5302746bf00d6ae5e2127160d5078dd2dbc691f50f5390f9c56f194608",
+      "usage": {
+        "input_tokens": 1793,
+        "output_tokens": 303,
+        "cost": 7.5306e-05
+      },
+      "latency_s": 0.412,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    },
+    {
+      "cost": 7.665e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "10d875bb55958760eb616bd87f030759885a96df9b3d9475a28ff667968a6402",
+      "question_sha256": "98a3fa5302746bf00d6ae5e2127160d5078dd2dbc691f50f5390f9c56f194608",
+      "usage": {
+        "input_tokens": 1825,
+        "output_tokens": 303,
+        "cost": 7.665e-05
+      },
+      "latency_s": 0.44,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    }
+  ],
+  "cost": 0.000152,
+  "known_cost": 0.000152,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 90,
+    "max_cost": 0.02,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 12000
+  },
+  "latency_s": 0.852,
+  "elapsed_s": 30.314,
+  "checks": [
+    {
+      "condition": {
+        "js": "document.documentElement.dataset.theme",
+        "equals": "dark"
+      },
+      "value": "dark",
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "window.submits",
+        "equals": 1
+      },
+      "value": 0,
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelectorAll('#list li').length",
+        "equals": 1
+      },
+      "value": 0,
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list li')?.textContent.trim()",
+        "equals": "milk"
+      },
+      "value": "",
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list input')?.checked",
+        "equals": true
+      },
+      "value": "",
+      "passed": false
+    }
+  ],
+  "url": "http://127.0.0.1:57186/no-check",
+  "goal": "Select dark theme, add milk exactly once, then click its checkbox exactly once. Do not load, clear, retry, navigate or change anything else. Finish after those actions even if the fixture is defective.",
+  "covers": [
+    "DARK",
+    "ONE-SUBMIT",
+    "ONE-MILK",
+    "CHECKED"
+  ]
+}

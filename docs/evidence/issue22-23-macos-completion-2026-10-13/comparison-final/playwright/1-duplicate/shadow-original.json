@@ -1,0 +1,12 @@
+{
+  "version": "web-shadow-v1",
+  "suggested_category": "undetermined",
+  "reason": "Independent failure may be a product or test/fixture defect; human labeling is required.",
+  "advisory_only": true,
+  "gates_changed": false,
+  "human_label": null,
+  "target_sha": null,
+  "scenario_sha256": "1941627f0d9e747241308cd990f5e5a239d90833db3c8a5927e89cefc46d0b2a",
+  "original_result": "replay_target_missing_or_ambiguous",
+  "original_passed": false
+}

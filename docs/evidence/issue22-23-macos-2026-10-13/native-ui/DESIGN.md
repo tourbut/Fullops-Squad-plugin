@@ -1,0 +1,1 @@
+Use the existing neutral sans-serif todo fixture. Preserve labels and form behavior. Add a keyboard-accessible button with id="theme" that toggles document.documentElement.dataset.theme between light and dark. Start light. Keep focus visible; honor prefers-reduced-motion. No network, storage, dependencies or external resources. All existing IDs and behavior must survive.

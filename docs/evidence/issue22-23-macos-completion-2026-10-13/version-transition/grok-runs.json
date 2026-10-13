@@ -1,0 +1,69 @@
+[
+  {
+    "stage": "grok-old-untrusted",
+    "argv": [
+      "grok",
+      "plugin",
+      "install",
+      "/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.22334087500348687
+  },
+  {
+    "stage": "grok-install-old",
+    "argv": [
+      "grok",
+      "plugin",
+      "install",
+      "/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad",
+      "--trust"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.1911847498267889
+  },
+  {
+    "stage": "grok-old-inventory",
+    "argv": [
+      "grok",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.14780758298002183
+  },
+  {
+    "stage": "grok-checkout-new",
+    "argv": [
+      "git",
+      "checkout",
+      "--detach",
+      "1bf607826b5f806d27d11ab278319c63528edae7"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.030310959089547396
+  },
+  {
+    "stage": "grok-update-new",
+    "argv": [
+      "grok",
+      "plugin",
+      "update",
+      "fullops-squad"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.14756774995476007
+  },
+  {
+    "stage": "grok-new-inventory",
+    "argv": [
+      "grok",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.142954875016585
+  }
+]

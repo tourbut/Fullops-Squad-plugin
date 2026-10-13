@@ -1,0 +1,5 @@
+Installing from directory /private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad requires confirmation.
+Plugins can run hooks, MCP servers, and skills on your machine, so installation needs explicit trust.
+
+To proceed, re-run with --trust:
+  grok plugin install /private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad --trust

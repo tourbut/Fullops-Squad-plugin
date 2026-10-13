@@ -1,0 +1,58 @@
+[
+  {
+    "stage": "add",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "add",
+      "https://github.com/tourbut/Fullops-Squad-plugin.git",
+      "--ref",
+      "1bf607826b5f806d27d11ab278319c63528edae7",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.966661375015974,
+    "log": "codex-remote-add.log"
+  },
+  {
+    "stage": "install",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.0414259999524802,
+    "log": "codex-remote-install.log"
+  },
+  {
+    "stage": "upgrade",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "upgrade",
+      "fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 1.2586122499778867,
+    "log": "codex-remote-upgrade.log"
+  },
+  {
+    "stage": "reinstall",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.04882124997675419,
+    "log": "codex-remote-reinstall.log"
+  }
+]

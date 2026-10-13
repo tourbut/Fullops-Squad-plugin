@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isolated engine fixture</title>
+<style>
+:root{color-scheme:light;--background:#fff;--foreground:#222;--surface:#f2f2f2;--border:#767676;--focus:#005fcc;--link:#004fb3}
+:root[data-theme="dark"]{color-scheme:dark;--background:#181818;--foreground:#eee;--surface:#292929;--border:#999;--focus:#8fc7ff;--link:#9bcaff}
+body{font:16px sans-serif;background:var(--background);color:var(--foreground)}
+input{width:240px;height:32px}
+input[type="checkbox"]{width:20px;height:20px;vertical-align:middle}
+input,button{font:inherit;color:var(--foreground);background:var(--surface);border:1px solid var(--border)}
+button{padding:7px 12px;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+li{padding:12px}
+a{color:var(--link)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main><h1>Todo fixture</h1>
+<button id="theme" type="button" aria-pressed="false">Dark theme</button>
+<form><label>New todo <input id="todo" autocomplete="off"></label><button>Add</button></form>
+<ul id="list"></ul><button disabled>Restricted</button><a href="https://blocked.invalid/">Outside</a>
+<button id="network">Unapproved request</button>
+<form action="https://blocked.invalid/"><button>Foreign form submit</button></form>
+<form><button formaction="https://blocked.invalid/override">Foreign submit override</button></form></main>
+<script>
+window.submits=0;const form=document.querySelector('form'),input=document.querySelector('input');
+form.onsubmit=event=>{event.preventDefault();window.submits++;const li=document.createElement('li');
+const label=document.createElement('label');const box=document.createElement('input');box.type='checkbox';box.setAttribute('aria-label','Toggle milk');
+label.append(box,document.createTextNode(input.value));li.append(label);document.querySelector('ul').append(li);};
+input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();form.requestSubmit();}};
+document.querySelector('#network').onclick=()=>fetch('/forbidden',{method:'POST'}).catch(()=>{});
+const theme=document.getElementById('theme');
+theme.onclick=()=>{const dark=document.documentElement.dataset.theme!=='dark';document.documentElement.dataset.theme=dark?'dark':'light';theme.setAttribute('aria-pressed',String(dark));};
+</script>
+</body>
+</html>

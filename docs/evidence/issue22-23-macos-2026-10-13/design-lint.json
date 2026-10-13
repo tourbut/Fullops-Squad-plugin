@@ -1,0 +1,84 @@
+{
+  "versions": {
+    "@shadcn/lint": "0.2.1",
+    "eslint": "10.12.0",
+    "@typescript-eslint/parser": "8.71.2",
+    "tailwindcss": "4.3.3"
+  },
+  "invalid": {
+    "schema_version": 1,
+    "attempt": "43692288ff2b450d9fb20b366aace6f7",
+    "base": "5bfd1b8fa2929544fa659d049e7d9e58990566ae",
+    "merge_base": "5bfd1b8fa2929544fa659d049e7d9e58990566ae",
+    "head": "648e4e10bfe86476b4ed482fdaa44c4b111ebb9c",
+    "config_sha256": "921a4c81119d127aa834097441ee86e314032cf4f2c89939c89d32a95c4c01f9",
+    "test_level": "lite",
+    "policy_sha256": "9db57add57f5050281f4b166be624d1921fde5a94bfbdca601441f370c05c75c",
+    "commands": [
+      {
+        "name": "lint:design",
+        "kind": "lint",
+        "run": [
+          "npm",
+          "run",
+          "lint:design"
+        ],
+        "cwd": ".",
+        "reason": "",
+        "status": "failed",
+        "exit_code": 1,
+        "output_tail": "\n> lint:design\n> node \"/private/tmp/fullops-macos-20261013-4vksnsnw/design-tools/node_modules/eslint/bin/eslint.js\" src/page.tsx\n\n\n/private/tmp/fullops-macos-20261013-4vksnsnw/design-tools/sample-cjx8vyde/src/page.tsx\n  2:42  error  \"p-[13px]\" hardcodes an off-token value. Use \"p-3.25\" instead (same value, on the scale)  shadcn/no-arbitrary-values\n\n✖ 1 problem (1 error, 0 warnings)\n"
+      }
+    ],
+    "violations": [
+      {
+        "code": "DESIGN-003",
+        "severity": "WARNING",
+        "line": 2,
+        "message": "임의 Tailwind 값 의심. 테마 토큰·스케일 값을 사용하고 디자인 계약은 프로젝트 디자인 린트로 확인한다",
+        "path": "src/page.tsx"
+      }
+    ],
+    "summary": {
+      "files": 1,
+      "added_lines": 1,
+      "errors": 1,
+      "warnings": 1,
+      "unavailable": 0
+    }
+  },
+  "valid": {
+    "schema_version": 1,
+    "attempt": "b67250be07844a7fbeb7730a757d79ae",
+    "base": "5bfd1b8fa2929544fa659d049e7d9e58990566ae",
+    "merge_base": "5bfd1b8fa2929544fa659d049e7d9e58990566ae",
+    "head": "facdfc7b582a73f20df00ddebe950ce936b06ee6",
+    "config_sha256": "921a4c81119d127aa834097441ee86e314032cf4f2c89939c89d32a95c4c01f9",
+    "test_level": "lite",
+    "policy_sha256": "9db57add57f5050281f4b166be624d1921fde5a94bfbdca601441f370c05c75c",
+    "commands": [
+      {
+        "name": "lint:design",
+        "kind": "lint",
+        "run": [
+          "npm",
+          "run",
+          "lint:design"
+        ],
+        "cwd": ".",
+        "reason": "",
+        "status": "passed",
+        "exit_code": 0,
+        "output_tail": "\n> lint:design\n> node \"/private/tmp/fullops-macos-20261013-4vksnsnw/design-tools/node_modules/eslint/bin/eslint.js\" src/page.tsx\n"
+      }
+    ],
+    "violations": [],
+    "summary": {
+      "files": 1,
+      "added_lines": 1,
+      "errors": 0,
+      "warnings": 0,
+      "unavailable": 0
+    }
+  }
+}

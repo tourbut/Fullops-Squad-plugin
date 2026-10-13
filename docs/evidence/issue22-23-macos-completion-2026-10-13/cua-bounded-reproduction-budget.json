@@ -1,0 +1,12 @@
+{
+  "phase": "bounded-generation-reproduction",
+  "model": "grok-4.6",
+  "resolved_model": "grok-4.6-build",
+  "effort": "medium",
+  "max_host_invocations": 1,
+  "max_turns": 2,
+  "max_completion_tokens_per_response": 8192,
+  "timeout_s": 180,
+  "input": "fixed task/code/officialskill; actual input usage measured, no total token hardcap claim",
+  "prior4096budget": "violation preserved; no retroactive PASS"
+}

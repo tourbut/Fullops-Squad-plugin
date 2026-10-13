@@ -1,0 +1,40 @@
+[
+  {
+    "name": "ocr-latest-install",
+    "argv": [
+      "npm",
+      "install",
+      "--prefix",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/ocr-tools",
+      "--no-save",
+      "--package-lock=false",
+      "@alibaba-group/open-code-review@latest"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 1.890168583020568,
+    "log": "ocr-latest-install.log",
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/final-source"
+  },
+  {
+    "name": "ocr-latest-version",
+    "argv": [
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/ocr-tools/node_modules/.bin/ocr",
+      "--version"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.9579864998813719,
+    "log": "ocr-latest-version.log",
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/final-source"
+  },
+  {
+    "name": "ocr-latest-review",
+    "argv": [
+      "python3",
+      "tests/review-check.py"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 4.723689459031448,
+    "log": "ocr-latest-review.log",
+    "cwd": "/private/tmp/fullops-macos-20261013-4vksnsnw/final-source"
+  }
+]

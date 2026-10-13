@@ -1,0 +1,51 @@
+{
+  "host": "grok",
+  "argv": [
+    "grok",
+    "--cwd",
+    "/private/tmp/fullops-macos-20261013-4vksnsnw/native-workspace",
+    "--sandbox",
+    "read-only",
+    "--tools",
+    "read_file",
+    "--no-subagents",
+    "--max-turns",
+    "1",
+    "--disable-web-search",
+    "--output-format",
+    "json",
+    "--model",
+    "grok-4.6",
+    "--effort",
+    "medium",
+    "--prompt-file",
+    "/private/tmp/fullops-macos-20261013-4vksnsnw/evidence/native-ui/brief.txt"
+  ],
+  "exit_code": 0,
+  "elapsed_s": 61.3946512080729,
+  "status": "generated",
+  "html_sha256": "d35ab63ee6fe93d0c02f7a1f66189769dc9aa59aa34bdf86021276b0a7b41f2f",
+  "usage": {
+    "usage": {
+      "input_tokens": 23168,
+      "cache_read_input_tokens": 128,
+      "cache_creation_input_tokens": 0,
+      "output_tokens": 2830,
+      "reasoning_tokens": 1830,
+      "total_tokens": 26126
+    },
+    "total_cost_usd": 0.0215492,
+    "modelUsage": {
+      "grok-4.6-build": {
+        "inputTokens": 23168,
+        "outputTokens": 2830,
+        "cacheReadInputTokens": 128,
+        "cacheCreationInputTokens": 0,
+        "modelCalls": 1,
+        "costUSD": 0.0215492
+      }
+    },
+    "num_turns": 1,
+    "stopReason": "end_turn"
+  }
+}

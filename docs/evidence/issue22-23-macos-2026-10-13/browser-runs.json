@@ -1,0 +1,56 @@
+[
+  {
+    "iteration": 1,
+    "argv": [
+      "python3",
+      "tests/web-browser.py",
+      "--engine",
+      "both",
+      "--playwright-package",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/tools/node_modules/@playwright/cli/package.json",
+      "--worktree",
+      "path:/Users/shin/MyDir/MyGit/Fullops-Squad-plugin",
+      "--out",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/evidence/browser-1"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 113.53706849995069,
+    "log": "browser-1.log"
+  },
+  {
+    "iteration": 2,
+    "argv": [
+      "python3",
+      "tests/web-browser.py",
+      "--engine",
+      "both",
+      "--playwright-package",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/tools/node_modules/@playwright/cli/package.json",
+      "--worktree",
+      "path:/Users/shin/MyDir/MyGit/Fullops-Squad-plugin",
+      "--out",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/evidence/browser-2"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 99.37577966717072,
+    "log": "browser-2.log"
+  },
+  {
+    "iteration": 3,
+    "argv": [
+      "python3",
+      "tests/web-browser.py",
+      "--engine",
+      "both",
+      "--playwright-package",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/tools/node_modules/@playwright/cli/package.json",
+      "--worktree",
+      "path:/Users/shin/MyDir/MyGit/Fullops-Squad-plugin",
+      "--out",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/evidence/browser-3"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 99.79098737495951,
+    "log": "browser-3.log"
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "author": "root agent, local contract repair; no new provider call",
+  "base_generated_sha256": "41a01be8c6ad68669fb643df5bb1d0df17fdfd3383513ee6746c4f1e6347f6bb",
+  "result_sha256": "5328002358de84e23a730457d222ebf15cabf67ff11dbd9f78d669a700494343",
+  "changes": [
+    "function name/docstring",
+    "argparse type/help",
+    "step0 exact format",
+    "plan Parameters table"
+  ],
+  "behavioral_actions_unchanged": true,
+  "preceding_native_repair": "max_turn_requests, output budget within8192 but no code generated"
+}

@@ -1,0 +1,39 @@
+{
+  "codex-disabled.json": [
+    {
+      "name": "fullops-squad",
+      "pluginId": "fullops-squad@fullops-squad",
+      "enabled": false,
+      "version": "1.4.1"
+    }
+  ],
+  "codex-enabled.json": [
+    {
+      "name": "fullops-squad",
+      "pluginId": "fullops-squad@fullops-squad",
+      "enabled": true,
+      "version": "1.4.1"
+    }
+  ],
+  "grok-approved-disabled-inventory.log": [
+    {
+      "name": "fullops-squad",
+      "version": "1.4.1"
+    }
+  ],
+  "grok-approved-inventory.log": [
+    {
+      "name": "fullops-squad",
+      "version": "1.4.1"
+    }
+  ],
+  "claude-inventory.log": [
+    {
+      "id": "fullops-squad@fullops-squad",
+      "enabled": true,
+      "version": "1.4.1",
+      "projectEnabled": false,
+      "installPath": "/private/tmp/fullops-macos-20261013-4vksnsnw/claude-config/plugins/cache/fullops-squad/fullops-squad/1.4.1"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+On branch master
+nothing to commit, working tree clean
+Traceback (most recent call last):
+  File "/private/tmp/fullops-completion-z_ii0xr2/native_workflow.py", line 8, in <module>
+    subprocess.run(['git','init','-q',str(work)],check=True);subprocess.run(['git','-C',str(work),'add','.'],check=True);subprocess.run(['git','-C',str(work),'commit','-qm','Freeze canonical native UI task'],check=True)
+                                                                                                                         ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 579, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['git', '-C', '/private/tmp/fullops-completion-z_ii0xr2/ui-codex', 'commit', '-qm', 'Freeze canonical native UI task']' returned non-zero exit status 1.

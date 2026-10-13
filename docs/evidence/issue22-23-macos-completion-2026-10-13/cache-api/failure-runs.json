@@ -1,0 +1,152 @@
+[
+  {
+    "case": "401",
+    "repetition": 0,
+    "elapsed_s": 0.009961250005289912,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "401",
+    "repetition": 1,
+    "elapsed_s": 0.008889832999557257,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "401",
+    "repetition": 2,
+    "elapsed_s": 0.008734208066016436,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "429",
+    "repetition": 0,
+    "elapsed_s": 0.008173958165571094,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "429",
+    "repetition": 1,
+    "elapsed_s": 0.008763625053688884,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "429",
+    "repetition": 2,
+    "elapsed_s": 0.008785708108916879,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "503",
+    "repetition": 0,
+    "elapsed_s": 0.008764333091676235,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "503",
+    "repetition": 1,
+    "elapsed_s": 0.007756042061373591,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "503",
+    "repetition": 2,
+    "elapsed_s": 0.00791341601870954,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "malformed",
+    "repetition": 0,
+    "elapsed_s": 0.00879216706380248,
+    "error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "malformed",
+    "repetition": 1,
+    "elapsed_s": 0.007335750153288245,
+    "error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "malformed",
+    "repetition": 2,
+    "elapsed_s": 0.008970750030130148,
+    "error": "JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "timeout",
+    "repetition": 0,
+    "elapsed_s": 0.20830658311024308,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "timeout",
+    "repetition": 1,
+    "elapsed_s": 0.21451095794327557,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  },
+  {
+    "case": "timeout",
+    "repetition": 2,
+    "elapsed_s": 0.21501958393491805,
+    "error": "RuntimeError: OpenRouter request failed",
+    "server_attempts": 1,
+    "provider_calls": 0,
+    "cost": 0,
+    "source": "controlled local HTTP failure, not observed external provider outage"
+  }
+]

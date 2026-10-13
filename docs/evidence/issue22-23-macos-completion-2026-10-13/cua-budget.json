@@ -1,0 +1,19 @@
+{
+  "cuawright_source_sha": "ff44a0524e0812b69814efcec5e583f0d8cdde0c",
+  "host": "grok",
+  "model": "grok-4.6",
+  "effort": "medium",
+  "max_host_invocations": 3,
+  "max_turns_per_invocation": 1,
+  "max_completion_tokens_per_invocation": 4096,
+  "token_limit_scope": "completion tokens including reasoning; input tokens measured separately, not a claimed total-token hard cap",
+  "host_timeout_seconds": 180,
+  "browser_timeout_seconds": 60,
+  "browser": "Firefox 155.0",
+  "viewport": [
+    1280,
+    1800
+  ],
+  "tenant": "fresh context, loopback fixture only, no credentials",
+  "new_model_api_key": false
+}

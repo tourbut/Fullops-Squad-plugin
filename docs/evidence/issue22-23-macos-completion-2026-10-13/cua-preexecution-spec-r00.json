@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "review_key": "CUA-PREEXECUTION-SPEC-R00",
+  "reviewer": {
+    "independent_agent_session": "/root/macos_spec_review",
+    "role": "Spec reviewer",
+    "implementation_session_id": "01a1356f-7da4-7250-b56b-f68d96edb4ea",
+    "implemented_reviewed_script": false
+  },
+  "source": {
+    "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/cua-review-r00",
+    "fixed_sha": "901faa8cf6751773fce388c0aa0d3d3e5fdc70d5",
+    "script_sha256": "7c8c2c187521bb527571e9435359879726679c0d5b43df53228fa831bb10c9c0",
+    "matching_script_paths": [
+      "final_script.py",
+      "final_runs/run_1/final_script.py"
+    ],
+    "git_status_clean": true
+  },
+  "review_type": "independent static pre-execution Spec review",
+  "reviewed_code_executed": false,
+  "browser_executed_by_reviewer": false,
+  "review_scope": "One-shot healthy fixture goal: select dark theme, add milk once, complete it, report observed state. Claude host is waived by the user according to the supplied task scope.",
+  "spec_sources": [
+    "plan.md",
+    "generated-plan.md",
+    "/private/tmp/fullops-completion-z_ii0xr2/CUAWright/skills/cuawright-web/SKILL.md",
+    "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-generation-prompt.txt"
+  ],
+  "fixed_script_findings": [],
+  "execution_safety": {
+    "decision": "safe_for_controlled_single_healthy_run_under_external_sandbox",
+    "unconditional_unsandboxed_execution_approved": false,
+    "reason": "The fixed script uses literal loopback navigation, actual named controls, read-only page.evaluate observations, and workspace-local evidence writes. It contains no package installation, arbitrary subprocess invocation, credential access, persistent browser context, storage API access, or DOM state mutation through evaluate.",
+    "conditions": [
+      "Run a byte-identical copy in a fresh writable final_runs/run_<id> directory; do not execute against or modify the readonly review snapshot.",
+      "Apply the separate network and tenant sandbox before navigation: fresh browser context, no credentials or persistent storage, deny external origins and unapproved requests, preserve global settings.",
+      "Use a trusted independent oracle and direct screenshot review for CP1-CP4; generated FINAL_RESPONSE and process exit zero alone are not acceptance evidence."
+    ]
+  },
+  "contract_checks": {
+    "literal_one_shot_mode_allowed_by_skill": true,
+    "fresh_headless_firefox": "final_script.py:23",
+    "viewport_1280_1800": "final_script.py:24",
+    "real_controls_dark_add_checkbox": "final_script.py:27-35",
+    "one_add_click_and_one_checkbox_click_no_retry_loop": true,
+    "screenshots_per_critical_point_without_full_page": "final_script.py:28,32,36,49",
+    "step_action_log_and_final_observations": "final_script.py:26-47",
+    "browser_cleanup_in_finally": "final_script.py:50-53",
+    "critical_points_current_status": "pending_execution_and_independent_verification"
+  },
+  "separate_repeat_and_parameterization_limits": [
+    "URL and milk are literal constants. There is no argparse wrapper, reusable function with task parameters, parameter table, or step 0 parameter log. This is valid for the explicitly requested default one-shot mode and is not evidence of CLI tool mode completion.",
+    "asyncio.run(main()) is unconditional at module scope, so importing the file executes the task. Import safety is not provided for future CLI reuse.",
+    "Executing the same copy again resets final_script_log.txt and overwrites screenshot names. The external runner must allocate a new run directory and preserve prior artifacts.",
+    "No repeated-run success evidence exists in this pre-execution review. Only the healthy route is selected; seeded broken cases and other issue criteria remain outside R00.",
+    "The script does not assert the final task invariants. This is intentional in the generation prompt, and the external oracle must enforce exact theme, submission count, row count, milk row identity, and checked state."
+  ],
+  "supplemental_unpinned_runner_observations": [
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/execute_cua.py:27-38",
+      "status": "external_integration_requirement",
+      "observation": "The current external DOM oracle checks theme, submission count, total rows and first checkbox, but does not check that the single row text is exactly milk. Add exact row identity to independently establish CP2. The runner is outside the reviewed fixed SHA."
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/execute_cua.py:38-41",
+      "status": "external_integration_requirement",
+      "observation": "A false pass field without an exception can exit zero. The caller must read and require record.pass=true; exit code alone must not be accepted."
+    }
+  ],
+  "acceptance": {
+    "task_accepted": false,
+    "issues_22_23_accepted": false,
+    "reason": "Pre-execution static review only. No critical point has execution evidence from this review, and the broader issue criteria are not covered by this literal healthy task."
+  }
+}

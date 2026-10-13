@@ -1,0 +1,10 @@
+{
+  "instruction": "반복측정까진 할필요없어 / 최소화로 테스트해보고 이상없으면 이슈 완료처리해",
+  "scope": "stop further repetitions; use completed evidence and minimum final regression/CI checks",
+  "stopped_processes": [
+    "compare_jev_r07.py",
+    "compare_final.py"
+  ],
+  "partial_records_preserved": true,
+  "waived": "further repeated/matched benchmarking, not correctness or mandatory gates"
+}

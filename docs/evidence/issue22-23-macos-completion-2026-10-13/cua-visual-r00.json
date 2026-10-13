@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "review_key": "CUA-VISUAL-R00",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "separate independent direct pixel inspection",
+  "inspected_with": "view_image detail=original, separately opened all four PNGs",
+  "generated_code_executed_by_reviewer": false,
+  "original_artifacts_mutated": false,
+  "source_sha": "901faa8cf6751773fce388c0aa0d3d3e5fdc70d5",
+  "script_sha256": "7c8c2c187521bb527571e9435359879726679c0d5b43df53228fa831bb10c9c0",
+  "run_directory": "/private/tmp/fullops-completion-z_ii0xr2/cua-work/final_runs/run_2",
+  "inspected_images": [
+    {
+      "file": "screenshots/final_execution_1_dark_theme.png",
+      "sha256": "a498af356980327dd5ccad675807c39614fce25d5cf0089624e6278579177a7c",
+      "pixel_observations": "White text and dark form controls are visible. No todos yet and Submissions: 0 are visible. The page background is medium gray, unlike the stable near-black background in later captures.",
+      "limitation": "This immediate post-click capture does not by itself unambiguously show the settled dark background. The appearance is consistent with an in-progress color transition; timing is not proven by pixels alone. CP1 uses the later stable captures."
+    },
+    {
+      "file": "screenshots/final_execution_2_add_milk.png",
+      "sha256": "e68c89d12bb51f61eaf084bc438055767aebb674bf2baa0bee4398a5b2d6dfd6",
+      "pixel_observations": "The page has a near-black background with white text. Exactly one visible list row reads milk; its checkbox is empty. Submissions: 1 is visible. The empty todo textbox has a visible blue focus outline."
+    },
+    {
+      "file": "screenshots/final_execution_3_milk_checked.png",
+      "sha256": "9aa5ff54110d8317b32fc6eb1e8f33853e75196b74017df8f3471408aa04bdf0",
+      "pixel_observations": "The stable dark page shows one visible milk row. The checkbox immediately before milk is blue with a white checkmark. Submissions: 1 remains visible."
+    },
+    {
+      "file": "screenshots/final_execution_4_final_state.png",
+      "sha256": "9aa5ff54110d8317b32fc6eb1e8f33853e75196b74017df8f3471408aa04bdf0",
+      "pixel_observations": "The final screenshot visibly retains the near-black background, one milk row, checked checkbox and Submissions: 1. It is byte-identical to the preceding checked-state screenshot."
+    }
+  ],
+  "critical_points": {
+    "CP1": {
+      "status": "visually_confirmed",
+      "evidence": ["final_execution_2_add_milk.png", "final_execution_3_milk_checked.png", "final_execution_4_final_state.png"],
+      "basis": "Stable near-black background and light foreground in actual pixels show the requested dark appearance; not inferred from the DOM oracle."
+    },
+    "CP2": {
+      "status": "visually_confirmed_for_visible_state",
+      "evidence": ["final_execution_2_add_milk.png", "final_execution_3_milk_checked.png", "final_execution_4_final_state.png"],
+      "basis": "A single visible row has the exact readable label milk, and the visible submission counter reads 1. Hidden DOM state and the number of physical interactions are outside screenshot-only proof."
+    },
+    "CP3": {
+      "status": "visually_confirmed",
+      "evidence": ["final_execution_3_milk_checked.png", "final_execution_4_final_state.png"],
+      "basis": "A white checkmark is visibly present inside the blue checkbox next to milk."
+    },
+    "CP4": {
+      "status": "final_view_visually_confirmed_and_report_datum_present",
+      "evidence": ["final_execution_4_final_state.png", "final_script_log.txt"],
+      "basis": "Final pixels show the requested visible state. Separately, the inspected log ends with FINAL_RESPONSE theme=dark submits=1 list_li=1 checkbox.checked=True. The log is report evidence, not a substitute for pixel inspection."
+    }
+  },
+  "separate_external_oracle": {
+    "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-r00-broker-proof.json",
+    "inspected": true,
+    "reported_pass": true,
+    "reported_state": {"theme": "dark", "submissions": 1, "rows": 1, "text": "milk", "checked": true},
+    "use": "Supplemental independent runtime evidence kept separate from the direct visual observations above."
+  },
+  "capture_notes": [
+    "The first screenshot has an unsettled gray background. Later captures provide clear settled dark evidence.",
+    "The final two screenshots have the same hash. They prove the same visible state, not two independent state transitions."
+  ],
+  "limitations": [
+    "This review covers only healthy R00 run_2 at the captured 1280 by 1800 viewport.",
+    "Screenshots cannot prove hidden DOM row counts, backend state, blocked requests, exact action counts, keyboard behavior, repeatability, parameterization, or isolation. Those require their own evidence.",
+    "No A/B/C/D defect classification was performed here; the separate human-ground-truth record was not used to infer these pixels.",
+    "No generated code or browser execution was performed by this reviewer."
+  ],
+  "conclusion": "PASS for the narrow healthy R00 visible goal, with the first-capture transition limitation recorded. This is separate visual confirmation and does not accept issues 22 or 23 as a whole.",
+  "whole_issue_acceptance": false
+}

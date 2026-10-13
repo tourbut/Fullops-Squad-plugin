@@ -1,0 +1,86 @@
+{
+  "stylelint_version": "17.16.0",
+  "rules": {
+    "rules": {
+      "color-no-invalid-hex": true,
+      "block-no-empty": true,
+      "custom-property-pattern": "^[a-z][a-z0-9-]*$",
+      "declaration-property-value-allowed-list": {
+        "background": [
+          "/^var\\(--bg\\)$/"
+        ],
+        "color": [
+          "/^var\\(--fg\\)$/"
+        ]
+      }
+    }
+  },
+  "runs": [
+    {
+      "host": "codex",
+      "kind": "valid",
+      "argv": [
+        "node",
+        "/private/tmp/fullops-completion-z_ii0xr2/nonreact-design-tools/node_modules/stylelint/bin/stylelint.mjs",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/codex-valid.css",
+        "--config",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/stylelint.config.json",
+        "--formatter",
+        "json"
+      ],
+      "exit_code": 0,
+      "input_sha256": "aa6812cd1611d7d72fa00845a5b7764aab0d462b78d604e6404a8ecceb9cc40b",
+      "source_ui_sha256": "6c219f8ce669bb3b337c58a79af77ac810728b1ccfa9d889b791759fdd9cf912"
+    },
+    {
+      "host": "codex",
+      "kind": "invalid",
+      "argv": [
+        "node",
+        "/private/tmp/fullops-completion-z_ii0xr2/nonreact-design-tools/node_modules/stylelint/bin/stylelint.mjs",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/codex-invalid.css",
+        "--config",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/stylelint.config.json",
+        "--formatter",
+        "json"
+      ],
+      "exit_code": 2,
+      "input_sha256": "d6edbdc08a6be290e51d8315b1a8134ea9d0ce6866925ac11f48b0fe00c07278",
+      "source_ui_sha256": "6c219f8ce669bb3b337c58a79af77ac810728b1ccfa9d889b791759fdd9cf912"
+    },
+    {
+      "host": "grok",
+      "kind": "valid",
+      "argv": [
+        "node",
+        "/private/tmp/fullops-completion-z_ii0xr2/nonreact-design-tools/node_modules/stylelint/bin/stylelint.mjs",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/grok-valid.css",
+        "--config",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/stylelint.config.json",
+        "--formatter",
+        "json"
+      ],
+      "exit_code": 0,
+      "input_sha256": "aa6812cd1611d7d72fa00845a5b7764aab0d462b78d604e6404a8ecceb9cc40b",
+      "source_ui_sha256": "133c157781079120ddda050db7fada97d54fb7a9ee761255702e1d5df2a50631"
+    },
+    {
+      "host": "grok",
+      "kind": "invalid",
+      "argv": [
+        "node",
+        "/private/tmp/fullops-completion-z_ii0xr2/nonreact-design-tools/node_modules/stylelint/bin/stylelint.mjs",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/grok-invalid.css",
+        "--config",
+        "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/stylelint.config.json",
+        "--formatter",
+        "json"
+      ],
+      "exit_code": 2,
+      "input_sha256": "d6edbdc08a6be290e51d8315b1a8134ea9d0ce6866925ac11f48b0fe00c07278",
+      "source_ui_sha256": "133c157781079120ddda050db7fada97d54fb7a9ee761255702e1d5df2a50631"
+    }
+  ],
+  "passed": true,
+  "optional_mcp_impeccable_engine": "not selected"
+}

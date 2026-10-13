@@ -1,0 +1,167 @@
+{
+  "source_sha": "1bf607826b5f806d27d11ab278319c63528edae7",
+  "iterations": 3,
+  "ground_truth": "agent-inspected seeded counter defect; no human labels",
+  "cold_warm": "not_controlled",
+  "engines": {
+    "orca": {
+      "records": [
+        {
+          "iteration": 1,
+          "case": "healthy",
+          "passed": true,
+          "assertions_passed": true,
+          "elapsed_s": 36.959,
+          "scenario_sha256": "586c6fec9e8d8a3861122d3a63ca57f7bf695701beb1db02e0f99ee3c366dafb",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 1,
+          "case": "inserted_bug",
+          "passed": false,
+          "assertions_passed": false,
+          "elapsed_s": 37.839,
+          "scenario_sha256": "8ac4866e0f1e9fc6ab96cf9855bcc8850f23e9ea03c7175159c3317333c0433c",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 2,
+          "case": "healthy",
+          "passed": true,
+          "assertions_passed": true,
+          "elapsed_s": 31.372,
+          "scenario_sha256": "c5e1b30467c228e6da0f9ced10fb62235da0fd69bfdc128af8b5ee4eb9bee0b6",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 2,
+          "case": "inserted_bug",
+          "passed": false,
+          "assertions_passed": false,
+          "elapsed_s": 32.727,
+          "scenario_sha256": "69ef8c449e368a82e780fe3d9a2f2d34cd045a5208ea90c8a674764c0260b313",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 3,
+          "case": "healthy",
+          "passed": true,
+          "assertions_passed": true,
+          "elapsed_s": 31.558,
+          "scenario_sha256": "a1530f9260dc9c994889d8eb792ba01c8fe33b5fa876fbb647dc98b80014b935",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 3,
+          "case": "inserted_bug",
+          "passed": false,
+          "assertions_passed": false,
+          "elapsed_s": 33.002,
+          "scenario_sha256": "b077f224cc1bbdc2c1cc9983773319282f23320e068fa135c976f987d8185bfc",
+          "jev_calls": 0,
+          "known_cost": 0
+        }
+      ],
+      "healthy_passes": 3,
+      "defects_detected": 3,
+      "false_passes": 0,
+      "false_failures": 0,
+      "p50_s": 32.8645,
+      "p95_s": 37.839,
+      "p95_method": "nearest-rank",
+      "sample_size": 6,
+      "executor": {
+        "name": "orca",
+        "version": "1.4.224",
+        "request_filtering": false,
+        "attached": false
+      }
+    },
+    "playwright": {
+      "records": [
+        {
+          "iteration": 1,
+          "case": "healthy",
+          "passed": true,
+          "assertions_passed": true,
+          "elapsed_s": 4.395,
+          "scenario_sha256": "586c6fec9e8d8a3861122d3a63ca57f7bf695701beb1db02e0f99ee3c366dafb",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 1,
+          "case": "inserted_bug",
+          "passed": false,
+          "assertions_passed": false,
+          "elapsed_s": 0.414,
+          "scenario_sha256": "8ac4866e0f1e9fc6ab96cf9855bcc8850f23e9ea03c7175159c3317333c0433c",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 2,
+          "case": "healthy",
+          "passed": true,
+          "assertions_passed": true,
+          "elapsed_s": 0.949,
+          "scenario_sha256": "c5e1b30467c228e6da0f9ced10fb62235da0fd69bfdc128af8b5ee4eb9bee0b6",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 2,
+          "case": "inserted_bug",
+          "passed": false,
+          "assertions_passed": false,
+          "elapsed_s": 0.412,
+          "scenario_sha256": "69ef8c449e368a82e780fe3d9a2f2d34cd045a5208ea90c8a674764c0260b313",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 3,
+          "case": "healthy",
+          "passed": true,
+          "assertions_passed": true,
+          "elapsed_s": 0.774,
+          "scenario_sha256": "a1530f9260dc9c994889d8eb792ba01c8fe33b5fa876fbb647dc98b80014b935",
+          "jev_calls": 0,
+          "known_cost": 0
+        },
+        {
+          "iteration": 3,
+          "case": "inserted_bug",
+          "passed": false,
+          "assertions_passed": false,
+          "elapsed_s": 0.433,
+          "scenario_sha256": "b077f224cc1bbdc2c1cc9983773319282f23320e068fa135c976f987d8185bfc",
+          "jev_calls": 0,
+          "known_cost": 0
+        }
+      ],
+      "healthy_passes": 3,
+      "defects_detected": 3,
+      "false_passes": 0,
+      "false_failures": 0,
+      "p50_s": 0.6035,
+      "p95_s": 4.395,
+      "p95_method": "nearest-rank",
+      "sample_size": 6,
+      "executor": {
+        "name": "playwright",
+        "cli_version": "0.1.22",
+        "version": "1.64.0-alpha-1790635538000",
+        "browser_version": "155.0.8059.12",
+        "request_filtering": true,
+        "attached": false,
+        "blocked_requests": 0
+      }
+    }
+  }
+}

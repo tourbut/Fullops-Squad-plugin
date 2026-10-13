@@ -1,0 +1,18 @@
+{
+  "original": {
+    "version": "web-shadow-v1",
+    "suggested_category": "undetermined",
+    "reason": "Independent assertions failed; inspect the product and test/fixture before labeling exploration.",
+    "advisory_only": true,
+    "gates_changed": false,
+    "human_label": null,
+    "target_sha": null,
+    "scenario_sha256": "b1eaafe0623a50018bae72ebe0c9d1bda845b255789ab419ce84081e68a3a849",
+    "original_result": "blocked_policy",
+    "original_passed": false
+  },
+  "human_label": "normal",
+  "label_source": "human-ground-truth.json",
+  "correction_reason": null,
+  "gates_changed": false
+}

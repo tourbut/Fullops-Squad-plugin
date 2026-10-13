@@ -1,0 +1,10 @@
+{
+  ".codex/config.toml": "378c3d695903db219f24150cd1e13e062d670b9aa9eaf928860394c379f80224",
+  ".claude/settings.json": "9b8f4a5b1df096ecefc9ab5cf49d49785c4c6493137a295ff0f40c2acd20c853",
+  ".claude.json": "d3950f0ccba5fa02d75eb3b161b5c0220aa91da7619db10c042a5e770234ecb0",
+  ".grok/config.toml": "660aa7e402fb6c5928f7d05f2f6c56069db4efbcf00deb8abda9323cb0102d49",
+  ".agents/.skill-lock.json": "8f33956aed26a389519f93c4091293651156e91fe595bf1d60fc610092961abf",
+  ".codex/fullops-deps.json": "1c7f6d8bb5ff558b4d1757f87b70b19a0ea01df249af43314154491cc5d51e60",
+  ".claude/fullops-deps.json": "d745de62ceb5bb8293694af364d788cc29fc26cc75421c4336c03365d8c00a5c",
+  ".grok/fullops-deps.json": "88b7422d9e56886a6c023819e9cb7b779a25d7c60a5baa6200440e45dc2351ac"
+}

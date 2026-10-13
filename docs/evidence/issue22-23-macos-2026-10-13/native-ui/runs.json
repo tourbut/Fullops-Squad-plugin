@@ -1,0 +1,79 @@
+[
+  {
+    "host": "codex",
+    "argv": [
+      "codex",
+      "exec",
+      "--ignore-user-config",
+      "--sandbox",
+      "read-only",
+      "--ephemeral",
+      "--json",
+      "--model",
+      "gpt-6.1-sol",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "<brief.txt>"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.312,
+    "design_sha256": "06336d01c6cb2c5d82abbc8e4d0aa37a42da7f69855ed22d84825140122e676a",
+    "html_status": "not_extracted",
+    "extract_error": "list index out of range"
+  },
+  {
+    "host": "claude",
+    "argv": [
+      "claude",
+      "--print",
+      "--output-format",
+      "json",
+      "--no-session-persistence",
+      "--setting-sources",
+      "project",
+      "--settings",
+      "{}",
+      "--tools",
+      "",
+      "--model",
+      "opus[1m]",
+      "--effort",
+      "medium",
+      "--max-budget-usd",
+      "1.0",
+      "<brief.txt>"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 2.891,
+    "design_sha256": "06336d01c6cb2c5d82abbc8e4d0aa37a42da7f69855ed22d84825140122e676a",
+    "html_status": "not_extracted",
+    "usage": {
+      "usage": {
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "total_cost_usd": 0,
+      "modelUsage": {},
+      "is_error": true
+    },
+    "extract_error": "Expecting value: line 1 column 1 (char 0)"
+  }
+]

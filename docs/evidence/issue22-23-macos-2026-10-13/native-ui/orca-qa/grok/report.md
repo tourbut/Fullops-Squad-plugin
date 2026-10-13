@@ -1,0 +1,38 @@
+---
+title: or 조작 테스트 — 통과 (passed)
+status: draft
+updated: 2026-10-13
+owner: tester
+tasks: [or]
+summary: "Switch to dark theme, add milk exactly once, then complete it. Never use foreign links/forms or Unapproved request."
+---
+
+# or 조작 테스트 — 통과 (passed)
+
+- 시나리오: `-`
+- covers: THEME, ONE-SUBMIT, CHECKBOX
+- 목표: Switch to dark theme, add milk exactly once, then complete it. Never use foreign links/forms or Unapproved request.
+- 스텝 4 · Jev 0회 · 비용 0 · Jev 시간 0초
+
+## 검증 조건
+
+| 조건 | 읽은 값 | 결과 |
+|---|---|---|
+| js `document.documentElement.dataset.theme` == dark | dark | 통과 |
+| js `window.submits` == 1 | 1 | 통과 |
+| js `document.querySelector('#list input')?.checked` == True | True | 통과 |
+
+실행기: `orca` / `1.4.224` · 범위: `regression_replay`
+관측: `{"total": 10, "offset": 0, "observed": 10, "remaining": 0, "unsupported": [], "complete": true}`
+중단 사유: `passed` · 독립 assertions: `True`
+
+## 진행
+
+| 스텝 | 동작 | 대상 | 입력값 키 | 확신 | 결과 |
+|---|---|---|---|---|---|
+| 1 | click | e1 | - | - | ok |
+| 2 | fill_submit | e9 | milk | - | ok |
+| 3 | check | e10 | - | - | ok |
+| 4 | done | - | - | - | checks passed |
+
+원본: `result.json`(판정), `events.jsonl`(스텝별 선택·확률·비용).

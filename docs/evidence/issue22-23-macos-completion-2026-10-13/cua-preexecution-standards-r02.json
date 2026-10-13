@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "review_key": "CUA-PREEXECUTION-STANDARDS-R02",
+  "reviewer": "/root/macos_standards_review",
+  "independent_review": true,
+  "reviewed_at_utc": "2026-10-13T13:51:59.646029+00:00",
+  "source_sha": "6450b16ce2793fb8e69caa08e5fb3b232d1f95e9",
+  "base_sha": "4a7cf35ce06a4e72f12072e835b708ce0fc4448f",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/cua-review-r02",
+  "script_sha256": "acae334209cbf1f0778891c68177a33bf34eb4f1f5f87a3ccd9600c9d9532207",
+  "artifact_sha256": {
+    "final_script.py": "acae334209cbf1f0778891c68177a33bf34eb4f1f5f87a3ccd9600c9d9532207",
+    "run_4_final_script.py": "acae334209cbf1f0778891c68177a33bf34eb4f1f5f87a3ccd9600c9d9532207",
+    "execute_cua.py": "3b13a94e1994d2f6360daaea37a369c3945053221de8243e2ef4482982572987",
+    "firefox_broker.cjs": "c2dd631355035a7fc67526d053bf7525a3d40d4aac23459f56fe45b886da7975",
+    "cua-sandbox.sb": "69161bf0561202c728d15a97a36260d6511ab061eae7d199a785cb7f4398fbce",
+    "fixture.html": "1cab8034f24980bdf9d8c640bd0e89a1797619abc4ac76f97c9cf68519847306",
+    "serve_fixture.py": "81abae78528f5b1e91ebd4ac9b665533e9932e8af785322d4a3b101012e96c9e",
+    "skill": "ee012d70f5f468da3aa28777aca03090918e06188261e6343f63156852e47745",
+    "cli_contract": "22d5554399a141a8ebf5151ca1a46d3958ac05b792aff94c5e0ab750bc1b8e4c"
+  },
+  "decision": "approved_for_controlled_execution_with_nonblocking_low_documentation_finding",
+  "blockers": [],
+  "findings": [
+    {
+      "id": "CUA-R02-DOC-01",
+      "severity": "low",
+      "path": "final_script.py",
+      "lines": [
+        31,
+        83
+      ],
+      "rule": "CUAWright reference/cli_tool_mode.md required shape: each Args entry documents accepted format or allowed values; CLI help is copied from docstring.",
+      "finding": "Todo Args/help describe text and default but omit the enforced nonempty restriction stated in plan.md and validation at line36.",
+      "requested_change": "State nonempty todo text in both Args and argparse help.",
+      "resolved": false
+    }
+  ],
+  "checks": [
+    {
+      "path": "final_script.py",
+      "lines": [
+        26,
+        27,
+        29,
+        33,
+        80,
+        81,
+        82,
+        83
+      ],
+      "result": "Domain-named coroutine, Google-style Args/Returns, typed flags, help and task defaults present; both Parameters entries map to function arguments and CLI flags."
+    },
+    {
+      "path": "final_script.py",
+      "lines": [
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "result": "Allowlisted URL and nonempty todo validation occurs before application writes/browser operations; reset log first line uses exact step 0 params format."
+    },
+    {
+      "path": "final_script.py",
+      "lines": [
+        15,
+        16,
+        17,
+        44,
+        45,
+        50,
+        54,
+        59,
+        60,
+        65,
+        66,
+        67,
+        68,
+        73,
+        80
+      ],
+      "result": "Import has no explicit application I/O or browser startup. Fresh Firefox request, required viewport, fixed run-relative output paths, no full-page screenshots, read-only DOM observations and final actual observations retained."
+    },
+    {
+      "path": "execute_cua.py",
+      "lines": [
+        9,
+        10,
+        18,
+        19,
+        21,
+        22,
+        23,
+        33,
+        34,
+        35,
+        39,
+        40,
+        43,
+        44
+      ],
+      "result": "Fresh context/no service workers, exact fixture HTTP GET allowlist, WebSockets closed before page creation, script argv forwarded, per-run broker endpoint file supported and independent exact todo oracle retained."
+    },
+    {
+      "path": "firefox_broker.cjs",
+      "lines": [
+        4,
+        5,
+        7
+      ],
+      "result": "Fresh headless loopback Firefox broker per invocation supports a distinct endpoint output path and SIGTERM cleanup. No Firefox sandbox disabling introduced."
+    },
+    {
+      "path": "cua-sandbox.sb",
+      "result": "Byte-identical to previously reviewed outer sandbox; Python external outbound network denied, task-root/dev writes allowed, named credential directories denied."
+    }
+  ],
+  "execution_conditions": [
+    "Use exact reviewed script and helper hashes; preserve this snapshot, prior source reviews and all earlier attempts/evidence.",
+    "Run the run-folder copy in a fresh writable evidence run, with a fresh broker process per final run and a new private endpoint file under task root; BROWSER_ENDPOINT_FILE must identify that exact broker file.",
+    "Retain native Firefox sandbox, no credentials or disabling environment flags, Python outer sandbox, HTTP/WebSocket routing, independent oracle and external timeout.",
+    "Forward CLI arguments through the reviewed runner; TODO_VALUE must match the tested todo so external expected state remains independent and correct.",
+    "Save stdout/stderr, exact argv, proof/log/screenshots and actual exit code; separately verify default run, CLI help, import safety, alternate parameter run and visual evidence before CLI completion."
+  ],
+  "limitations": [
+    "No generated source or helper was executed/imported for this pre-execution review; no R02 runtime or visual acceptance is asserted.",
+    "Broker background networking is outside outer OS restrictions; page routing/WebSocket blocking is not proof of zero browser-internal external traffic.",
+    "The endpoint environment path is caller-supplied; approval requires a freshly minted private loopback endpoint from the hashed broker.",
+    "Monkey-patching is scoped to inspected cooperative source and is not a security boundary for malicious replacement scripts. Outer policy is not a complete host-read deny.",
+    "Boundary whitespace is accepted as nonempty input but stripped for observed exact-text comparison. Use ordinary nonempty text for this controlled verification; arbitrary whitespace-preserving CLI behavior is not accepted by this review."
+  ],
+  "provenance_preserved": {
+    "native_contract_repair_attempt": "Inspected process log shows JSONDecodeError; parent reports max_turn_requests response without code. Not treated as successful repair.",
+    "prior_output_budget": "Inspected cua-revision-r01.json reports output_tokens=5310; exceeds prior4096 cap. Budget evidence explicitly retains violation, not PASS.",
+    "local_contract_repairs": "Source diff reviewed; no additional model calls made by reviewer."
+  },
+  "whole_issue_acceptance": false
+}

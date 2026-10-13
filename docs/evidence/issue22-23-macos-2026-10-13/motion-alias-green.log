@@ -1,0 +1,12 @@
+unavailable: /private/var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmpo_v6s78j/decode-unavailable.json
+PASS: real AAC/CFR, missing/shifted/truncated narration, color mismatch and VFR rejection
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/motion.py", line 183, in <module>
+    motion.validate(generated, root)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/motion_check.py", line 78, in validate
+    asset(root, path)
+    ~~~~~^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/motion_check.py", line 37, in asset
+    raise ValueError(f'asset missing, empty or outside spec directory: {name}')
+ValueError: asset missing, empty or outside spec directory: public/NanumBarunGothic.ttf

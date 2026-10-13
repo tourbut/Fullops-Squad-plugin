@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "color-no-invalid-hex": true,
+    "block-no-empty": true,
+    "custom-property-pattern": "^[a-z][a-z0-9-]*$",
+    "declaration-property-value-allowed-list": {
+      "background": [
+        "/^var\\(--bg\\)$/"
+      ],
+      "color": [
+        "/^var\\(--fg\\)$/"
+      ]
+    }
+  }
+}

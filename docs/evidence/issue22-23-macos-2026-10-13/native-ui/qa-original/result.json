@@ -1,0 +1,516 @@
+{
+  "browser": "155.0.8059.12",
+  "source": "/private/tmp/fullops-macos-20261013-4vksnsnw/native-ui-final-review",
+  "isolation": "new no-credential contexts; only fixture GET allowed",
+  "results": [
+    {
+      "host": "codex",
+      "width": 320,
+      "checks": [
+        {
+          "name": "mobile-layout-viewport",
+          "passed": true,
+          "actual": 320
+        },
+        {
+          "name": "no-horizontal-overflow",
+          "passed": true,
+          "actual": {
+            "scroll": 320,
+            "width": 320
+          }
+        },
+        {
+          "name": "initial-empty",
+          "passed": true
+        },
+        {
+          "name": "initial-light",
+          "passed": true
+        },
+        {
+          "name": "theme-dark",
+          "passed": true
+        },
+        {
+          "name": "pressed-dark",
+          "passed": true
+        },
+        {
+          "name": "theme-repeat-light",
+          "passed": true
+        },
+        {
+          "name": "keyboard-enter-dark",
+          "passed": true
+        },
+        {
+          "name": "keyboard-space-light",
+          "passed": true
+        },
+        {
+          "name": "visible-keyboard-focus",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "single-enter-submit",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "one-created-row",
+          "passed": true
+        },
+        {
+          "name": "checkbox-complete",
+          "passed": true
+        },
+        {
+          "name": "repeat-click-one-more-submit",
+          "passed": true
+        },
+        {
+          "name": "disabled-control",
+          "passed": true
+        },
+        {
+          "name": "no-runtime-errors",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "denied": []
+    },
+    {
+      "host": "codex",
+      "width": 390,
+      "checks": [
+        {
+          "name": "mobile-layout-viewport",
+          "passed": true,
+          "actual": 390
+        },
+        {
+          "name": "no-horizontal-overflow",
+          "passed": true,
+          "actual": {
+            "scroll": 390,
+            "width": 390
+          }
+        },
+        {
+          "name": "initial-empty",
+          "passed": true
+        },
+        {
+          "name": "initial-light",
+          "passed": true
+        },
+        {
+          "name": "theme-dark",
+          "passed": true
+        },
+        {
+          "name": "pressed-dark",
+          "passed": true
+        },
+        {
+          "name": "theme-repeat-light",
+          "passed": true
+        },
+        {
+          "name": "keyboard-enter-dark",
+          "passed": true
+        },
+        {
+          "name": "keyboard-space-light",
+          "passed": true
+        },
+        {
+          "name": "visible-keyboard-focus",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "single-enter-submit",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "one-created-row",
+          "passed": true
+        },
+        {
+          "name": "checkbox-complete",
+          "passed": true
+        },
+        {
+          "name": "repeat-click-one-more-submit",
+          "passed": true
+        },
+        {
+          "name": "disabled-control",
+          "passed": true
+        },
+        {
+          "name": "no-runtime-errors",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "denied": []
+    },
+    {
+      "host": "codex",
+      "width": 1280,
+      "checks": [
+        {
+          "name": "mobile-layout-viewport",
+          "passed": true,
+          "actual": 1280
+        },
+        {
+          "name": "no-horizontal-overflow",
+          "passed": true,
+          "actual": {
+            "scroll": 1280,
+            "width": 1280
+          }
+        },
+        {
+          "name": "initial-empty",
+          "passed": true
+        },
+        {
+          "name": "initial-light",
+          "passed": true
+        },
+        {
+          "name": "theme-dark",
+          "passed": true
+        },
+        {
+          "name": "pressed-dark",
+          "passed": true
+        },
+        {
+          "name": "theme-repeat-light",
+          "passed": true
+        },
+        {
+          "name": "keyboard-enter-dark",
+          "passed": true
+        },
+        {
+          "name": "keyboard-space-light",
+          "passed": true
+        },
+        {
+          "name": "visible-keyboard-focus",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "single-enter-submit",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "one-created-row",
+          "passed": true
+        },
+        {
+          "name": "checkbox-complete",
+          "passed": true
+        },
+        {
+          "name": "repeat-click-one-more-submit",
+          "passed": true
+        },
+        {
+          "name": "disabled-control",
+          "passed": true
+        },
+        {
+          "name": "no-runtime-errors",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "denied": []
+    },
+    {
+      "host": "grok",
+      "width": 320,
+      "checks": [
+        {
+          "name": "mobile-layout-viewport",
+          "passed": false,
+          "actual": 980
+        },
+        {
+          "name": "no-horizontal-overflow",
+          "passed": true,
+          "actual": {
+            "scroll": 980,
+            "width": 980
+          }
+        },
+        {
+          "name": "initial-empty",
+          "passed": true
+        },
+        {
+          "name": "initial-light",
+          "passed": true
+        },
+        {
+          "name": "theme-dark",
+          "passed": true
+        },
+        {
+          "name": "pressed-dark",
+          "passed": true
+        },
+        {
+          "name": "theme-repeat-light",
+          "passed": true
+        },
+        {
+          "name": "keyboard-enter-dark",
+          "passed": true
+        },
+        {
+          "name": "keyboard-space-light",
+          "passed": true
+        },
+        {
+          "name": "visible-keyboard-focus",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "single-enter-submit",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "one-created-row",
+          "passed": true
+        },
+        {
+          "name": "checkbox-complete",
+          "passed": true
+        },
+        {
+          "name": "repeat-click-one-more-submit",
+          "passed": true
+        },
+        {
+          "name": "disabled-control",
+          "passed": true
+        },
+        {
+          "name": "no-runtime-errors",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "denied": []
+    },
+    {
+      "host": "grok",
+      "width": 390,
+      "checks": [
+        {
+          "name": "mobile-layout-viewport",
+          "passed": false,
+          "actual": 980
+        },
+        {
+          "name": "no-horizontal-overflow",
+          "passed": true,
+          "actual": {
+            "scroll": 980,
+            "width": 980
+          }
+        },
+        {
+          "name": "initial-empty",
+          "passed": true
+        },
+        {
+          "name": "initial-light",
+          "passed": true
+        },
+        {
+          "name": "theme-dark",
+          "passed": true
+        },
+        {
+          "name": "pressed-dark",
+          "passed": true
+        },
+        {
+          "name": "theme-repeat-light",
+          "passed": true
+        },
+        {
+          "name": "keyboard-enter-dark",
+          "passed": true
+        },
+        {
+          "name": "keyboard-space-light",
+          "passed": true
+        },
+        {
+          "name": "visible-keyboard-focus",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "single-enter-submit",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "one-created-row",
+          "passed": true
+        },
+        {
+          "name": "checkbox-complete",
+          "passed": true
+        },
+        {
+          "name": "repeat-click-one-more-submit",
+          "passed": true
+        },
+        {
+          "name": "disabled-control",
+          "passed": true
+        },
+        {
+          "name": "no-runtime-errors",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "denied": []
+    },
+    {
+      "host": "grok",
+      "width": 1280,
+      "checks": [
+        {
+          "name": "mobile-layout-viewport",
+          "passed": true,
+          "actual": 1280
+        },
+        {
+          "name": "no-horizontal-overflow",
+          "passed": true,
+          "actual": {
+            "scroll": 1280,
+            "width": 1280
+          }
+        },
+        {
+          "name": "initial-empty",
+          "passed": true
+        },
+        {
+          "name": "initial-light",
+          "passed": true
+        },
+        {
+          "name": "theme-dark",
+          "passed": true
+        },
+        {
+          "name": "pressed-dark",
+          "passed": true
+        },
+        {
+          "name": "theme-repeat-light",
+          "passed": true
+        },
+        {
+          "name": "keyboard-enter-dark",
+          "passed": true
+        },
+        {
+          "name": "keyboard-space-light",
+          "passed": true
+        },
+        {
+          "name": "visible-keyboard-focus",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "single-enter-submit",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "one-created-row",
+          "passed": true
+        },
+        {
+          "name": "checkbox-complete",
+          "passed": true
+        },
+        {
+          "name": "repeat-click-one-more-submit",
+          "passed": true
+        },
+        {
+          "name": "disabled-control",
+          "passed": true
+        },
+        {
+          "name": "no-runtime-errors",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "denied": []
+    }
+  ],
+  "failed": [
+    {
+      "host": "grok",
+      "width": 320,
+      "name": "mobile-layout-viewport",
+      "passed": false,
+      "actual": 980
+    },
+    {
+      "host": "grok",
+      "width": 390,
+      "name": "mobile-layout-viewport",
+      "passed": false,
+      "actual": 980
+    }
+  ],
+  "passed": false
+}

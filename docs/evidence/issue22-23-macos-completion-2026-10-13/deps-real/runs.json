@@ -1,0 +1,52 @@
+[
+  {
+    "host": "grok",
+    "mode": "install",
+    "argv": [
+      "python3",
+      "/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad/scripts/deps.py",
+      "--host",
+      "grok"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 39.08363499981351
+  },
+  {
+    "host": "grok",
+    "mode": "check",
+    "argv": [
+      "python3",
+      "/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad/scripts/deps.py",
+      "--host",
+      "grok",
+      "--check"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.1823462499305606
+  },
+  {
+    "host": "codex",
+    "mode": "install",
+    "argv": [
+      "python3",
+      "/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad/scripts/deps.py",
+      "--host",
+      "codex"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.12407816690392792
+  },
+  {
+    "host": "codex",
+    "mode": "check",
+    "argv": [
+      "python3",
+      "/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad/scripts/deps.py",
+      "--host",
+      "codex",
+      "--check"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.18163849995471537
+  }
+]

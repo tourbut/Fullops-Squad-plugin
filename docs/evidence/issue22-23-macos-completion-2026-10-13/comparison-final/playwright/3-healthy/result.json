@@ -1,0 +1,103 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.4.1",
+  "target_sha": null,
+  "worktree_dirty": null,
+  "executor_sha256": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+  "scenario_sha256": "6f7c61084cb896290a5cf10edf60ddbdf721f669f1e48cfef8cba85806bdac82",
+  "executor_files_sha256": {
+    "jev_test_web.py": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+    "web_contract.py": "560a3e7999f5fc47f0f1f6c94cb49d9b9d971c5552b4a5e24e80e8924a4f7486",
+    "web_dom.js": "d2a00f772382200e966d2983a6c72116757d90952fdc27eb5e89248b730d0bcd",
+    "web_playwright.py": "1b56aaa2c03a8cf2b143aa0b03fdf25fbb951724a0c61b118a36a45876889a56",
+    "web_playwright.cjs": "08b315793e03e31d762e66278e7cdec71b1eecb90b9c5698ee4921b9bb4a5d2c"
+  },
+  "result": "passed",
+  "passed": true,
+  "steps": 5,
+  "scope": "regression_replay",
+  "executor": {
+    "name": "playwright",
+    "cli_version": "0.1.22",
+    "version": "1.63.0",
+    "browser_version": "153.0.8010.12",
+    "request_filtering": true,
+    "attached": false,
+    "blocked_requests": 0
+  },
+  "coverage": {
+    "total": 10,
+    "offset": 0,
+    "observed": 10,
+    "remaining": 0,
+    "unsupported": [
+      "custom_or_select_widgets"
+    ],
+    "complete": false
+  },
+  "assertions_passed": true,
+  "jev_calls": 0,
+  "calls": [],
+  "cost": 0,
+  "known_cost": 0,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 90,
+    "max_cost": 0.02,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 12000
+  },
+  "latency_s": 0,
+  "elapsed_s": 0.556,
+  "checks": [
+    {
+      "condition": {
+        "js": "document.documentElement.dataset.theme",
+        "equals": "dark"
+      },
+      "value": "dark",
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "window.submits",
+        "equals": 1
+      },
+      "value": 1,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelectorAll('#list li').length",
+        "equals": 1
+      },
+      "value": 1,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list li')?.textContent.trim()",
+        "equals": "milk"
+      },
+      "value": "milk",
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list input')?.checked",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    }
+  ],
+  "url": "http://127.0.0.1:57186/healthy",
+  "goal": "Click Dark theme once. Fill New todo with milk without Enter, click Add exactly once, then click Toggle milk exactly once. Finish. Do not load, clear, retry, navigate or change anything else.",
+  "covers": [
+    "DARK",
+    "ONE-SUBMIT",
+    "ONE-MILK",
+    "CHECKED"
+  ]
+}

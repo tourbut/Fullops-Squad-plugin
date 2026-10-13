@@ -1,0 +1,22 @@
+[
+  {
+    "name": "version",
+    "argv": [
+      "ocr",
+      "--version"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.2885482090059668,
+    "selected_ocr": "/private/tmp/fullops-macos-20261013-4vksnsnw/ocr-tools/node_modules/.bin/ocr"
+  },
+  {
+    "name": "review",
+    "argv": [
+      "python3",
+      "tests/review-check.py"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 4.935738958185539,
+    "selected_ocr": "/private/tmp/fullops-macos-20261013-4vksnsnw/ocr-tools/node_modules/.bin/ocr"
+  }
+]

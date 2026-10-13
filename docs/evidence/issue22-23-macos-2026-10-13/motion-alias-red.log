@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/motion.py", line 39, in <module>
+    motion.validate(spec, root)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/motion_check.py", line 78, in validate
+    asset(root, path)
+    ~~~~~^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/motion_check.py", line 37, in asset
+    raise ValueError(f'asset missing, empty or outside spec directory: {name}')
+ValueError: asset missing, empty or outside spec directory: voice.wav

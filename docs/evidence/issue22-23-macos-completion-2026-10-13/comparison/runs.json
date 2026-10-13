@@ -1,0 +1,1715 @@
+[
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 1.188,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 0.466,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "no-check",
+    "error": "RuntimeError: playwright_bridge_failed: Error"
+  },
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.442,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.484,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 0.412,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "no-check",
+    "error": "RuntimeError: playwright_bridge_failed: Error"
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.47,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.445,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 0.405,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "no-check",
+    "error": "RuntimeError: playwright_bridge_failed: Error"
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.462,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.64.0-alpha-1790635538000",
+      "browser_version": "155.0.8059.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 1,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 44.398,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 1,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 36.378,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 1,
+    "case": "no-check",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": false,
+        "passed": false
+      }
+    ],
+    "elapsed_s": 36.718,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 1,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 36.101,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 2,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 34.364,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 2,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 31.423,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 2,
+    "case": "no-check",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": false,
+        "passed": false
+      }
+    ],
+    "elapsed_s": 37.023,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 2,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 46.605,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 3,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 34.27,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 3,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 31.586,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 3,
+    "case": "no-check",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": false,
+        "passed": false
+      }
+    ],
+    "elapsed_s": 36.226,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 3,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 37.493,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "healthy",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 28.375,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "duplicate",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.706,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "no-check",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 28.103,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "no-theme",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.667,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "healthy",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.627,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "duplicate",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.663,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "no-check",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 28.003,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "no-theme",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.855,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 3,
+    "case": "healthy",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.802,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 3,
+    "case": "duplicate",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 27.95,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 3,
+    "case": "no-check",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 28.189,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 3,
+    "case": "no-theme",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 0,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": "",
+        "passed": false
+      }
+    ],
+    "elapsed_s": 28.747,
+    "jev_calls": 1,
+    "known_cost": 5e-05,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  }
+]

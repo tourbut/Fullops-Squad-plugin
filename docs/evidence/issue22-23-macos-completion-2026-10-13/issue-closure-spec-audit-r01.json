@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "audit_key": "ISSUE-CLOSURE-SPEC-AUDIT-R01",
+  "reviewer": "/root/macos_spec_review",
+  "audit_type": "independent Spec-axis closure-scope audit, no new browser or generated-code execution",
+  "issue_sources": [
+    {
+      "number": 22,
+      "url": "https://github.com/tourbut/Fullops-Squad-plugin/issues/22",
+      "state_when_read": "OPEN",
+      "source": "Fresh gh issue view --repo tourbut/Fullops-Squad-plugin --json number,title,body,state,comments",
+      "latest_comment_read": "https://github.com/tourbut/Fullops-Squad-plugin/issues/22#issuecomment-6141377338"
+    },
+    {
+      "number": 23,
+      "url": "https://github.com/tourbut/Fullops-Squad-plugin/issues/23",
+      "state_when_read": "OPEN",
+      "source": "Fresh gh issue view --repo tourbut/Fullops-Squad-plugin --json number,title,body,state,comments",
+      "latest_comment_read": "https://github.com/tourbut/Fullops-Squad-plugin/issues/23#issuecomment-6141382278"
+    }
+  ],
+  "effective_user_scope": {
+    "Claude": "Explicitly waived by the user as supplied in the audit task. Preserve historical BLOCKED/UNVERIFIED records; do not relabel them PASS.",
+    "latest_instruction": "반복측정까진 할필요없어 / 최소화로 테스트해보고 이상없으면 이슈 완료처리해",
+    "scope_record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/user-scope-reduction.json",
+    "scope_effect": "Stop further repeated/matched benchmarking and use completed evidence plus minimum final regression/CI checks. Correctness, security and mandatory gates remain required.",
+    "authorized_outcome": "PR and conditional issue closure after required checks; no additional browser or paid model calls are required for this audit disposition."
+  },
+  "blocking_defects_found": [],
+  "issue22": {
+    "disposition": "CLOSEABLE_UNDER_REVISED_USER_SCOPE_AFTER_FINAL_EVIDENCE_MAP_AND_MANDATORY_CHECKS",
+    "criteria_evidence": [
+      {
+        "criterion": "Actual host install lifecycle and isolated configuration",
+        "status": "performed for non-waived Codex and Grok, with documented host limitation and verified recovery",
+        "evidence": [
+          "docs/evidence/issue22-23-macos-2026-10-13/host-lifecycle.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/version-transition/runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/version-transition/grok-runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/version-transition/grok-recovered-inventory.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/deps-real-r01/codex-receipt.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/deps-real/grok-receipt.json"
+        ],
+        "notes": "Both dependency receipts report complete=true. Grok update exit0 did not advance inventory from 1.4.0; owned temporary uninstall with data retention and reinstall restored 1.4.1. Testing this limitation and recovery does not require fixing the upstream host updater before closing this verification issue."
+      },
+      {
+        "criterion": "Same small UI design, actual file implementation, critique, browser QA and host switch preservation",
+        "status": "performed",
+        "fixed_UI_SHAs": ["3a361d576441b9bd7633b4641911c3388416e7b1", "7e7a4d2f5830233317abcca787ec180b3041625e"],
+        "evidence": [
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/native-workflow/runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/review.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/review.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/host-handoff/result.json"
+        ],
+        "notes": "Native QA is 48 checks per host. Independent Codex QA is 60/60 and Grok QA 114/114 with separate direct visual inspection. Host handoff is now complete: exit0, QA pass, source_preserved=true and prior_evidence_preserved=true."
+      },
+      {
+        "criterion": "React/non-React actual design lint and selected-tool readiness",
+        "status": "performed within small sample scope",
+        "evidence": [
+          "docs/evidence/issue22-23-macos-2026-10-13/design-lint.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/result.json"
+        ],
+        "notes": "React TSX actual shadcn/ESLint lint rejects invalid exit1 and accepts valid exit0. Non-React stylelint17.16.0 accepts token-preserving CSS exit0 and rejects seeded invalid CSS exit2 for both final UI hashes. Optional MCP/Impeccable engine is explicitly not selected, so capability/search/context/detect execution is not required. Full React application acceptance is not claimed."
+      },
+      {
+        "criterion": "Changed UI state and interaction checks",
+        "status": "performed",
+        "notes": "Evidence covers 320/390/1280px, keyboard/focus, theme/reduced motion, empty/loading/error/retry, disabled repeated-load click, cancel/Escape/confirm and actual history Back. Independent helpers cover draft/no-submit, modal boundaries and trusted same-origin Back separately from supplied QA."
+      },
+      {
+        "criterion": "Authentication/tool/hook failure and setting/gate preservation",
+        "status": "performed with disclosed host and attribution limits",
+        "evidence": [
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/auth-failure/results.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/auth-failure/grok-no-sandbox-result.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/version-transition/grok-hook-mcp-identity.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/global-preservation.json",
+          "docs/evidence/issue22-23-macos-2026-10-13/failed-install-preservation.json"
+        ],
+        "notes": "Actual Codex auth failure is distinguished from Grok permission/host failure. Isolated failure records preserve config hashes and do not create authentication files. Current phase has seven stable protected file hashes; Claude runtime-cache/project metric changes are disclosed separately. Original-phase Codex global-config attribution remains UNKNOWN and is not erased or automatically rolled back."
+      },
+      {
+        "criterion": "Fixed-SHA independent code review and QA",
+        "status": "performed",
+        "notes": "Final source R07 and both final native UI outputs have independent review records. OCR infrastructure checks alone are not substituted for those reviews."
+      }
+    ],
+    "remaining_required_tasks": [
+      "Publish a final evidence map explicitly marking Claude waived, Grok stale-update/recovery, historical attribution UNKNOWN and all superseded failures without converting them to PASS.",
+      "Complete the mandatory final source regression, packaging/build parity and CI checks for the PR; resolve any real failure before closure."
+    ],
+    "not_required": [
+      "New Claude execution after the explicit waiver",
+      "Recreating or repairing i-docs product workflows when the new isolated sample satisfies the issue body",
+      "An upstream Grok updater fix or universal all-host/all-path PASS",
+      "Optional MCP/Impeccable engine execution when not selected"
+    ]
+  },
+  "issue23": {
+    "disposition": "CLOSEABLE_UNDER_REVISED_USER_SCOPE_AFTER_FINAL_EVIDENCE_MAP_AND_MANDATORY_CHECKS",
+    "criteria_evidence": [
+      {
+        "criterion": "Bounded native CUAWright plan/generation/revision/re-execution",
+        "status": "performed, with original failures preserved",
+        "evidence": [
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-generation-run.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-revision-r00-timeout.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-revision-r01-run.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-reproduction-budget.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-reproduction-run.json"
+        ],
+        "notes": "Successful bounded attempt reports 2013 output tokens within the prospectively configured8192 cap and two actual model calls within two allowed turns. The old4096 violation and timeout usage/cost UNKNOWN remain distinct. Input usage is measured; no total-input hard cap is claimed."
+      },
+      {
+        "criterion": "Independent generated-code review, isolated checks, visual evidence and deterministic promotion",
+        "status": "performed for reviewed code and controlled fixture",
+        "fixed_CUA_SHA": "6c900b2b7d5ad1dbcc6f86a95e7efa86a6f762dd",
+        "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+        "evidence": [
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-preexecution-spec-r00.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-preexecution-spec-r01.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-visual-r03.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-replay/runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-replay/run-19.json"
+        ],
+        "notes": "Defaults and alternate bread plus completed fixture repetitions have external oracle records and model-free replay. Fourteen R03 records contain five healthy task passes and nine seeded task failures; selected final images and default critical points were directly inspected. Byte-identical bounded code additionally passed run19. Generated FINAL_RESPONSE or process exit0 is not treated as the independent verdict."
+      },
+      {
+        "criterion": "Four-path comparison, ground truth, metrics, cache/API failures and shadow labels",
+        "status": "completed bounded evidence is sufficient under the latest waiver; further matched/repeated work intentionally stopped",
+        "evidence": [
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/comparison-summary.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/comparison-r07/runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/human-ground-truth.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cache-api/cache-runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/cache-api/failure-runs.json",
+          "/private/tmp/fullops-completion-z_ii0xr2/evidence/user-scope-reduction.json"
+        ],
+        "notes": "Existing E2E, Orca, explicit Playwright, actual Orca/Jev and CUA records use the known fixture/invariants with disclosed version/viewport differences. Human explicitly labeled A healthy and B/C/D defects. Cache evidence is three application-cache cold/warm cycles, not OS/provider-cache control. Fifteen API fault-injection cases are controlled local failures, not claimed external outages. Final R07 preserved partial records contain three healthy passes and six completed seeded non-passes with the corresponding violated invariant exposed. Earlier uncertain/false-failure phases remain separate."
+      },
+      {
+        "criterion": "macOS actual Orca connection and native host work, with gates preserved",
+        "status": "performed",
+        "notes": "Actual local Orca/Jev execution and Codex/Grok host file workflows are distinct from portable/browser CI. Final R07 preserves runtime policy, budgets and security tests; known seed failures are not regressions in the generated path."
+      }
+    ],
+    "remaining_required_tasks": [
+      "Publish final sample counts, p50/p95 definition, measured calls/input/output/known costs and remaining UNKNOWN costs without pooling incomparable phases or inventing zero for interrupted work.",
+      "Mark the matched/common comparison and remaining R07 repetitions as user-stopped partial work, preserve original shadow records and human corrections/reasons, and explicitly record waived further benchmarking.",
+      "Complete mandatory final regression/build/CI gates before the conditional closure."
+    ],
+    "not_required": [
+      "Further browser/model calls, aligned four-engine12-case completion, or new repeated benchmark runs after the explicit user stop",
+      "Universal all-PASS across deliberately broken fixtures",
+      "General defect-recall, production effectiveness or speed/cost-superiority claims",
+      "OS/provider/browser-cache control beyond the accurately disclosed application-cache experiment",
+      "New paid keys or Jev image verdicts"
+    ]
+  },
+  "known_limitations_not_promoted_to_success": [
+    "Grok update exit0 with stale inventory is a known host limitation; successful reinstall recovery is separate.",
+    "Original global-config attribution remains UNKNOWN; current isolated preservation evidence does not rewrite history.",
+    "The native Firefox broker's background traffic is outside the Python client's OS egress restriction. Fresh tenant/context isolation and page HTTP/WebSocket guards constrain the tested generated path; full-browser-process egress isolation is not claimed.",
+    "Prior4096 output-budget violation and timeout attempt count/usage/cost unknowns remain preserved.",
+    "Mixed engine/browser versions, viewports, concurrent activity and cache scope limit timing conclusions.",
+    "Known fixture failures and exposed invariants do not establish general production bug recall.",
+    "Original committed macOS/Linux result records remain historical PARTIAL snapshots; a new final evidence map supersedes their scope without overwriting their bytes."
+  ],
+  "final_disposition": "No real blocking defect found for either issue under the user's revised minimal-test scope. Both may be closed conditionally after final evidence publication and mandatory regression/packaging/CI success. No further browser or paid-model measurement is necessary.",
+  "issues_closed_by_reviewer": false,
+  "source_edits_by_reviewer": false,
+  "generated_code_executed_by_reviewer_for_audit": false
+}

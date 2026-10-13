@@ -1,0 +1,10 @@
+{
+  "prior_record_sha256": "37070a4ebe1ad635de051d10df596046521a5d58bd9dab23f60eb04ea54b3c93",
+  "human_fixture_label": "defect",
+  "label_source": "human-ground-truth.json",
+  "execution_outcome": "max_steps",
+  "execution_category": "exploration_failure",
+  "correction_reason": "Human labels describe the seeded fixture after successful prescribed actions. This model run held/stopped before goal completion; do not assign its incomplete end-state to the seeded defect. Earlier automatic reason was too broad and is preserved.",
+  "gates_changed": false,
+  "advisory_only": true
+}

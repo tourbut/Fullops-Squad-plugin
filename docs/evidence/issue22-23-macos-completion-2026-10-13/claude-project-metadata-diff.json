@@ -1,0 +1,18 @@
+{
+  "scope": "changed key names only; raw values private",
+  "projects": [
+    {
+      "project_path_sha256": "860bc1cb53012051bacaba1a0666be0e717ec799271b14c81fc4caf2c07e4376",
+      "changed_keys": [
+        "lastDuration",
+        "lastFpsAverage",
+        "lastFpsLow1Pct",
+        "lastSessionId",
+        "lastSessionMetrics",
+        "lastStartTime"
+      ],
+      "is_test_project": false
+    }
+  ],
+  "attribution": "unknown; background Orca monitor may launch Claude. No Claude tests in completion phase."
+}

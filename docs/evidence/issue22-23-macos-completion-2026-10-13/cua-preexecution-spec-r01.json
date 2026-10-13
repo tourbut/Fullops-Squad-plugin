@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "review_key": "CUA-PREEXECUTION-SPEC-R01",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "independent static pre-execution Spec review against R00",
+  "source": {
+    "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/cua-review-r01",
+    "fixed_sha": "4a7cf35ce06a4e72f12072e835b708ce0fc4448f",
+    "base_sha": "901faa8cf6751773fce388c0aa0d3d3e5fdc70d5",
+    "script_path": "final_runs/run_3/final_script.py",
+    "script_sha256": "41a01be8c6ad68669fb643df5bb1d0df17fdfd3383513ee6746c4f1e6347f6bb",
+    "top_level_script_hash_matches": true,
+    "git_status_clean": true,
+    "implementation_session_id": "01a1357f-6968-7b82-af11-d30a32b4fcf2"
+  },
+  "spec_sources": [
+    "plan.md",
+    "generated-plan-r01.md",
+    "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-revision-r01-prompt.txt",
+    "/private/tmp/fullops-completion-z_ii0xr2/CUAWright/skills/cuawright-web/SKILL.md",
+    "/private/tmp/fullops-completion-z_ii0xr2/CUAWright/skills/cuawright-web/reference/cli_tool_mode.md"
+  ],
+  "generated_code_executed_by_reviewer": false,
+  "browser_executed_by_reviewer": false,
+  "execution_decision": {
+    "status": "approved_for_controlled_four_case_three_repeat_experiment_subject_to_runner_conditions",
+    "safety_blockers_in_fixed_script": [],
+    "reason": "The delta retains actual control interactions, read-only DOM observations, workspace-local evidence writes, headless Firefox at 1280 by 1800, and cleanup. It introduces no subprocess, storage, credential access, sandbox-disable option, or new network destination.",
+    "conditions": [
+      "Before execution, the trusted runner must set sys.argv to [generated_script, --url, selected_allowed_url, --todo, selected_todo] before runpy.run_path. The currently inspected execute_cua.py does not yet forward these arguments and would cause argparse to reject the runner's positional script path.",
+      "Keep the approved external Firefox broker, network and tenant sandbox, and exact independent DOM oracle. Synchronize the oracle TODO_VALUE with the CLI --todo argument.",
+      "Copy byte-identical code into a new writable final_runs/run_<id> directory for every execution; preserve all preceding logs, screenshots, scripts and review records.",
+      "Interpret oracle pass separately from execution exit code. Healthy should satisfy the task oracle; duplicate, no-check and no-theme should fail that oracle in each repeat without being normalized to successful task completion.",
+      "Keep all 12 runtime outcomes and any timeouts or unknowns; do not introduce automatic retries or model calls into the model-free experiment.",
+      "Re-review any change to the generated script that changes its fixed hash."
+    ]
+  },
+  "narrow_change_checks": {
+    "CLI_url_allowlist": "final_script.py:9-14,69-76 restricts CLI input to exactly the four approved loopback URLs before run() starts",
+    "CLI_todo_and_defaults": "final_script.py:71-72 reproduces the healthy milk task by default",
+    "static_import_safety": "final_script.py:69-76 uses a main guard; static inspection finds no browser launch, network call or evidence write at module scope",
+    "parameter_echo": "final_script.py:29 records both resolved parameters before interactions",
+    "first_matching_checkbox_only": "final_script.py:45-47 deliberately chooses the first matching row and clicks once without retrying",
+    "full_row_count_and_exact_text": "final_script.py:55-60 reports all #list li rows and the selected row text rather than hiding duplicates",
+    "action_timeout": "final_script.py:35 sets 20000 ms default page timeout",
+    "known_seeded_cases": "Static fixture inspection shows duplicate retains two rows and two submissions, no-check prevents the checkbox toggle, and no-theme retains light theme. R01 contains no assertion that masks these states before final capture.",
+    "runtime_success_verified": false
+  },
+  "nonblocking_cli_contract_findings": [
+    {
+      "id": "R01-CLI-001",
+      "severity": "low",
+      "status": "partial_formal_CLI_skill_contract",
+      "scope": "Does not block the explicitly scoped controlled experiment, but prevents declaring full official CLI tool mode completion.",
+      "spec_quote": "Completion gate: plan.md contains both # Parameters and # Critical Points; reusable function has a Google-style Args docstring; step 0 params: line is present.",
+      "evidence": [
+        "plan.md contains no # Parameters table; the parameter table exists only as code comments.",
+        "final_script.py:26 run(url, todo) has no Google-style Args or Returns docstring.",
+        "final_script.py:71-72 flags have no descriptive help text.",
+        "final_script.py:29 emits step 0 parameters: instead of the official exact step 0 params: prefix."
+      ],
+      "runtime_cli_gates_pending": ["no-argument reproduction", "import-safety smoke test", "alternate-argument run", "--help output", "CP evidence verification"]
+    }
+  ],
+  "separate_limits": [
+    "URL validation is in the CLI main guard, not inside imported run(); imported callers remain dependent on the external sandbox.",
+    "has_text is a substring match and chooses the first row. The external exact-text and full-row-count oracle remains necessary; this selection strategy is explicitly requested for the known seeded fixtures.",
+    "No 4-case by 3-repeat results exist from this review. Repeatability, defect detection and visual correctness require the planned executions and separate evidence inspection.",
+    "Generated logs are observations, not an independent verdict. A failed fixture may finish the script with exit zero and must remain a failed task oracle result."
+  ],
+  "provenance_preservation": {
+    "prior_timeout_record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-revision-r00-timeout.json",
+    "prior_timeout_seconds": 180,
+    "prior_provider_usage": "unknown",
+    "prior_cost": "unknown",
+    "prior_provider_attempt_count": "unknown",
+    "unknown_was_not_zeroed": true,
+    "fresh_successful_generation_is_separate": true,
+    "R00_visual_record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-visual-r00.json",
+    "R00_visual_record_modified": false
+  },
+  "acceptance": {
+    "preexecution_only": true,
+    "task_success_claimed": false,
+    "formal_CLI_skill_completion_claimed": false,
+    "issues_22_23_accepted": false,
+    "Claude_user_waiver_scope_preserved": true
+  }
+}

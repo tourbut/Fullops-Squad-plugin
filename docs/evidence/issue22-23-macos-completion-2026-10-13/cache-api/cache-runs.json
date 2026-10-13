@@ -1,0 +1,191 @@
+[
+  {
+    "cycle": 0,
+    "mode": "cold",
+    "elapsed_s": 0.39582379115745425,
+    "reported_latency_s": 0.393,
+    "cached": false,
+    "provider_calls": 1,
+    "request_bytes": 385,
+    "response_bytes": 320,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "outcome": {
+          "type": "choice",
+          "choice": "normal",
+          "probabilities": {
+            "normal": 0.99,
+            "defect": 0.01
+          },
+          "confidence": 0.98
+        }
+      },
+      "usage": {
+        "input_tokens": 378,
+        "output_tokens": 33,
+        "cost": 1.5876e-05
+      },
+      "id": "gen-dec-1791899951-vGaqIjh14fAMpV21BpS1",
+      "provider": "TypeSafe"
+    }
+  },
+  {
+    "cycle": 0,
+    "mode": "warm",
+    "elapsed_s": 0.0002577907871454954,
+    "reported_latency_s": 0.0,
+    "cached": true,
+    "provider_calls": 0,
+    "request_bytes": 385,
+    "response_bytes": 324,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "outcome": {
+          "type": "choice",
+          "choice": "normal",
+          "probabilities": {
+            "normal": 0.99,
+            "defect": 0.01
+          },
+          "confidence": 0.98
+        }
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost": 0
+      },
+      "id": "gen-dec-1791899951-vGaqIjh14fAMpV21BpS1",
+      "provider": "TypeSafe",
+      "cached": true
+    }
+  },
+  {
+    "cycle": 1,
+    "mode": "cold",
+    "elapsed_s": 0.4160362081602216,
+    "reported_latency_s": 0.416,
+    "cached": false,
+    "provider_calls": 1,
+    "request_bytes": 385,
+    "response_bytes": 320,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "outcome": {
+          "type": "choice",
+          "choice": "normal",
+          "probabilities": {
+            "normal": 0.99,
+            "defect": 0.01
+          },
+          "confidence": 0.98
+        }
+      },
+      "usage": {
+        "input_tokens": 378,
+        "output_tokens": 33,
+        "cost": 1.5876e-05
+      },
+      "id": "gen-dec-1791899952-hViiz9vXMRGOlw1VwWJB",
+      "provider": "TypeSafe"
+    }
+  },
+  {
+    "cycle": 1,
+    "mode": "warm",
+    "elapsed_s": 0.00018554204143583775,
+    "reported_latency_s": 0.0,
+    "cached": true,
+    "provider_calls": 0,
+    "request_bytes": 385,
+    "response_bytes": 324,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "outcome": {
+          "type": "choice",
+          "choice": "normal",
+          "probabilities": {
+            "normal": 0.99,
+            "defect": 0.01
+          },
+          "confidence": 0.98
+        }
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost": 0
+      },
+      "id": "gen-dec-1791899952-hViiz9vXMRGOlw1VwWJB",
+      "provider": "TypeSafe",
+      "cached": true
+    }
+  },
+  {
+    "cycle": 2,
+    "mode": "cold",
+    "elapsed_s": 0.454304417129606,
+    "reported_latency_s": 0.454,
+    "cached": false,
+    "provider_calls": 1,
+    "request_bytes": 385,
+    "response_bytes": 320,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "outcome": {
+          "type": "choice",
+          "choice": "normal",
+          "probabilities": {
+            "normal": 0.99,
+            "defect": 0.01
+          },
+          "confidence": 0.98
+        }
+      },
+      "usage": {
+        "input_tokens": 378,
+        "output_tokens": 33,
+        "cost": 1.5876e-05
+      },
+      "id": "gen-dec-1791899952-Btv4EMQ18OX7l0kQRtBh",
+      "provider": "TypeSafe"
+    }
+  },
+  {
+    "cycle": 2,
+    "mode": "warm",
+    "elapsed_s": 0.0001623749267309904,
+    "reported_latency_s": 0.0,
+    "cached": true,
+    "provider_calls": 0,
+    "request_bytes": 385,
+    "response_bytes": 324,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "outcome": {
+          "type": "choice",
+          "choice": "normal",
+          "probabilities": {
+            "normal": 0.99,
+            "defect": 0.01
+          },
+          "confidence": 0.98
+        }
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost": 0
+      },
+      "id": "gen-dec-1791899952-Btv4EMQ18OX7l0kQRtBh",
+      "provider": "TypeSafe",
+      "cached": true
+    }
+  }
+]

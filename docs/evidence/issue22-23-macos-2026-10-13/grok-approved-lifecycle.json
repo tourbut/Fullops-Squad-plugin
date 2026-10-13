@@ -1,0 +1,95 @@
+[
+  {
+    "stage": "install",
+    "argv": [
+      "grok",
+      "plugin",
+      "install",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad",
+      "--trust"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.39242016710340977,
+    "log": "grok-approved-install.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  },
+  {
+    "stage": "repeat",
+    "argv": [
+      "grok",
+      "plugin",
+      "install",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/source/dist/native/fullops-squad",
+      "--trust"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.15276524983346462,
+    "log": "grok-approved-repeat.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  },
+  {
+    "stage": "update",
+    "argv": [
+      "grok",
+      "plugin",
+      "update",
+      "fullops-squad"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.14901758404448628,
+    "log": "grok-approved-update.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  },
+  {
+    "stage": "disable",
+    "argv": [
+      "grok",
+      "plugin",
+      "disable",
+      "fullops-squad"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.17182304221205413,
+    "log": "grok-approved-disable.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  },
+  {
+    "stage": "disabled-inventory",
+    "argv": [
+      "grok",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.14868499990552664,
+    "log": "grok-approved-disabled-inventory.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  },
+  {
+    "stage": "enable",
+    "argv": [
+      "grok",
+      "plugin",
+      "enable",
+      "fullops-squad"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.15756958397105336,
+    "log": "grok-approved-enable.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  },
+  {
+    "stage": "inventory",
+    "argv": [
+      "grok",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.14566733385436237,
+    "log": "grok-approved-inventory.log",
+    "authorization": "user approved isolated --trust for source 1bf607826b5f806d27d11ab278319c63528edae7"
+  }
+]

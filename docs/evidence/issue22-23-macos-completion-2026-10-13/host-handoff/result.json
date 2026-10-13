@@ -1,0 +1,275 @@
+{
+  "source_ui_sha": "3a361d576441b9bd7633b4641911c3388416e7b1",
+  "from": "codex",
+  "to": "grok",
+  "argv": [
+    "grok",
+    "--cwd",
+    "/private/tmp/fullops-completion-z_ii0xr2/handoff-grok",
+    "--sandbox",
+    "workspace",
+    "--tools",
+    "read_file,run_terminal_cmd",
+    "--no-subagents",
+    "--max-turns",
+    "6",
+    "--disable-web-search",
+    "--permission-mode",
+    "dontAsk",
+    "--allow",
+    "Bash(/private/tmp/fullops-completion-z_ii0xr2/runtime/bin/python /private/tmp/fullops-completion-z_ii0xr2/handoff-grok/qa.py /private/tmp/fullops-completion-z_ii0xr2/handoff-grok*)",
+    "--output-format",
+    "json",
+    "--model",
+    "grok-4.6",
+    "--effort",
+    "medium",
+    "--prompt-file",
+    "/private/tmp/fullops-completion-z_ii0xr2/evidence/host-handoff/prompt.txt"
+  ],
+  "exit_code": 0,
+  "elapsed_s": 51.46827287506312,
+  "source_before": {
+    "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+    "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+    "index.html": "6c219f8ce669bb3b337c58a79af77ac810728b1ccfa9d889b791759fdd9cf912",
+    "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb",
+    "plan.md": "68fab0923bc5ce0e3bba87eb0ef1e4343eb2a0ec29cf74f2037f0e0f2038181f",
+    "critique.md": "eee2f2fe78625f0a9abb34a9c10206637c4551e8faae91424aeb4faa1cec11aa"
+  },
+  "source_after": {
+    "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+    "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+    "index.html": "6c219f8ce669bb3b337c58a79af77ac810728b1ccfa9d889b791759fdd9cf912",
+    "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb",
+    "plan.md": "68fab0923bc5ce0e3bba87eb0ef1e4343eb2a0ec29cf74f2037f0e0f2038181f",
+    "critique.md": "eee2f2fe78625f0a9abb34a9c10206637c4551e8faae91424aeb4faa1cec11aa"
+  },
+  "source_preserved": true,
+  "prior_evidence_hashes": {
+    "prior-codex-evidence/1280-dark.png": "59e85eceef83ace2fc01c0341e54e657cb3a2e262bf6dc18465c3b12d6e267c8",
+    "prior-codex-evidence/390-dark.png": "b1b73fdf5ec1c6dffad6878d6d3f9cbfe1e50f34cf7386af91db1c8833946cba",
+    "prior-codex-evidence/result.json": "a5793ef1c30a90a0a026e0044ba1299cde11d46dd0c4a56a1a494c937f3da576",
+    "prior-codex-evidence/320-dark.png": "34154f47a1a4787c3fd9bf0864344e16bfca607cf658319c1e1b1b5d569aab6d"
+  },
+  "prior_evidence_preserved": true,
+  "qa_exists": true,
+  "qa": {
+    "checks": [
+      {
+        "width": 320,
+        "checks": [
+          {
+            "name": "empty",
+            "passed": true
+          },
+          {
+            "name": "no-overflow",
+            "passed": true
+          },
+          {
+            "name": "keyboard-dark",
+            "passed": true
+          },
+          {
+            "name": "focus-visible",
+            "passed": true
+          },
+          {
+            "name": "reduced-motion",
+            "passed": true
+          },
+          {
+            "name": "shortcut-input-focus",
+            "passed": true
+          },
+          {
+            "name": "one-add-and-check",
+            "passed": true
+          },
+          {
+            "name": "cancel-preserves-focus",
+            "passed": true
+          },
+          {
+            "name": "escape-preserves-focus",
+            "passed": true
+          },
+          {
+            "name": "confirmed-clear",
+            "passed": true
+          },
+          {
+            "name": "loading",
+            "passed": true
+          },
+          {
+            "name": "error-no-auto-retry",
+            "passed": true
+          },
+          {
+            "name": "manual-retry-once",
+            "passed": true
+          },
+          {
+            "name": "load-empty",
+            "passed": true
+          },
+          {
+            "name": "repeat-disabled-load",
+            "passed": true
+          },
+          {
+            "name": "light-restored",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "checks": [
+          {
+            "name": "empty",
+            "passed": true
+          },
+          {
+            "name": "no-overflow",
+            "passed": true
+          },
+          {
+            "name": "keyboard-dark",
+            "passed": true
+          },
+          {
+            "name": "focus-visible",
+            "passed": true
+          },
+          {
+            "name": "reduced-motion",
+            "passed": true
+          },
+          {
+            "name": "shortcut-input-focus",
+            "passed": true
+          },
+          {
+            "name": "one-add-and-check",
+            "passed": true
+          },
+          {
+            "name": "cancel-preserves-focus",
+            "passed": true
+          },
+          {
+            "name": "escape-preserves-focus",
+            "passed": true
+          },
+          {
+            "name": "confirmed-clear",
+            "passed": true
+          },
+          {
+            "name": "loading",
+            "passed": true
+          },
+          {
+            "name": "error-no-auto-retry",
+            "passed": true
+          },
+          {
+            "name": "manual-retry-once",
+            "passed": true
+          },
+          {
+            "name": "load-empty",
+            "passed": true
+          },
+          {
+            "name": "repeat-disabled-load",
+            "passed": true
+          },
+          {
+            "name": "light-restored",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "checks": [
+          {
+            "name": "empty",
+            "passed": true
+          },
+          {
+            "name": "no-overflow",
+            "passed": true
+          },
+          {
+            "name": "keyboard-dark",
+            "passed": true
+          },
+          {
+            "name": "focus-visible",
+            "passed": true
+          },
+          {
+            "name": "reduced-motion",
+            "passed": true
+          },
+          {
+            "name": "shortcut-input-focus",
+            "passed": true
+          },
+          {
+            "name": "one-add-and-check",
+            "passed": true
+          },
+          {
+            "name": "cancel-preserves-focus",
+            "passed": true
+          },
+          {
+            "name": "escape-preserves-focus",
+            "passed": true
+          },
+          {
+            "name": "confirmed-clear",
+            "passed": true
+          },
+          {
+            "name": "loading",
+            "passed": true
+          },
+          {
+            "name": "error-no-auto-retry",
+            "passed": true
+          },
+          {
+            "name": "manual-retry-once",
+            "passed": true
+          },
+          {
+            "name": "load-empty",
+            "passed": true
+          },
+          {
+            "name": "repeat-disabled-load",
+            "passed": true
+          },
+          {
+            "name": "light-restored",
+            "passed": true
+          }
+        ]
+      }
+    ],
+    "passed": true,
+    "model_calls": 0,
+    "network_requests_allowed": 0,
+    "browser": "Firefox155.0 broker, fresh context each width",
+    "unexamined": [
+      "loopback history back measured separately"
+    ]
+  }
+}

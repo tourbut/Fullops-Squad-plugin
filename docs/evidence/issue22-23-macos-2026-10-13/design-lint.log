@@ -1,0 +1,2 @@
+PASS: real @shadcn/lint, setup script registration, invalid/valid exit codes and HEAD gate
+{"@shadcn/lint": "0.2.1", "eslint": "10.12.0", "@typescript-eslint/parser": "8.71.2", "tailwindcss": "4.3.3"}

@@ -5,12 +5,30 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 PY = sys.executable
 sys.path.insert(0, str(SCRIPTS))
 import lint as checks
+
+
+def command_cwd_aliases():
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-path-') as tmp:
+        repo = Path(tmp).resolve()
+        (repo / 'nested').mkdir()
+        alias = repo / 'nested' / '..'
+        for cwd, allowed in [('.', True), ('nested', True), ('..', False)]:
+            raw = json.dumps({**checks.DEFAULT, 'commands': [
+                {'name': 'test', 'run': [PY, '-V'], 'cwd': cwd}]}).encode()
+            with patch.object(checks, 'config_blob', return_value=raw):
+                try:
+                    checks.load_config(alias, 'HEAD')
+                except ValueError as error:
+                    assert not allowed and str(error) == '레포 밖 cwd: test', error
+                else:
+                    assert allowed, 'outside cwd accepted'
 
 
 def design_slop():
@@ -383,6 +401,7 @@ def main():
 
 
 if __name__ == '__main__':
+    command_cwd_aliases()
     main()
     anti_slop()
     design_slop()

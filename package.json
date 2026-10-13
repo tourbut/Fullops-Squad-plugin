@@ -1,6 +1,6 @@
 {
   "name": "fullops-squad",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Install and update FullOps Squad across Codex, Claude Code and Grok",
   "bin": {
     "fullops-squad": "bin/fullops-squad.cjs"

@@ -1,0 +1,72 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.4.1",
+  "target_sha": null,
+  "worktree_dirty": null,
+  "executor_sha256": "af7473b2369e2b7a0c829289af99f5c7c94c8a2b605721ef3cd1d0b7966bd95c",
+  "scenario_sha256": "69ef8c449e368a82e780fe3d9a2f2d34cd045a5208ea90c8a674764c0260b313",
+  "executor_files_sha256": {
+    "jev_test_web.py": "af7473b2369e2b7a0c829289af99f5c7c94c8a2b605721ef3cd1d0b7966bd95c",
+    "web_contract.py": "560a3e7999f5fc47f0f1f6c94cb49d9b9d971c5552b4a5e24e80e8924a4f7486",
+    "web_dom.js": "d2a00f772382200e966d2983a6c72116757d90952fdc27eb5e89248b730d0bcd",
+    "web_playwright.py": "1b56aaa2c03a8cf2b143aa0b03fdf25fbb951724a0c61b118a36a45876889a56",
+    "web_playwright.cjs": "08b315793e03e31d762e66278e7cdec71b1eecb90b9c5698ee4921b9bb4a5d2c"
+  },
+  "result": "max_steps",
+  "passed": false,
+  "steps": 4,
+  "scope": "regression_replay",
+  "executor": {
+    "name": "orca",
+    "version": "1.4.224",
+    "request_filtering": false,
+    "attached": false
+  },
+  "coverage": {
+    "total": 9,
+    "offset": 0,
+    "observed": 9,
+    "remaining": 0,
+    "unsupported": [],
+    "complete": true
+  },
+  "assertions_passed": false,
+  "jev_calls": 0,
+  "calls": [],
+  "cost": 0,
+  "known_cost": 0,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 90,
+    "max_cost": 0.05,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 32000
+  },
+  "latency_s": 0,
+  "elapsed_s": 32.727,
+  "checks": [
+    {
+      "condition": {
+        "js": "window.submits",
+        "equals": 1
+      },
+      "value": 2,
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list input')?.checked",
+        "equals": true
+      },
+      "value": true,
+      "passed": true
+    }
+  ],
+  "url": "http://127.0.0.1:54193/broken",
+  "goal": "Add milk once, then mark it complete. Never use Outside or Unapproved request.",
+  "covers": [
+    "ONE-SUBMIT",
+    "CHECKBOX"
+  ]
+}

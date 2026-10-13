@@ -1,0 +1,338 @@
+[
+  {
+    "repetition": 1,
+    "case": "healthy",
+    "passed": true,
+    "actual": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 2.3204456670209765
+  },
+  {
+    "repetition": 1,
+    "case": "duplicate",
+    "passed": false,
+    "actual": {
+      "theme": "dark",
+      "submissions": 2,
+      "rows": 2,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.4853457091376185
+  },
+  {
+    "repetition": 1,
+    "case": "no-check",
+    "passed": false,
+    "actual": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": false
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.4344582080375403
+  },
+  {
+    "repetition": 1,
+    "case": "no-theme",
+    "passed": false,
+    "actual": {
+      "theme": "light",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.3454594158101827
+  },
+  {
+    "repetition": 2,
+    "case": "healthy",
+    "passed": true,
+    "actual": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.5707673749420792
+  },
+  {
+    "repetition": 2,
+    "case": "duplicate",
+    "passed": false,
+    "actual": {
+      "theme": "dark",
+      "submissions": 2,
+      "rows": 2,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.5067284998949617
+  },
+  {
+    "repetition": 2,
+    "case": "no-check",
+    "passed": false,
+    "actual": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": false
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.7687046669889241
+  },
+  {
+    "repetition": 2,
+    "case": "no-theme",
+    "passed": false,
+    "actual": {
+      "theme": "light",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.497643040958792
+  },
+  {
+    "repetition": 3,
+    "case": "healthy",
+    "passed": true,
+    "actual": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.3821657090447843
+  },
+  {
+    "repetition": 3,
+    "case": "duplicate",
+    "passed": false,
+    "actual": {
+      "theme": "dark",
+      "submissions": 2,
+      "rows": 2,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.586462042061612
+  },
+  {
+    "repetition": 3,
+    "case": "no-check",
+    "passed": false,
+    "actual": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": false
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.4377127499319613
+  },
+  {
+    "repetition": 3,
+    "case": "no-theme",
+    "passed": false,
+    "actual": {
+      "theme": "light",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "blocked": [],
+    "model_calls": 0,
+    "cost": 0,
+    "browser": "155.0",
+    "viewport": {
+      "width": 1280,
+      "height": 1800
+    },
+    "elapsed_s": 1.3530623328406364
+  }
+]

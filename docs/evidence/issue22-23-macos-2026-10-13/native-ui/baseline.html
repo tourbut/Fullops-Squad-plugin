@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Isolated engine fixture</title>
+<style>body{font:16px sans-serif}input{width:240px;height:32px}li{padding:12px}</style>
+<main><h1>Todo fixture</h1><form><label>New todo <input id="todo" autocomplete="off"></label><button>Add</button></form>
+<ul id="list"></ul><button disabled>Restricted</button><a href="https://blocked.invalid/">Outside</a>
+<button id="network">Unapproved request</button>
+<form action="https://blocked.invalid/"><button>Foreign form submit</button></form>
+<form><button formaction="https://blocked.invalid/override">Foreign submit override</button></form></main><script>
+window.submits=0;const form=document.querySelector('form'),input=document.querySelector('input');
+form.onsubmit=event=>{event.preventDefault();window.submits++;const li=document.createElement('li');
+const label=document.createElement('label');const box=document.createElement('input');box.type='checkbox';box.setAttribute('aria-label','Toggle milk');
+label.append(box,document.createTextNode(input.value));li.append(label);document.querySelector('ul').append(li);};
+input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();form.requestSubmit();}};
+document.querySelector('#network').onclick=()=>fetch('/forbidden',{method:'POST'}).catch(()=>{});
+</script>

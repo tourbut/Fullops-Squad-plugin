@@ -1,0 +1,31 @@
+orca-jev 1 healthy True passed
+orca-jev 1 duplicate False uncertain
+orca-jev 1 no-check False max_steps
+orca-jev 1 no-theme False max_steps
+orca-jev 2 healthy True passed
+orca-jev 2 duplicate False max_steps
+orca-jev 2 no-check False max_steps
+orca-jev 2 no-theme False max_steps
+orca-jev 3 healthy True passed
+Traceback (most recent call last):
+  File "/private/tmp/fullops-completion-z_ii0xr2/compare_jev_r07.py", line 29, in <module>
+    summary=web.run(scenario,browser,measured if engine=='orca-jev' else None,dest,log=lambda *_:None,replay=None if engine=='orca-jev' else contract.replay_plan(scenario,steps))
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 377, in run
+    raw = browser.snapshot()
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 212, in snapshot
+    local = self.evaluate(f'({DOM})(false)')
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 182, in evaluate
+    data = self.run('eval', '--expression', expression)
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 157, in run
+    done = subprocess.run([self.orca, *args, *scope, '--json'], capture_output=True, text=True, encoding='utf-8', timeout=timeout)
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 558, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 1221, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 2130, in _communicate
+    ready = selector.select(timeout)
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/selectors.py", line 398, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt

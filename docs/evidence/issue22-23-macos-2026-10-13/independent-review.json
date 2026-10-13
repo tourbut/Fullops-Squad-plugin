@@ -1,0 +1,42 @@
+{
+  "source_sha": "2c562905d5bd274dd6ff50fe4af0c163a4c2a362",
+  "source_snapshot": "/private/tmp/fullops-macos-20261013-4vksnsnw/final-code-review",
+  "snapshot": "clean detached; filesystem readonly",
+  "standards": {
+    "session": "/root/macos_standards_review",
+    "findings": [],
+    "scope": "Final source diff from 1bf6078, reviewed in successive fixed snapshots; no test rerun by reviewer"
+  },
+  "spec": {
+    "session": "/root/macos_spec_review",
+    "findings": [],
+    "scope": "macOS path correctness and unchanged rejection assertions; second motion fixture found then fixed"
+  },
+  "ui_original": {
+    "sha": "432a7d514baf7b59dc418f4fb31ce7e0e6dce64f",
+    "findings": [
+      {
+        "reviewer": "/root/macos_standards_review",
+        "severity": "medium",
+        "file": "grok.html:1",
+        "finding": "input boundary contrast approximately 1.75:1 light and 1.46:1 dark",
+        "status": "resolved in R01"
+      }
+    ]
+  },
+  "ui_final": {
+    "sha": "8282999e4b674da3c0720f77f0f37cd3b0a936dd",
+    "snapshot": "/private/tmp/fullops-macos-20261013-4vksnsnw/native-ui-r01-review",
+    "snapshot_mode": "clean detached; filesystem readonly",
+    "standards_findings": [],
+    "spec_findings": [],
+    "contrast": {
+      "light_surface": 6.69,
+      "light_page": 6.07,
+      "dark_surface": 4.94,
+      "dark_page": 5.24
+    },
+    "reviewer_browser_execution": false
+  },
+  "limits": "Independent static code review and contrast calculation. OCR gate regression, parent automated QA, selected direct visual inspection and product acceptance remain separate."
+}

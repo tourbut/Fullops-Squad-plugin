@@ -1,0 +1,35 @@
+[
+  {
+    "name": "design-tools",
+    "argv": [
+      "npm",
+      "install",
+      "--prefix",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/design-tools",
+      "--ignore-scripts",
+      "--no-save",
+      "--package-lock=false",
+      "@shadcn/lint@latest",
+      "eslint@latest",
+      "@typescript-eslint/parser@latest",
+      "tailwindcss@latest"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 5.071741000050679,
+    "log": "design-tools.log"
+  },
+  {
+    "name": "design-lint",
+    "argv": [
+      "python3",
+      "tests/shadcn-lint.py",
+      "--tools",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/design-tools",
+      "--out",
+      "/private/tmp/fullops-macos-20261013-4vksnsnw/evidence/design-lint.json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 1.7357876249589026,
+    "log": "design-lint.log"
+  }
+]
