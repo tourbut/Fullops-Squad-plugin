@@ -94,6 +94,8 @@ def main():
             'ref': 'e7', 'role': 'checkbox', 'name': 'Toggle Todo',
             'state': ['checked=false'], 'near': '우유 사기'}
         assert seen[0]['state']['values'] == {'milk': '우유 사기'}
+        assert q['valid_check_target']['instructions']['candidates'] == {
+            'e7': 'checkbox "Toggle Todo" next to "우유 사기" (checked=false)'}
         assert q['check_target']['criteria']['e7'] == 'checkbox "Toggle Todo" next to "우유 사기" (checked=false)'
         assert set(q) >= {'operation', 'risky', 'fill_target', 'fill_value', 'check_target'}  # 한 요청에 모두
         assert 'done' in q['operation']['criteria'] and 'check' not in seen[0]['questions']['operation']['criteria']
