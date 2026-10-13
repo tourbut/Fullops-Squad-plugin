@@ -1,0 +1,29 @@
+{
+  "selection": {
+    "enabled": true,
+    "primary": "frontend-design",
+    "review": [],
+    "tools": [
+      "playwright"
+    ],
+    "host": "claude-code",
+    "model": "validation-only",
+    "effort": "medium",
+    "design": "DESIGN.md",
+    "tokens": [],
+    "components": []
+  },
+  "status": "needs_attention",
+  "problems": [
+    "skill source unverified: frontend-design"
+  ],
+  "skills": [
+    "/home/shin/.claude/skills/frontend-design/SKILL.md"
+  ],
+  "tools": {
+    "playwright": "cli_verified"
+  },
+  "authentication": "not_run",
+  "browser_qa": "not_run",
+  "mcp_connection": "not_run"
+}

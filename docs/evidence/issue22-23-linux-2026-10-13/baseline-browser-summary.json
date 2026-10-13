@@ -1,0 +1,70 @@
+{
+  "scope": "Three repetitions per engine of one healthy fixture and one known counter defect. Same scenario SHA and assertions per paired sample. Deterministic replay only.",
+  "source_sha": "6cc213882fc4b1d69d4a619e8ee62bb790a17cba",
+  "ground_truth": "Agent inspected existing fixture and intentional window.submits += 2 mutation; no human labels collected in this validation.",
+  "cache_classification": "Fresh browser contexts on each run; process/OS cache state not controlled or labelled cold/warm.",
+  "engines": {
+    "playwright": {
+      "samples": 3,
+      "healthy_passes": 3,
+      "known_defect_detections": 3,
+      "false_passes": 0,
+      "false_failures": 0,
+      "run_elapsed_s": [
+        0.385,
+        0.397,
+        0.421,
+        0.437,
+        0.443,
+        0.458
+      ],
+      "median_s": 0.429,
+      "p95_nearest_rank_s": 0.458,
+      "jev_calls": 0,
+      "api_cost": 0,
+      "executor": {
+        "name": "playwright",
+        "cli_version": "0.1.22",
+        "version": "1.64.0-alpha-1790635538000",
+        "browser_version": "155.0.8059.12",
+        "request_filtering": true,
+        "attached": false,
+        "blocked_requests": 0
+      }
+    },
+    "orca": {
+      "samples": 3,
+      "healthy_passes": 3,
+      "known_defect_detections": 3,
+      "false_passes": 0,
+      "false_failures": 0,
+      "run_elapsed_s": [
+        30.489,
+        30.49,
+        31.618,
+        35.585,
+        36.406,
+        36.606
+      ],
+      "median_s": 33.6015,
+      "p95_nearest_rank_s": 36.606,
+      "jev_calls": 0,
+      "api_cost": 0,
+      "executor": {
+        "name": "orca",
+        "version": "1.4.224",
+        "request_filtering": false,
+        "attached": false
+      }
+    }
+  },
+  "unverified": [
+    "model exploration quality",
+    "general bug recall",
+    "CUAWright generation/run/visual review",
+    "authenticated three-host UI workflow",
+    "human-labelled shadow correction",
+    "API failure cost distribution",
+    "macOS"
+  ]
+}
