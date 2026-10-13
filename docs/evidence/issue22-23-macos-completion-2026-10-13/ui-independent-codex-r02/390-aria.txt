@@ -1,0 +1,20 @@
+- main:
+  - heading "Todo acceptance fixture" [level=1]
+  - button "Dark theme"
+  - text: New todo
+  - textbox "New todo"
+  - button "Add"
+  - status: No todos yet
+  - list
+  - paragraph:
+    - text: "Submissions:"
+    - status: "1"
+  - text: Load case
+  - combobox "Load case":
+    - option "Empty" [selected]
+    - option "Data"
+    - option "Error"
+  - button "Load"
+  - button "Clear todos"
+  - button "Details"
+  - button "Restricted" [disabled]

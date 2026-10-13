@@ -1,0 +1,298 @@
+[
+  {
+    "host": "codex",
+    "argv": [
+      "codex",
+      "--no-daemon",
+      "exec",
+      "--ignore-user-config",
+      "--ephemeral",
+      "--sandbox",
+      "workspace-write",
+      "--model",
+      "gpt-6.1-sol",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "-c",
+      "sandbox_workspace_write.network_access=true",
+      "--json",
+      "-"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 85.45906216697767,
+    "protected_before": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "protected_after": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "qa_exists": true,
+    "qa": {
+      "checks": [
+        {
+          "width": 320,
+          "checks": [
+            {
+              "name": "empty",
+              "passed": true
+            },
+            {
+              "name": "no-overflow",
+              "passed": true
+            },
+            {
+              "name": "keyboard-dark",
+              "passed": true
+            },
+            {
+              "name": "focus-visible",
+              "passed": true
+            },
+            {
+              "name": "reduced-motion",
+              "passed": true
+            },
+            {
+              "name": "shortcut-input-focus",
+              "passed": true
+            },
+            {
+              "name": "one-add-and-check",
+              "passed": true
+            },
+            {
+              "name": "cancel-preserves-focus",
+              "passed": true
+            },
+            {
+              "name": "escape-preserves-focus",
+              "passed": true
+            },
+            {
+              "name": "confirmed-clear",
+              "passed": true
+            },
+            {
+              "name": "loading",
+              "passed": true
+            },
+            {
+              "name": "error-no-auto-retry",
+              "passed": true
+            },
+            {
+              "name": "manual-retry-once",
+              "passed": true
+            },
+            {
+              "name": "load-empty",
+              "passed": true
+            },
+            {
+              "name": "repeat-disabled-load",
+              "passed": true
+            },
+            {
+              "name": "light-restored",
+              "passed": true
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "checks": [
+            {
+              "name": "empty",
+              "passed": true
+            },
+            {
+              "name": "no-overflow",
+              "passed": true
+            },
+            {
+              "name": "keyboard-dark",
+              "passed": true
+            },
+            {
+              "name": "focus-visible",
+              "passed": true
+            },
+            {
+              "name": "reduced-motion",
+              "passed": true
+            },
+            {
+              "name": "shortcut-input-focus",
+              "passed": true
+            },
+            {
+              "name": "one-add-and-check",
+              "passed": true
+            },
+            {
+              "name": "cancel-preserves-focus",
+              "passed": true
+            },
+            {
+              "name": "escape-preserves-focus",
+              "passed": true
+            },
+            {
+              "name": "confirmed-clear",
+              "passed": true
+            },
+            {
+              "name": "loading",
+              "passed": true
+            },
+            {
+              "name": "error-no-auto-retry",
+              "passed": true
+            },
+            {
+              "name": "manual-retry-once",
+              "passed": true
+            },
+            {
+              "name": "load-empty",
+              "passed": true
+            },
+            {
+              "name": "repeat-disabled-load",
+              "passed": true
+            },
+            {
+              "name": "light-restored",
+              "passed": true
+            }
+          ]
+        },
+        {
+          "width": 1280,
+          "checks": [
+            {
+              "name": "empty",
+              "passed": true
+            },
+            {
+              "name": "no-overflow",
+              "passed": true
+            },
+            {
+              "name": "keyboard-dark",
+              "passed": true
+            },
+            {
+              "name": "focus-visible",
+              "passed": true
+            },
+            {
+              "name": "reduced-motion",
+              "passed": true
+            },
+            {
+              "name": "shortcut-input-focus",
+              "passed": true
+            },
+            {
+              "name": "one-add-and-check",
+              "passed": true
+            },
+            {
+              "name": "cancel-preserves-focus",
+              "passed": true
+            },
+            {
+              "name": "escape-preserves-focus",
+              "passed": true
+            },
+            {
+              "name": "confirmed-clear",
+              "passed": true
+            },
+            {
+              "name": "loading",
+              "passed": true
+            },
+            {
+              "name": "error-no-auto-retry",
+              "passed": true
+            },
+            {
+              "name": "manual-retry-once",
+              "passed": true
+            },
+            {
+              "name": "load-empty",
+              "passed": true
+            },
+            {
+              "name": "repeat-disabled-load",
+              "passed": true
+            },
+            {
+              "name": "light-restored",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "passed": true,
+      "model_calls": 0,
+      "network_requests_allowed": 0,
+      "browser": "Firefox155.0 broker, fresh context each width",
+      "unexamined": [
+        "loopback history back measured separately"
+      ]
+    }
+  },
+  {
+    "host": "grok",
+    "argv": [
+      "grok",
+      "--cwd",
+      "/private/tmp/fullops-completion-z_ii0xr2/ui-grok-r01",
+      "--sandbox",
+      "workspace",
+      "--tools",
+      "read_file,write_file,search_replace,run_terminal_cmd",
+      "--no-subagents",
+      "--max-turns",
+      "10",
+      "--disable-web-search",
+      "--permission-mode",
+      "dontAsk",
+      "--allow",
+      "Edit(/private/tmp/fullops-completion-z_ii0xr2/ui-grok-r01/**)",
+      "--allow",
+      "Write(/private/tmp/fullops-completion-z_ii0xr2/ui-grok-r01/**)",
+      "--allow",
+      "Bash(/private/tmp/fullops-completion-z_ii0xr2/runtime/bin/python /private/tmp/fullops-completion-z_ii0xr2/ui-grok-r01/qa.py /private/tmp/fullops-completion-z_ii0xr2/ui-grok-r01*)",
+      "--output-format",
+      "json",
+      "--model",
+      "grok-4.6",
+      "--effort",
+      "medium",
+      "--prompt-file",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/native-workflow/grok-prompt.txt"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 90.95281724981032,
+    "protected_before": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "protected_after": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "qa_exists": false
+  }
+]

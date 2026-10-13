@@ -1,0 +1,9 @@
+{
+  "status": "timeout",
+  "timeout_s": 180,
+  "output_saved": false,
+  "provider_usage": "unknown; no completed usage record in session",
+  "cost": "unknown",
+  "calls": "one native host invocation; provider attempt count unknown",
+  "no_zero_inference": true
+}

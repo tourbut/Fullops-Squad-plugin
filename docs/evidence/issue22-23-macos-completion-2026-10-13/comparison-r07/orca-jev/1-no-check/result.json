@@ -1,0 +1,171 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.4.1",
+  "target_sha": null,
+  "worktree_dirty": null,
+  "executor_sha256": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+  "scenario_sha256": "7e3b1a38c16b84f7300efb57389b889d9e1797bd42096bfa4fa771fbbe5ae0e9",
+  "executor_files_sha256": {
+    "jev_test_web.py": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+    "web_contract.py": "560a3e7999f5fc47f0f1f6c94cb49d9b9d971c5552b4a5e24e80e8924a4f7486",
+    "web_dom.js": "d2a00f772382200e966d2983a6c72116757d90952fdc27eb5e89248b730d0bcd",
+    "web_playwright.py": "1b56aaa2c03a8cf2b143aa0b03fdf25fbb951724a0c61b118a36a45876889a56",
+    "web_playwright.cjs": "08b315793e03e31d762e66278e7cdec71b1eecb90b9c5698ee4921b9bb4a5d2c"
+  },
+  "result": "max_steps",
+  "passed": false,
+  "steps": 5,
+  "scope": "scenario_checks",
+  "executor": {
+    "name": "orca",
+    "version": "unverified",
+    "request_filtering": false,
+    "attached": false
+  },
+  "coverage": {
+    "total": 13,
+    "offset": 0,
+    "observed": 13,
+    "remaining": 0,
+    "unsupported": [
+      "custom_or_select_widgets"
+    ],
+    "complete": false
+  },
+  "assertions_passed": false,
+  "jev_calls": 5,
+  "calls": [
+    {
+      "cost": 7.0686e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "e1d43128002f548c9156387e11f62d4e5767b25fba91eafbff2aa7e4b74efe74",
+      "question_sha256": "e83a740b3005d4d8c092412fab1398563bcd9754785a387d79495a3f7b208a66",
+      "usage": {
+        "input_tokens": 1683,
+        "output_tokens": 288,
+        "cost": 7.0686e-05
+      },
+      "latency_s": 0.435,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    },
+    {
+      "cost": 7.1988e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "33d5a11e134ea6ed271c57333ec110468e0965b7df16450a77cf46dde07ee2ea",
+      "question_sha256": "e83a740b3005d4d8c092412fab1398563bcd9754785a387d79495a3f7b208a66",
+      "usage": {
+        "input_tokens": 1714,
+        "output_tokens": 289,
+        "cost": 7.1988e-05
+      },
+      "latency_s": 0.443,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    },
+    {
+      "cost": 8.2488e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "e0221310c5c203112dd8d22ff770c219cc91e2ae1ddce71a874bee5fa1c67e9f",
+      "question_sha256": "72cefc1498d2fa0310d2d4bde45c3bf53434e799a366e7451786c6d81b464f3d",
+      "usage": {
+        "input_tokens": 1964,
+        "output_tokens": 348,
+        "cost": 8.2488e-05
+      },
+      "latency_s": 0.454,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    },
+    {
+      "cost": 8.421e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "1869cd24fc09da764cebe872a08c5f17be20cc472e24f93caebb4df606d2f72d",
+      "question_sha256": "72cefc1498d2fa0310d2d4bde45c3bf53434e799a366e7451786c6d81b464f3d",
+      "usage": {
+        "input_tokens": 2005,
+        "output_tokens": 347,
+        "cost": 8.421e-05
+      },
+      "latency_s": 0.407,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    },
+    {
+      "cost": 8.589e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "7d939b5452e302f4d666085cd9f865b2eed6424b7d4ffa383a3f16e8905cd361",
+      "question_sha256": "72cefc1498d2fa0310d2d4bde45c3bf53434e799a366e7451786c6d81b464f3d",
+      "usage": {
+        "input_tokens": 2045,
+        "output_tokens": 347,
+        "cost": 8.589e-05
+      },
+      "latency_s": 0.434,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    }
+  ],
+  "cost": 0.000395,
+  "known_cost": 0.000395,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 90,
+    "max_cost": 0.02,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 12000
+  },
+  "latency_s": 2.173,
+  "elapsed_s": 49.649,
+  "checks": [
+    {
+      "condition": {
+        "js": "document.documentElement.dataset.theme",
+        "equals": "dark"
+      },
+      "value": "dark",
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "window.submits",
+        "equals": 1
+      },
+      "value": 1,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelectorAll('#list li').length",
+        "equals": 1
+      },
+      "value": 1,
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list li')?.textContent.trim()",
+        "equals": "milk"
+      },
+      "value": "milk",
+      "passed": true
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list input')?.checked",
+        "equals": true
+      },
+      "value": false,
+      "passed": false
+    }
+  ],
+  "url": "http://127.0.0.1:57186/no-check",
+  "goal": "Select dark theme, add milk exactly once, then click its checkbox exactly once. Do not load, clear, retry, navigate or change anything else. Finish after those actions even if the fixture is defective.",
+  "covers": [
+    "DARK",
+    "ONE-SUBMIT",
+    "ONE-MILK",
+    "CHECKED"
+  ]
+}

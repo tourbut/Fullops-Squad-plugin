@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "review_key": "SOURCE-REVIEW-STANDARDS-R07",
+  "reviewer": "/root/macos_standards_review",
+  "independent_review": true,
+  "reviewed_at_utc": "2026-10-13T14:21:53.048619+00:00",
+  "axis": "Standards",
+  "source_sha": "5469cc96a2d49166817128aed5f552682f5d2407",
+  "base_sha": "2e6075c07ba04e34f80bd1d8f5d5c2067595cbcd",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/source-review-r07",
+  "decision": "no Standards findings",
+  "findings": [],
+  "artifact_sha256": {
+    "portable_source": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+    "generated_source": "54aaa5b4c582b015750fbf8024624c7b290d42aa4af6dfc65d71b1ea63e06da6",
+    "jev_regression": "40ee59d54a6daaeca2f1aa687e72bfb242b9bec0439b146c8fe3bb0ca66777cc",
+    "engine_regressions": "59daa8389db4427085012950cfdf899aa304638ffd9f86789098f3e1880f8848",
+    "operation_red": "387367c779b4fb63ccaab1ac364e4ee4b7193b0a4dc623dca57f1adc167a0253",
+    "operation_green": "ed136acfd6d0d8131bf0ad6ebea9b853d9353e8622e5becd6a57d56a470714d7",
+    "engine_green": "4c83708a31e99e4419be47585761c13a88e04527483b842791dd0e3cd78ac182"
+  },
+  "standards_sources": [
+    "AGENTS.md",
+    "docs/development.md"
+  ],
+  "prior_review": "/private/tmp/fullops-completion-z_ii0xr2/evidence/source-review-standards-r06.json",
+  "scope": "Four changed files: portable source, generated source, model-choice regression and independent-gate regression.",
+  "checks": [
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        293,
+        294,
+        295,
+        296,
+        297,
+        314
+      ],
+      "result": "Choice set intersects available controls with actual fixture policy; effectful options require a fixture and explicit allowed operation. Existing non-effectful done/blocked/scroll/observe controls and STOP retain their semantics. Same policy object supplies trusted shared state."
+    },
+    {
+      "path": "tests/jev-test-web.py",
+      "lines": [
+        97,
+        98
+      ],
+      "result": "New regression rejects unauthorized fill/press_enter choices in a fixture authorizing fill_submit/check; existing payload, action sequence and safety assertions retained."
+    },
+    {
+      "path": "tests/web-engine.py",
+      "lines": [
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131
+      ],
+      "result": "Policy-negative test injects an already-formed valid low-risk decision at the ask seam, because the new upstream choice filter otherwise makes unauthorized operations unreachable through normal valid model replies. Independent action gate and browser effects remain real; blocked_policy and acts[] assertions unchanged."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        403,
+        407,
+        420,
+        421,
+        422,
+        423,
+        425,
+        431
+      ],
+      "result": "Risk/hold checks, deterministic action_denial, preflight and browser.act order unchanged. web_contract.py has no diff."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_test_web.py",
+      "result": "Portable and generated source byte-identical and committed together, following documented packaging standards."
+    },
+    {
+      "path": "smell baseline",
+      "result": "No actionable new smell. One policy object is reused; bounded control-set membership is simpler than additional branching or abstraction."
+    }
+  ],
+  "negative_oracle_assessment": {
+    "weakened": false,
+    "preserved_assertions": [
+      "result['result'] == 'blocked_policy'",
+      "browser.acts == []"
+    ],
+    "why_gate_is_reached": "Decision is built using the authorized scenario and actual stub answer validation, with risk0, valid observed e3 target and high-confidence choices. It is then injected while executing safety={} so candidate and origin are valid but effectful policy authorization is absent.",
+    "what_is_mocked": "Only ask, the upstream decision-producing seam. action_denial, browser.preflight, browser.act, result creation and effect list are not mocked.",
+    "counterfactual": "If independent gate authorization were bypassed or permitted this decision, FakeBrowser.act would append fill_submit and mutate todos; unchanged empty-acts and blocked-policy assertions would fail.",
+    "coverage_split": "Normal operation-choice filtering is covered by the new payload regression; policy enforcement against bypassed model/decision selection remains covered by this lower-boundary negative test. Existing invalid-ID and origin checks remain present."
+  },
+  "supplied_test_evidence": {
+    "red": "Inspected RED log fails exactly at unauthorized fill/press_enter choice assertion.",
+    "green": "Inspected targeted Jev log contains PASS; engine log reports Ran22tests and OK.",
+    "limitation": "These logs do not themselves record full argv/exit status; reviewer did not execute implementation/tests or rerun the suite."
+  },
+  "limitations": [
+    "Static Standards review only; no implementation, provider/model/browser, build or test execution by reviewer.",
+    "No confidence threshold, budget, fixture authority, local gate or oracle relaxed. Model-choice filtering is defense in depth, not the sole authorization gate.",
+    "Full npm and12-case live measurements remain in progress per parent. No live model or whole-issue acceptance is inferred.",
+    "All earlier source reviews and failure evidence remain preserved."
+  ],
+  "snapshot_preserved": true,
+  "prior_reviews_preserved": true,
+  "live_model_acceptance": false,
+  "whole_issue_acceptance": false
+}

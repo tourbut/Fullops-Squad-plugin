@@ -1,0 +1,29 @@
+{
+  "text": "Running the exact QA command with no wrappers, then I’ll read `qa-evidence/result.json`.QA command exited **0**. `qa-evidence/result.json` has `\"passed\": true` at 320, 390, and 1280. All 16 checks passed at each width, including `shortcut-input-focus`. `model_calls` 0, `network_requests_allowed` 0. Unexamined: loopback history back.\n\n**Change:** Alt+n focuses `#todo` without submit; `aria-keyshortcuts=\"Alt+n\"` is on the input. Labels, IDs, theme tokens, and existing flows are unchanged. `DESIGN.md`, `tokens.css`, and `qa.py` were not modified.\n\n**Critique:** The shortcut only focuses; it does not increment `window.submits`. `KeyN` matching covers composed Alt+n. Dialog, load/retry, focus-visible, and reduced-motion behavior still match the fixture. History-back remains out of this QA run.",
+  "stopReason": "end_turn",
+  "sessionId": "01a1357f-98b9-7073-ac6e-f7f67c703dd3",
+  "requestId": "1245c9c9-91e7-4d63-8813-0ef92aa46f83",
+  "cwd": "/private/tmp/fullops-completion-z_ii0xr2/ui-grok-r01",
+  "thought": "I will run the exact QA command without wrappers, then inspect qa-evidence/result.json.QA passed with exit code 0. Now inspecting qa-evidence/result.json.I have everything needed for the final report.",
+  "usage": {
+    "input_tokens": 2946,
+    "cache_read_input_tokens": 122624,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 435,
+    "reasoning_tokens": 85,
+    "total_tokens": 126005
+  },
+  "num_turns": 3,
+  "total_cost_usd": 0.02373676,
+  "total_cost_usd_ticks": 237367600,
+  "modelUsage": {
+    "grok-4.6-build": {
+      "inputTokens": 2946,
+      "outputTokens": 435,
+      "cacheReadInputTokens": 122624,
+      "cacheCreationInputTokens": 0,
+      "modelCalls": 3,
+      "costUSD": 0.02373676
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+  "elapsed_s": 1.0703011250589043,
+  "observations": [
+    {
+      "theme": "dark",
+      "submissions": 2,
+      "rows": 2,
+      "text": "milk",
+      "checked": true,
+      "url": "http://127.0.0.1:57186/duplicate",
+      "viewport": {
+        "width": 1280,
+        "height": 1800
+      }
+    }
+  ],
+  "expected": {
+    "theme": "dark",
+    "submissions": 1,
+    "rows": 1,
+    "text": "milk",
+    "checked": true
+  },
+  "pass": false,
+  "error": null,
+  "blocked_requests": [],
+  "model_calls": 0,
+  "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+  "run": 25,
+  "case": "duplicate",
+  "todo": "milk",
+  "default_args": false,
+  "exit_code": 0,
+  "total_elapsed_s": 1.8130927921738476,
+  "fresh_browser_process": true
+}

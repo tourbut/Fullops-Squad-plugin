@@ -1,0 +1,7 @@
+(version 1)
+(allow default)
+(deny file-write*)
+(allow file-write* (subpath "/private/tmp/fullops-completion-z_ii0xr2") (subpath "/dev"))
+(deny file-read* (subpath "/Users/shin/.ssh") (subpath "/Users/shin/.codex") (subpath "/Users/shin/.grok") (subpath "/Users/shin/.claude") (literal "/Users/shin/.claude.json") (literal "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/.env") (subpath "/private/tmp/fullops-completion-z_ii0xr2/private-baseline"))
+(deny network-outbound)
+(allow network-outbound (remote ip "localhost:*"))

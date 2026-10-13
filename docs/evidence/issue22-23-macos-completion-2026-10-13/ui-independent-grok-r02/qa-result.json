@@ -1,0 +1,988 @@
+{
+  "schema_version": 1,
+  "reviewer": "/root/macos_spec_review",
+  "source_sha": "7e7a4d2f5830233317abcca787ec180b3041625e",
+  "source_files": {
+    "index.html": "133c157781079120ddda050db7fada97d54fb7a9ee761255702e1d5df2a50631",
+    "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+    "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+    "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+  },
+  "independent_helper_sha256": "b9abc27966776cbd517958010d48c77fb3ec44875b3c95aff700f35a9ed48a80",
+  "browser": "native Firefox broker with fresh context per viewport",
+  "implementer_qa_imported_or_run": false,
+  "tests": [
+    {
+      "width": 320,
+      "name": "initial-light",
+      "actual": "light",
+      "expected": "light",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "viewport-width",
+      "actual": 320,
+      "expected": 320,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "initial-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "declared-shortcut",
+      "actual": "Alt+n",
+      "expected": "Alt+n",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "restricted-disabled",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "shortcut-focuses-todo",
+      "actual": "todo",
+      "expected": "todo",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "shortcut-preserves-draft",
+      "actual": "draft milk",
+      "expected": "draft milk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "shortcut-does-not-submit",
+      "actual": [
+        0,
+        0
+      ],
+      "expected": [
+        0,
+        0
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "shortcut-visible-focus",
+      "actual": "solid",
+      "expected": "solid",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "ctrl-alt-does-not-trigger",
+      "actual": "theme",
+      "expected": "theme",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "enter-single-submission",
+      "actual": [
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "milk-exact-text",
+      "actual": "milk",
+      "expected": "milk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "checkbox-completes",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "dark-theme",
+      "actual": "dark",
+      "expected": "dark",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "dark-pressed",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "dark-token-background",
+      "actual": "rgb(22, 22, 22)",
+      "expected": "rgb(22, 22, 22)",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "dark-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "reduced-motion",
+      "actual": "0s",
+      "expected": "0s",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "modal-opens-cancel-focus",
+      "actual": [
+        true,
+        "cancel"
+      ],
+      "expected": [
+        true,
+        "cancel"
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "shortcut-keeps-modal-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "modal-shortcut-preserves-draft",
+      "actual": "kept during modal",
+      "expected": "kept during modal",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "modal-shortcut-no-submit",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "modal-tab-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "modal-shift-tab-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "escape-restores-clear-focus",
+      "actual": [
+        false,
+        "clear"
+      ],
+      "expected": [
+        false,
+        "clear"
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "cancel-preserves-milk",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "confirm-clear-clears-only-list",
+      "actual": [
+        0,
+        1,
+        "clear"
+      ],
+      "expected": [
+        0,
+        1,
+        "clear"
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "theme-roundtrip-light",
+      "actual": "light",
+      "expected": "light",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "light-token-background",
+      "actual": "rgb(255, 255, 255)",
+      "expected": "rgb(255, 255, 255)",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "load-data-preserved",
+      "actual": "loaded",
+      "expected": "loaded",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "load-empty-preserved",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "load-error-preserved",
+      "actual": "Could not load todos",
+      "expected": "Could not load todos",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "retry-one-request",
+      "actual": 4,
+      "expected": 4,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "details-opens-with-focus",
+      "actual": [
+        true,
+        "back"
+      ],
+      "expected": [
+        true,
+        "back"
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "details-real-history-entry",
+      "actual": "#details",
+      "expected": "#details",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "details-back-restores-focus",
+      "actual": "details",
+      "expected": "details",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "browser-back-preserved",
+      "actual": [
+        "details",
+        ""
+      ],
+      "expected": [
+        "details",
+        ""
+      ],
+      "passed": true
+    },
+    {
+      "width": 320,
+      "name": "final-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "initial-light",
+      "actual": "light",
+      "expected": "light",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "viewport-width",
+      "actual": 390,
+      "expected": 390,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "initial-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "declared-shortcut",
+      "actual": "Alt+n",
+      "expected": "Alt+n",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "restricted-disabled",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "shortcut-focuses-todo",
+      "actual": "todo",
+      "expected": "todo",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "shortcut-preserves-draft",
+      "actual": "draft milk",
+      "expected": "draft milk",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "shortcut-does-not-submit",
+      "actual": [
+        0,
+        0
+      ],
+      "expected": [
+        0,
+        0
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "shortcut-visible-focus",
+      "actual": "solid",
+      "expected": "solid",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "ctrl-alt-does-not-trigger",
+      "actual": "theme",
+      "expected": "theme",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "enter-single-submission",
+      "actual": [
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "milk-exact-text",
+      "actual": "milk",
+      "expected": "milk",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "checkbox-completes",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "dark-theme",
+      "actual": "dark",
+      "expected": "dark",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "dark-pressed",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "dark-token-background",
+      "actual": "rgb(22, 22, 22)",
+      "expected": "rgb(22, 22, 22)",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "dark-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "reduced-motion",
+      "actual": "0s",
+      "expected": "0s",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "modal-opens-cancel-focus",
+      "actual": [
+        true,
+        "cancel"
+      ],
+      "expected": [
+        true,
+        "cancel"
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "shortcut-keeps-modal-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "modal-shortcut-preserves-draft",
+      "actual": "kept during modal",
+      "expected": "kept during modal",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "modal-shortcut-no-submit",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "modal-tab-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "modal-shift-tab-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "escape-restores-clear-focus",
+      "actual": [
+        false,
+        "clear"
+      ],
+      "expected": [
+        false,
+        "clear"
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "cancel-preserves-milk",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "confirm-clear-clears-only-list",
+      "actual": [
+        0,
+        1,
+        "clear"
+      ],
+      "expected": [
+        0,
+        1,
+        "clear"
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "theme-roundtrip-light",
+      "actual": "light",
+      "expected": "light",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "light-token-background",
+      "actual": "rgb(255, 255, 255)",
+      "expected": "rgb(255, 255, 255)",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "load-data-preserved",
+      "actual": "loaded",
+      "expected": "loaded",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "load-empty-preserved",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "load-error-preserved",
+      "actual": "Could not load todos",
+      "expected": "Could not load todos",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "retry-one-request",
+      "actual": 4,
+      "expected": 4,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "details-opens-with-focus",
+      "actual": [
+        true,
+        "back"
+      ],
+      "expected": [
+        true,
+        "back"
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "details-real-history-entry",
+      "actual": "#details",
+      "expected": "#details",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "details-back-restores-focus",
+      "actual": "details",
+      "expected": "details",
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "browser-back-preserved",
+      "actual": [
+        "details",
+        ""
+      ],
+      "expected": [
+        "details",
+        ""
+      ],
+      "passed": true
+    },
+    {
+      "width": 390,
+      "name": "final-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "initial-light",
+      "actual": "light",
+      "expected": "light",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "viewport-width",
+      "actual": 1280,
+      "expected": 1280,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "initial-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "declared-shortcut",
+      "actual": "Alt+n",
+      "expected": "Alt+n",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "restricted-disabled",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "shortcut-focuses-todo",
+      "actual": "todo",
+      "expected": "todo",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "shortcut-preserves-draft",
+      "actual": "draft milk",
+      "expected": "draft milk",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "shortcut-does-not-submit",
+      "actual": [
+        0,
+        0
+      ],
+      "expected": [
+        0,
+        0
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "shortcut-visible-focus",
+      "actual": "solid",
+      "expected": "solid",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "ctrl-alt-does-not-trigger",
+      "actual": "theme",
+      "expected": "theme",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "enter-single-submission",
+      "actual": [
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "milk-exact-text",
+      "actual": "milk",
+      "expected": "milk",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "checkbox-completes",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "dark-theme",
+      "actual": "dark",
+      "expected": "dark",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "dark-pressed",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "dark-token-background",
+      "actual": "rgb(22, 22, 22)",
+      "expected": "rgb(22, 22, 22)",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "dark-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "reduced-motion",
+      "actual": "0s",
+      "expected": "0s",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "modal-opens-cancel-focus",
+      "actual": [
+        true,
+        "cancel"
+      ],
+      "expected": [
+        true,
+        "cancel"
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "shortcut-keeps-modal-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "modal-shortcut-preserves-draft",
+      "actual": "kept during modal",
+      "expected": "kept during modal",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "modal-shortcut-no-submit",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "modal-tab-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "modal-shift-tab-focus-boundary",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "escape-restores-clear-focus",
+      "actual": [
+        false,
+        "clear"
+      ],
+      "expected": [
+        false,
+        "clear"
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "cancel-preserves-milk",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "confirm-clear-clears-only-list",
+      "actual": [
+        0,
+        1,
+        "clear"
+      ],
+      "expected": [
+        0,
+        1,
+        "clear"
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "theme-roundtrip-light",
+      "actual": "light",
+      "expected": "light",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "light-token-background",
+      "actual": "rgb(255, 255, 255)",
+      "expected": "rgb(255, 255, 255)",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "load-data-preserved",
+      "actual": "loaded",
+      "expected": "loaded",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "load-empty-preserved",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "load-error-preserved",
+      "actual": "Could not load todos",
+      "expected": "Could not load todos",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "retry-one-request",
+      "actual": 4,
+      "expected": 4,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "details-opens-with-focus",
+      "actual": [
+        true,
+        "back"
+      ],
+      "expected": [
+        true,
+        "back"
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "details-real-history-entry",
+      "actual": "#details",
+      "expected": "#details",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "details-back-restores-focus",
+      "actual": "details",
+      "expected": "details",
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "browser-back-preserved",
+      "actual": [
+        "details",
+        ""
+      ],
+      "expected": [
+        "details",
+        ""
+      ],
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "name": "final-no-overflow",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "width": 320,
+      "url": "http://127.0.0.1:57186/independent-grok-r02",
+      "method": "GET",
+      "supplied": true
+    },
+    {
+      "width": 390,
+      "url": "http://127.0.0.1:57186/independent-grok-r02",
+      "method": "GET",
+      "supplied": true
+    },
+    {
+      "width": 1280,
+      "url": "http://127.0.0.1:57186/independent-grok-r02",
+      "method": "GET",
+      "supplied": true
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/320-dark-independent.png",
+      "sha256": "a5bbdad2bdf364a8edcd696ca67dc679442faa58f3e41579d7b1216683188143"
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/320-modal-independent.png",
+      "sha256": "a30f553a2b4e3d3157eb9d873ecf1e701adae92ad1155e7c38e01dee84d46af9"
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/390-dark-independent.png",
+      "sha256": "63d9323265f407e264925811fa4477711d94dd1f4ca5bc454ca3455fd47a792b"
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/1280-dark-independent.png",
+      "sha256": "428c7faa9325025b9b7d090b4e857ab1c2f5fee2e80a35660668d730c4df587c"
+    }
+  ],
+  "pass_count": 114,
+  "fail_count": 0,
+  "passed": true
+}

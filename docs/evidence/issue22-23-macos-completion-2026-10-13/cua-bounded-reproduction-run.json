@@ -1,0 +1,36 @@
+{
+  "status": "native bounded generation completed; response format recovered deterministically",
+  "stopReason": "end_turn",
+  "raw_code_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+  "normalized_code_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+  "byte_identical_to_reviewed_r03": true,
+  "normalization": [],
+  "prefix_removed": "I'll read the official cuawright-web skill once, then return only the required JSON with the byte-identical plan and code.",
+  "output_budget": 8192,
+  "reported_output_with_reasoning": 2013,
+  "within_output_budget": true,
+  "model_calls": 2,
+  "max_turns": 2,
+  "usage": {
+    "input_tokens": 25701,
+    "cache_read_input_tokens": 25344,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 2013,
+    "reasoning_tokens": 574,
+    "total_tokens": 53058
+  },
+  "total_cost_usd": 0.02589168,
+  "modelUsage": {
+    "grok-4.6-build": {
+      "inputTokens": 25701,
+      "outputTokens": 2013,
+      "cacheReadInputTokens": 25344,
+      "cacheCreationInputTokens": 0,
+      "modelCalls": 2,
+      "costUSD": 0.02589168
+    }
+  },
+  "sessionId": "01a13594-9d60-7383-871e-2c10e22fc62d",
+  "input_total_hardcap": "not provided; not claimed",
+  "old4096_violation": "preserved separately; not changed to PASS"
+}

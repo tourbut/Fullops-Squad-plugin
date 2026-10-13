@@ -1,0 +1,18 @@
+{
+  "original": {
+    "version": "web-shadow-v1",
+    "suggested_category": "undetermined",
+    "reason": "Independent assertions failed; inspect the product and test/fixture before labeling exploration.",
+    "advisory_only": true,
+    "gates_changed": false,
+    "human_label": null,
+    "target_sha": null,
+    "scenario_sha256": "43fc1a578f5c6abfba8e589f38e1aa616e0486549a2d5c2098977027dea65f09",
+    "original_result": "uncertain",
+    "original_passed": false
+  },
+  "human_label": "defect",
+  "label_source": "human-ground-truth.json",
+  "correction_reason": "Confirmed seeded fixture mutation; independent observations identify violated invariant. Not evidence of a production defect.",
+  "gates_changed": false
+}

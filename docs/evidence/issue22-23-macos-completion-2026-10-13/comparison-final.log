@@ -1,0 +1,38 @@
+playwright 1 healthy True passed
+playwright 1 duplicate False replay_target_missing_or_ambiguous
+playwright 1 no-check None RuntimeError: playwright_bridge_failed: Error
+playwright 1 no-theme False max_steps
+playwright 2 healthy True passed
+playwright 2 duplicate False replay_target_missing_or_ambiguous
+playwright 2 no-check None RuntimeError: playwright_bridge_failed: Error
+playwright 2 no-theme False max_steps
+playwright 3 healthy True passed
+playwright 3 duplicate False replay_target_missing_or_ambiguous
+playwright 3 no-check None RuntimeError: playwright_bridge_failed: Error
+playwright 3 no-theme False max_steps
+orca 1 healthy True passed
+Traceback (most recent call last):
+  File "/private/tmp/fullops-completion-z_ii0xr2/compare_final.py", line 37, in <module>
+    summary=web.run(scenario,browser,measured if engine=='orca-jev' else None,dest,log=lambda *_:None,replay=None if engine=='orca-jev' else contract.replay_plan(scenario,steps))
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 363, in run
+    browser.open(scenario['url'])
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/private/tmp/fullops-completion-z_ii0xr2/compare_final.py", line 32, in fixed_open
+    original_open(url)
+    ~~~~~~~~~~~~~^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 179, in open
+    self.run('wait', '--load', 'domcontentloaded')
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 157, in run
+    done = subprocess.run([self.orca, *args, *scope, '--json'], capture_output=True, text=True, encoding='utf-8', timeout=timeout)
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 558, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 1221, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/subprocess.py", line 2130, in _communicate
+    ready = selector.select(timeout)
+  File "/Users/shin/.local/share/uv/python/cpython-3.13.2-macos-aarch64-none/lib/python3.13/selectors.py", line 398, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt

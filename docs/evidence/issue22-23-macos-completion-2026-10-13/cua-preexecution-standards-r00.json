@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "review_key": "CUA-PREEXECUTION-STANDARDS-R00",
+  "reviewed_at_utc": "2026-10-13T13:33:33.188734+00:00",
+  "reviewer": "/root/macos_standards_review",
+  "independent_review": true,
+  "review_kind": "static pre-execution Standards and safety review",
+  "source_sha": "901faa8cf6751773fce388c0aa0d3d3e5fdc70d5",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/cua-review-r00",
+  "script_sha256": "7c8c2c187521bb527571e9435359879726679c0d5b43df53228fa831bb10c9c0",
+  "artifact_sha256": {
+    "final_script.py": "7c8c2c187521bb527571e9435359879726679c0d5b43df53228fa831bb10c9c0",
+    "final_runs/run_1/final_script.py": "7c8c2c187521bb527571e9435359879726679c0d5b43df53228fa831bb10c9c0",
+    "trusted_runner": "095709aa2017e248a8967587e31d3793a17a2adb56da61eb19308f88faed92e2",
+    "sandbox_profile": "69161bf0561202c728d15a97a36260d6511ab061eae7d199a785cb7f4398fbce",
+    "fixture_html": "1cab8034f24980bdf9d8c640bd0e89a1797619abc4ac76f97c9cf68519847306",
+    "fixture_server": "81abae78528f5b1e91ebd4ac9b665533e9932e8af785322d4a3b101012e96c9e",
+    "cuawright_skill": "ee012d70f5f468da3aa28777aca03090918e06188261e6343f63156852e47745"
+  },
+  "decision": "approved_for_controlled_execution",
+  "blockers": [],
+  "findings": [],
+  "checks": [
+    {
+      "path": "final_script.py",
+      "lines": [
+        23,
+        24,
+        28,
+        32,
+        36,
+        49
+      ],
+      "result": "Fresh headless Firefox; viewport exactly 1280x1800; four uniquely named critical-point screenshots; no full_page screenshots."
+    },
+    {
+      "path": "final_script.py",
+      "lines": [
+        26,
+        29,
+        33,
+        45
+      ],
+      "result": "Step/action logging and final observed datum; log reset before browser execution."
+    },
+    {
+      "path": "final_script.py",
+      "lines": [
+        37,
+        42,
+        43,
+        44
+      ],
+      "result": "DOM evaluations and locator observations only read theme, submissions, row count and checked state; no injected state mutation."
+    },
+    {
+      "path": "final_script.py",
+      "lines": [
+        27,
+        30,
+        31,
+        35
+      ],
+      "result": "Bounded intended UI writes: theme click once, literal milk fill, Add click once, checkbox click once. No arbitrary file reads, shell commands, package installs, model calls or credential access in generated source."
+    },
+    {
+      "path": "final_script.py",
+      "lines": [
+        6,
+        7,
+        8,
+        13,
+        18,
+        19,
+        28,
+        32,
+        36,
+        49
+      ],
+      "result": "Generated file outputs are fixed screenshots and one log under the script parent; no dynamic path supplied by DOM."
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/execute_cua.py",
+      "lines": [
+        10,
+        12,
+        18,
+        20,
+        36
+      ],
+      "result": "Trusted runner forces viewport, blocks service workers, restricts browser requests to named loopback fixture GETs, and captures independent DOM observations before close."
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/cua-sandbox.sb",
+      "result": "Static profile denies external outbound network and host writes outside the task root/dev; protects named credential directories. This is not a complete host-read isolation boundary."
+    },
+    {
+      "path": "/private/tmp/fullops-completion-z_ii0xr2/fixture.html",
+      "result": "Reviewed inline fixture has no external resources or network APIs; intended theme/add/checkbox handlers mutate local page state."
+    }
+  ],
+  "execution_conditions": [
+    "Use the exact reviewed script bytes, the hashed trusted runner, and the hashed sandbox profile; preserve this detached readonly snapshot.",
+    "Execute the run-folder copy in a fresh writable final_runs/run_<id> directory inside the authorized workspace; do not execute the root-level copy or overwrite an earlier evidence run.",
+    "Use a fresh no-credentials browser environment and the reviewed loopback fixture; no other host or authenticated tenant is approved.",
+    "Retain stdout/stderr, independent runner observations, screenshots and logs; acceptance requires separate current-run evidence and direct screenshot review."
+  ],
+  "limitations": [
+    "Generated code was not executed or imported, and no browser was launched by this reviewer.",
+    "No visual, runtime, or product acceptance is asserted; plan critical points remain unverified before execution.",
+    "Absent the reviewed runner, the generated script itself does not enforce a browser network allowlist.",
+    "The strict milk checkbox locator can abort on duplicate rows; the trusted runner must preserve the error and final DOM evidence rather than treating absence of FINAL_RESPONSE as success.",
+    "Runner, sandbox and fixture are supporting artifacts outside the pinned Git snapshot; their hashes bind this approval to the inspected bytes."
+  ],
+  "original_source_fixes_review": "preserved; outside this new review scope"
+}

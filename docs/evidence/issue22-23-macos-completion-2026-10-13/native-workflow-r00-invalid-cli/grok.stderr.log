@@ -1,0 +1,7 @@
+warning: sandbox could not be applied: Custom sandbox profile 'workspace-write' not found. Define it in ~/.grok/sandbox.toml or .grok/sandbox.toml:
+
+[profiles.workspace-write]
+extends = "workspace"
+read_only = ["/data"]
+
+error: could not apply the 'workspace-write' sandbox profile; see the warning above for the cause. Refusing to start with its protections missing.

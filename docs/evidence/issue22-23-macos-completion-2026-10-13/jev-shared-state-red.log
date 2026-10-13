@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/jev-test-web.py", line 147, in <module>
+    main()
+    ~~~~^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/jev-test-web.py", line 91, in main
+    assert seen[0]['state']['page']['elements'] == [
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'elements'

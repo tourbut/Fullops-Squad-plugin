@@ -1,0 +1,359 @@
+{
+  "source_sha": "3a361d576441b9bd7633b4641911c3388416e7b1",
+  "index_sha256": "6c219f8ce669bb3b337c58a79af77ac810728b1ccfa9d889b791759fdd9cf912",
+  "reviewer": "/root/macos_standards_review",
+  "widths": [
+    {
+      "width": 320,
+      "height": 900,
+      "checks": [
+        {
+          "name": "initial light and shortcut metadata",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "initial mobile overflow",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "keyboard theme and reduced motion",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "keyboard focus visible",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut focuses without submission",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut preserves draft",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "control modifier excluded",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "meta modifier excluded",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "Enter submits once and checkbox completes",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut after add does not resubmit",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "dark state overflow",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal shortcut keeps cancel focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal shortcut keeps confirm focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal backwards tab stays inside",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "Escape returns focus and preserves row",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "cancel preserves row and focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "details opens and focuses Back",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "history Back restores details focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "confirmed clear preserved",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "light restored and overflow",
+          "passed": true,
+          "observed": true
+        }
+      ],
+      "requests": [
+        {
+          "url": "http://127.0.0.1:57186/ui-independent-codex-r02",
+          "method": "GET",
+          "action": "fulfilled immutable reviewed bytes"
+        }
+      ],
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "width": 390,
+      "height": 900,
+      "checks": [
+        {
+          "name": "initial light and shortcut metadata",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "initial mobile overflow",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "keyboard theme and reduced motion",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "keyboard focus visible",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut focuses without submission",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut preserves draft",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "control modifier excluded",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "meta modifier excluded",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "Enter submits once and checkbox completes",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut after add does not resubmit",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "dark state overflow",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal shortcut keeps cancel focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal shortcut keeps confirm focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal backwards tab stays inside",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "Escape returns focus and preserves row",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "cancel preserves row and focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "details opens and focuses Back",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "history Back restores details focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "confirmed clear preserved",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "light restored and overflow",
+          "passed": true,
+          "observed": true
+        }
+      ],
+      "requests": [
+        {
+          "url": "http://127.0.0.1:57186/ui-independent-codex-r02",
+          "method": "GET",
+          "action": "fulfilled immutable reviewed bytes"
+        }
+      ],
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "width": 1280,
+      "height": 900,
+      "checks": [
+        {
+          "name": "initial light and shortcut metadata",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "initial mobile overflow",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "keyboard theme and reduced motion",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "keyboard focus visible",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut focuses without submission",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut preserves draft",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "control modifier excluded",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "meta modifier excluded",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "Enter submits once and checkbox completes",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "shortcut after add does not resubmit",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "dark state overflow",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal shortcut keeps cancel focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal shortcut keeps confirm focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "modal backwards tab stays inside",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "Escape returns focus and preserves row",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "cancel preserves row and focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "details opens and focuses Back",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "history Back restores details focus",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "confirmed clear preserved",
+          "passed": true,
+          "observed": true
+        },
+        {
+          "name": "light restored and overflow",
+          "passed": true,
+          "observed": true
+        }
+      ],
+      "requests": [
+        {
+          "url": "http://127.0.0.1:57186/ui-independent-codex-r02",
+          "method": "GET",
+          "action": "fulfilled immutable reviewed bytes"
+        }
+      ],
+      "page_errors": [],
+      "console_errors": []
+    }
+  ],
+  "network_requests_allowed": 0,
+  "model_calls": 0,
+  "implementer_qa_executed": false,
+  "browser": "155.0",
+  "passed": true,
+  "checks_total": 60,
+  "checks_passed": 60
+}

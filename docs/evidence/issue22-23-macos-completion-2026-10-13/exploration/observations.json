@@ -1,0 +1,42 @@
+[
+  {
+    "case": "healthy",
+    "observed": {
+      "theme": "dark",
+      "submits": 1,
+      "rows": 1,
+      "checked": true
+    },
+    "screenshot": "healthy.png"
+  },
+  {
+    "case": "duplicate",
+    "observed": {
+      "theme": "dark",
+      "submits": 2,
+      "rows": 2,
+      "checked": true
+    },
+    "screenshot": "duplicate.png"
+  },
+  {
+    "case": "no-check",
+    "observed": {
+      "theme": "dark",
+      "submits": 1,
+      "rows": 1,
+      "checked": false
+    },
+    "screenshot": "no-check.png"
+  },
+  {
+    "case": "no-theme",
+    "observed": {
+      "theme": "light",
+      "submits": 1,
+      "rows": 1,
+      "checked": true
+    },
+    "screenshot": "no-theme.png"
+  }
+]

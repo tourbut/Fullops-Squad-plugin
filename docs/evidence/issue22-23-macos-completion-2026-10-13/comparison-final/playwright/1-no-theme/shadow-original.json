@@ -1,0 +1,12 @@
+{
+  "version": "web-shadow-v1",
+  "suggested_category": "undetermined",
+  "reason": "Independent assertions failed; inspect the product and test/fixture before labeling exploration.",
+  "advisory_only": true,
+  "gates_changed": false,
+  "human_label": null,
+  "target_sha": null,
+  "scenario_sha256": "e19450acf5b65c555932b2a18499ffa9779411cc99d604e28806c980e01c4721",
+  "original_result": "max_steps",
+  "original_passed": false
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "review_key": "SOURCE-SPEC-R06",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "independent readonly Spec review of narrow R04-to-R06 delta",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/source-review-r06",
+  "fixed_sha": "2e6075c07ba04e34f80bd1d8f5d5c2067595cbcd",
+  "base_sha": "2da4ebe65ceb0b27e267275650ca9853686e04bb",
+  "source_sha256": "d34c2b63050d54ee7cac9e1a6aa71d6eb4c699a3f294fefb4c455f4f257b63b6",
+  "test_sha256": "7e7448a2f09b4848ded1e699165af6c0b368e88b92870fbc23fb2611d1e7d274",
+  "git_status_clean": true,
+  "source_dist_byte_parity": true,
+  "spec_scope": "Expose the same scenario allowed operations enforced by the existing policy gate to independent model questions, and retain self-contained validity context without duplicated candidate descriptions exceeding the unchanged input budget.",
+  "findings": [],
+  "verified_by_static_inspection": [
+    "jev_test_web.py:38 tells the operation question to choose effectful actions only from allowed_operations.",
+    "Shared state receives contract.policy(scenario)['allowed_operations'], which is the same scenario policy source used to initialize execution safety. It does not invent or broaden an allowlist.",
+    "Validity questions explicitly reference page.elements in shared state and carry their own sorted allowed_roles for click, check or fill. They no longer depend on another question's criteria or answer.",
+    "The shared public elements still contain sanitized names, states and nearby text. Removing the duplicated per-validity candidates map does not remove those observations.",
+    "Candidate presence remains insufficient and page text remains untrusted data in the validity instructions.",
+    "The 254-candidate limit, full serialized input budget check, confidence/validity/risk thresholds, origin restrictions, stale-state preflight and action authorization are unchanged.",
+    "The execution path still calls contract.action_denial before browser.preflight/browser.act; model instructions do not replace policy enforcement.",
+    "The revised request-state regression checks the actual scenario allowed operations and validity role group while retaining checkbox state/nearby-text assertions. The existing candidate-boundary test itself is unchanged."
+  ],
+  "preserved_regression_evidence_inspected": {
+    "R05_failure": "/private/tmp/fullops-completion-z_ii0xr2/evidence/web-engine-r05.log",
+    "R05_observation": "The existing candidate boundary test failed at the serialized input budget check; 22 tests ran with one error.",
+    "R06_engine_green": "/private/tmp/fullops-completion-z_ii0xr2/evidence/web-engine-r06.log",
+    "R06_engine_observation": "22 tests ran, OK.",
+    "R06_request_green": "/private/tmp/fullops-completion-z_ii0xr2/evidence/jev-shared-state-r06-green.log",
+    "R06_request_observation": "PASS: jev web loop element context, fan-out questions, pass/risk/stall/premature-done, records",
+    "test_or_budget_relaxation_found": false,
+    "tests_rerun_by_reviewer": false
+  },
+  "limitations": [
+    "The task reports a prior live fill choice correctly blocked by unchanged policy. This review establishes that allowed operations are now visible to the model; it does not prove that all future model choices will comply.",
+    "The validity question remains independent through shared state plus its own role constraint. Model confidence and live reliability still require the separate comparison-r06 measurement.",
+    "The restored 254-candidate regression does not promise every possible 254-element payload fits the budget; longer sanitized labels or other context can still correctly fail closed at the unchanged limit.",
+    "Live comparison-r06 results were not reused as acceptance, and the correction is not asserted to be the sole root cause of prior uncertain or blocked outcomes."
+  ],
+  "reviewer_provider_calls": 0,
+  "implementation_modified": false,
+  "prior_R03_R04_and_R05_evidence_modified": false,
+  "conclusion": "No missing, wrong or out-of-scope behavior found in the narrow R06 policy-context and bounded validity-context correction.",
+  "whole_issue_acceptance": false
+}

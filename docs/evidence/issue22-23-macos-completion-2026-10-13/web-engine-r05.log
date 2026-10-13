@@ -1,0 +1,16 @@
+...E..................
+======================================================================
+ERROR: test_candidate_boundaries_and_missing_coverage (__main__.Engine.test_candidate_boundaries_and_missing_coverage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/web-engine.py", line 74, in test_candidate_boundaries_and_missing_coverage
+    web.ask(fixture.jev([('blocked', None, None)], seen=seen), self.scenario(), page, [], 1)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/plugins/fullops-squad/scripts/jev_test_web.py", line 315, in ask
+    raise ValueError('observation input budget exceeded; narrow candidate_limit or fixture values')
+ValueError: observation input budget exceeded; narrow candidate_limit or fixture values
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.482s
+
+FAILED (errors=1)

@@ -1,0 +1,8 @@
+{
+  "live_requests_max": 3,
+  "live_timeout_s": 12,
+  "local_failure_repeats": 3,
+  "no_automatic_retry": true,
+  "cold_warm": "application response cache only; OS/provider/browser caches uncontrolled",
+  "token_limit": "bounded fixed request; Jev API exposes no generation max_tokens setting; actual token usage recorded"
+}

@@ -1,0 +1,1970 @@
+[
+  {
+    "request_bytes": 4303,
+    "request_sha256": "4848432f1670834e0968aeb3d1cc3f5fee9cf8929b3dd6e5d8ca9efa5ca6fb7d",
+    "response_bytes": 1013,
+    "latency_s": 0.429,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.93,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.03,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.92
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.84
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.76,
+            "_NONE_": 0.23
+          },
+          "confidence": 0.64
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.73,
+            "_NONE_": 0.27
+          },
+          "confidence": 0.46
+        }
+      },
+      "usage": {
+        "input_tokens": 1792,
+        "output_tokens": 303,
+        "cost": 7.5264e-05
+      },
+      "id": "gen-dec-1791899891-PJrVu9BPSdWsUlvgTHLc",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4291113750077784
+  },
+  {
+    "request_bytes": 4384,
+    "request_sha256": "d0046933e15e7cf5ee70a2f33947da20696b75bbde16260db78a28d7b1789559",
+    "response_bytes": 1027,
+    "latency_s": 0.423,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.03,
+            "fill": 0.79,
+            "fill_submit": 0.13,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.76
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.6900000000000001,
+            "_NONE_": 0.31
+          },
+          "confidence": 0.66
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.72
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.93,
+            "_NONE_": 0.07
+          },
+          "confidence": 0.89
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.92
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.87,
+            "_NONE_": 0.13
+          },
+          "confidence": 0.74
+        }
+      },
+      "usage": {
+        "input_tokens": 1828,
+        "output_tokens": 303,
+        "cost": 7.6776e-05
+      },
+      "id": "gen-dec-1791899894-pW2ym1Pa4aGYUxrzfjtC",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4238308328203857
+  },
+  {
+    "request_bytes": 4305,
+    "request_sha256": "1a3b848b5009e0de8ad8d0c6bd18649511007bd6e78687fe6c396aaf7320da2d",
+    "response_bytes": 1016,
+    "latency_s": 0.53,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.94,
+            "fill": 0.02,
+            "fill_submit": 0.01,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.93
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.84
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.76,
+            "_NONE_": 0.23
+          },
+          "confidence": 0.64
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.66,
+            "_NONE_": 0.34
+          },
+          "confidence": 0.32
+        }
+      },
+      "usage": {
+        "input_tokens": 1794,
+        "output_tokens": 303,
+        "cost": 7.5348e-05
+      },
+      "id": "gen-dec-1791899921-1RJ4wCc8rVXYgXZjlObX",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.5304400420282036
+  },
+  {
+    "request_bytes": 4386,
+    "request_sha256": "eeaf85ef2b628617eda69c58295c40dea77d9926004789888050499b7996da2d",
+    "response_bytes": 1009,
+    "latency_s": 0.419,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.06,
+            "fill": 0.81,
+            "fill_submit": 0.08,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.78
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.06
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.72,
+            "_NONE_": 0.28
+          },
+          "confidence": 0.69
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.74
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.93,
+            "_NONE_": 0.07
+          },
+          "confidence": 0.89
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.8,
+            "_NONE_": 0.2
+          },
+          "confidence": 0.6
+        }
+      },
+      "usage": {
+        "input_tokens": 1832,
+        "output_tokens": 303,
+        "cost": 7.6944e-05
+      },
+      "id": "gen-dec-1791899924-EOS4mNwzSNUb4IjwO69Y",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.41972533287480474
+  },
+  {
+    "request_bytes": 4304,
+    "request_sha256": "880853e0d22b45543c5931eca85fd49249f339833ccb3c8eaa9ab07e4fb04c93",
+    "response_bytes": 1013,
+    "latency_s": 0.451,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.95,
+            "fill": 0.02,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.94
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.84
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.76,
+            "_NONE_": 0.23
+          },
+          "confidence": 0.64
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.61,
+            "_NONE_": 0.39
+          },
+          "confidence": 0.22
+        }
+      },
+      "usage": {
+        "input_tokens": 1793,
+        "output_tokens": 303,
+        "cost": 7.5306e-05
+      },
+      "id": "gen-dec-1791899952-0O1Uk7cusQOga1jU0jYO",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.45133425015956163
+  },
+  {
+    "request_bytes": 4385,
+    "request_sha256": "a17fc278c7ee88eafd521216e571b5499f6e095da53598cefbb7058e0f94daa6",
+    "response_bytes": 1011,
+    "latency_s": 0.406,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.04,
+            "fill": 0.83,
+            "fill_submit": 0.09,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.81
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.73,
+            "_NONE_": 0.27
+          },
+          "confidence": 0.7
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.72
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.94,
+            "_NONE_": 0.06
+          },
+          "confidence": 0.91
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.77,
+            "_NONE_": 0.23
+          },
+          "confidence": 0.54
+        }
+      },
+      "usage": {
+        "input_tokens": 1831,
+        "output_tokens": 303,
+        "cost": 7.6902e-05
+      },
+      "id": "gen-dec-1791899954-DzLXdHv9JhctlBppSuuD",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.40595754189416766
+  },
+  {
+    "request_bytes": 4304,
+    "request_sha256": "b75b43c6c02379609e3479f0403be486ce20ff909bb2333d5ab065842aa62e35",
+    "response_bytes": 1012,
+    "latency_s": 0.533,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.95,
+            "fill": 0.02,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.94
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.83
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.72,
+            "_NONE_": 0.27
+          },
+          "confidence": 0.58
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.65,
+            "_NONE_": 0.35
+          },
+          "confidence": 0.3
+        }
+      },
+      "usage": {
+        "input_tokens": 1791,
+        "output_tokens": 303,
+        "cost": 7.5222e-05
+      },
+      "id": "gen-dec-1791899982-rxyeX6cSpE9w6npGxiNy",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.5334440001752228
+  },
+  {
+    "request_bytes": 4385,
+    "request_sha256": "bffc476632a17ba6b4f3fa313661b5a1d6fd840fc7899cfba2203b71a0e1f2cc",
+    "response_bytes": 1011,
+    "latency_s": 0.422,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.04,
+            "fill": 0.84,
+            "fill_submit": 0.08,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.82
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.79,
+            "_NONE_": 0.21
+          },
+          "confidence": 0.77
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.73
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.91,
+            "_NONE_": 0.09
+          },
+          "confidence": 0.86
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.85,
+            "_NONE_": 0.15
+          },
+          "confidence": 0.7
+        }
+      },
+      "usage": {
+        "input_tokens": 1832,
+        "output_tokens": 303,
+        "cost": 7.6944e-05
+      },
+      "id": "gen-dec-1791899985-VNdkkABpNMtltCQciNgU",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.42286158399656415
+  },
+  {
+    "request_bytes": 4303,
+    "request_sha256": "18ab80b4c7fcee7285c0c1e67c7059793ef77b452737df7ece1960803fb08b61",
+    "response_bytes": 1011,
+    "latency_s": 0.405,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.95,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.94
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.84
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.67,
+            "_NONE_": 0.32
+          },
+          "confidence": 0.51
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.89
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.7,
+            "_NONE_": 0.3
+          },
+          "confidence": 0.4
+        }
+      },
+      "usage": {
+        "input_tokens": 1788,
+        "output_tokens": 303,
+        "cost": 7.5096e-05
+      },
+      "id": "gen-dec-1791900012-asdQeIihTdompB0fqGAL",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4059484170284122
+  },
+  {
+    "request_bytes": 4384,
+    "request_sha256": "43d3c8364db90a862123ded2dbcc7ce18a923d75a516146183f6953ba7a56e31",
+    "response_bytes": 1012,
+    "latency_s": 0.46,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.04,
+            "fill": 0.83,
+            "fill_submit": 0.08,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.81
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.82,
+            "_NONE_": 0.18
+          },
+          "confidence": 0.8
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.73
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.93,
+            "_NONE_": 0.07
+          },
+          "confidence": 0.89
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.91
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.83,
+            "_NONE_": 0.17
+          },
+          "confidence": 0.66
+        }
+      },
+      "usage": {
+        "input_tokens": 1828,
+        "output_tokens": 303,
+        "cost": 7.6776e-05
+      },
+      "id": "gen-dec-1791900015-D9LybpwVNboVqgPRV7yq",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.46113366610370576
+  },
+  {
+    "request_bytes": 4305,
+    "request_sha256": "db34d053d960f6b0900ad6c7dc55215a387f477f734a23be62d88fa1339eaa41",
+    "response_bytes": 1013,
+    "latency_s": 0.414,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.97,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.01,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.97
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.97,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.02
+          },
+          "confidence": 0.97
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.85
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.7,
+            "_NONE_": 0.29
+          },
+          "confidence": 0.55
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.89
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.61,
+            "_NONE_": 0.39
+          },
+          "confidence": 0.22
+        }
+      },
+      "usage": {
+        "input_tokens": 1794,
+        "output_tokens": 303,
+        "cost": 7.5348e-05
+      },
+      "id": "gen-dec-1791900043-wt1HClYRXjpgFXvfQ0XO",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.414653749903664
+  },
+  {
+    "request_bytes": 4386,
+    "request_sha256": "d02a388eb974104a01bcd2d13a14deaf484770120adc26ce3753d5fa39842316",
+    "response_bytes": 1011,
+    "latency_s": 0.446,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.06,
+            "fill": 0.73,
+            "fill_submit": 0.13,
+            "press_enter": 0,
+            "scroll_down": 0.02,
+            "done": 0,
+            "blocked": 0.03,
+            "_STOP_": 0.03
+          },
+          "confidence": 0.69
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.75,
+            "_NONE_": 0.25
+          },
+          "confidence": 0.72
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.71
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.93,
+            "_NONE_": 0.07
+          },
+          "confidence": 0.89
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.78,
+            "_NONE_": 0.22
+          },
+          "confidence": 0.56
+        }
+      },
+      "usage": {
+        "input_tokens": 1835,
+        "output_tokens": 303,
+        "cost": 7.707e-05
+      },
+      "id": "gen-dec-1791900045-qkxMrTWw4lGuaZRWoe2M",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4467164168599993
+  },
+  {
+    "request_bytes": 4304,
+    "request_sha256": "b94d89a2d34a10168d14eb339f442f8f8d00880b6c41b39efb4bf45ab40c9d08",
+    "response_bytes": 1013,
+    "latency_s": 0.412,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.96,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.95
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.83
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.75,
+            "_NONE_": 0.24
+          },
+          "confidence": 0.62
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.68,
+            "_NONE_": 0.32
+          },
+          "confidence": 0.36
+        }
+      },
+      "usage": {
+        "input_tokens": 1793,
+        "output_tokens": 303,
+        "cost": 7.5306e-05
+      },
+      "id": "gen-dec-1791900073-DRwzwQszheqqN5gCVx3L",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.412230292102322
+  },
+  {
+    "request_bytes": 4385,
+    "request_sha256": "8af802de3101924b0d4994160ba9b7ce04bf4b0d8480ff02135e5c0c873411ee",
+    "response_bytes": 1012,
+    "latency_s": 0.44,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.05,
+            "fill": 0.77,
+            "fill_submit": 0.12,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.03,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.74
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.77,
+            "_NONE_": 0.23
+          },
+          "confidence": 0.74
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.74
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.91,
+            "_NONE_": 0.09
+          },
+          "confidence": 0.86
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.91
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.72,
+            "_NONE_": 0.28
+          },
+          "confidence": 0.44
+        }
+      },
+      "usage": {
+        "input_tokens": 1825,
+        "output_tokens": 303,
+        "cost": 7.665e-05
+      },
+      "id": "gen-dec-1791900076-7Yt7ydebPXr0GYvotSi7",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4405022088903934
+  },
+  {
+    "request_bytes": 4304,
+    "request_sha256": "4707749b96697cbb6109ef8b8672feb928dbd1ec024db198c7bd70cc15c38ee5",
+    "response_bytes": 1013,
+    "latency_s": 0.421,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.96,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.95
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.97,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.02
+          },
+          "confidence": 0.97
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.82
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.72,
+            "_NONE_": 0.27
+          },
+          "confidence": 0.58
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.66,
+            "_NONE_": 0.34
+          },
+          "confidence": 0.32
+        }
+      },
+      "usage": {
+        "input_tokens": 1789,
+        "output_tokens": 303,
+        "cost": 7.5138e-05
+      },
+      "id": "gen-dec-1791900104-AtemLCeejpXjel9Qn8g3",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4210395000409335
+  },
+  {
+    "request_bytes": 4385,
+    "request_sha256": "57faf86a34da8f73c407c0f213a8da00b33b54a8d70cfd77f0a452da658aa40b",
+    "response_bytes": 1011,
+    "latency_s": 0.437,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.04,
+            "fill": 0.81,
+            "fill_submit": 0.09,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.03,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.78
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.76,
+            "_NONE_": 0.24
+          },
+          "confidence": 0.73
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.69
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.92,
+            "_NONE_": 0.08
+          },
+          "confidence": 0.88
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.83,
+            "_NONE_": 0.17
+          },
+          "confidence": 0.66
+        }
+      },
+      "usage": {
+        "input_tokens": 1830,
+        "output_tokens": 303,
+        "cost": 7.686e-05
+      },
+      "id": "gen-dec-1791900106-4aYIjSZfI10ntkYpsSV5",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.43770654196850955
+  },
+  {
+    "request_bytes": 4303,
+    "request_sha256": "f4f01fbdb75f8f71ef64060be4658bdca62da27402f67385b38865e367f12fa6",
+    "response_bytes": 1013,
+    "latency_s": 0.439,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.96,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.95
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.83
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.75,
+            "_NONE_": 0.24
+          },
+          "confidence": 0.62
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.88
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.71,
+            "_NONE_": 0.29
+          },
+          "confidence": 0.42
+        }
+      },
+      "usage": {
+        "input_tokens": 1795,
+        "output_tokens": 303,
+        "cost": 7.539e-05
+      },
+      "id": "gen-dec-1791900134-lQf192XnGs8mBi8QpUk6",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.43954845890402794
+  },
+  {
+    "request_bytes": 4384,
+    "request_sha256": "8cae91dfc61da0f39bb6b848a010a6b27d87989c857989b6b1e23542c2550f77",
+    "response_bytes": 1006,
+    "latency_s": 0.464,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.08,
+            "fill": 0.74,
+            "fill_submit": 0.09,
+            "press_enter": 0,
+            "scroll_down": 0.02,
+            "done": 0,
+            "blocked": 0.04,
+            "_STOP_": 0.03
+          },
+          "confidence": 0.7
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.06
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.81,
+            "_NONE_": 0.19
+          },
+          "confidence": 0.79
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.76
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.9,
+            "_NONE_": 0.1
+          },
+          "confidence": 0.85
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.8,
+            "_NONE_": 0.2
+          },
+          "confidence": 0.6
+        }
+      },
+      "usage": {
+        "input_tokens": 1827,
+        "output_tokens": 303,
+        "cost": 7.6734e-05
+      },
+      "id": "gen-dec-1791900137-3YYi4O2rP2VZG9n5BpgA",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.46478633396327496
+  },
+  {
+    "request_bytes": 4305,
+    "request_sha256": "3c711b24f2f0218f7979639408b7bac8cea6b6d5d4a1f92d96837c6d63d9743d",
+    "response_bytes": 1014,
+    "latency_s": 0.419,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.95,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.03,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.94
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.85
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.74,
+            "_NONE_": 0.25
+          },
+          "confidence": 0.61
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.88
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.67,
+            "_NONE_": 0.33
+          },
+          "confidence": 0.34
+        }
+      },
+      "usage": {
+        "input_tokens": 1792,
+        "output_tokens": 303,
+        "cost": 7.5264e-05
+      },
+      "id": "gen-dec-1791900165-7pmLOw5THwcHhLoJcMbd",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4193382498342544
+  },
+  {
+    "request_bytes": 4386,
+    "request_sha256": "6045ea177b622e149135f67e3ef1ab2b33437c00b050b2a48feb740c1b8af111",
+    "response_bytes": 1012,
+    "latency_s": 0.404,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.06,
+            "fill": 0.73,
+            "fill_submit": 0.12,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.05,
+            "_STOP_": 0.03
+          },
+          "confidence": 0.69
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.74,
+            "_NONE_": 0.26
+          },
+          "confidence": 0.71
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.75
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.92,
+            "_NONE_": 0.08
+          },
+          "confidence": 0.88
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.84,
+            "_NONE_": 0.16
+          },
+          "confidence": 0.68
+        }
+      },
+      "usage": {
+        "input_tokens": 1829,
+        "output_tokens": 303,
+        "cost": 7.6818e-05
+      },
+      "id": "gen-dec-1791900167-sHevmH0775LC6UtaDmEY",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4046282081399113
+  },
+  {
+    "request_bytes": 4304,
+    "request_sha256": "ca45aaab86d8635275b6c62265ad144bccdd0994e5cfea9ae78f3f1d62853251",
+    "response_bytes": 1014,
+    "latency_s": 0.418,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.96,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.95
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.97,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.02
+          },
+          "confidence": 0.97
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.83
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.73,
+            "_NONE_": 0.26
+          },
+          "confidence": 0.59
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.89
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.66,
+            "_NONE_": 0.34
+          },
+          "confidence": 0.32
+        }
+      },
+      "usage": {
+        "input_tokens": 1793,
+        "output_tokens": 303,
+        "cost": 7.5306e-05
+      },
+      "id": "gen-dec-1791900195-FXVkTk2egaJ8pStPCeH2",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.41817316599190235
+  },
+  {
+    "request_bytes": 4385,
+    "request_sha256": "26008ce8498d7bd553711f8f96de65e5e0ed6b93e3d4ead3f1cf60862a1d0396",
+    "response_bytes": 1013,
+    "latency_s": 0.428,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.06,
+            "fill": 0.75,
+            "fill_submit": 0.13,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.03,
+            "_STOP_": 0.02
+          },
+          "confidence": 0.71
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.76,
+            "_NONE_": 0.24
+          },
+          "confidence": 0.73
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.69
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.93,
+            "_NONE_": 0.07
+          },
+          "confidence": 0.89
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.91
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.78,
+            "_NONE_": 0.22
+          },
+          "confidence": 0.56
+        }
+      },
+      "usage": {
+        "input_tokens": 1829,
+        "output_tokens": 303,
+        "cost": 7.6818e-05
+      },
+      "id": "gen-dec-1791900198-DIwD8z0nMqj5ZkjvEP7o",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.42883116682060063
+  },
+  {
+    "request_bytes": 4304,
+    "request_sha256": "75fd0d9008ac897a1887bc39fee67d39bce60e65b201b0c0cf3c8bf272e57800",
+    "response_bytes": 1011,
+    "latency_s": 0.418,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "click",
+          "probabilities": {
+            "click": 0.97,
+            "fill": 0.01,
+            "fill_submit": 0,
+            "press_enter": 0,
+            "scroll_down": 0,
+            "done": 0,
+            "blocked": 0.01,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.97
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e2",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0.96,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.01,
+            "_NONE_": 0.03
+          },
+          "confidence": 0.96
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.82
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0.01,
+            "e9": 0.73,
+            "_NONE_": 0.26
+          },
+          "confidence": 0.59
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.9
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.65,
+            "_NONE_": 0.35
+          },
+          "confidence": 0.3
+        }
+      },
+      "usage": {
+        "input_tokens": 1790,
+        "output_tokens": 303,
+        "cost": 7.518e-05
+      },
+      "id": "gen-dec-1791900226-pNPVi3czm8Sq6hhiyhpK",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.4184881660621613
+  },
+  {
+    "request_bytes": 4385,
+    "request_sha256": "0fc6277777d0dc540b1f386c03fdd8dda434a117d1859e961b9d1b9b0a6ab27f",
+    "response_bytes": 1012,
+    "latency_s": 0.421,
+    "response": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "operation": {
+          "type": "choice",
+          "choice": "fill",
+          "probabilities": {
+            "click": 0.04,
+            "fill": 0.82,
+            "fill_submit": 0.1,
+            "press_enter": 0,
+            "scroll_down": 0.01,
+            "done": 0,
+            "blocked": 0.02,
+            "_STOP_": 0.01
+          },
+          "confidence": 0.79
+        },
+        "risky": {
+          "type": "noul",
+          "noul": 0.06
+        },
+        "click_target": {
+          "type": "choice",
+          "choice": "e7",
+          "probabilities": {
+            "e10": 0,
+            "e11": 0,
+            "e12": 0,
+            "e2": 0,
+            "e3": 0,
+            "e4": 0,
+            "e5": 0,
+            "e6": 0,
+            "e7": 0.68,
+            "_NONE_": 0.32
+          },
+          "confidence": 0.64
+        },
+        "valid_click_target": {
+          "type": "noul",
+          "noul": 0.75
+        },
+        "fill_target": {
+          "type": "choice",
+          "choice": "e9",
+          "probabilities": {
+            "e8": 0,
+            "e9": 0.93,
+            "_NONE_": 0.07
+          },
+          "confidence": 0.89
+        },
+        "valid_fill_target": {
+          "type": "noul",
+          "noul": 0.91
+        },
+        "fill_value": {
+          "type": "choice",
+          "choice": "milk",
+          "probabilities": {
+            "milk": 0.79,
+            "_NONE_": 0.21
+          },
+          "confidence": 0.58
+        }
+      },
+      "usage": {
+        "input_tokens": 1829,
+        "output_tokens": 303,
+        "cost": 7.6818e-05
+      },
+      "id": "gen-dec-1791900228-V4VPQchaJXk3i1ZeSwnd",
+      "provider": "TypeSafe"
+    },
+    "elapsed_s": 0.42187866708263755
+  }
+]

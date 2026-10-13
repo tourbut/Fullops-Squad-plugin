@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "review_key": "CUA-VISUAL-R03",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "independent direct-pixel visual review plus separate runtime-proof inspection",
+  "fixed_sha": "6c900b2b7d5ad1dbcc6f86a95e7efa86a6f762dd",
+  "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+  "script_hash_matches_review_snapshot_and_selected_executed_copies": true,
+  "generated_code_executed_by_reviewer": false,
+  "method": "Each of eight listed screenshots was individually opened with view_image at original detail. Actual pixels, not DOM values or human-ground-truth labels, establish the observations below.",
+  "screenshot_base": "/private/tmp/fullops-completion-z_ii0xr2/cua-work/final_runs",
+  "inspected_images": [
+    {
+      "file": "run_5/screenshots/final_execution_1_dark_theme.png",
+      "sha256": "a498af356980327dd5ccad675807c39614fce25d5cf0089624e6278579177a7c",
+      "observations": "Dark controls and white text, No todos yet, Submissions: 0. Background is medium gray rather than settled near-black.",
+      "limitation": "This immediate first capture alone does not establish settled dark appearance; later run_5 captures clearly do."
+    },
+    {
+      "file": "run_5/screenshots/final_execution_2_add_todo.png",
+      "sha256": "e68c89d12bb51f61eaf084bc438055767aebb674bf2baa0bee4398a5b2d6dfd6",
+      "observations": "Settled near-black background, one visible milk row, empty checkbox, Submissions: 1, and a visible blue input focus outline."
+    },
+    {
+      "file": "run_5/screenshots/final_execution_3_todo_checked.png",
+      "sha256": "9aa5ff54110d8317b32fc6eb1e8f33853e75196b74017df8f3471408aa04bdf0",
+      "observations": "One visible milk row with a blue checkbox and white checkmark on the dark page; Submissions: 1."
+    },
+    {
+      "file": "run_5/screenshots/final_execution_4_final_state.png",
+      "sha256": "9aa5ff54110d8317b32fc6eb1e8f33853e75196b74017df8f3471408aa04bdf0",
+      "observations": "Default run final pixels retain dark appearance, one checked milk row and Submissions: 1. Byte-identical to the checked-state image."
+    },
+    {
+      "file": "run_6/screenshots/final_execution_4_final_state.png",
+      "sha256": "e5834ec5b3853ae0569fa5bc37a7381990547d00ab5ef52d4e0575c1fceebca1",
+      "observations": "Alternate-argument healthy run shows one checked bread row, dark appearance and Submissions: 1."
+    },
+    {
+      "file": "run_8/screenshots/final_execution_4_final_state.png",
+      "sha256": "6d83fd33e66a49ab3a2c5cc9a3d04b6ac69a3c9046a6dfb9bed378cbecbf6a77",
+      "observations": "Duplicate fixture visibly has two milk rows and Submissions: 2. Only the first row is checked. This fails the one-row/one-submission goal."
+    },
+    {
+      "file": "run_9/screenshots/final_execution_4_final_state.png",
+      "sha256": "4f66152eca14a201ca200019da7e5c7b24df97b045641956fa2601fc37f02bf7",
+      "observations": "No-check fixture shows one milk row and Submissions: 1 on a dark page, but the checkbox is visibly empty. This fails the completion goal."
+    },
+    {
+      "file": "run_10/screenshots/final_execution_4_final_state.png",
+      "sha256": "72ca2581c81d41ec26360a97b3f49770c8ab0e1972eff8f27ced36de3aa52ca9",
+      "observations": "No-theme fixture remains white/light with dark text, while milk is checked and Submissions: 1. This fails the requested dark appearance."
+    }
+  ],
+  "default_critical_points": {
+    "CP1": "PASS using run_5 screenshots 2-4 with settled dark appearance; screenshot 1 has an unsettled background.",
+    "CP2": "PASS for visible final state: one milk row and Submissions: 1.",
+    "CP3": "PASS: visible blue checkbox with white checkmark next to milk.",
+    "CP4": "PASS: final screenshot retains the requested visible state. Separately inspected final_script_log.txt reports theme=dark submits=1 list_li=1 checkbox.checked=True exact_text=milk."
+  },
+  "separate_runtime_records": {
+    "path": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-replay/runs.json",
+    "record_count": 14,
+    "healthy_task_pass_count": 5,
+    "seeded_defect_task_fail_count": 9,
+    "all_records_match_script_hash": true,
+    "all_records_report_model_calls_zero": true,
+    "all_records_have_null_error_and_empty_blocked_requests": true,
+    "independent_oracle_authority": "Trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "selected_records_individually_inspected": [5, 6, 8, 9, 10],
+    "import_smoke_log": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-replay/import-smoke.log",
+    "import_smoke_observation": "IMPORT_SAFE True",
+    "cli_help_log": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-replay/cli-help.log",
+    "cli_help_observation": "--url and --todo flags with defaults and nonempty todo help are present."
+  },
+  "preservation": {
+    "original_screenshots_modified": false,
+    "old_R00_visual_record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-visual-r00.json",
+    "old_R00_visual_record_modified": false,
+    "prior_unknown_provider_usage_or_cost_zeroed": false
+  },
+  "limitations": [
+    "Only the eight listed images were directly inspected. The remaining repetitions are represented by their runtime proof records, not claimed as independently viewed screenshots.",
+    "Visible counts do not establish hidden DOM or network state; the independent external oracle and isolation records cover those separately.",
+    "The first dark-theme screenshot captures an unsettled gray background, and the final two default images are identical; neither is independent proof of an additional transition.",
+    "Five healthy passes and nine correctly failed seeded fixtures establish these controlled cases only. They do not establish general bug recall, production defect detection, or a sole model failure root cause.",
+    "No generated browser run or provider call was executed by this reviewer for this record."
+  ],
+  "conclusion": "Default and alternate healthy final views satisfy the visible goal; the selected duplicate, no-check and no-theme final views visibly fail the intended criteria and agree with the separate external task oracle. Controlled fixture outcomes remain separate from whole-issue acceptance.",
+  "whole_issue_acceptance": false
+}

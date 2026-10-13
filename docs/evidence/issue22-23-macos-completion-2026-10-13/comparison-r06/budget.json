@@ -1,0 +1,20 @@
+{
+  "per_run": {
+    "max_steps": 5,
+    "max_seconds": 90,
+    "max_cost": 0.02,
+    "max_input_chars": 12000
+  },
+  "repetitions": 3,
+  "cases": [
+    "healthy",
+    "duplicate",
+    "no-check",
+    "no-theme"
+  ],
+  "max_live_model_calls": 60,
+  "request_timeout_s": 12,
+  "model": "~typesafe/jev-latest",
+  "effort": "not exposed by Jev API",
+  "cache": "bypassed; separate cold/warm probe later"
+}

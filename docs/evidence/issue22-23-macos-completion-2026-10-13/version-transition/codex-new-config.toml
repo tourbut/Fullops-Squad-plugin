@@ -1,0 +1,7 @@
+[marketplaces.fullops-squad]
+source_type = "git"
+source = "https://github.com/tourbut/Fullops-Squad-plugin.git"
+ref = "1bf607826b5f806d27d11ab278319c63528edae7"
+
+[plugins."fullops-squad@fullops-squad"]
+enabled = true

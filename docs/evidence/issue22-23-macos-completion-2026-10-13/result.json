@@ -1,0 +1,44 @@
+{
+  "source_sha": "5469cc96a2d49166817128aed5f552682f5d2407",
+  "status": "scoped verification complete; close after publication and final CI",
+  "user_scope": {
+    "claude": "waived explicitly",
+    "further_repetition_and_matched_benchmark": "waived; interrupted records retained",
+    "issue_comments": "explicitly requested",
+    "merge_deploy": "not performed"
+  },
+  "issue22": {
+    "lifecycle": "verified with Grok updater metadata limitation and successful owned-temp recovery",
+    "native_ui_and_handoff": "verified",
+    "react_nonreact_lint": "verified",
+    "ui_states_independent_review_qa": "verified",
+    "failure_preservation": "verified scoped; original attribution unknown retained; no all-eight-byte preservation claim"
+  },
+  "issue23": {
+    "plan_generate_modify_rerun": "verified bounded final phase; prior cap violation/timeout retained",
+    "review_isolation_oracle_visual": "verified scoped client/page isolation, background egress limitation disclosed",
+    "model_free_regression": "verified",
+    "comparison_ground_truth": "verified scoped samples; no further repeats per user",
+    "cache_api_failures": "verified controlled; no external outage claim",
+    "shadow_and_gates": "verified preserved"
+  },
+  "mandatory_local_checks": {
+    "npm_ci": 0,
+    "npm_test_final": 0,
+    "jev_web_final": 0,
+    "web_engine_22": 0,
+    "latest_ocr_gate": 0,
+    "build": "regenerated source/dist"
+  },
+  "known_limits": [
+    "Claude waived",
+    "Grok1.0.52local updater metadata stale; reinstall recovery verified",
+    "historical global Codex config attribution unknown",
+    "Claude runtime metadata bytes changed; persistent permission/settings mutation not observed",
+    "CUA original output cap violation and timeout cost unknown retained",
+    "Firefox background egress outside Python OS sandbox",
+    "engine browser versions/viewports differ; no performance superiority claim",
+    "only finite labelled seeded cases; not general recall"
+  ],
+  "closure_condition": "latest PR26 CI green and detailed per-issue comments link this evidence"
+}

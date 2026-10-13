@@ -1,0 +1,12 @@
+{
+  "version": "web-shadow-v1",
+  "suggested_category": "no_failure",
+  "reason": "Only the recorded scope passed; no optional tests are skipped.",
+  "advisory_only": true,
+  "gates_changed": false,
+  "human_label": null,
+  "target_sha": null,
+  "scenario_sha256": "6f7c61084cb896290a5cf10edf60ddbdf721f669f1e48cfef8cba85806bdac82",
+  "original_result": "passed",
+  "original_passed": true
+}

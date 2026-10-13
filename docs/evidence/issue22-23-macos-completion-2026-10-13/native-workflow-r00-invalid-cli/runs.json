@@ -1,0 +1,80 @@
+[
+  {
+    "host": "codex",
+    "argv": [
+      "codex",
+      "exec",
+      "--no-daemon",
+      "--ignore-user-config",
+      "--ephemeral",
+      "--sandbox",
+      "workspace-write",
+      "--model",
+      "gpt-6.1-sol",
+      "-c",
+      "model_reasoning_effort=\"medium\"",
+      "-c",
+      "sandbox_workspace_write.network_access=true",
+      "--json",
+      "-"
+    ],
+    "exit_code": 2,
+    "elapsed_s": 0.04029024997726083,
+    "protected_before": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "protected_after": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "qa_exists": false
+  },
+  {
+    "host": "grok",
+    "argv": [
+      "grok",
+      "--cwd",
+      "/private/tmp/fullops-completion-z_ii0xr2/ui-grok",
+      "--sandbox",
+      "workspace-write",
+      "--tools",
+      "read_file,write_file,search_replace,run_terminal_cmd",
+      "--no-subagents",
+      "--max-turns",
+      "10",
+      "--disable-web-search",
+      "--permission-mode",
+      "dontAsk",
+      "--allow",
+      "Edit(/private/tmp/fullops-completion-z_ii0xr2/ui-grok/**)",
+      "--allow",
+      "Write(/private/tmp/fullops-completion-z_ii0xr2/ui-grok/**)",
+      "--allow",
+      "Bash(/private/tmp/fullops-completion-z_ii0xr2/runtime/bin/python /private/tmp/fullops-completion-z_ii0xr2/ui-grok/qa.py /private/tmp/fullops-completion-z_ii0xr2/ui-grok*)",
+      "--output-format",
+      "json",
+      "--model",
+      "grok-4.6",
+      "--effort",
+      "medium",
+      "--prompt-file",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/native-workflow/grok-prompt.txt"
+    ],
+    "exit_code": 1,
+    "elapsed_s": 0.1211684588342905,
+    "protected_before": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "protected_after": {
+      "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+      "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+      "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+    },
+    "qa_exists": false
+  }
+]

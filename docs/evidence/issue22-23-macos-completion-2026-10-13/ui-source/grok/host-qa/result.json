@@ -1,0 +1,218 @@
+{
+  "checks": [
+    {
+      "width": 320,
+      "checks": [
+        {
+          "name": "empty",
+          "passed": true
+        },
+        {
+          "name": "no-overflow",
+          "passed": true
+        },
+        {
+          "name": "keyboard-dark",
+          "passed": true
+        },
+        {
+          "name": "focus-visible",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "shortcut-input-focus",
+          "passed": true
+        },
+        {
+          "name": "one-add-and-check",
+          "passed": true
+        },
+        {
+          "name": "cancel-preserves-focus",
+          "passed": true
+        },
+        {
+          "name": "escape-preserves-focus",
+          "passed": true
+        },
+        {
+          "name": "confirmed-clear",
+          "passed": true
+        },
+        {
+          "name": "loading",
+          "passed": true
+        },
+        {
+          "name": "error-no-auto-retry",
+          "passed": true
+        },
+        {
+          "name": "manual-retry-once",
+          "passed": true
+        },
+        {
+          "name": "load-empty",
+          "passed": true
+        },
+        {
+          "name": "repeat-disabled-load",
+          "passed": true
+        },
+        {
+          "name": "light-restored",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "checks": [
+        {
+          "name": "empty",
+          "passed": true
+        },
+        {
+          "name": "no-overflow",
+          "passed": true
+        },
+        {
+          "name": "keyboard-dark",
+          "passed": true
+        },
+        {
+          "name": "focus-visible",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "shortcut-input-focus",
+          "passed": true
+        },
+        {
+          "name": "one-add-and-check",
+          "passed": true
+        },
+        {
+          "name": "cancel-preserves-focus",
+          "passed": true
+        },
+        {
+          "name": "escape-preserves-focus",
+          "passed": true
+        },
+        {
+          "name": "confirmed-clear",
+          "passed": true
+        },
+        {
+          "name": "loading",
+          "passed": true
+        },
+        {
+          "name": "error-no-auto-retry",
+          "passed": true
+        },
+        {
+          "name": "manual-retry-once",
+          "passed": true
+        },
+        {
+          "name": "load-empty",
+          "passed": true
+        },
+        {
+          "name": "repeat-disabled-load",
+          "passed": true
+        },
+        {
+          "name": "light-restored",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "checks": [
+        {
+          "name": "empty",
+          "passed": true
+        },
+        {
+          "name": "no-overflow",
+          "passed": true
+        },
+        {
+          "name": "keyboard-dark",
+          "passed": true
+        },
+        {
+          "name": "focus-visible",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion",
+          "passed": true
+        },
+        {
+          "name": "shortcut-input-focus",
+          "passed": true
+        },
+        {
+          "name": "one-add-and-check",
+          "passed": true
+        },
+        {
+          "name": "cancel-preserves-focus",
+          "passed": true
+        },
+        {
+          "name": "escape-preserves-focus",
+          "passed": true
+        },
+        {
+          "name": "confirmed-clear",
+          "passed": true
+        },
+        {
+          "name": "loading",
+          "passed": true
+        },
+        {
+          "name": "error-no-auto-retry",
+          "passed": true
+        },
+        {
+          "name": "manual-retry-once",
+          "passed": true
+        },
+        {
+          "name": "load-empty",
+          "passed": true
+        },
+        {
+          "name": "repeat-disabled-load",
+          "passed": true
+        },
+        {
+          "name": "light-restored",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "model_calls": 0,
+  "network_requests_allowed": 0,
+  "browser": "Firefox155.0 broker, fresh context each width",
+  "unexamined": [
+    "loopback history back measured separately"
+  ]
+}

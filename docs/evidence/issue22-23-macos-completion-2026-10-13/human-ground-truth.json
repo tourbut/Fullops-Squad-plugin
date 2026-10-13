@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-10-13T13:26:51.427401+00:00",
+  "source": "explicit human response in this conversation",
+  "presented_mapping": {
+    "A": "healthy",
+    "B": "duplicate",
+    "C": "no-check",
+    "D": "no-theme"
+  },
+  "human_answer": "A 정상, B·C·D 결함",
+  "labels": {
+    "healthy": "normal",
+    "duplicate": "defect",
+    "no-check": "defect",
+    "no-theme": "defect"
+  },
+  "basis": "human reviewed actual browser state summary after fixed goal/actions; not a blinded visual study",
+  "corrections": []
+}

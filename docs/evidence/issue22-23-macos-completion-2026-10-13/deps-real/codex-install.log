@@ -1,0 +1,6 @@
+WARNING: proceeding, even though we could not create PATH aliases: CODEX_HOME points to "/private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex", but that path does not exist
+Error: failed to resolve CODEX_HOME
+
+Caused by:
+    CODEX_HOME points to "/private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex", but that path does not exist
+의존성 설치 실패: Command '['/Users/shin/.local/bin/codex', 'plugin', 'marketplace', 'list', '--json']' returned non-zero exit status 1.

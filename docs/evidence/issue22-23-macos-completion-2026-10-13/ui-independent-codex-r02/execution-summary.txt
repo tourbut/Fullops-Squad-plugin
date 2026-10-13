@@ -1,0 +1,2 @@
+Reviewer helper process exit code observed by exec tool: 0
+Observed stdout: {"source_sha": "3a361d576441b9bd7633b4641911c3388416e7b1", "passed": true, "checks_total": 60, "checks_passed": 60, "errors": [[], [], []]}

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "audit_key": "ISSUE-CLOSURE-SPEC-AUDIT-R02",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "final independent Spec-axis closure disposition under the latest user scope",
+  "prior_audit": "/private/tmp/fullops-completion-z_ii0xr2/evidence/issue-closure-spec-audit-r01.json",
+  "prior_audit_preserved": true,
+  "fresh_issue_sources": [
+    "https://github.com/tourbut/Fullops-Squad-plugin/issues/22",
+    "https://github.com/tourbut/Fullops-Squad-plugin/issues/22#issuecomment-6141377338",
+    "https://github.com/tourbut/Fullops-Squad-plugin/issues/23",
+    "https://github.com/tourbut/Fullops-Squad-plugin/issues/23#issuecomment-6141382278"
+  ],
+  "issue_source_method": "Both issue bodies and comments were fetched live with gh issue view during this audit. The detailed criterion map is retained in r01.",
+  "effective_user_scope": {
+    "Claude": "Explicit user waiver; historical blocked and unverified evidence remains unchanged.",
+    "latest_instruction": "반복측정까진 할필요없어 / 최소화로 테스트해보고 이상없으면 이슈 완료처리해",
+    "record": "/private/tmp/fullops-completion-z_ii0xr2/evidence/user-scope-reduction.json",
+    "further_repeated_or_matched_benchmarks": "waived and intentionally stopped",
+    "correctness_security_mandatory_gates": "not waived",
+    "PR_and_conditional_closure": "authorized by user according to task context"
+  },
+  "final_project_source_sha": "5469cc96a2d49166817128aed5f552682f5d2407",
+  "blocking_defects_found": [],
+  "issue22": {
+    "disposition": "eligible_after_publication_and_CI",
+    "minimum_evidence_completed": [
+      "Actual Codex/Grok install lifecycle, complete dependency receipts and source provenance in isolated settings; Codex version transition succeeds, and Grok stale updater behavior plus data-preserving reinstall recovery is recorded separately.",
+      "Actual native plan/file implementation/critique/browser QA for the same small UI task. Final Codex UI SHA3a361d576441b9bd7633b4641911c3388416e7b1 has independent60-check review; final Grok UI SHA7e7a4d2f5830233317abcca787ec180b3041625e has independent114-check review; both have direct visual review.",
+      "Completed Codex-to-Grok handoff reports QA PASS and preserves all source and prior evidence hashes.",
+      "Actual React shadcn/ESLint invalid-to-valid design lint and actual non-React stylelint17.16.0 checks for both final UI hashes. Valid CSS exits0, seeded invalid CSS exits2; optional MCP/Impeccable engine is explicitly not selected.",
+      "Changed UI checks cover responsive layouts, keyboard/focus, themes/reduced motion, loading/empty/error/retry, repeated disabled load click, cancellation/modal boundaries and real Back history.",
+      "Actual authentication/permission/tool/hook failures and isolated setting preservation are documented without claiming every unsupported host path passed."
+    ],
+    "last_verified_evidence": [
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/host-handoff/result.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/result.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-codex-r02/review.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/review.json"
+    ],
+    "required_remaining": ["Publish the final evidence map with explicit waivers/limits and preserved historical failures.", "Require final PR CI success before closure."],
+    "not_required": ["Claude execution after waiver", "new browser/model calls", "unselected optional tool connections", "i-docs product replication or repairs", "upstream Grok updater repair or universal all-host PASS"]
+  },
+  "issue23": {
+    "disposition": "eligible_after_publication_and_CI",
+    "minimum_evidence_completed": [
+      "Bounded native CUAWright plan/generation/modification/replay with independent pre-execution review, fixed code identity, independent checks and separate direct visual inspection.",
+      "The successful bounded generation reports2013 output tokens within configured8192 and2 actual calls within2 turns. Recovered code is byte-identical to reviewed R03 hashbd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2; new model-free run19 passes the external oracle.",
+      "Completed deterministic generated-code promotion and replay includes default/alternate healthy goals and known defect fixtures; five healthy task passes and nine intended seeded task failures are preserved with actual visual differences.",
+      "Actual macOS Orca/native-host work, existing four-path fixture comparisons, explicit human A-normal/BCD-defect labels, shadow corrections/reasons, elapsed/call/input/output/known-cost records, application-cache cold/warm evidence and controlled API failure evidence are available with limits.",
+      "Final R07 partial live comparison has nine completed rows: healthy3/3 PASS and six completed seeded non-passes with the exact independently observed invariant violation. Interrupted remainder is preserved rather than filled in.",
+      "There are43 completed API response records in comparison-r07/live-calls.json, including calls from the interrupted third duplicate attempt; costs from those calls remain within the phase ledger and must not be omitted just because the run row is partial."
+    ],
+    "last_verified_evidence": [
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-visual-r03.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-reproduction-run.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-bounded-replay/run-19.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/comparison-r07/runs.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/comparison-r07/live-calls.json",
+      "/private/tmp/fullops-completion-z_ii0xr2/evidence/user-scope-reduction.json"
+    ],
+    "required_remaining": ["Publish completed sample sizes, phase-specific timing/cost summaries, stopped/partial measurements and explicit waivers/limitations.", "Require final PR CI success before closure."],
+    "not_required": ["Completing the stopped aligned four-engine or12-case repetition phase", "new browser/provider calls", "universal PASS on deliberately broken fixtures", "general production recall or speed/cost superiority claims", "new paid keys or Jev image verdicts"]
+  },
+  "mandatory_gate_status": {
+    "final_R07_npm_test": "PASS according to completed log and parent process evidence; npm-test-r07.log inspected",
+    "latest_OCR_regression": "R06 PASS; review-check-r06.log inspected. R07 changes no review/done gate code, so this existing gate evidence is retained rather than weakened or reclassified.",
+    "fixed_source_independent_review": "R07 Spec review found no defect and confirmed the negative blocked_policy/acts=[] oracle remains intact.",
+    "final_PR_CI": "pending; closure remains conditional on success"
+  },
+  "mandatory_limit_disclosures": [
+    "Claude waived, not retrospectively passed.",
+    "Grok update exit0 stale inventory and successful recovery are distinct results.",
+    "Original global-setting attribution UNKNOWN remains; current isolated preservation does not rewrite prior history.",
+    "Browser page HTTP/WebSocket/tenant restrictions constrain the tested path; Firefox background traffic lies outside the client's OS network restriction and full-process egress isolation is not claimed.",
+    "The old4096 cap violation and timeout usage/cost/attempt unknowns remain preserved.",
+    "Mixed versions/viewports, application-only cache control and small known-seed samples limit comparison conclusions.",
+    "User-stopped partial records are not zero attempts, PASS, or nonexistent cost."
+  ],
+  "final_disposition": "Both issues are eligible for conditional closure after final evidence publication and green final CI under the user's revised minimal-test scope. No real blocking defect was found, and no additional browser or model measurement is required.",
+  "issues_already_closed": false,
+  "issues_closed_by_reviewer": false,
+  "source_edits_by_reviewer": false,
+  "browser_or_model_calls_by_reviewer_for_this_audit": 0
+}

@@ -1,0 +1,14 @@
+{
+  "phase": "contract-repair-r02",
+  "prior_phase": "4096 completion budget VIOLATED by reported output5310; same-session timeout cost unknown",
+  "host": "grok",
+  "requested_model": "grok-4.6",
+  "resolved_model": "grok-4.6-build",
+  "effort": "medium",
+  "max_host_invocations": 1,
+  "max_turns": 1,
+  "max_completion_tokens": 8192,
+  "scope": "per response output; total input+output not hard bounded",
+  "timeout_s": 180,
+  "accepted_output_must_be_lte": 8192
+}

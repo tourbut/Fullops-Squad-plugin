@@ -1,0 +1,30 @@
+{
+  "script_sha256": "7c8c2c187521bb527571e9435359879726679c0d5b43df53228fa831bb10c9c0",
+  "elapsed_s": 1.9179886248894036,
+  "observations": [
+    {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true,
+      "url": "http://127.0.0.1:57186/healthy",
+      "viewport": {
+        "width": 1280,
+        "height": 1800
+      }
+    }
+  ],
+  "expected": {
+    "theme": "dark",
+    "submissions": 1,
+    "rows": 1,
+    "text": "milk",
+    "checked": true
+  },
+  "pass": true,
+  "error": null,
+  "blocked_requests": [],
+  "model_calls": 0,
+  "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE"
+}

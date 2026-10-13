@@ -1,0 +1,717 @@
+npm install --global @upstash/context7-mcp@latest @alibaba-group/open-code-review@latest
+
+changed 106 packages in 2s
+
+30 packages are looking for funding
+  run `npm fund` for details
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900825265921000/caveman
+npx --yes skills@latest add JuliusBrussee/caveman --skill caveman --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/JuliusBrussee/caveman.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 22 skills
+[?25h│
+●  Selected 1 skill: caveman
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/caveman                      │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ─────────────────────────────╮
+│                                                         │
+│           Gen               Socket            Snyk      │
+│  caveman  Safe              0 alerts          Low Risk  │
+│                                                         │
+│  Details: https://skills.sh/JuliusBrussee/caveman       │
+│                                                         │
+├─────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────╮
+│                                        │
+│  ✓ ~/.agents/skills/caveman            │
+│    universal: Codex                    │
+│    symlinked: Claude Code, Grok Build  │
+│                                        │
+├────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900828059128000/typesafe-ai
+npx --yes skills@latest add typesafe-ai/skills --skill typesafe-ai --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/typesafe-ai/skills.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 1 skill
+[?25h│
+●  Selected 1 skill: typesafe-ai
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/typesafe-ai                  │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ─────────────────────────────────╮
+│                                                             │
+│               Gen               Socket            Snyk      │
+│  typesafe-ai  Safe              0 alerts          Low Risk  │
+│                                                             │
+│  Details: https://skills.sh/typesafe-ai/skills              │
+│                                                             │
+├─────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────╮
+│                                        │
+│  ✓ ~/.agents/skills/typesafe-ai        │
+│    universal: Codex                    │
+│    symlinked: Claude Code, Grok Build  │
+│                                        │
+├────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900829427595000/open-code-review-delegate
+npx --yes skills@latest add alibaba/open-code-review --skill open-code-review-delegate --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/alibaba/open-code-review.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 2 skills
+[?25h│
+●  Selected 1 skill: open-code-review-delegate
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/open-code-review-delegate    │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ───────────────────────────────────────────────╮
+│                                                                           │
+│                             Gen               Socket            Snyk      │
+│  open-code-review-delegate  Safe              0 alerts          Low Risk  │
+│                                                                           │
+│  Details: https://skills.sh/alibaba/open-code-review                      │
+│                                                                           │
+├───────────────────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────────────╮
+│                                                │
+│  ✓ ~/.agents/skills/open-code-review-delegate  │
+│    universal: Codex                            │
+│    symlinked: Claude Code, Grok Build          │
+│                                                │
+├────────────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900833123398000/diagram-design
+npx --yes skills@latest add cathrynlavery/diagram-design --skill diagram-design --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/cathrynlavery/diagram-design.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…...[1G[J◐  Cloning repository…...[1G[J◓  Cloning repository…...[1G[J◑  Cloning repository…...[1G[J◒  Cloning repository…...[1G[J◐  Cloning repository…...[1G[J◓  Cloning repository…...[1G[J◑  Cloning repository…...[1G[J◒  Cloning repository…...[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 1 skill
+[?25h│
+●  Selected 1 skill: diagram-design
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/diagram-design               │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ────────────────────────────────────╮
+│                                                                │
+│                  Gen               Socket            Snyk      │
+│  diagram-design  Safe              0 alerts          Low Risk  │
+│                                                                │
+│  Details: https://skills.sh/cathrynlavery/diagram-design       │
+│                                                                │
+├────────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◒  Installing skills…[1G[J◐  Installing skills…[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────╮
+│                                        │
+│  ✓ ~/.agents/skills/diagram-design     │
+│    universal: Codex                    │
+│    symlinked: Claude Code, Grok Build  │
+│                                        │
+├────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900838840095000/frontend-design
+npx --yes skills@latest add anthropics/skills --skill frontend-design --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/anthropics/skills.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…...[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 20 skills
+[?25h│
+●  Selected 1 skill: frontend-design
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│                                                │
+│  Example Skills                                │
+│                                                │
+│  ~/.agents/skills/frontend-design              │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ─────────────────────────────────────╮
+│                                                                 │
+│                   Gen               Socket            Snyk      │
+│  frontend-design  Safe              0 alerts          Low Risk  │
+│                                                                 │
+│  Details: https://skills.sh/anthropics/skills                   │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────╮
+│                                        │
+│                                        │
+│  Example Skills                        │
+│  ✓ ~/.agents/skills/frontend-design    │
+│    universal: Codex                    │
+│    symlinked: Claude Code, Grok Build  │
+│                                        │
+├────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900841678974000/ui-ux-pro-max
+npx --yes skills@latest add nextlevelbuilder/ui-ux-pro-max-skill --skill ui-ux-pro-max --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 7 skills
+[?25h│
+●  Selected 1 skill: ui-ux-pro-max
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/ui-ux-pro-max                │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ───────────────────────────────────────╮
+│                                                                   │
+│                 Gen               Socket            Snyk          │
+│  ui-ux-pro-max  Safe              0 alerts          Low Risk      │
+│                                                                   │
+│  Details: https://skills.sh/nextlevelbuilder/ui-ux-pro-max-skill  │
+│                                                                   │
+├───────────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────╮
+│                                        │
+│  ✓ ~/.agents/skills/ui-ux-pro-max      │
+│    universal: Codex                    │
+│    symlinked: Claude Code, Grok Build  │
+│                                        │
+├────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900843887704000/impeccable
+npx --yes skills@latest add pbakaus/impeccable --skill impeccable --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/pbakaus/impeccable.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…...[1G[J◐  Cloning repository…...[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 1 skill
+[?25h│
+●  Selected 1 skill: impeccable
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/impeccable                   │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ────────────────────────────────╮
+│                                                            │
+│              Gen               Socket            Snyk      │
+│  impeccable  Safe              1 alert           Low Risk  │
+│                                                            │
+│  Details: https://skills.sh/pbakaus/impeccable             │
+│                                                            │
+├────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────╮
+│                                        │
+│  ✓ ~/.agents/skills/impeccable         │
+│    universal: Codex                    │
+│    symlinked: Claude Code, Grok Build  │
+│                                        │
+├────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900847059184000/web-design-guidelines
+npx --yes skills@latest add vercel-labs/agent-skills --skill web-design-guidelines --global --agent codex claude-code grok --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/vercel-labs/agent-skills.git
+[?25h[?25l│
+◒  Fetching skills…[1G[J◐  Fetching skills…[1G[J◓  Fetching skills…[1G[J◑  Fetching skills…[1G[J◒  Fetching skills…[1G[J◐  Fetching skills…[1G[J◓  Fetching skills…[1G[J◑  Fetching skills…[1G[J◒  Fetching skills….[1G[J◐  Fetching skills….[1G[J◓  Fetching skills….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository….[1G[J◐  Cloning repository….[1G[J◓  Cloning repository….[1G[J◑  Cloning repository….[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…..[1G[J◐  Cloning repository…..[1G[J◓  Cloning repository…..[1G[J◑  Cloning repository…..[1G[J◒  Cloning repository…...[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 9 skills
+[?25h│
+●  Selected 1 skill: web-design-guidelines
+
+│
+◇  Installation Summary ─────────────────────────╮
+│                                                │
+│  ~/.agents/skills/web-design-guidelines        │
+│    universal: Codex                            │
+│    symlink → Claude Code, Grok Build           │
+│    overwrites: Codex, Claude Code, Grok Build  │
+│                                                │
+├────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ───────────────────────────────────────────╮
+│                                                                       │
+│                         Gen               Socket            Snyk      │
+│  web-design-guidelines  Safe              0 alerts          Low Risk  │
+│                                                                       │
+│  Details: https://skills.sh/vercel-labs/agent-skills                  │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 1 skill ────────────────────────╮
+│                                            │
+│  ✓ ~/.agents/skills/web-design-guidelines  │
+│    universal: Codex                        │
+│    symlinked: Claude Code, Grok Build      │
+│                                            │
+├────────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+codex plugin marketplace add DietrichGebert/ponytail
+Added marketplace `ponytail` from https://github.com/DietrichGebert/ponytail.git.
+Installed marketplace root: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/.tmp/marketplaces/ponytail
+codex plugin marketplace upgrade ponytail
+Upgraded marketplace `ponytail` to the latest configured revision.
+Installed marketplace root: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/.tmp/marketplaces/ponytail
+codex plugin add ponytail@ponytail
+Added plugin `ponytail` from marketplace `ponytail`.
+Installed plugin root: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/plugins/cache/ponytail/ponytail/5.2.0
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857176397000/ui-ux-pro-max
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857193789000/impeccable
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857221494000/open-code-review-delegate
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857222090000/web-design-guidelines
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857222541000/typesafe-ai
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857223451000/frontend-design
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857224015000/diagram-design
+기존 스킬 보존: /private/tmp/fullops-completion-z_ii0xr2/deps-home/.codex/fullops-skill-backups/1791900857304218000/caveman
+npx --yes skills@latest add mattpocock/skills --skill '*' --global --agent codex --yes
+
+│
+●   codex  Agent detected — installing non-interactively
+[?25l│
+◇  Source: https://github.com/mattpocock/skills.git
+[?25h[?25l│
+◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◒  Cloning repository…[1G[J◐  Cloning repository…[1G[J◓  Cloning repository…[1G[J◑  Cloning repository…[1G[J◇  Repository cloned
+[?25h[?25l│
+[1G[J◇  Found 38 skills
+[?25h│
+●  Installing all 38 skills
+
+│
+◇  Installation Summary ───────────────────────────╮
+│                                                  │
+│                                                  │
+│  Mattpocock Skills                               │
+│                                                  │
+│  ~/.agents/skills/ask-matt                       │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/code-review                    │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/codebase-design                │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/diagnosing-bugs                │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/domain-modeling                │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/grill-with-docs                │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/implement                      │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/implement-spec                 │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/improve-codebase-architecture  │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/pr                             │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/prototype                      │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/research                       │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/retro                          │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/setup-matt-pocock-skills       │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/tdd                            │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/to-spec                        │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/to-tickets                     │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/triage                         │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/wayfinder                      │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/wizard                         │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/grill-me                       │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/grilling                       │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/handoff                        │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/teach                          │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/to-questionnaire               │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/wait-what                      │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/writing-for-agents             │
+│    copy → Codex                                  │
+│                                                  │
+│  General                                         │
+│                                                  │
+│  ~/.agents/skills/chief-of-staff                 │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/claude-handoff                 │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/loop-me                        │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/setup-ts-deep-modules          │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/writing-beats                  │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/writing-fragments              │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/writing-shape                  │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/git-guardrails-claude-code     │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/migrate-to-shoehorn            │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/scaffold-exercises             │
+│    copy → Codex                                  │
+│                                                  │
+│  ~/.agents/skills/setup-pre-commit               │
+│    copy → Codex                                  │
+│                                                  │
+├──────────────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ───────────────────────────────────────────────╮
+│                                                                           │
+│                                 Gen               Socket            Snyk  │
+│  ask-matt                       Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  code-review                    Safe              0 alerts          Med   │
+│  Risk                                                                     │
+│  codebase-design                Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  diagnosing-bugs                Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  domain-modeling                Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  grill-with-docs                Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  implement                      Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  implement-spec                 Safe              0 alerts          Med   │
+│  Risk                                                                     │
+│  improve-codebase-architecture  Med Risk          0 alerts          Med   │
+│  Risk                                                                     │
+│  pr                             Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  prototype                      Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  research                       Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  retro                          Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  setup-matt-pocock-skills       Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  tdd                            Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  to-spec                        Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  to-tickets                     Safe              0 alerts          Med   │
+│  Risk                                                                     │
+│  triage                         Med Risk          0 alerts          Med   │
+│  Risk                                                                     │
+│  wayfinder                      Safe              0 alerts          Med   │
+│  Risk                                                                     │
+│  wizard                         Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  chief-of-staff                 Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  claude-handoff                 Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  loop-me                        Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  setup-ts-deep-modules          Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  writing-beats                  Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  writing-fragments              Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  writing-shape                  Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  git-guardrails-claude-code     Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  migrate-to-shoehorn            Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  scaffold-exercises             Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  setup-pre-commit               Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  grill-me                       Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  grilling                       Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  handoff                        Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  teach                          Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  to-questionnaire               Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  wait-what                      Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│  writing-for-agents             Safe              0 alerts          Low   │
+│  Risk                                                                     │
+│                                                                           │
+│  Details: https://skills.sh/mattpocock/skills                             │
+│                                                                           │
+├───────────────────────────────────────────────────────────────────────────╯
+[?25l│
+[1G[J◇  Installation complete
+[?25h
+│
+◇  Installed 38 skills ────────────────────────────────╮
+│                                                      │
+│                                                      │
+│  Mattpocock Skills                                   │
+│  ✓ ask-matt (copied)                                 │
+│    → ~/.agents/skills/ask-matt                       │
+│  ✓ code-review (copied)                              │
+│    → ~/.agents/skills/code-review                    │
+│  ✓ codebase-design (copied)                          │
+│    → ~/.agents/skills/codebase-design                │
+│  ✓ diagnosing-bugs (copied)                          │
+│    → ~/.agents/skills/diagnosing-bugs                │
+│  ✓ domain-modeling (copied)                          │
+│    → ~/.agents/skills/domain-modeling                │
+│  ✓ grill-with-docs (copied)                          │
+│    → ~/.agents/skills/grill-with-docs                │
+│  ✓ implement (copied)                                │
+│    → ~/.agents/skills/implement                      │
+│  ✓ implement-spec (copied)                           │
+│    → ~/.agents/skills/implement-spec                 │
+│  ✓ improve-codebase-architecture (copied)            │
+│    → ~/.agents/skills/improve-codebase-architecture  │
+│  ✓ pr (copied)                                       │
+│    → ~/.agents/skills/pr                             │
+│  ✓ prototype (copied)                                │
+│    → ~/.agents/skills/prototype                      │
+│  ✓ research (copied)                                 │
+│    → ~/.agents/skills/research                       │
+│  ✓ retro (copied)                                    │
+│    → ~/.agents/skills/retro                          │
+│  ✓ setup-matt-pocock-skills (copied)                 │
+│    → ~/.agents/skills/setup-matt-pocock-skills       │
+│  ✓ tdd (copied)                                      │
+│    → ~/.agents/skills/tdd                            │
+│  ✓ to-spec (copied)                                  │
+│    → ~/.agents/skills/to-spec                        │
+│  ✓ to-tickets (copied)                               │
+│    → ~/.agents/skills/to-tickets                     │
+│  ✓ triage (copied)                                   │
+│    → ~/.agents/skills/triage                         │
+│  ✓ wayfinder (copied)                                │
+│    → ~/.agents/skills/wayfinder                      │
+│  ✓ wizard (copied)                                   │
+│    → ~/.agents/skills/wizard                         │
+│  ✓ grill-me (copied)                                 │
+│    → ~/.agents/skills/grill-me                       │
+│  ✓ grilling (copied)                                 │
+│    → ~/.agents/skills/grilling                       │
+│  ✓ handoff (copied)                                  │
+│    → ~/.agents/skills/handoff                        │
+│  ✓ teach (copied)                                    │
+│    → ~/.agents/skills/teach                          │
+│  ✓ to-questionnaire (copied)                         │
+│    → ~/.agents/skills/to-questionnaire               │
+│  ✓ wait-what (copied)                                │
+│    → ~/.agents/skills/wait-what                      │
+│  ✓ writing-for-agents (copied)                       │
+│    → ~/.agents/skills/writing-for-agents             │
+│                                                      │
+│  General                                             │
+│  ✓ chief-of-staff (copied)                           │
+│    → ~/.agents/skills/chief-of-staff                 │
+│  ✓ claude-handoff (copied)                           │
+│    → ~/.agents/skills/claude-handoff                 │
+│  ✓ loop-me (copied)                                  │
+│    → ~/.agents/skills/loop-me                        │
+│  ✓ setup-ts-deep-modules (copied)                    │
+│    → ~/.agents/skills/setup-ts-deep-modules          │
+│  ✓ writing-beats (copied)                            │
+│    → ~/.agents/skills/writing-beats                  │
+│  ✓ writing-fragments (copied)                        │
+│    → ~/.agents/skills/writing-fragments              │
+│  ✓ writing-shape (copied)                            │
+│    → ~/.agents/skills/writing-shape                  │
+│  ✓ git-guardrails-claude-code (copied)               │
+│    → ~/.agents/skills/git-guardrails-claude-code     │
+│  ✓ migrate-to-shoehorn (copied)                      │
+│    → ~/.agents/skills/migrate-to-shoehorn            │
+│  ✓ scaffold-exercises (copied)                       │
+│    → ~/.agents/skills/scaffold-exercises             │
+│  ✓ setup-pre-commit (copied)                         │
+│    → ~/.agents/skills/setup-pre-commit               │
+│                                                      │
+├──────────────────────────────────────────────────────╯
+
+│
+└  Done!  Review skills before use; they run with full agent permissions.
+
+의존성 설치 완료. 새 에이전트 세션을 여세요.

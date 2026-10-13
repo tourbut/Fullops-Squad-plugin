@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "review_key": "UI-INDEPENDENT-GROK-R02",
+  "reviewer": "/root/macos_spec_review",
+  "independence": "Reviewer authored and ran review_helper.py in a separate reviewer agent session. Implementer qa.py was neither imported nor executed, and its prior result was not reused as acceptance.",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/ui-grok-review-r02",
+  "fixed_sha": "7e7a4d2f5830233317abcca787ec180b3041625e",
+  "canonical_baseline_commit": "d41a74d",
+  "source_hashes": {
+    "index.html": "133c157781079120ddda050db7fada97d54fb7a9ee761255702e1d5df2a50631",
+    "DESIGN.md": "b881d463b7dd55b766766c28c5206b24a87bb0ce93e53b2cb4e92312c1c4d48b",
+    "tokens.css": "3ae0ea0422535ebe3e44b1209275528f37f9f9896e4fc0046acd8ef5e0ba2f4c",
+    "qa.py": "c8a4854c3d35dc89a9469b7d52c1d5d614270562931556019384d85e63b80ebb"
+  },
+  "canonical_files_unchanged_from_baseline": true,
+  "snapshot_git_status_clean_after_review": true,
+  "spec": "DESIGN.md requests preserving existing labels, IDs, behavior and tokens while adding Alt+n focus without submission plus aria-keyshortcuts, with no new dependencies, network, storage or other features.",
+  "spec_findings": [],
+  "static_result": "The source adds the declared shortcut and focus handler while retaining the original fixture flows and tokens. The callback does not submit, fill the draft, mutate the submission counter or make requests.",
+  "independent_runtime": {
+    "result_file": "qa-result.json",
+    "helper_file": "review_helper.py",
+    "helper_sha256": "b9abc27966776cbd517958010d48c77fb3ec44875b3c95aff700f35a9ed48a80",
+    "command": "/private/tmp/fullops-completion-z_ii0xr2/runtime/bin/python /private/tmp/fullops-completion-z_ii0xr2/evidence/ui-independent-grok-r02/review_helper.py",
+    "exit_code": 0,
+    "pass_count": 114,
+    "fail_count": 0,
+    "errors": [],
+    "viewports": [320, 390, 1280],
+    "browser": "Existing native Firefox broker, separate fresh context per viewport",
+    "route_isolation": "Only a synthetic local GET route is fulfilled with the immutable index.html bytes. All other routed requests are aborted. Exactly three supplied local GETs and no external requests were observed.",
+    "covered_behaviors": [
+      "Alt+n focus, aria-keyshortcuts, draft preservation, no shortcut submit, visible focus and Ctrl+Alt exclusion",
+      "Enter submits exactly once, exact milk row text and checkbox completion",
+      "Light/dark round trip, correct computed token backgrounds and reduced-motion behavior",
+      "Initial, dark and final mobile overflow boundaries",
+      "Modal initial Cancel focus, Alt+n focus containment, Tab/Shift+Tab containment, Escape focus restoration and confirm clear behavior",
+      "Data, empty, error and retry flows",
+      "Real same-origin history entries, application Back button, browser Back and restored Details focus"
+    ],
+    "modal_note": "Although the global shortcut does not explicitly guard dialog.open, actual native Firefox modal inertness prevented input.focus() from escaping the open dialog. No modal focus defect was reproduced."
+  },
+  "independent_visual": {
+    "record": "visual-review.json",
+    "directly_inspected_image_count": 7,
+    "fresh_independent_image_count": 4,
+    "findings": [],
+    "verdict": "PASS"
+  },
+  "preservation": {
+    "implementation_files_modified": false,
+    "implementation_QA_results_overwritten": false,
+    "prior_permission_cancel_and_native_session_records_modified": false,
+    "prior_CUA_visual_record_modified": false
+  },
+  "CUA_R02_acknowledgement": {
+    "fixed_sha": "6450b16ce2793fb8e69caa08e5fb3b232d1f95e9",
+    "static_delta_inspected": true,
+    "previous_R01_CLI_contract_findings_addressed_in_source": true,
+    "notes": "The delta adds plan Parameters, a domain-named reusable function with Args/Returns, explicit flag types/help, exact step 0 params prefix, and URL/nonempty todo validation before evidence IO. Runtime pre-execution review and acceptance remain separate; no CUA execution was performed by this reviewer."
+  },
+  "conclusion": "PASS for the fixed Grok native UI task with independent Spec review, 114 passing runtime checks and direct visual review. No actionable defect found in the requested scope.",
+  "limitations": [
+    "Immutable fixture testing is not live service or backend acceptance.",
+    "Firefox and the three requested widths were tested; other browsers, operating systems, physical keyboard layouts and screen readers were not tested.",
+    "History Back was verified; forward restoration was not part of this scoped review.",
+    "This record does not establish whole issue 22 or 23 acceptance or accept the separate CUA matrix."
+  ],
+  "whole_issue_acceptance": false
+}

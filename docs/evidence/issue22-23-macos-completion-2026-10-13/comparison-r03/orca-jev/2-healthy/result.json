@@ -1,0 +1,115 @@
+{
+  "version": "jev-test-web-v1",
+  "plugin_version": "1.4.1",
+  "target_sha": null,
+  "worktree_dirty": null,
+  "executor_sha256": "5a5cedf69c741627573a08fed745b270d250cf955caceee276b544f95952d4ac",
+  "scenario_sha256": "b1eaafe0623a50018bae72ebe0c9d1bda845b255789ab419ce84081e68a3a849",
+  "executor_files_sha256": {
+    "jev_test_web.py": "5a5cedf69c741627573a08fed745b270d250cf955caceee276b544f95952d4ac",
+    "web_contract.py": "560a3e7999f5fc47f0f1f6c94cb49d9b9d971c5552b4a5e24e80e8924a4f7486",
+    "web_dom.js": "d2a00f772382200e966d2983a6c72116757d90952fdc27eb5e89248b730d0bcd",
+    "web_playwright.py": "1b56aaa2c03a8cf2b143aa0b03fdf25fbb951724a0c61b118a36a45876889a56",
+    "web_playwright.cjs": "08b315793e03e31d762e66278e7cdec71b1eecb90b9c5698ee4921b9bb4a5d2c"
+  },
+  "result": "uncertain",
+  "passed": false,
+  "steps": 1,
+  "scope": "scenario_checks",
+  "executor": {
+    "name": "orca",
+    "version": "unverified",
+    "request_filtering": false,
+    "attached": false
+  },
+  "coverage": {
+    "total": 12,
+    "offset": 0,
+    "observed": 12,
+    "remaining": 0,
+    "unsupported": [
+      "custom_or_select_widgets"
+    ],
+    "complete": false
+  },
+  "assertions_passed": false,
+  "jev_calls": 1,
+  "calls": [
+    {
+      "cost": 6.6654e-05,
+      "requested_model": "~typesafe/jev-latest",
+      "input_sha256": "4af9807f4c3341718b595ae6c212073a794da9fbc62734deaf094b714d4d946e",
+      "question_sha256": "dd98888ae6db616a722bb436e8adaebe7f4aa457c20879cd43826f828be604cc",
+      "usage": {
+        "input_tokens": 1587,
+        "output_tokens": 303,
+        "cost": 6.6654e-05
+      },
+      "latency_s": 0.428,
+      "response_model": "typesafe/jev-1.13-20260917",
+      "cached": false
+    }
+  ],
+  "cost": 6.7e-05,
+  "known_cost": 6.7e-05,
+  "cost_status": "complete",
+  "budgets": {
+    "max_seconds": 90,
+    "max_cost": 0.02,
+    "max_visits": 4,
+    "candidate_limit": 80,
+    "max_input_chars": 12000
+  },
+  "latency_s": 0.428,
+  "elapsed_s": 27.61,
+  "checks": [
+    {
+      "condition": {
+        "js": "document.documentElement.dataset.theme",
+        "equals": "dark"
+      },
+      "value": "light",
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "window.submits",
+        "equals": 1
+      },
+      "value": 0,
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelectorAll('#list li').length",
+        "equals": 1
+      },
+      "value": 0,
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list li')?.textContent.trim()",
+        "equals": "milk"
+      },
+      "value": "",
+      "passed": false
+    },
+    {
+      "condition": {
+        "js": "document.querySelector('#list input')?.checked",
+        "equals": true
+      },
+      "value": "",
+      "passed": false
+    }
+  ],
+  "url": "http://127.0.0.1:57186/healthy",
+  "goal": "Select dark theme, add milk exactly once, then click its checkbox exactly once. Do not load, clear, retry, navigate or change anything else. Finish after those actions even if the fixture is defective.",
+  "covers": [
+    "DARK",
+    "ONE-SUBMIT",
+    "ONE-MILK",
+    "CHECKED"
+  ]
+}

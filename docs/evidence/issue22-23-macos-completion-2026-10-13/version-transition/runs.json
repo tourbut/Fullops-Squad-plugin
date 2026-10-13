@@ -1,0 +1,76 @@
+[
+  {
+    "stage": "codex-add-old",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "add",
+      "https://github.com/tourbut/Fullops-Squad-plugin.git",
+      "--ref",
+      "6cc213882fc4b1d69d4a619e8ee62bb790a17cba",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 1.218014833983034
+  },
+  {
+    "stage": "codex-install-old",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.045001375023275614
+  },
+  {
+    "stage": "codex-old-inventory",
+    "argv": [
+      "codex",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.016645042225718498
+  },
+  {
+    "stage": "codex-upgrade-new",
+    "argv": [
+      "codex",
+      "plugin",
+      "marketplace",
+      "upgrade",
+      "fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 1.6717421249486506
+  },
+  {
+    "stage": "codex-install-new",
+    "argv": [
+      "codex",
+      "plugin",
+      "add",
+      "fullops-squad@fullops-squad",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.055469249840825796
+  },
+  {
+    "stage": "codex-new-inventory",
+    "argv": [
+      "codex",
+      "plugin",
+      "list",
+      "--json"
+    ],
+    "exit_code": 0,
+    "elapsed_s": 0.014111459022387862
+  }
+]

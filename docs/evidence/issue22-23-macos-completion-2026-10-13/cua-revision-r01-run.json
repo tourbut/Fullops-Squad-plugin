@@ -1,0 +1,50 @@
+{
+  "argv": [
+    "grok",
+    "--cwd",
+    "/private/tmp/fullops-completion-z_ii0xr2/cua-work",
+    "--sandbox",
+    "read-only",
+    "--tools",
+    "read_file",
+    "--no-subagents",
+    "--max-turns",
+    "1",
+    "--disable-web-search",
+    "--output-format",
+    "json",
+    "--model",
+    "grok-4.6",
+    "--effort",
+    "medium",
+    "--prompt-file",
+    "/private/tmp/fullops-completion-z_ii0xr2/evidence/cua-revision-r01-prompt.txt"
+  ],
+  "exit_code": 0,
+  "elapsed_s": 93.38403258402832,
+  "code_sha256": "41a01be8c6ad68669fb643df5bb1d0df17fdfd3383513ee6746c4f1e6347f6bb",
+  "usage": {
+    "usage": {
+      "input_tokens": 23909,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "output_tokens": 5310,
+      "reasoning_tokens": 4199,
+      "total_tokens": 29219
+    },
+    "total_cost_usd": 0.02709052,
+    "modelUsage": {
+      "grok-4.6-build": {
+        "inputTokens": 23909,
+        "outputTokens": 5310,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "modelCalls": 1,
+        "costUSD": 0.02709052
+      }
+    },
+    "num_turns": 1,
+    "stopReason": "end_turn",
+    "sessionId": "01a1357f-6968-7b82-af11-d30a32b4fcf2"
+  }
+}

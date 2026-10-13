@@ -1,0 +1,29 @@
+{
+  "text": "I'll read the design, tokens, markup, and critique first, then run the exact QA command you specified.I'll run the exact QA command next, then read `qa-evidence/result.json`.Alt+n preserves the fixture. Existing labels, IDs, form submit, focus styling, and light/dark tokens stay in place. The shortcut focuses `#todo` without submitting or changing the value.\n\n`#todo` exposes `aria-keyshortcuts=\"Alt+n\"`. The handler matches `Alt+n`/`Alt+N`, ignores Ctrl/Meta and composition, calls `preventDefault()`, and skips focusing while `#confirm` is open. Enter still submits. Tokens match `tokens.css`. No extra features, storage, network, or dependencies.\n\nQA outcome from `qa-evidence/result.json`: `\"passed\": true`. All checks passed at 320, 390, and 1280, including `shortcut-input-focus`, add/check, dialog focus, load/retry, theme restore, overflow, focus-visible, and reduced-motion. `model_calls` 0, `network_requests_allowed` 0, Firefox 155.0. Unexamined: loopback history back, measured separately.\n\nNo source, canon, or prior-codex-evidence files were edited.",
+  "stopReason": "end_turn",
+  "sessionId": "01a135a3-63ba-7752-b5ff-a62e3f1826ce",
+  "requestId": "9ed1ee91-d759-4238-88c1-052ffa8f6627",
+  "cwd": "/private/tmp/fullops-completion-z_ii0xr2/handoff-grok",
+  "thought": "Beginning the Codex-to-Grok host-switch preservation test.\n\nReading DESIGN.md, tokens.css, index.html, and critique.md to assess Alt+n behavior. Will run the exact bare QA command and read qa-evidence/result.json.I have gathered the necessary files and am ready to begin the QA assessment.\n\nReviewing DESIGN.md requirements for Alt+n preservation. The test must keep the accessible neutral todo fixture, existing labels and IDs, light and dark tokens, focus-only behavior without submission, and aria-keyshortcuts on the input.\n\ntokens.css defines the light and dark color variables. index.html implements them and adds aria-keyshortcuts=\"Alt+n\" to the input. The keydown handler blocks submission, focuses the input when no confirmation dialog is open, and preserves the existing form behavior.",
+  "usage": {
+    "input_tokens": 31641,
+    "cache_read_input_tokens": 83712,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 1588,
+    "reasoning_tokens": 999,
+    "total_tokens": 116941
+  },
+  "num_turns": 4,
+  "total_cost_usd": 0.03898644,
+  "total_cost_usd_ticks": 389864400,
+  "modelUsage": {
+    "grok-4.6-build": {
+      "inputTokens": 31641,
+      "outputTokens": 1588,
+      "cacheReadInputTokens": 83712,
+      "cacheCreationInputTokens": 0,
+      "modelCalls": 4,
+      "costUSD": 0.03898644
+    }
+  }
+}

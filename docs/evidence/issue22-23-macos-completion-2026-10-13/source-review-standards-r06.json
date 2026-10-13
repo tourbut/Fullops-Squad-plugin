@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "review_key": "SOURCE-REVIEW-STANDARDS-R06",
+  "reviewer": "/root/macos_standards_review",
+  "independent_review": true,
+  "reviewed_at_utc": "2026-10-13T14:04:50.304458+00:00",
+  "axis": "Standards",
+  "source_sha": "2e6075c07ba04e34f80bd1d8f5d5c2067595cbcd",
+  "base_sha": "2da4ebe65ceb0b27e267275650ca9853686e04bb",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/source-review-r06",
+  "decision": "no Standards findings",
+  "findings": [],
+  "artifact_sha256": {
+    "portable_source": "d34c2b63050d54ee7cac9e1a6aa71d6eb4c699a3f294fefb4c455f4f257b63b6",
+    "generated_source": "d34c2b63050d54ee7cac9e1a6aa71d6eb4c699a3f294fefb4c455f4f257b63b6",
+    "jev_regression": "7e7448a2f09b4848ded1e699165af6c0b368e88b92870fbc23fb2611d1e7d274",
+    "unchanged_engine_regressions": "09e9c5b072f28cc24ef14a3224e709bf3d4f3be0e11ecbcb9c7ad9d2970206e3",
+    "preserved_r05_failure": "12815d4d5ccf545d5f3daf2e8dcb86e55133410e15e819ec25e7c6c8d96034f2",
+    "r06_jev_green": "ed136acfd6d0d8131bf0ad6ebea9b853d9353e8622e5becd6a57d56a470714d7",
+    "r06_engine_green": "80cf85e23d492e503c82758c12263eefa837ebe61255ce3ea974df852abeb104"
+  },
+  "standards_sources": [
+    "AGENTS.md",
+    "docs/development.md"
+  ],
+  "prior_review": "/private/tmp/fullops-completion-z_ii0xr2/evidence/source-review-standards-r04.json",
+  "scope": "Three changed files: portable source, generated source, and tests/jev-test-web.py. tests/web-engine.py and web_contract.py unchanged.",
+  "checks": [
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        37,
+        38,
+        309,
+        310,
+        311
+      ],
+      "result": "Trusted shared state now exposes validated fixture-policy allowed_operations; operation instructions explicitly restrict effectful choices to it. This informs the model without weakening the deterministic policy gate."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        301,
+        302,
+        303,
+        304
+      ],
+      "result": "Validity questions explicitly refer to shared sanitized page.elements and carry only their applicable allowed roles, replacing duplicated candidate maps. Fixed tuple and role-set mapping match click/check/fill candidate construction."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "lines": [
+        285,
+        287,
+        288,
+        314,
+        315,
+        320,
+        325,
+        332,
+        337,
+        400,
+        404,
+        418
+      ],
+      "result": "Sanitization, candidate/input budgets, response validation, risk/hold thresholds and local action_denial remain intact; model hints do not grant authority."
+    },
+    {
+      "path": "tests/jev-test-web.py",
+      "lines": [
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100
+      ],
+      "result": "Existing exact shared-state/checkbox context assertions retained. Revised regression verifies actual policy state, explicit shared-element reference and checkbox-role boundary while preserving target criteria assertion."
+    },
+    {
+      "path": "tests/web-engine.py",
+      "lines": [
+        68,
+        69,
+        71,
+        72,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79
+      ],
+      "result": "Unchanged meaningful boundary regression exercises 0/254/255/300 controls, bounded groups, candidate cap and remaining coverage under default32000 input budget. No test weakened or budget increased to accommodate payload duplication."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_test_web.py",
+      "result": "Source and generated package are committed together and byte-identical, consistent with repository development/packaging standards."
+    },
+    {
+      "path": "smell baseline",
+      "result": "No actionable new smell. Removing duplicated model candidate payload is purposeful; required generated duplication remains repository-sanctioned."
+    }
+  ],
+  "supplied_test_evidence": {
+    "preserved_r05": "Inspected log reports test_candidate_boundaries_and_missing_coverage failed with observation input budget exceeded;22 tests,1 error.",
+    "r06": "Inspected targeted Jev log contains PASS. Inspected engine log reports Ran22tests and OK.",
+    "limitation": "Logs do not themselves encode full argv or process exit status; reviewer did not execute implementation/tests or independently rerun them."
+  },
+  "limitations": [
+    "Static Standards review only; no implementation, provider/model/browser, build or test execution by reviewer.",
+    "Source comments/hints and payload regressions establish bounded context construction, not improved live model acceptance or sole causal attribution.",
+    "Parent reports R04 selected disallowed fill and the local gate blocked it; no authority is broadened in R06. Live comparison-r06 remains underway with unchanged fixture policy.",
+    "R03/R04 reviews, R05 failure evidence and earlier artifacts remain preserved; this record does not replace their conclusions."
+  ],
+  "snapshot_preserved": true,
+  "prior_reviews_preserved": true,
+  "live_model_acceptance": false,
+  "whole_issue_acceptance": false
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "source": "/private/tmp/fullops-completion-z_ii0xr2/evidence/nonreact-design-lint/grok-invalid.css",
+    "deprecations": [],
+    "invalidOptionWarnings": [],
+    "parseErrors": [],
+    "errored": true,
+    "warnings": [
+      {
+        "line": 2,
+        "column": 21,
+        "endLine": 2,
+        "endColumn": 24,
+        "rule": "declaration-property-value-allowed-list",
+        "severity": "error",
+        "text": "Disallowed value \"red\" for property \"background\" (declaration-property-value-allowed-list)"
+      },
+      {
+        "line": 2,
+        "column": 31,
+        "endLine": 2,
+        "endColumn": 35,
+        "rule": "declaration-property-value-allowed-list",
+        "severity": "error",
+        "text": "Disallowed value \"blue\" for property \"color\" (declaration-property-value-allowed-list)"
+      }
+    ]
+  }
+]

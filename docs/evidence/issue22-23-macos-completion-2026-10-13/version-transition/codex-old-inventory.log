@@ -1,0 +1,23 @@
+{
+  "installed": [
+    {
+      "pluginId": "fullops-squad@fullops-squad",
+      "name": "fullops-squad",
+      "marketplaceName": "fullops-squad",
+      "version": "1.4.0",
+      "installed": true,
+      "enabled": true,
+      "source": {
+        "source": "local",
+        "path": "/private/tmp/fullops-completion-z_ii0xr2/codex-version-home/.tmp/marketplaces/fullops-squad/dist/native/fullops-squad"
+      },
+      "marketplaceSource": {
+        "sourceType": "git",
+        "source": "https://github.com/tourbut/Fullops-Squad-plugin.git"
+      },
+      "installPolicy": "AVAILABLE",
+      "authPolicy": "ON_INSTALL"
+    }
+  ],
+  "available": []
+}

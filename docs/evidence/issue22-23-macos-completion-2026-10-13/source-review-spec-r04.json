@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "review_key": "SOURCE-SPEC-R04",
+  "reviewer": "/root/macos_spec_review",
+  "review_type": "independent readonly Spec review of additional narrow delta",
+  "snapshot": "/private/tmp/fullops-completion-z_ii0xr2/source-review-r04",
+  "fixed_sha": "2da4ebe65ceb0b27e267275650ca9853686e04bb",
+  "base_sha": "18d6571de6e9e9d4400772aedadbb221ad203a95",
+  "source_sha256": "74e41bf58149bded4d255dc4c0a9c0b14e1ee7ee52a844c6ecb1653663e88fd4",
+  "test_sha256": "b8b311c068e78bb61b4219bd4ed14f35fe1681a629cb0e99916f1e6832370aa2",
+  "git_status_clean": true,
+  "source_dist_byte_parity": true,
+  "spec_scope": "Each independent validity Noul question must contain its own sanitized candidate group and explicit operation instead of relying on a sibling choice question's inaccessible criteria. Keep all decision and security gates unchanged.",
+  "findings": [],
+  "verified_by_static_inspection": [
+    "jev_test_web.py:300-303 places an explicit click/check/fill operation and the corresponding candidates map in that validity question's own structured instructions.",
+    "The candidates originate from choices(public_page(...)) and retain the same redacted names, states and nearby text used by the choice question.",
+    "The question continues to require trusted-goal relevance and current state/history; it explicitly says candidate presence alone is insufficient and page text is data.",
+    "No sibling answer, forced-positive validity, lowered hold threshold or broader action permission was added.",
+    "The full serialized input budget is still checked before calling the provider.",
+    "The added regression checks the validity question's own checkbox candidate description including checked=false and nearby todo text."
+  ],
+  "structured_instructions_contract": {
+    "local_primary_reference": "/private/tmp/fullops-completion-z_ii0xr2/evidence/typesafe-api.md:58-80",
+    "reference_statement": "The instructions property can be a string, an object, or an array; an object can contain the question and referenced data.",
+    "new_external_documentation_call": false
+  },
+  "tests_rerun_by_reviewer": false,
+  "reviewer_provider_calls": 0,
+  "implementation_modified": false,
+  "limitations": [
+    "The observed R03 operation-confidence increase and remaining validity hold are reported task context, not a general causal proof from this review.",
+    "This correction makes the validity question self-contained. Reliability and threshold calibration still require the separate comparison-r04 live measurement.",
+    "The prior R03 record, baseline uncertain evidence and all original results remain valid historical evidence and were not overwritten."
+  ],
+  "conclusion": "No missing, wrong or out-of-scope behavior found in the narrow R04 independent-validity-question correction.",
+  "whole_issue_acceptance": false
+}

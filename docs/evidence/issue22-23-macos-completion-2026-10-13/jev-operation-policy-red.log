@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/jev-test-web.py", line 151, in <module>
+    main()
+    ~~~~^^
+  File "/Users/shin/MyDir/MyGit/Fullops-Squad-plugin/tests/jev-test-web.py", line 98, in main
+    assert not {'fill', 'press_enter'} & set(seen[0]['questions']['operation']['criteria'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

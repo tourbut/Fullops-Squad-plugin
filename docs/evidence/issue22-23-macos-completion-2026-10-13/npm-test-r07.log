@@ -1,0 +1,307 @@
+
+> fullops-squad@1.0.0 test
+> node --test tests/npm-installer.cjs && python3 tests/check.py && python3 tests/common-rules.py && python3 tests/update.py && python3 tests/jev-observe.py && python3 tests/caveman-start.py && python3 tests/lint.py && python3 tests/orca-wait.py && python3 tests/jev-context.py && python3 tests/jev-find.py && python3 tests/search-index.py && python3 tests/jev-route.py && python3 tests/product-routing.py && python3 tests/jev-request.py && python3 tests/done-gate.py && python3 tests/flow-gate.py && python3 tests/handover-rules.py && python3 tests/integration-gate.py && python3 tests/session-regressions.py && python3 tests/board.py && python3 tests/deliverables.py && python3 tests/env-link.py && python3 tests/grok-trust.py && python3 tests/deps.py && python3 tests/frontend.py && python3 tests/jev-test-web.py && python3 tests/web-engine.py && python3 tests/jev-test-unity.py && python3 tests/stabilization.py && python3 tests/operating-policy.py && python3 tests/delegation.py && python3 tests/issue-mode.py && python3 tests/motion.py && node tests/standard.cjs
+
+TAP version 13
+# grok: 미설치
+# grok: 0.9.10 변경됨 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-IigpG8
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# grok: 0.9.10 이미 목표 버전 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-EzZzSR
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# grok: 0.9.10 이미 목표 버전 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-K5HnBw
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok
+# ["grok","plugin","marketplace","add","tourbut/Fullops-Squad-plugin"]
+# ["grok","plugin","marketplace","update","fullops-squad"]
+# ["grok","plugin","install","fullops-squad@fullops-squad"]
+# 설치 경로·버전 확인 후 deps.py 설치/검사. 새 세션 필요. 레포 setup은 실행하지 않음.
+# 의존성 계획은 새 대상 manifest 확인 전 잠정입니다. global npm 도구, 사용자 skills, 호스트 plugin을 확인·복구합니다.
+# grok: 0.9.10
+# grok: 실패 — native install failed; 적용된 단계: plugin marketplace update fullops-squad. 같은 명령으로 남은 단계를 재시도하세요.
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# grok: 0.9.10 이미 목표 버전 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-vWHpEb
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# claude: 0.9.10
+# grok: 0.9.10
+# claude: 실패 — 목표 버전 확인 불가: marketplace manifest를 확인한 뒤 재시도하세요; 적용된 단계: plugin marketplace update fullops-squad. 같은 명령으로 남은 단계를 재시도하세요.
+# grok: 0.9.10 이미 목표 버전 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-jVYfQu
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 손상된 기존 설치, 공식 호스트 명령으로 복구합니다.
+# grok: 미설치
+# grok: 0.9.10 복구됨 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-BEzinu
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# grok: 실패 — 목표 0.9.11에 도달하지 못했습니다: 설치 0.9.10; 적용된 단계: plugin marketplace update fullops-squad, plugin update fullops-squad. 같은 명령으로 남은 단계를 재시도하세요.
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# grok: 실패 — 목표 버전 확인 불가: marketplace manifest를 확인한 뒤 재시도하세요; 적용된 단계: plugin marketplace update fullops-squad. 같은 명령으로 남은 단계를 재시도하세요.
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# grok: 실패 — marketplace 대상 downgrade를 거부합니다; 적용된 단계: plugin marketplace update fullops-squad. 같은 명령으로 남은 단계를 재시도하세요.
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# grok: 0.9.10
+# claude: 실패 — preflight: unavailable marketplace JSON
+# grok: 0.9.10 이미 목표 버전 /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-installer-1aIRoQ
+# 각 CLI에서 새 에이전트 세션을 여세요. 레포 적용은 FullOps update 요청으로 진행합니다.
+# Subtest: arguments validate hosts and preserve paths with spaces
+ok 1 - arguments validate hosts and preserve paths with spaces
+  ---
+  duration_ms: 1.235584
+  type: 'test'
+  ...
+# Subtest: hooks require modern python3 even when python would succeed
+ok 2 - hooks require modern python3 even when python would succeed
+  ---
+  duration_ms: 2.824458
+  type: 'test'
+  ...
+# Subtest: Codex homes include current, default, explicit and existing Orca without changing environment
+ok 3 - Codex homes include current, default, explicit and existing Orca without changing environment
+  ---
+  duration_ms: 0.144291
+  type: 'test'
+  ...
+# Subtest: marketplace source conflicts block registration; Claude dependencies come first
+ok 4 - marketplace source conflicts block registration; Claude dependencies come first
+  ---
+  duration_ms: 0.238375
+  type: 'test'
+  ...
+# Subtest: installed metadata must match the package version
+ok 5 - installed metadata must match the package version
+  ---
+  duration_ms: 1.6085
+  type: 'test'
+  ...
+# Subtest: fresh update installs native plugin, dependencies and verifies the result
+ok 6 - fresh update installs native plugin, dependencies and verifies the result
+  ---
+  duration_ms: 1.882792
+  type: 'test'
+  ...
+# Subtest: update refreshes latest dependencies even when the manifest is unchanged
+ok 7 - update refreshes latest dependencies even when the manifest is unchanged
+  ---
+  duration_ms: 3.943625
+  type: 'test'
+  ...
+# Subtest: dry-run makes no mutations and failed native installs report failure
+ok 8 - dry-run makes no mutations and failed native installs report failure
+  ---
+  duration_ms: 2.415375
+  type: 'test'
+  ...
+# Subtest: --repo forwards the prior installed version without modifying repository files
+ok 9 - --repo forwards the prior installed version without modifying repository files
+  ---
+  duration_ms: 1.74675
+  type: 'test'
+  ...
+# Subtest: a failed Claude update does not prevent the Grok update
+ok 10 - a failed Claude update does not prevent the Grok update
+  ---
+  duration_ms: 2.529792
+  type: 'test'
+  ...
+# Subtest: Windows launcher preserves shell metacharacters as data
+ok 11 - Windows launcher preserves shell metacharacters as data # SKIP
+  ---
+  duration_ms: 0.028333
+  type: 'test'
+  ...
+# Subtest: corrupt metadata repairs through native commands before running dependencies
+ok 12 - corrupt metadata repairs through native commands before running dependencies
+  ---
+  duration_ms: 1.556084
+  type: 'test'
+  ...
+# Subtest: stale, unknown and downgrade targets never report update success
+ok 13 - stale, unknown and downgrade targets never report update success
+  ---
+  duration_ms: 3.408083
+  type: 'test'
+  ...
+# Subtest: one target preflight failure leaves the other target able to finish
+ok 14 - one target preflight failure leaves the other target able to finish
+  ---
+  duration_ms: 1.142
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 68.096416
+To /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git
+ * [new branch]      main -> main
+From /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote
+ * branch            main       -> FETCH_HEAD
+To /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git
+ * [new branch]      4d154d5dc5cb72306b09d3b6946cf79b17824d8c -> fullops/gameplay
+ * [new branch]      4d154d5dc5cb72306b09d3b6946cf79b17824d8c -> fullops/engine
+To /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git
+   4d154d5..e61b3a1  main -> main
+From /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote
+ * branch            main       -> FETCH_HEAD
+To /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git
+ * [new branch]      e61b3a11a465f922f14545587f4086c4d891f881 -> fullops/mobile
+To /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git
+ * [new branch]      release -> release
+From /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote
+ * branch            main       -> FETCH_HEAD
+To /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git
+ ! [remote rejected] e61b3a11a465f922f14545587f4086c4d891f881 -> fullops/rejected (pre-receive hook declined)
+error: failed to push some refs to '/var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmps3e2qwc_/remote.git'
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+생성 예정: 49개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 49개
+.fullops-squad/handovers/to_backend_dev.md
+.fullops-squad/handovers/logs/2026-10-13_to_backend_dev.md
+.fullops-squad/handovers/logs/2026-10-13_to_backend_dev.md
+D01: 미작성 / 원천: docs/planning/business-plan.md
+검사: D01 / 미작성: 1 / 문제: 0 / 경고: 0
+D01: 미작성 / 원천: docs/planning/business-plan.md
+D01_business-plan.md 링크 없음: 없는-파일.md
+검사: D01 / 미작성: 1 / 문제: 1 / 경고: 0
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 0개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 origin / 기준 main / 생성: fullops/gameplay, fullops/engine
+생성 예정: 51개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 origin / 기준 main / 생성: fullops/gameplay, fullops/engine
+작성: 51개
+.fullops-squad/handovers/to_gameplay.md
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 origin / 기준 main / 생성: 없음
+작성: 0개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 origin / 기준 main / 생성: fullops/mobile
+작성: 3개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 upstream / 기준 release / 생성: 없음
+작성: 1개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 upstream / 기준 release / 생성: 없음
+작성: 0개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 0개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+원격 origin / 기준 main / 생성: fullops/rejected
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: standard / 하위 위임: off
+작성: 1개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+PASS: 동적 역할·원격 브랜치 생성/보존/실패, setup 재실행, 핸드오버, 산출물, 설치 계획
+test_dry_run_is_local_and_activation_copies_rules (__main__.CommonRulesTests.test_dry_run_is_local_and_activation_copies_rules) ... ok
+test_existing_030_repo_receives_only_missing_rule_files (__main__.CommonRulesTests.test_existing_030_repo_receives_only_missing_rule_files) ... ok
+test_native_package_contains_rules_notice_and_consistent_version (__main__.CommonRulesTests.test_native_package_contains_rules_notice_and_consistent_version) ... ok
+test_preparation_commit_exposes_same_rules_and_handover_to_worker (__main__.CommonRulesTests.test_preparation_commit_exposes_same_rules_and_handover_to_worker) ... ok
+test_rules_have_bounded_scope_provenance_and_local_links (__main__.CommonRulesTests.test_rules_have_bounded_scope_provenance_and_local_links) ... ok
+test_setup_preserves_user_rules_and_project_documents (__main__.CommonRulesTests.test_setup_preserves_user_rules_and_project_documents) ... ok
+test_symlink_rule_destination_is_rejected_before_writes (__main__.CommonRulesTests.test_symlink_rule_destination_is_rejected_before_writes) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.240s
+
+OK
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.388s
+
+OK
+synthetic Jev observation checks passed
+PASS: Caveman startup hooks, installed skill lookup, opt-out preservation and missing dependency
+PASS: changed-only scope, size growth, suppressions, eval, secrets, custom rules, commands, review lint gate
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+생성 예정: 49개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 49개
+운영 모드: coor / 주 담당: 기존 coordinator / 테스트: lite / 하위 위임: lite
+작성: 0개
+PASS: default slop warnings, diff budget, dependency changes, baseline settings, test evidence gate
+PASS: design warnings, token/path/content exceptions, project severity and setup command preservation
+PASS: orca wait absorbs heartbeat/status, acks in order, returns actionable, idle timeout, errors
+PASS: jev dispatch context build, omit suggestion, unsent/refused sources, fallback keeps all, CLI record, content cache
+PASS: jev find map, ranking, existence, directory pass, fallback, score vs actual diff, CLI
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 7.859s
+
+OK
+PASS: jev route guide state, simple/design thresholds, designer fallback, secret refusal, CLI record
+운영 모드: coor / 주 담당: coor / 테스트: lite / 하위 위임: lite
+작성: 55개
+.fullops-squad/handovers/to_dev.md
+운영 모드: coor / 주 담당: coor / 테스트: lite / 하위 위임: lite
+작성: 1개
+PASS: product/implementation/unresolved routing, audited override, dispatch gates, patch bodies, branch aliases
+PASS: jev request closes and removes body file, key via stdin, cache hit, key lookup order
+PASS: done-gate session scope, doc-only allow, block, pass stamp, re-stop allow, ff merge, fail-open
+PASS: flow-gate roles, inject/run/route denials, handover route check, designer code block, worker_done stop gate, grok input
+.fullops-squad/handovers/to_dev.md
+.fullops-squad/handovers/logs/2026-10-13_to_dev.md
+.fullops-squad/handovers/to_dev.md
+PASS: canonical inbox, alternate file/dispatch denials, active task preservation, archive then next task
+PASS: completed SHA merge, base push, durable Stop gate, worker baseline
+..warning: re-init: ignored --initial-branch=main
+........
+----------------------------------------------------------------------
+Ran 10 tests in 1.063s
+
+OK
+PASS: board collects phases/roles/plans/history/routes/reviews/deliverables, skips unchanged writes, shows board.json errors, refreshes on coordinator Stop, stays git-ignored
+PASS: document bodies, multiple sources, folders, missing/empty/unreadable files, path guards, escaped Markdown
+PASS: deliverables stamp format/index sync/body keep/path guard, strict check, lint DOC-002 gate
+PASS: env link into worktrees, keeps tracked/existing files, skips main checkout, SessionStart auto-link, --all CLI
+PASS: grok trust check/add via main checkout, keeps entries, parent trust, no duplicates, false is untrusted
+PASS: deps plan excludes fullops itself, skips registered marketplaces, --check, dry-run, SessionStart hint
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 1.746s
+
+OK
+PASS: jev web loop element context, fan-out questions, pass/risk/stall/premature-done, records
+......................
+----------------------------------------------------------------------
+Ran 22 tests in 0.820s
+
+OK
+PASS: jev unity loop pass/premature-done/stall/dead player, bridge install/check/refuse
+.기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-djthgwoz/.claude/fullops-skill-backups/1791901276221733000/x
+기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-djthgwoz/.claude/fullops-skill-backups/1791901276225776000/x
+기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-djthgwoz/custom-claude/fullops-skill-backups/1791901276229524000/x
+기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-djthgwoz/custom-claude/fullops-skill-backups/1791901276233577000/x
+.........기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-cvskvi_u/fullops-skill-backups/1791901280284276000/x
+기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-cvskvi_u/fullops-skill-backups/1791901280300863000/x
+기존 스킬 보존: /var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/fullops-stable-cvskvi_u/fullops-skill-backups/1791901280317218000/x
+..............Preparing worktree (detached HEAD 29584c3)
+....
+----------------------------------------------------------------------
+Ran 28 tests in 21.872s
+
+OK
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 7.935s
+
+OK
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 3.228s
+
+OK
+PASS: issue-mode atomic FIFO/lease, author IDs, API recovery/304, question outbox, same-author answers, boundaries and review failure
+unavailable: /private/var/folders/1n/0c6nfp655673kngqt4b0vsv00000gn/T/tmp9v1_ec75/decode-unavailable.json
+PASS: real AAC/CFR, missing/shifted/truncated narration, color mismatch and VFR rejection
+PASS: motion policy/assets/audio/spec/stream failures, unavailable tools, prior evidence, optional dependencies
+PASS: Agent Plugins 1.0.0 schemas, package containment, 10 skill entry points

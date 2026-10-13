@@ -1,0 +1,2 @@
+codex install {'host': 'codex', 'mode': 'install', 'argv': ['python3', '/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad/scripts/deps.py', '--host', 'codex'], 'exit_code': 0, 'elapsed_s': 37.58537920890376}
+codex check {'host': 'codex', 'mode': 'check', 'argv': ['python3', '/private/tmp/fullops-completion-z_ii0xr2/grok-release-transition/dist/native/fullops-squad/scripts/deps.py', '--host', 'codex', '--check'], 'exit_code': 0, 'elapsed_s': 0.18488616705872118}

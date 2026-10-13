@@ -1,0 +1,524 @@
+[
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 48.66,
+    "jev_calls": 4,
+    "known_cost": 0.000309,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "duplicate",
+    "passed": false,
+    "result": "uncertain",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 2,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 2,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 39.099,
+    "jev_calls": 5,
+    "known_cost": 0.000405,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "no-check",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": false,
+        "passed": false
+      }
+    ],
+    "elapsed_s": 49.649,
+    "jev_calls": 5,
+    "known_cost": 0.000395,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 1,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 38.953,
+    "jev_calls": 5,
+    "known_cost": 0.000395,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 35.964,
+    "jev_calls": 4,
+    "known_cost": 0.00031,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "duplicate",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 2,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 2,
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 38.891,
+    "jev_calls": 5,
+    "known_cost": 0.000405,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "no-check",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": false,
+        "passed": false
+      }
+    ],
+    "elapsed_s": 38.791,
+    "jev_calls": 5,
+    "known_cost": 0.000395,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 2,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 40.899,
+    "jev_calls": 5,
+    "known_cost": 0.000395,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  },
+  {
+    "engine": "orca-jev",
+    "repetition": 3,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 35.465,
+    "jev_calls": 4,
+    "known_cost": 0.000309,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false
+    }
+  }
+]

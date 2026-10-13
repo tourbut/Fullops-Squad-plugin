@@ -1,0 +1,509 @@
+[
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 5.07,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 0.536,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "no-check",
+    "error": "RuntimeError: playwright_bridge_failed: Error"
+  },
+  {
+    "engine": "playwright",
+    "repetition": 1,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.701,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.624,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 0.515,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "no-check",
+    "error": "RuntimeError: playwright_bridge_failed: Error"
+  },
+  {
+    "engine": "playwright",
+    "repetition": 2,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.709,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.556,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "duplicate",
+    "passed": false,
+    "result": "replay_target_missing_or_ambiguous",
+    "checks": [],
+    "elapsed_s": 0.533,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "no-check",
+    "error": "RuntimeError: playwright_bridge_failed: Error"
+  },
+  {
+    "engine": "playwright",
+    "repetition": 3,
+    "case": "no-theme",
+    "passed": false,
+    "result": "max_steps",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "light",
+        "passed": false
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 0.66,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "playwright",
+      "cli_version": "0.1.22",
+      "version": "1.63.0",
+      "browser_version": "153.0.8010.12",
+      "request_filtering": true,
+      "attached": false,
+      "blocked_requests": 0
+    }
+  },
+  {
+    "engine": "orca",
+    "repetition": 1,
+    "case": "healthy",
+    "passed": true,
+    "result": "passed",
+    "checks": [
+      {
+        "condition": {
+          "js": "document.documentElement.dataset.theme",
+          "equals": "dark"
+        },
+        "value": "dark",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "window.submits",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelectorAll('#list li').length",
+          "equals": 1
+        },
+        "value": 1,
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list li')?.textContent.trim()",
+          "equals": "milk"
+        },
+        "value": "milk",
+        "passed": true
+      },
+      {
+        "condition": {
+          "js": "document.querySelector('#list input')?.checked",
+          "equals": true
+        },
+        "value": true,
+        "passed": true
+      }
+    ],
+    "elapsed_s": 51.294,
+    "jev_calls": 0,
+    "known_cost": 0,
+    "executor": {
+      "name": "orca",
+      "version": "unverified",
+      "request_filtering": false,
+      "attached": false,
+      "viewport": {
+        "height": 1800,
+        "width": 1280
+      },
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.7871.250 Safari/537.36"
+    }
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+  "elapsed_s": 1.3654871250037104,
+  "observations": [
+    {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": false,
+      "url": "http://127.0.0.1:57186/no-check",
+      "viewport": {
+        "width": 1280,
+        "height": 1800
+      }
+    }
+  ],
+  "expected": {
+    "theme": "dark",
+    "submissions": 1,
+    "rows": 1,
+    "text": "milk",
+    "checked": true
+  },
+  "pass": false,
+  "error": null,
+  "blocked_requests": [],
+  "model_calls": 0,
+  "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+  "run": 22,
+  "case": "no-check",
+  "todo": "milk",
+  "default_args": false,
+  "exit_code": 0,
+  "total_elapsed_s": 2.4116183340083808,
+  "fresh_browser_process": true
+}

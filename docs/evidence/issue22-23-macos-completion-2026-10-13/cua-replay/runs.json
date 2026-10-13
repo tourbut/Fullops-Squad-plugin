@@ -1,0 +1,520 @@
+[
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.4084408329799771,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/healthy",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": true,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 5,
+    "case": "healthy",
+    "todo": "milk",
+    "default_args": true,
+    "exit_code": 0,
+    "total_elapsed_s": 3.018458165926859,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.05390395806171,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "bread",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/healthy",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "bread",
+      "checked": true
+    },
+    "pass": true,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 6,
+    "case": "healthy",
+    "todo": "bread",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.8404258750379086,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0262566250748932,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/healthy",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": true,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 7,
+    "case": "healthy",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.875516250031069,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0191487909760326,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 2,
+        "rows": 2,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/duplicate",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 8,
+    "case": "duplicate",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.8421880421228707,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0174985420890152,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": false,
+        "url": "http://127.0.0.1:57186/no-check",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 9,
+    "case": "no-check",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.7494595828466117,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 0.9600832080468535,
+    "observations": [
+      {
+        "theme": "light",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/no-theme",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 10,
+    "case": "no-theme",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.7381003750488162,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 0.9759892080910504,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/healthy",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": true,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 11,
+    "case": "healthy",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.712777541950345,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0447600001934916,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 2,
+        "rows": 2,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/duplicate",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 12,
+    "case": "duplicate",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.8252200421411544,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.182442917022854,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": false,
+        "url": "http://127.0.0.1:57186/no-check",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 13,
+    "case": "no-check",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 2.1290282919071615,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0975867081433535,
+    "observations": [
+      {
+        "theme": "light",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/no-theme",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 14,
+    "case": "no-theme",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.8766244580037892,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0191640830598772,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/healthy",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": true,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 15,
+    "case": "healthy",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.811354999896139,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.0525319578591734,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 2,
+        "rows": 2,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/duplicate",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 16,
+    "case": "duplicate",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.9091262919828296,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 1.010860790964216,
+    "observations": [
+      {
+        "theme": "dark",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": false,
+        "url": "http://127.0.0.1:57186/no-check",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 17,
+    "case": "no-check",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.7966745840385556,
+    "fresh_browser_process": true
+  },
+  {
+    "script_sha256": "bd0133331419ab3f247be515f4e9bb289c2b139855048298576100711c50d6d2",
+    "elapsed_s": 0.9762217500247061,
+    "observations": [
+      {
+        "theme": "light",
+        "submissions": 1,
+        "rows": 1,
+        "text": "milk",
+        "checked": true,
+        "url": "http://127.0.0.1:57186/no-theme",
+        "viewport": {
+          "width": 1280,
+          "height": 1800
+        }
+      }
+    ],
+    "expected": {
+      "theme": "dark",
+      "submissions": 1,
+      "rows": 1,
+      "text": "milk",
+      "checked": true
+    },
+    "pass": false,
+    "error": null,
+    "blocked_requests": [],
+    "model_calls": 0,
+    "authority": "trusted external DOM oracle before browser.close; not generated FINAL_RESPONSE",
+    "run": 18,
+    "case": "no-theme",
+    "todo": "milk",
+    "default_args": false,
+    "exit_code": 0,
+    "total_elapsed_s": 1.7625122088938951,
+    "fresh_browser_process": true
+  }
+]

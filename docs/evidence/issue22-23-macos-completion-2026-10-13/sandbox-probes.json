@@ -1,0 +1,17 @@
+{
+  "outside_write": {
+    "blocked": true,
+    "error": "PermissionError",
+    "errno": 1
+  },
+  "protected_baseline_read": {
+    "blocked": true,
+    "error": "PermissionError",
+    "errno": 1
+  },
+  "external_network": {
+    "blocked": true,
+    "error": "PermissionError",
+    "errno": 1
+  }
+}

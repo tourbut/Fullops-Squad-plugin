@@ -1,0 +1,9 @@
+usage: cua-bounded-generated.py [-h] [--url URL] [--todo TODO]
+
+Select dark theme, add one todo and mark its checkbox complete.
+
+options:
+  -h, --help   show this help message and exit
+  --url URL    Allowlisted loopback fixture URL. Default:
+               http://127.0.0.1:57186/healthy.
+  --todo TODO  Nonempty todo text entered once. Default: milk.
