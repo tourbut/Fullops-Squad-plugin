@@ -83,6 +83,33 @@ global.document = {activeElement: {
             with self.assertRaises(ValueError):
                 contract.observation({'url': 'https://example.test', 'digest': 'x', 'elements': elements}, self.scenario())
 
+    def test_inactive_fixture_values_do_not_exhaust_click_request_budget(self):
+        scenario = self.scenario(values={f'v{i}': 'x' * 500 for i in range(60)})
+        self.assertEqual(web.problems(scenario), [])
+        page = contract.observation({'url': scenario['url'], 'digest': 'button-only',
+                                     'elements': [{'ref': 'e1', 'role': 'button', 'name': 'Open form'}]}, scenario)
+        seen = []
+        decision = web.ask(fixture.jev([('click', 'e1', None)], seen=seen), scenario, page, [], 1)
+        self.assertEqual(decision['operation']['choice'], 'click')
+        self.assertFalse(decision['hold'])
+        self.assertNotIn('fill_value', seen[0]['questions'])
+        self.assertEqual(seen[0]['state']['values'], {})
+
+    def test_enter_target_validity_does_not_require_filling(self):
+        scenario = self.scenario(goal='Submit the existing search without changing it.', values={},
+                                 safety={'fixture': 'search', 'allowed_operations': ['press_enter']})
+        page = contract.observation({'url': scenario['url'], 'digest': 'prefilled',
+                                     'elements': [{'ref': 'e1', 'role': 'searchbox', 'name': 'Search',
+                                                   'state': ['value=milk']}]}, scenario)
+        seen = []
+        decision = web.ask(fixture.jev([('press_enter', 'e1', None)], seen=seen), scenario, page, [], 1)
+        question = seen[0]['questions']['valid_fill_target']['instructions']
+        self.assertNotIn('for a fill operation', question['question'])
+        self.assertIn('allowed operation', question['question'])
+        self.assertIn('searchbox', question['allowed_roles'])
+        self.assertEqual(decision['operation']['choice'], 'press_enter')
+        self.assertFalse(decision['hold'])
+
     def test_noul_and_none_and_low_confidence_hold(self):
         for mode in ('noul', 'none', 'low'):
             base = fixture.jev([('fill_submit', 'e3', 'milk')])
