@@ -28,7 +28,7 @@ def rejected(spec, root):
 
 
 with tempfile.TemporaryDirectory() as directory:
-    root = Path(directory)
+    root = Path(directory).resolve()
     (root / 'voice.wav').write_bytes(b'local asset')
     spec = {'width': 1280, 'height': 720, 'fps': 30, 'duration': 15, 'audio': 'required',
             'color_range': 'tv', 'color_space': 'bt709', 'color_transfer': 'bt709', 'color_primaries': 'bt709',
