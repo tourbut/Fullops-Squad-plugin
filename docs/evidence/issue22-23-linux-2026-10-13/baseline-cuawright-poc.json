@@ -1,0 +1,46 @@
+{
+  "version": "cuawright-poc-v1",
+  "enabled": true,
+  "status": "BLOCKED",
+  "host_tuple": {
+    "agent": "codex",
+    "provider": "openai",
+    "model": "gpt-6",
+    "effort": "medium",
+    "source": "user"
+  },
+  "skill": {
+    "source": "microsoft/CUAWright",
+    "ref": "ff44a0524e0812b69814efcec5e583f0d8cdde0c",
+    "files": [],
+    "problems": [
+      "skill: cuawright-web"
+    ]
+  },
+  "runtime": {
+    "playwright": null,
+    "firefox_installed": false
+  },
+  "python": "/usr/bin/python3",
+  "max_seconds": 90,
+  "max_tokens": 20000,
+  "budget_enforcement": "host session and isolated runtime must enforce; this preparer launches neither",
+  "generation": "not_run",
+  "code_review": "not_run",
+  "independent_assertions": "not_run",
+  "visual_review": "not_run",
+  "optional_install": [
+    "npx",
+    "--yes",
+    "skills@1.7.2",
+    "add",
+    "https://github.com/microsoft/CUAWright/tree/ff44a0524e0812b69814efcec5e583f0d8cdde0c/skills/cuawright-web",
+    "--skill",
+    "cuawright-web",
+    "--global",
+    "--agent",
+    "codex",
+    "--yes"
+  ],
+  "workspace": ".fullops-squad/docs/evaluations/qa-reports/ISSUE23-LINUX-test/cuawright-poc-20261013-163249-529851"
+}

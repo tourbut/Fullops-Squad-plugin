@@ -1,0 +1,157 @@
+{
+  "scope": "Actual latest project-scoped skills installation for three host directory layouts; global dependency receipts and authenticated UI work not verified",
+  "records": [
+    {
+      "name": "frontend-design",
+      "source": "anthropics/skills",
+      "command": [
+        "npx",
+        "--yes",
+        "skills@latest",
+        "add",
+        "anthropics/skills",
+        "--skill",
+        "frontend-design",
+        "--agent",
+        "codex",
+        "claude-code",
+        "grok",
+        "--yes",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 4.74,
+      "project_files": [
+        {
+          "path": ".agents/skills/frontend-design/SKILL.md",
+          "exists": true,
+          "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+        },
+        {
+          "path": ".claude/skills/frontend-design/SKILL.md",
+          "exists": true,
+          "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+        },
+        {
+          "path": ".grok/skills/frontend-design/SKILL.md",
+          "exists": true,
+          "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+        }
+      ]
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "command": [
+        "npx",
+        "--yes",
+        "skills@latest",
+        "add",
+        "nextlevelbuilder/ui-ux-pro-max-skill",
+        "--skill",
+        "ui-ux-pro-max",
+        "--agent",
+        "codex",
+        "claude-code",
+        "grok",
+        "--yes",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 4.1,
+      "project_files": [
+        {
+          "path": ".agents/skills/ui-ux-pro-max/SKILL.md",
+          "exists": true,
+          "sha256": "ea087c341bfb5b23195c7302027268ede86da802554c18a5c4896a6017b439f9"
+        },
+        {
+          "path": ".claude/skills/ui-ux-pro-max/SKILL.md",
+          "exists": true,
+          "sha256": "ea087c341bfb5b23195c7302027268ede86da802554c18a5c4896a6017b439f9"
+        },
+        {
+          "path": ".grok/skills/ui-ux-pro-max/SKILL.md",
+          "exists": true,
+          "sha256": "ea087c341bfb5b23195c7302027268ede86da802554c18a5c4896a6017b439f9"
+        }
+      ]
+    },
+    {
+      "name": "impeccable",
+      "source": "pbakaus/impeccable",
+      "command": [
+        "npx",
+        "--yes",
+        "skills@latest",
+        "add",
+        "pbakaus/impeccable",
+        "--skill",
+        "impeccable",
+        "--agent",
+        "codex",
+        "claude-code",
+        "grok",
+        "--yes",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.37,
+      "project_files": [
+        {
+          "path": ".agents/skills/impeccable/SKILL.md",
+          "exists": true,
+          "sha256": "58c0252bca04521de87007aeb495f7ec99dc4c7341bc890fe82b6d577573af91"
+        },
+        {
+          "path": ".claude/skills/impeccable/SKILL.md",
+          "exists": true,
+          "sha256": "58c0252bca04521de87007aeb495f7ec99dc4c7341bc890fe82b6d577573af91"
+        },
+        {
+          "path": ".grok/skills/impeccable/SKILL.md",
+          "exists": true,
+          "sha256": "58c0252bca04521de87007aeb495f7ec99dc4c7341bc890fe82b6d577573af91"
+        }
+      ]
+    },
+    {
+      "name": "web-design-guidelines",
+      "source": "vercel-labs/agent-skills",
+      "command": [
+        "npx",
+        "--yes",
+        "skills@latest",
+        "add",
+        "vercel-labs/agent-skills",
+        "--skill",
+        "web-design-guidelines",
+        "--agent",
+        "codex",
+        "claude-code",
+        "grok",
+        "--yes",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.914,
+      "project_files": [
+        {
+          "path": ".agents/skills/web-design-guidelines/SKILL.md",
+          "exists": true,
+          "sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+        },
+        {
+          "path": ".claude/skills/web-design-guidelines/SKILL.md",
+          "exists": true,
+          "sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+        },
+        {
+          "path": ".grok/skills/web-design-guidelines/SKILL.md",
+          "exists": true,
+          "sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+        }
+      ]
+    }
+  ]
+}

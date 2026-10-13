@@ -1,0 +1,171 @@
+{
+  "scope": "Actual repo-local latest Playwright CLI lifecycle; host authentication, UI tasks and real hook denial not run",
+  "records": [
+    {
+      "name": "frontend-install-plan",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--install",
+        "--dry-run"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.057
+    },
+    {
+      "name": "frontend-local-install",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--install"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.36
+    },
+    {
+      "name": "frontend-local-repeat",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--install"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.368
+    },
+    {
+      "name": "frontend-check-codex",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--host",
+        "codex",
+        "--model",
+        "validation-only",
+        "--effort",
+        "medium",
+        "--check"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.238
+    },
+    {
+      "name": "frontend-disabled-codex",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.033
+    },
+    {
+      "name": "frontend-check-claude-code",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--host",
+        "claude-code",
+        "--model",
+        "validation-only",
+        "--effort",
+        "medium",
+        "--check"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.207
+    },
+    {
+      "name": "frontend-disabled-claude-code",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.033
+    },
+    {
+      "name": "frontend-check-grok",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--host",
+        "grok",
+        "--model",
+        "validation-only",
+        "--effort",
+        "medium",
+        "--check"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.211
+    },
+    {
+      "name": "frontend-disabled-grok",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.033
+    },
+    {
+      "name": "frontend-missing-cli",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--check"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.035
+    },
+    {
+      "name": "frontend-restored-cli",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--check"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.191
+    },
+    {
+      "name": "frontend-denied-install",
+      "command": [
+        "/usr/bin/python3",
+        "/home/shin/orca/workspaces/Fullops-Squad-plugin/deps-latest/plugins/fullops-squad/scripts/frontend.py",
+        "--repo",
+        "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture",
+        "--install"
+      ],
+      "exit_code": 1,
+      "elapsed_s": 0.023
+    }
+  ],
+  "config_preserved": true,
+  "react_guard": "PASS",
+  "global_installs": false
+}

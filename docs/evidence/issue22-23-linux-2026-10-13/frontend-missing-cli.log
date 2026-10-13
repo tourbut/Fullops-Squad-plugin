@@ -1,0 +1,30 @@
+{
+  "selection": {
+    "enabled": true,
+    "primary": "frontend-design",
+    "review": [],
+    "tools": [
+      "playwright"
+    ],
+    "host": "codex",
+    "model": "validation-only",
+    "effort": "medium",
+    "design": "DESIGN.md",
+    "tokens": [],
+    "components": []
+  },
+  "status": "needs_attention",
+  "problems": [
+    "skill source unverified: frontend-design",
+    "playwright: not_installed_or_unavailable"
+  ],
+  "skills": [
+    "/home/shin/.agents/skills/frontend-design/SKILL.md"
+  ],
+  "tools": {
+    "playwright": "not_installed_or_unavailable"
+  },
+  "authentication": "not_run",
+  "browser_qa": "not_run",
+  "mcp_connection": "not_run"
+}

@@ -9,7 +9,6 @@ import subprocess
 import threading
 import time
 
-import deps
 from jev_test_web import Browser, SafetyStop
 
 
@@ -35,7 +34,6 @@ class PlaywrightBrowser(Browser):
     def __init__(self, repo, safety, package_file=None, executable=None, headed=False):
         self.package_file = package_file or repo / '.fullops-squad/tools/frontend/playwright/node_modules/@playwright/cli/package.json'
         self.options = {'package_file': str(Path(self.package_file).resolve()), 'safety': safety,
-                        'version': deps.manifest()['frontend_tools']['playwright']['package'].rsplit('@', 1)[1],
                         'executable': executable, 'headed': headed}
         self.process, self.deadline, self.serial = None, None, 0
         self.responses = queue.Queue()

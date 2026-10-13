@@ -80,13 +80,15 @@ def install_plan(repo, config):
 
 def tool_status(repo, name):
     item = deps.manifest()['frontend_tools'][name]
-    package, version = item['package'].rsplit('@', 1)
+    package = item['package'].rsplit('@', 1)[0]
     root = tool_root(repo, name)
     entry = root / 'node_modules' / package / 'package.json'
     binary = root / 'node_modules/.bin' / (item['command'] + ('.cmd' if os.name == 'nt' else ''))
     try:
-        if json.loads(entry.read_text())['version'] != version:
-            return 'version_mismatch'
+        metadata = json.loads(entry.read_text())
+        version = metadata['version']
+        if metadata.get('name') != package or not isinstance(version, str) or not version:
+            return 'package_identity_mismatch'
         result = subprocess.run([str(binary), '--version'], capture_output=True, text=True, timeout=15)
         return 'cli_verified' if result.returncode == 0 and version in result.stdout.split() else 'execution_failed'
     except (OSError, ValueError, KeyError, subprocess.SubprocessError):

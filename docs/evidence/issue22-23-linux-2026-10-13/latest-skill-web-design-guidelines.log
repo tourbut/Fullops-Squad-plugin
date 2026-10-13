@@ -1,0 +1,46 @@
+[
+  {
+    "name": "web-design-guidelines",
+    "status": "installed",
+    "source": "vercel-labs/agent-skills",
+    "ref": null,
+    "hash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a",
+    "path": "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture/.agents/skills/web-design-guidelines",
+    "scope": "project",
+    "agents": [
+      "Codex",
+      "Claude Code",
+      "Grok Build"
+    ],
+    "mode": "symlink",
+    "security": {
+      "gen": "safe",
+      "socket": "0 alerts",
+      "snyk": "low",
+      "details": "https://skills.sh/vercel-labs/agent-skills"
+    }
+  }
+]
+
+│
+●   codex  Agent detected — installing non-interactively
+│
+●  Selected 1 skill: web-design-guidelines
+
+│
+◇  Installation Summary ───────────────────╮
+│                                          │
+│  ./.agents/skills/web-design-guidelines  │
+│    universal: Codex                      │
+│    symlink → Claude Code, Grok Build     │
+│                                          │
+├──────────────────────────────────────────╯
+│
+◇  Security Risk Assessments ───────────────────────────────────────────╮
+│                                                                       │
+│                         Gen               Socket            Snyk      │
+│  web-design-guidelines  Safe              0 alerts          Low Risk  │
+│                                                                       │
+│  Details: https://skills.sh/vercel-labs/agent-skills                  │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────╯

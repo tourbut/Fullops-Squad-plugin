@@ -1,0 +1,30 @@
+{
+  "selection": {
+    "enabled": true,
+    "primary": "frontend-design",
+    "review": [],
+    "tools": [
+      "playwright"
+    ],
+    "host": "codex",
+    "model": "validation-only",
+    "effort": "medium",
+    "design": "DESIGN.md",
+    "tokens": [],
+    "components": []
+  },
+  "install": [
+    [
+      "npm",
+      "install",
+      "--prefix",
+      "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture/.fullops-squad/tools/frontend/playwright",
+      "--no-save",
+      "--package-lock=false",
+      "--ignore-scripts",
+      "@playwright/cli@latest"
+    ]
+  ],
+  "scope": "repo-local npm packages; no lifecycle scripts, hooks, trust, MCP config or browser download",
+  "runtime": "not_run"
+}

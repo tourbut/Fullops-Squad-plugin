@@ -1,0 +1,4 @@
+Preparing worktree (detached HEAD 7fa31f0)
+PASS: real OCR prepare, document/test inclusion, record preservation, pending/missing/high/rule/SHA/lint gates
+PASS: independent sessions, schema preservation, separate clean detached snapshot, fixed SHA
+PASS: managed snapshot prepare records independent identity in legacy coor configuration

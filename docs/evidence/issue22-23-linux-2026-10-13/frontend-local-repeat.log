@@ -1,0 +1,32 @@
+npm install --prefix /tmp/fullops-issue22-23-iz80e9a0/validation-fixture/.fullops-squad/tools/frontend/playwright --no-save --package-lock=false --ignore-scripts @playwright/cli@latest
+
+up to date in 99ms
+{
+  "selection": {
+    "enabled": true,
+    "primary": "frontend-design",
+    "review": [],
+    "tools": [
+      "playwright"
+    ],
+    "host": "codex",
+    "model": "validation-only",
+    "effort": "medium",
+    "design": "DESIGN.md",
+    "tokens": [],
+    "components": []
+  },
+  "status": "needs_attention",
+  "problems": [
+    "skill source unverified: frontend-design"
+  ],
+  "skills": [
+    "/home/shin/.agents/skills/frontend-design/SKILL.md"
+  ],
+  "tools": {
+    "playwright": "cli_verified"
+  },
+  "authentication": "not_run",
+  "browser_qa": "not_run",
+  "mcp_connection": "not_run"
+}

@@ -1,0 +1,23 @@
+{
+  "selection": {
+    "enabled": false,
+    "primary": "frontend-design",
+    "review": [],
+    "tools": [
+      "playwright"
+    ],
+    "host": "grok",
+    "model": "validation-only",
+    "effort": "medium",
+    "design": "DESIGN.md",
+    "tokens": [],
+    "components": []
+  },
+  "status": "disabled",
+  "problems": [],
+  "skills": [],
+  "tools": {},
+  "authentication": "not_run",
+  "browser_qa": "not_run",
+  "mcp_connection": "not_run"
+}

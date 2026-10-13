@@ -1,0 +1,46 @@
+[
+  {
+    "name": "ui-ux-pro-max",
+    "status": "installed",
+    "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+    "ref": null,
+    "hash": "27b1e8c953e26f962e3314281601959b04787edf3fd7fccadce176ff844c688d",
+    "path": "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture/.agents/skills/ui-ux-pro-max",
+    "scope": "project",
+    "agents": [
+      "Codex",
+      "Claude Code",
+      "Grok Build"
+    ],
+    "mode": "symlink",
+    "security": {
+      "gen": "safe",
+      "socket": "0 alerts",
+      "snyk": "low",
+      "details": "https://skills.sh/nextlevelbuilder/ui-ux-pro-max-skill"
+    }
+  }
+]
+
+│
+●   codex  Agent detected — installing non-interactively
+│
+●  Selected 1 skill: ui-ux-pro-max
+
+│
+◇  Installation Summary ────────────────╮
+│                                       │
+│  ./.agents/skills/ui-ux-pro-max       │
+│    universal: Codex                   │
+│    symlink → Claude Code, Grok Build  │
+│                                       │
+├───────────────────────────────────────╯
+│
+◇  Security Risk Assessments ───────────────────────────────────────╮
+│                                                                   │
+│                 Gen               Socket            Snyk          │
+│  ui-ux-pro-max  Safe              0 alerts          Low Risk      │
+│                                                                   │
+│  Details: https://skills.sh/nextlevelbuilder/ui-ux-pro-max-skill  │
+│                                                                   │
+├───────────────────────────────────────────────────────────────────╯

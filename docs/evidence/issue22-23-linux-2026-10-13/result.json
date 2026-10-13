@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-10-13",
+  "baseline_source_sha": "6cc213882fc4b1d69d4a619e8ee62bb790a17cba",
+  "latest_policy_source_sha": "011edc0ec7120ba4624aec389544d9aadf202bd3",
+  "environment": {
+    "os": "Linux",
+    "architecture": "aarch64",
+    "macOS_available": false
+  },
+  "issue22": {
+    "state": "OPEN",
+    "criteria": [
+      "PARTIAL: latest project-scoped four-skill installation to three host directory layouts; native host installation/update sessions not run",
+      "PARTIAL: existing i-Docs Claude design/implementation/QA records; equivalent Codex/Grok UI task not run",
+      "PARTIAL: React/non-React selection guards and real Playwright CLI readiness; actual React design lint not run",
+      "PARTIAL: existing i-Docs responsive/theme/menu/keyboard QA; full changed UI state/interaction acceptance not run",
+      "PARTIAL: local CLI missing/disabled/PATH-denied install and restore; real host auth/hook-denial recovery not run",
+      "UNVERIFIED: final three-host UI artifact SHA independent review and QA bundle"
+    ]
+  },
+  "issue23": {
+    "state": "OPEN",
+    "criteria": [
+      "BLOCKED: active host CUAWright skill, Python Playwright and Firefox unavailable; candidate plan only, no generation/execution",
+      "UNVERIFIED: generated-code SHA independent review, isolated execution and separate visual review",
+      "PARTIAL: existing deterministic replay verified; CUAWright-generated path promotion not run",
+      "PARTIAL: Orca and Playwright matched replay fixture/checks; existing E2E/Jev/CUAWright four-way live comparison not run",
+      "PARTIAL: three repetitions of one healthy fixture and one counter defect per engine; no human ground truth, model API failure costs or controlled cold/warm measurement",
+      "PARTIAL: regression/gate suites pass; human-labelled shadow corrections not run",
+      "UNVERIFIED: macOS unavailable, user selected Linux-only validation"
+    ]
+  },
+  "external_writes": {
+    "issue_closed": false,
+    "issue_comments_posted": false,
+    "global_dependency_install": false,
+    "plugin_cache_changed": false,
+    "i_docs_modified": false
+  },
+  "latest_policy_checks": {
+    "npm_test": "PASS",
+    "ocr_review_gate_regression": "PASS (infrastructure regression, not an independent review of this change)",
+    "real_browser_both_engines": "PASS",
+    "latest_project_skills_four_by_three_hosts": "PASS (files/layout only)",
+    "local_playwright_lifecycle": "PASS (global skill provenance remains unresolved)",
+    "fresh_generated_dist_comparison": "PASS",
+    "global_config_hashes_unchanged": true
+  },
+  "prepared_plugin_version": "1.4.1",
+  "final_source_sha": "7b8c9ede15f02757486251bb4783c62dc5d833de"
+}

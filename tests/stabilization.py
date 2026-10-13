@@ -368,13 +368,14 @@ class Stabilization(unittest.TestCase):
             review.historical(self.repo, 'R1')
 
     def test_host_receipt_retry_and_removed_skill(self):
-        skill = self.root / 'SKILL.md'
+        skill = self.root / 'skills/x/SKILL.md'
+        skill.parent.mkdir(parents=True)
         skill.write_text('installed')
         receipt = self.root / 'deps.json'
         for data in ({'completed': [None]}, {'skill_files': None}, {'completed': {}}, []):
             storage.write_json(receipt, data)
             self.assertEqual(deps.read_receipt(receipt), {})
-        commands = [['npm', 'install', '--global', 'tool@1'], ['npx', '--yes', 'skills@latest', 'add', 'repo/skills', '--skill', 'x', '--global']]
+        commands = [['npm', 'install', '--global', 'tool@latest'], ['npx', '--yes', 'skills@latest', 'add', 'repo/skills', '--skill', 'x', '--global']]
         completed = []
         def run(plan, dry):
             completed.extend(plan)
@@ -386,8 +387,11 @@ class Stabilization(unittest.TestCase):
             with self.assertRaises(OSError):
                 deps.install_host('codex', commands)
             deps.install_host('codex', commands)
-            self.assertEqual(completed.count(commands[0]), 1)
+            self.assertEqual(completed.count(commands[0]), 2)
             self.assertEqual(completed.count(commands[1]), 2)
+            deps.install_host('codex', commands)
+            self.assertEqual(completed.count(commands[0]), 3)
+            self.assertEqual(completed.count(commands[1]), 3)
             self.assertEqual(deps.check_host('codex'), [])
             skill.unlink()
             self.assertTrue(deps.check_host('codex'))
@@ -776,6 +780,7 @@ class Stabilization(unittest.TestCase):
         shared.write_text('shared skill')
         wanted = [{'source': 'repo/skills', 'names': ['x']}]
         manifest = {'skills': wanted, 'codex': {'skills': []}, 'portable_skills': []}
+        storage.write_json(self.root / '.agents/.skill-lock.json', {'skills': {'x': {'source': 'repo/skills'}}})
         command = ['npx', '--yes', 'skills@latest', 'add', 'repo/skills', '--skill', 'x', '--global', '--agent', 'claude-code', '--yes']
         for folder in ('.claude', 'custom-claude'):
             with self.subTest(folder=folder), patch.object(deps.Path, 'home', return_value=self.root), \

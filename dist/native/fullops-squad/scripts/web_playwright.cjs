@@ -22,11 +22,12 @@ async function handle(message) {
   if (action === 'start') {
     const packageFile = path.resolve(data.package_file);
     const metadata = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
-    if (metadata.name !== '@playwright/cli' || metadata.version !== data.version) throw new Error('package_version_mismatch');
+    if (metadata.name !== '@playwright/cli' || typeof metadata.version !== 'string' || !metadata.version) throw new Error('package_identity_mismatch');
     const load = createRequire(packageFile);
     const { chromium } = load('playwright');
-    const actualVersion = load('playwright/package.json').version;
-    if (actualVersion !== metadata.dependencies.playwright) throw new Error('runtime_version_mismatch');
+    const runtime = load('playwright/package.json');
+    const actualVersion = runtime.version;
+    if (runtime.name !== 'playwright' || typeof actualVersion !== 'string' || !actualVersion) throw new Error('runtime_identity_mismatch');
     safety = data.safety;
     browser = await chromium.launch({ headless: !data.headed, timeout,
       ...(data.executable ? { executablePath: data.executable } : {}) });
@@ -106,7 +107,7 @@ const input = readline.createInterface({ input: process.stdin });
       process.stdout.write(JSON.stringify({ id: message.id, ok: true, result }) + '\n');
     } catch (error) {
       // Error messages can embed URLs, values or page text; expose only a bounded error category.
-      const code = ['package_version_mismatch', 'runtime_version_mismatch', 'origin_not_allowed', 'unsupported_bridge_action', 'unsupported_operation'].includes(error.message) ? error.message : error.name;
+      const code = ['package_identity_mismatch', 'runtime_identity_mismatch', 'origin_not_allowed', 'unsupported_bridge_action', 'unsupported_operation'].includes(error.message) ? error.message : error.name;
       process.stdout.write(JSON.stringify({ id: message?.id, ok: false, error: code }) + '\n');
     }
     if (message?.action === 'close') break;

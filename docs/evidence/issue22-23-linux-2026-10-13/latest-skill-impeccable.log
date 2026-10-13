@@ -1,0 +1,46 @@
+[
+  {
+    "name": "impeccable",
+    "status": "installed",
+    "source": "pbakaus/impeccable",
+    "ref": null,
+    "hash": "4f1c9edac4c110984200216ed05a2f0b5ced6aa871f5094a7cc4445eacf5477f",
+    "path": "/tmp/fullops-issue22-23-iz80e9a0/validation-fixture/.agents/skills/impeccable",
+    "scope": "project",
+    "agents": [
+      "Codex",
+      "Claude Code",
+      "Grok Build"
+    ],
+    "mode": "symlink",
+    "security": {
+      "gen": "safe",
+      "socket": "1 alert",
+      "snyk": "low",
+      "details": "https://skills.sh/pbakaus/impeccable"
+    }
+  }
+]
+
+│
+●   codex  Agent detected — installing non-interactively
+│
+●  Selected 1 skill: impeccable
+
+│
+◇  Installation Summary ────────────────╮
+│                                       │
+│  ./.agents/skills/impeccable          │
+│    universal: Codex                   │
+│    symlink → Claude Code, Grok Build  │
+│                                       │
+├───────────────────────────────────────╯
+│
+◇  Security Risk Assessments ────────────────────────────────╮
+│                                                            │
+│              Gen               Socket            Snyk      │
+│  impeccable  Safe              1 alert           Low Risk  │
+│                                                            │
+│  Details: https://skills.sh/pbakaus/impeccable             │
+│                                                            │
+├────────────────────────────────────────────────────────────╯

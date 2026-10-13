@@ -1,0 +1,9 @@
+{
+  "command": [
+    "npm",
+    "test"
+  ],
+  "exit_code": 0,
+  "elapsed_s": 30.978,
+  "prepared_plugin_version": "1.4.1"
+}

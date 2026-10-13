@@ -14,6 +14,8 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 **Orca IDE가 필요합니다.** 플러그인은 Orca 앱을 설치하지 않습니다.
 설치는 CLI 사용자 범위에 적용됩니다. 서비스 레포의 `.fullops-squad/`를 만드는 setup은 별도로 요청합니다.
 
+외부 의존성은 버전·commit을 고정하지 않고 최신판을 설치합니다. npm 도구는 `@latest`, 스킬은 공식 저장소의 최신 원문을 사용하며, 의존 플러그인은 마켓플레이스를 갱신한 뒤 설치·업데이트합니다. 명시적 설치·업데이트 요청마다 최신판을 확인하고, `--check`는 네트워크 업데이트 없이 실제 설치 상태를 검사합니다. 기존 스킬은 교체 전에 백업합니다.
+
 ## 작업 흐름
 
 운영 모드는 `coor`와 `dev`입니다. 아래 흐름은 coor 기준이며, dev에서는 주 담당자가 사용자와 직접 기술 계획·구현·검증을 진행하고 필요한 전문가를 배정합니다. 직접 구현도 lint와 다른 세션의 고정 SHA 리뷰를 받습니다. 역할 ID·모델·effort와 운영 책임은 따로 관리합니다.
@@ -252,7 +254,7 @@ grok plugin marketplace update
 grok plugin update fullops-squad
 ```
 
-업데이트 후 설치 버전과 `deps.py --check --host <현재 CLI>`를 확인합니다. 단독 `--check`는 CLI 존재만 검사합니다.
+CLI별 직접 업데이트 후에는 설치된 새 패키지의 `scripts/deps.py --host <현재 CLI>`로 외부 의존성을 갱신하고, 설치 버전과 `deps.py --check --host <현재 CLI>`를 확인합니다. 단독 `--check`는 CLI 존재만 검사합니다.
 실행 중인 세션은 이전 hook 경로를 사용할 수 있습니다. 작업을 정리한 뒤 새 세션으로 전환합니다.
 다른 PC와 Orca가 별도로 사용하는 CLI 홈도 갱신해야 합니다.
 
