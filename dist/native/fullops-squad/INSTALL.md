@@ -254,7 +254,7 @@ grok plugin marketplace update
 grok plugin update fullops-squad
 ```
 
-업데이트 후 설치 버전과 `deps.py --check --host <현재 CLI>`를 확인합니다. 단독 `--check`는 CLI 존재만 검사합니다.
+CLI별 직접 업데이트 후에는 설치된 새 패키지의 `scripts/deps.py --host <현재 CLI>`로 외부 의존성을 갱신하고, 설치 버전과 `deps.py --check --host <현재 CLI>`를 확인합니다. 단독 `--check`는 CLI 존재만 검사합니다.
 실행 중인 세션은 이전 hook 경로를 사용할 수 있습니다. 작업을 정리한 뒤 새 세션으로 전환합니다.
 다른 PC와 Orca가 별도로 사용하는 CLI 홈도 갱신해야 합니다.
 

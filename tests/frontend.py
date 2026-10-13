@@ -166,12 +166,36 @@ class Frontend(unittest.TestCase):
             write_json(home / '.agents/.skill-lock.json', {'skills': {'x': {'source': 'other/skills'}}})
             self.assertTrue(any('source unverified' in p for p in deps.skill_files('codex')[1]))
 
+    def test_skill_backup_preserves_unverified_and_shadowed_folders(self):
+        home = Path(self.temp.name) / 'backup-home'
+        item = {'source': 'official/skills', 'names': ['research']}
+        write_json(home / '.agents/.skill-lock.json', {'skills': {'research': {'source': 'local/skills'}}})
+        for relative, content in (('.agents', 'canonical edit'), ('.codex', 'codex edit'), ('.claude', 'claude edit'), ('.grok', 'grok edit')):
+            folder = home / relative / 'skills/research'
+            folder.mkdir(parents=True)
+            (folder / 'SKILL.md').write_text(content)
+            (folder / 'local.txt').write_text(content)
+        with patch.object(deps.Path, 'home', return_value=home), \
+             patch.dict('os.environ', {'CODEX_HOME': str(home / '.codex'), 'CLAUDE_CONFIG_DIR': str(home / '.claude')}):
+            for host in deps.COMMON_HOSTS:
+                for names in (['research'], ['*']):
+                    selected = {**item, 'names': names}
+                    data = {'skills': [selected], 'codex': {'skills': []}, 'portable_skills': []}
+                    with self.subTest(host=host, names=names), redirect_stdout(io.StringIO()), \
+                         patch.object(deps, 'manifest', return_value=data):
+                        deps.backup_skills(host, deps.skill_command(selected, [host]))
+                backups = list((deps.receipt_path(host).parent / 'fullops-skill-backups').glob('*/research/local.txt'))
+                self.assertEqual(len(backups), 4)
+                self.assertEqual({p.read_text() for p in backups}, {'canonical edit', host.split('-')[0] + ' edit'})
+
     def test_skill_backup_rejects_destination_inside_source(self):
-        folder = Path(self.temp.name)
+        folder = Path(self.temp.name) / 'x'
+        folder.mkdir()
+        (folder / 'SKILL.md').write_text('local edit')
         item = {'source': 'official/skills', 'names': ['x']}
         with patch.object(deps, 'command_skills', return_value=[('codex', item)]), \
-             patch.object(deps, 'skill_files', return_value=([str(folder / 'SKILL.md')], [])), \
-             patch.object(deps, 'receipt_path', return_value=folder / 'deps.json'):
+             patch.object(deps, 'receipt_path', return_value=folder / 'deps.json'), \
+             patch.object(deps, 'skill_roots', return_value=[folder.parent]):
             with self.assertRaisesRegex(ValueError, '원본 폴더 밖'):
                 deps.backup_skills('codex', [])
         self.assertFalse((folder / 'fullops-skill-backups').exists())

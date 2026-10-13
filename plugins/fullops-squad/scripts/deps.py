@@ -118,6 +118,10 @@ def read_receipt(path):
         return {}
 
 
+def skill_roots(host):
+    return [Path.home() / '.agents/skills', receipt_path(host).parent / 'skills']
+
+
 def skill_files(host, wanted=None):
     """호스트 설치 목록의 실제 SKILL.md를 확인한다. wildcard는 skills 설치기의 source 기록을 사용한다."""
     data = manifest()
@@ -129,9 +133,9 @@ def skill_files(host, wanted=None):
             installed = {}
     except (OSError, ValueError, AttributeError):
         installed = {}
-    roots = [receipt_path(host).parent / 'skills']
-    if host != 'claude-code':
-        roots.insert(0, Path.home() / '.agents/skills')
+    roots = skill_roots(host)
+    if host == 'claude-code':
+        roots = roots[1:]
     paths, absent = [], []
     for item in wanted:
         names = item['names']
@@ -175,17 +179,21 @@ def backup_skills(host, command):
     """스킬을 교체하기 전에 기존 내용·사용자 수정을 로컬에 보존한다."""
     saved = set()
     for agent, item in command_skills(host, command):
-        paths, _ = skill_files(agent, [item])
-        for path in paths:  # SKILL.md가 같아도 참조·스크립트에는 사용자 수정이 있을 수 있다.
-            folder = Path(path).parent.resolve()
-            if folder in saved:
-                continue
-            target = receipt_path(agent).parent / 'fullops-skill-backups' / str(time.time_ns()) / folder.name
-            if target.resolve().is_relative_to(folder):
-                raise ValueError('스킬 백업 경로는 원본 폴더 밖이어야 합니다')
-            shutil.copytree(folder, target, symlinks=True)
-            saved.add(folder)
-            print(f'기존 스킬 보존: {target}', flush=True)
+        for root in skill_roots(agent):
+            # 출처 기록 없는 폴더도 덮어쓸 수 있으므로 wildcard는 기존 스킬 모두를 보존한다.
+            paths = root.glob('*/SKILL.md') if '*' in item['names'] else (root / name / 'SKILL.md' for name in item['names'])
+            for path in paths:
+                if not path.is_file():
+                    continue
+                folder = path.parent.resolve()
+                if folder in saved:
+                    continue
+                target = receipt_path(agent).parent / 'fullops-skill-backups' / str(time.time_ns()) / folder.name
+                if target.resolve().is_relative_to(folder):
+                    raise ValueError('스킬 백업 경로는 원본 폴더 밖이어야 합니다')
+                shutil.copytree(folder, target, symlinks=True)
+                saved.add(folder)
+                print(f'기존 스킬 보존: {target}', flush=True)
 
 
 def tool_problems():
