@@ -27,7 +27,12 @@
     "npm_test_final": 0,
     "jev_web_final": 0,
     "web_engine_22": 0,
-    "latest_ocr_gate": 0,
+    "latest_ocr_gate": {
+      "version": "1.13.0",
+      "exit_code": 0,
+      "record": "review-check-latest-r07.json",
+      "prior_r06": "preserved; global1.12.12 selected by PATH typo, not latest proof"
+    },
     "build": "regenerated source/dist"
   },
   "known_limits": [

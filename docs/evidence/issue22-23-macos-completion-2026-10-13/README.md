@@ -11,7 +11,7 @@
 - 허용되지 않은 `fill`과 허용된 `fill_submit`이 함께 제시되어 보류되던 선택지를 권한과 맞췄다. **실행 권한 gate는 별도로 유지**했다.
 - 후보 254개에서 중복 payload가 입력 예산을 초과하던 중간 회귀를 보존하고, 후보를 중복 전송하지 않도록 수정했다. 예산·confidence·위험 임계값을 올리거나 낮추지 않았다.
 
-[RED](jev-shared-state-red.log), [선택지 RED](jev-operation-policy-red.log), [GREEN](jev-operation-policy-green.log), [22개 엔진 회귀](web-engine-r07.log), [전체 npm test](npm-test-r07.log)가 있다. 생성물은 `scripts/build.py`로 재생성했다. 전체 회귀에는 시스템 Git 2.50.1을 사용했다. Homebrew Git 2.38.0의 기존 offline missing-blob 실패는 이전 기록에 남아 있다. [최신 OCR 게이트](review-check-r06.log)는 동일한 gate 소스에서 통과했다. 이는 아래 독립 리뷰와 별도 검사다.
+[RED](jev-shared-state-red.log), [선택지 RED](jev-operation-policy-red.log), [GREEN](jev-operation-policy-green.log), [22개 엔진 회귀](web-engine-r07.log), [전체 npm test](npm-test-r07.log)가 있다. 생성물은 `scripts/build.py`로 재생성했다. 전체 회귀에는 시스템 Git 2.50.1을 사용했다. Homebrew Git 2.38.0의 기존 offline missing-blob 실패는 이전 기록에 남아 있다. [최신 OCR 1.13.0 게이트](review-check-latest-r07.json)는 최종 소스에서 통과했다. `review-check-r06.log`는 PATH 경로 오기 때문에 전역 OCR 1.12.12를 사용한 원본이며 최신 버전 증거로 취급하지 않는다. 실제 선택 경로·버전·exit 0은 새 r07 기록에 있다. 이는 아래 독립 리뷰와 별도 검사다.
 
 최종 SHA의 [Standards 리뷰](source-review-standards-r07.json)와 [Spec 리뷰](source-review-spec-r07.json)는 독립 세션·clean detached readonly snapshot에서 수행했으며 발견 사항 0건이다. 권한 gate 음성 테스트는 upstream 결정만 주입하고 기존 `blocked_policy`·`acts=[]` oracle을 그대로 유지한다.
 
