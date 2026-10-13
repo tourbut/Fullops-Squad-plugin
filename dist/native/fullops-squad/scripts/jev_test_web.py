@@ -290,7 +290,10 @@ def ask(call, scenario, page, history, step):
     available = {'click': clickable, 'check': checkable, 'fill': fillable and values, 'fill_submit': fillable and values,
                  'press_enter': fillable, 'scroll_down': True, 'done': True, 'blocked': True,
                  'observe_more': scenario.get('exploration', False) and page.get('coverage', {}).get('remaining', 0)}
-    operations = {k: v for k, v in OPERATIONS.items() if available[k]}
+    safety = contract.policy(scenario)
+    controls = {'done', 'blocked', 'scroll_down', 'observe_more'}
+    operations = {k: v for k, v in OPERATIONS.items() if available[k] and
+                  (k in controls or safety['fixture'] and k in safety['allowed_operations'])}
     operations[contract.STOP] = 'Stop without acting; no safe supported next action.'
     questions = {'operation': {'type': 'choice', 'instructions': HINT, 'criteria': operations},
                  'risky': {'type': 'noul', 'instructions': RISK}}
@@ -308,7 +311,7 @@ def ask(call, scenario, page, history, step):
     # 질문들은 서로의 criteria/답을 보지 못한다. 동작·위험·유효성 판단에도 관측과 입력값이 필요하다.
     state = {'goal': contract.redact(safe_text(scenario['goal'], 1000)),
              'page': {k: public[k] for k in ('url', 'state_id', 'coverage', 'elements')}, 'values': values,
-             'allowed_operations': contract.policy(scenario)['allowed_operations'],
+             'allowed_operations': safety['allowed_operations'],
              'history': contract.redact(history[-6:]), 'step': step, 'steps_left': scenario.get('max_steps', 20) - step}
     payload = {'model': MODEL, 'state': state, 'questions': questions}
     if len(json.dumps(payload, ensure_ascii=False)) > scenario.get('max_input_chars', contract.BOUNDS['max_input_chars'][0]):

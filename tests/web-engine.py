@@ -121,7 +121,12 @@ global.document = {activeElement: {
 
     def test_policy_separate_from_risk_and_origin_blocks_before_model(self):
         browser = fixture.FakeBrowser()
-        result = self.execute(self.scenario(safety={}), browser, fixture.jev([('fill_submit', 'e3', 'milk')], risk=0))
+        # Even an already-formed decision bypassing the model choice filter must fail the independent gate.
+        browser.open(self.scenario()['url'])
+        decision = web.ask(fixture.jev([('fill_submit', 'e3', 'milk')], risk=0), self.scenario(),
+                           contract.observation(browser.snapshot(), self.scenario()), [], 1)
+        with patch.object(web, 'ask', return_value=decision):
+            result = self.execute(self.scenario(safety={}), browser, lambda _: self.fail('unexpected model request'))
         self.assertEqual(result['result'], 'blocked_policy')
         self.assertEqual(browser.acts, [])
         browser = fixture.FakeBrowser()

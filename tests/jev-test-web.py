@@ -95,6 +95,7 @@ def main():
             'state': ['checked=false'], 'near': '우유 사기'}
         assert seen[0]['state']['values'] == {'milk': '우유 사기'}
         assert seen[0]['state']['allowed_operations'] == ['fill_submit', 'check']
+        assert not {'fill', 'press_enter'} & set(seen[0]['questions']['operation']['criteria'])
         assert 'page.elements' in q['valid_check_target']['instructions']['question']
         assert q['valid_check_target']['instructions']['allowed_roles'] == ['checkbox']
         assert q['check_target']['criteria']['e7'] == 'checkbox "Toggle Todo" next to "우유 사기" (checked=false)'
