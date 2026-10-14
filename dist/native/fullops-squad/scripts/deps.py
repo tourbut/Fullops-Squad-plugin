@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 from storage import write_json
+import hook_runtime
 
 HERE = Path(__file__).resolve().parents[1]
 HOSTS = ("codex", "claude-code", "grok", "agy")
@@ -268,7 +269,7 @@ def fingerprint():
 
 def check_host(host):
     paths, absent = required_skills(host)
-    absent += python_problem() + tool_problems() + plugin_problems(host)
+    absent += python_problem() + tool_problems() + plugin_problems(host) + hook_runtime.problems(HERE)
     path = receipt_path(host)
     receipt = read_receipt(path)
     if receipt.get('plugin'):
@@ -283,6 +284,7 @@ def install_host(host, plan, plugin=None):
     absent = python_problem()
     if absent:
         raise ValueError('; '.join(absent))
+    hook_runtime.install(plugin['package'] if plugin else HERE)
     path = receipt_path(host)
     old = read_receipt(path)
     identity = {'manifest_sha256': fingerprint(), 'host': host, 'home': str(path.parent.resolve()), 'plugin': None}
@@ -335,8 +337,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--host", choices=["all", "both", *HOSTS], help="의존성을 설치할 CLI")
     parser.add_argument("--dry-run", action="store_true", help="실행할 명령만 출력한다")
+    parser.add_argument("--runtime-only", action="store_true", help="외부 의존성 설치 없이 고정 hook 실행 경로만 갱신")
     parser.add_argument("--check", action="store_true", help="--host와 함께 전체 구성·설치 완료를 검사. 단독 사용은 CLI 존재만 확인")
     args = parser.parse_args()
+    if args.runtime_only:
+        if args.check or args.dry_run or args.host:
+            parser.error('--runtime-only는 다른 옵션과 함께 사용하지 않습니다')
+        print(hook_runtime.install(HERE))
+        return
     if args.check:
         hosts = {'all': HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host])
         absent = [f'{host}: {problem}' for host in hosts for problem in check_host(host)] if args.host else missing_tools()

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/caveman_start.py\"",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" caveman_start",
             "timeout": 5
           }
         ]
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/done_gate.py\" start",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" done_gate start",
             "timeout": 10
           }
         ]
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" start",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate start",
             "timeout": 10
           }
         ]
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/done_gate.py\" stop",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" done_gate stop",
             "timeout": 20
           }
         ]
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" stop",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate stop",
             "timeout": 40
           }
         ]
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" prompt",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate prompt",
             "timeout": 10
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" tool",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate tool",
             "timeout": 10
           }
         ]
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/issue_mode.py\" session-end",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" issue_mode session-end",
             "timeout": 3
           }
         ]
@@ -91,7 +91,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/flow_gate.py\" post",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate post",
             "timeout": 10
           }
         ]
