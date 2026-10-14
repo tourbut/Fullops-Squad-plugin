@@ -7,6 +7,7 @@ HTML을 파일로 열면 fetch로 JSON을 읽을 수 없어서 `window.FULLOPS_B
 import argparse
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -236,6 +237,42 @@ def deliverables(root):
     return result
 
 
+def issues(repo, config):
+    """설정된 GitHub remote의 최근 이슈만 읽는다. 인증 정보와 CLI 원문 오류는 보드에 싣지 않는다."""
+    remote = (config.get('git') or {}).get('remote') or 'origin'
+    url = git(repo, 'remote', 'get-url', '--', remote)
+    match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)'
+                         r'([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?', url)
+    result = {'repository': match[1] if match else '', 'items': [], 'limit': 30,
+              'checked_at': None, 'error': None}
+    if not match:
+        return {**result, 'error': 'GitHub 저장소 연결을 확인할 수 없습니다.'}
+    if os.environ.get('FULLOPS_OFFLINE') == '1':
+        return {**result, 'error': '오프라인 모드에서는 이슈를 조회하지 않습니다.'}
+    try:
+        done = subprocess.run(['gh', 'issue', 'list', '--repo', 'github.com/' + match[1],
+                               '--state', 'all', '--search', 'sort:updated-desc', '--limit', '30',
+                               '--json', 'number,title,state'], cwd=repo, capture_output=True,
+                              text=True, encoding='utf-8', timeout=8,
+                              env={**os.environ, 'GH_PROMPT_DISABLED': '1'})
+        if done.returncode:
+            return {**result, 'error': '이슈 조회 실패: GitHub 인증·저장소 접근 권한·네트워크를 확인하세요.'}
+        rows = json.loads(done.stdout)
+        if not isinstance(rows, list) or any(
+                not isinstance(row, dict) or type(row.get('number')) is not int or row['number'] <= 0 or
+                not isinstance(row.get('title'), str) or row.get('state') not in ('OPEN', 'CLOSED') for row in rows):
+            raise ValueError('invalid issues')
+        result['items'] = [{key: row[key] for key in ('number', 'title', 'state')} for row in rows[:30]]
+        result['checked_at'] = datetime.now().astimezone().isoformat(timespec='seconds')
+    except FileNotFoundError:
+        result['error'] = '이슈 조회에 필요한 GitHub CLI(gh)가 없습니다.'
+    except subprocess.TimeoutExpired:
+        result['error'] = '이슈 조회 시간이 초과됐습니다. 다음 보드 갱신 때 다시 조회합니다.'
+    except (OSError, ValueError):
+        result['error'] = '이슈 조회 결과를 읽을 수 없습니다. 다음 보드 갱신 때 다시 조회합니다.'
+    return result
+
+
 def build(repo):
     root = Path(repo) / '.fullops-squad'
     config = load(root / 'fullops.json') or {}
@@ -259,6 +296,7 @@ def build(repo):
         'reviews': reviews(repo, root),
         'tests': tests(root),
         'deliverables': deliverables(root),
+        'issues': issues(repo, config),
     }
 
 
