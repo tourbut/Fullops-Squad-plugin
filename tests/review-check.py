@@ -31,9 +31,19 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     lint_out = repo / '.git/fullops-lint.json'
     subprocess.run(['python3', str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base, '--out', str(lint_out)],
                    capture_output=True)
-    def run(mode, key='REVIEW-1'):
+    def run(mode, key='REVIEW-1', extra=()):
         return subprocess.run(['python3', str(SCRIPTS / 'review.py'), mode, '--repo', tmp,
-                               '--key', key, '--from', base, '--to', 'HEAD'], capture_output=True, text=True)
+                               '--key', key, '--from', base, '--to', 'HEAD', *extra], capture_output=True, text=True)
+    reusable = repo / '.git/fullops-gate/lint-result.json'
+    assert reusable.read_bytes() == lint_out.read_bytes()
+    reused = run('prepare', 'REUSED', ('--lint', str(reusable)))
+    assert reused.returncode == 0, reused.stderr
+    assert (repo / '.fullops-squad/docs/evaluations/qa-reports/REUSED-review/lint.json').read_bytes() == reusable.read_bytes()
+    invalid = json.loads(reusable.read_text())
+    invalid['head'] = base
+    bad = repo / '.git/bad-lint.json'
+    bad.write_text(json.dumps(invalid))
+    assert run('prepare', 'BAD-REUSE', ('--lint', str(bad))).returncode != 0
     result = run('prepare')
     assert result.returncode == 0, result.stderr
     directory = repo / '.fullops-squad/docs/evaluations/qa-reports/REVIEW-1-review'

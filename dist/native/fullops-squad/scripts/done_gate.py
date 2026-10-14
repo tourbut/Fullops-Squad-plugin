@@ -6,6 +6,7 @@ Stop에서 이 체크아웃이 직접 만든 커밋(HEAD reflog의 commit 항목
 기존 worker는 반복 Stop을 경고로 통과시킨다. dev 직접 개발은 설정·에셋도 검사하고 독립 리뷰를 필수로 유지한다.
 """
 from fnmatch import fnmatch
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
@@ -19,6 +20,64 @@ from storage import write_json
 
 CODE = PY | HASH | C_STYLE
 LINT = Path(__file__).resolve().with_name('lint.py')
+
+
+def hook_status(root, session):
+    """세션별 실제 호출 근거만 읽는다. 기록 없음은 설치 여부와 무관하게 unknown이다."""
+    gate = Path(git(root, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate/hooks'
+    key = re.sub(r'[^A-Za-z0-9_-]', '_', str(session or 'default'))[:100]
+    result = {}
+    for name in ('done', 'flow'):
+        try:
+            record = json.loads((gate / f'{name}-{key}.json').read_text(encoding='utf-8'))
+            if not isinstance(record, dict) or not isinstance(record.get('events', {}), dict) or not isinstance(record.get('warned', []), list):
+                raise ValueError('invalid hook record')
+            result[name] = record
+        except (OSError, ValueError):
+            result[name] = {'status': 'unknown'}
+    return result
+
+
+def run_hook(callback, name):
+    """기존 hook 판정은 유지하고 실행·오류를 남긴다. 같은 오류 안내는 세션당 한 번이다."""
+    try:
+        event = json.load(sys.stdin)
+        if not isinstance(event, dict):
+            event = {}
+    except ValueError:
+        event = {}
+    mode = sys.argv[1]
+    error = None
+    try:
+        output = callback(event)
+    except policy.PolicyError as problem:
+        output = ({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
+                   'permissionDecisionReason': str(problem)}} if name == 'flow' and mode == 'tool' else
+                  {'decision': 'block', 'reason': str(problem)} if mode == 'stop' else
+                  {'systemMessage': str(problem)})
+    except Exception as problem:  # noqa: BLE001 — hook 오류는 작업을 막지 않는다
+        output, error = {}, type(problem).__name__
+    if mode == 'status':
+        return output
+    try:
+        root = Path(git(field(event, 'cwd') or '.', 'rev-parse', '--show-toplevel'))
+        if not (root / '.fullops-squad/fullops.json').is_file():
+            return output
+        session = re.sub(r'[^A-Za-z0-9_-]', '_', str(field(event, 'session_id') or 'default'))[:100]
+        path = Path(git(root, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate/hooks' / f'{name}-{session}.json'
+        previous = hook_status(root, session)[name]
+        warned = previous.get('warned', [])
+        first = bool(error and error not in warned)
+        record = {'status': 'error' if error else 'executed', 'mode': mode,
+                  'at': datetime.now(timezone.utc).isoformat(), 'error': error,
+                  'warned': warned + ([error] if first else [])}
+        record['events'] = {**previous.get('events', {}), mode: {k: record[k] for k in ('status', 'at', 'error')}}
+        write_json(path, record)
+        if first:
+            output['systemMessage'] = f'FullOps {name} hook 오류({error}). 작업은 계속하고 수락 전 필수 검사 증거를 확인하세요.'
+    except Exception:  # noqa: BLE001 — 기록 경로도 사용할 수 없으면 기존 fail-open을 유지한다
+        pass
+    return output
 
 
 def field(event, name):
@@ -81,15 +140,18 @@ def expected_base(root, state):
     return state.get('base')
 
 
-def main():
+def main(event=None):
     mode = sys.argv[1]
-    try:
-        event = json.load(sys.stdin)
-    except ValueError:
-        event = {}
+    if event is None:
+        try:
+            event = json.load(sys.stdin)
+        except ValueError:
+            event = {}
     root = Path(git(field(event, 'cwd') or '.', 'rev-parse', '--show-toplevel'))
     if not (root / '.fullops-squad/fullops.json').is_file():
         return {}
+    if mode == 'status':
+        return hook_status(root, field(event, 'session_id'))
     config = policy.load(root)
     gate = Path(git(root, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
     gate.mkdir(exist_ok=True)
@@ -160,10 +222,4 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        output = main()
-    except policy.PolicyError as error:
-        output = {'decision': 'block', 'reason': str(error)} if sys.argv[1] == 'stop' else {'systemMessage': str(error)}
-    except Exception:  # noqa: BLE001 — hook은 실패해도 종료를 막지 않는다
-        output = {}
-    print(json.dumps(output, ensure_ascii=False))
+    print(json.dumps(run_hook(main, 'done'), ensure_ascii=False))

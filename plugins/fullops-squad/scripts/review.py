@@ -41,7 +41,7 @@ def evidence(path):
     return path.startswith(EVIDENCE) or path.endswith('.bak')
 
 
-def prepare(repo, key, base, head):
+def prepare(repo, key, base, head, lint_source=None):
     rule = safe_file(repo, '.fullops-squad/review/rule.json')
     destination = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review')
     if destination.exists():
@@ -81,11 +81,16 @@ def prepare(repo, key, base, head):
             result['independence'].update(snapshot_path=saved['path'], implementer_session=saved['implementer_session'],
                                           reviewer_session=saved['reviewer_session'])
             check_independence(repo, result)
+    lint_raw = Path(lint_source).read_bytes() if lint_source else None
+    if lint_raw is not None:
+        check_lint(repo, result, json.loads(lint_raw))
     destination.mkdir(parents=True)
     for name, data in [('preview', preview), ('rules', rules), ('result', result)]:
         (destination / f'{name}.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
     template = Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/review/_REPORT.md'
     (destination / 'report.md').write_text(template.read_text().replace('<과제 키>', key, 1))
+    if lint_raw is not None:
+        atomic_write(destination / 'lint.json', lint_raw)
     print(destination.relative_to(repo))
 
 
@@ -225,6 +230,46 @@ def cleanup(repo, key, dispatch, finished=False):
         raise
 
 
+def check_lint(repo, result, lint):
+    """기존 실행 증거의 범위·설정·명령·결과만 검사한다. 테스트는 실행하지 않는다."""
+    if (lint['base'], lint['head']) != (result['base'], result['head']):
+        raise ValueError('lint 결과의 base/head가 리뷰와 다릅니다. worker 체크아웃에서 lint.py를 다시 실행하세요')
+    merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', result['base'], result['head']],
+                                         text=True).strip()
+    config = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f'{merge_base}:.fullops-squad/lint/lint.json'],
+                            capture_output=True)
+    if lint.get('merge_base') != merge_base or lint['config_sha256'] != (
+            hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
+        raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
+    settings, _ = load_config(repo, merge_base)
+    import policy
+    level, policy_digest = policy.at_ref(repo, merge_base)
+    if any(c.get('level') is not None for c in settings['commands']) and (
+            lint.get('test_level') != level or lint.get('policy_sha256') != policy_digest):
+        raise ValueError('테스트 레벨이 기준 설정과 다릅니다. lint.py를 다시 실행하세요')
+    for command in settings['commands']:
+        records = [c for c in lint['commands'] if c.get('kind', 'lint') == command.get('kind', 'lint') and c['name'] == command['name']
+                   and c.get('run') == command['run'] and c.get('cwd', '.') == command.get('cwd', '.')]
+        if len(records) != 1:
+            raise ValueError(f'등록된 검사 실행 증거가 없거나 중복됐습니다: {command["name"]}')
+        if not policy.command_selected(command, level):
+            if records[0]['status'] != 'skipped' or not records[0].get('reason', '').strip():
+                raise ValueError('레벨 범위 밖 테스트는 skipped와 사유를 기록하세요')
+            continue
+        if records[0]['status'] == 'passed' and records[0].get('exit_code') != 0:
+            raise ValueError(f'검사 통과 종료코드가 없습니다: {command["name"]}')
+        if records[0]['status'] not in ('passed', 'failed', 'timeout', 'unavailable'):
+            raise ValueError(f'검사가 실행되지 않았습니다: {command["name"]}')
+    if any(c['status'] == 'unavailable' and not c.get('reason', '').strip() for c in lint['commands']):
+        raise ValueError('실행 불가 lint 명령에 reason을 기록하세요')
+    errors = (sum(v['severity'] == 'ERROR' for v in lint['violations'])
+              + sum(c['status'] in ('failed', 'timeout') for c in lint['commands']))
+    if errors:
+        raise ValueError(f'lint ERROR {errors}건이 남아 있습니다. 수정 커밋 후 새 리뷰를 준비하세요')
+    if len(lint['commands']) != len(settings['commands']):
+        raise ValueError('등록되지 않은 검사 실행 증거가 있습니다')
+
+
 def check(repo, key, base, head, task_key=None):
     directory = f'.fullops-squad/docs/evaluations/qa-reports/{key}-review'
     def read(name):
@@ -254,40 +299,7 @@ def check(repo, key, base, head, task_key=None):
         if finding['severity'] in ('critical', 'high') and not finding['resolved']:
             raise ValueError('critical/high 미해결 사항이 있습니다')
     lint = read('lint')
-    if (lint['base'], lint['head']) != (result['base'], result['head']):
-        raise ValueError('lint 결과의 base/head가 리뷰와 다릅니다. worker 체크아웃에서 lint.py를 다시 실행하세요')
-    merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', result['base'], result['head']],
-                                         text=True).strip()
-    config = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f'{merge_base}:.fullops-squad/lint/lint.json'],
-                            capture_output=True)
-    if lint.get('merge_base') != merge_base or lint['config_sha256'] != (
-            hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
-        raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
-    settings, _ = load_config(repo, merge_base)
-    import policy
-    level, policy_digest = policy.at_ref(repo, merge_base)
-    if any(c.get('level') is not None for c in settings['commands']) and (
-            lint.get('test_level') != level or lint.get('policy_sha256') != policy_digest):
-        raise ValueError('테스트 레벨이 기준 설정과 다릅니다. lint.py를 다시 실행하세요')
-    for command in (c for c in settings['commands'] if c.get('kind') == 'test'):
-        records = [c for c in lint['commands'] if c.get('kind') == 'test' and c['name'] == command['name']
-                   and c.get('run') == command['run'] and c.get('cwd', '.') == command.get('cwd', '.')]
-        if len(records) != 1:
-            raise ValueError(f'등록된 테스트 실행 증거가 없거나 중복됐습니다: {command["name"]}')
-        if not policy.command_selected(command, level):
-            if records[0]['status'] != 'skipped' or not records[0].get('reason', '').strip():
-                raise ValueError('레벨 범위 밖 테스트는 skipped와 사유를 기록하세요')
-            continue
-        if records[0]['status'] == 'passed' and records[0].get('exit_code') != 0:
-            raise ValueError(f'테스트 통과 종료코드가 없습니다: {command["name"]}')
-        if records[0]['status'] not in ('passed', 'failed', 'timeout', 'unavailable'):
-            raise ValueError(f'테스트가 실행되지 않았습니다: {command["name"]}')
-    if any(c['status'] == 'unavailable' and not c.get('reason', '').strip() for c in lint['commands']):
-        raise ValueError('실행 불가 lint 명령에 reason을 기록하세요')
-    errors = (sum(v['severity'] == 'ERROR' for v in lint['violations'])
-              + sum(c['status'] in ('failed', 'timeout') for c in lint['commands']))
-    if errors:
-        raise ValueError(f'lint ERROR {errors}건이 남아 있습니다. 수정 커밋 후 새 리뷰를 준비하세요')
+    check_lint(repo, result, lint)
     packet_key = task_key or key
     packet_path = jev_find.result_path(repo, packet_key, 'packet')
     committed = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{packet_path.relative_to(repo).as_posix()}'], capture_output=True, text=True)
@@ -406,6 +418,7 @@ def main():
         parser.add_argument('--' + option)
     parser.add_argument('--finished', action='store_true', help='cleanup: 리뷰·수락·필요 재검증 완료')
     parser.add_argument('--historical', action='store_true', help='check: 과거 완료 증거만 확인; 신규 수락에 사용 금지')
+    parser.add_argument('--lint', help='prepare: 동일 코드·환경에서 이미 실행한 lint JSON을 재사용')
     parser.add_argument('--task-key', help='check: jev_find 결과의 과제 키 (기본: 리뷰 키)')
     args = parser.parse_args()
     try:
@@ -428,7 +441,7 @@ def main():
         elif not getattr(args, 'from') or not args.to:
             raise ValueError('--from과 --to가 필요합니다')
         elif args.mode == 'prepare':
-            prepare(repo, args.key, getattr(args, 'from'), args.to)
+            prepare(repo, args.key, getattr(args, 'from'), args.to, args.lint)
         else:
             if args.task_key and not KEY.fullmatch(args.task_key):
                 raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')

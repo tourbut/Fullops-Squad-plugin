@@ -43,6 +43,8 @@ def main():
         # 현황판: coordinator가 PLANS.md만 바꾸고 board.json을 그대로 두면 한 번 확인을 요청한다
         plans, phases = repo / '.fullops-squad/PLANS.md', repo / '.fullops-squad/board/board.json'
         assert hook('stop', session_id='b') == {}  # 첫 종료는 기준만 기억한다
+        receipt = json.loads((repo / '.git/fullops-gate/hooks/flow-b.json').read_text())
+        assert receipt['status'] == receipt['events']['stop']['status'] == 'executed'
         plans.write_text(plans.read_text(encoding='utf-8') + '\n- 진행 기록\n', encoding='utf-8')
         assert 'board.json' in hook('stop', session_id='b')['reason']
         assert hook('stop', session_id='b', stop_hook_active=True) == {}  # 두 번째는 통과
