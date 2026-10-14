@@ -6,12 +6,28 @@ import re
 import runpy
 import sys
 import tempfile
+import uuid
 
 HOOKS = {'caveman_start', 'done_gate', 'flow_gate', 'issue_mode'}
 
 
 def runtime_root():
     return Path.home() / '.fullops-squad/runtime/fullops-squad'
+
+
+def package_files(package):
+    files = {p.relative_to(package).as_posix(): p.read_bytes() for p in package.rglob('*')
+             if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}
+    if 'dependencies.json' not in files:
+        files['dependencies.json'] = (package.parents[1] / 'dependencies.json').read_bytes()
+    return files
+
+
+def content_key(files):
+    digest = hashlib.sha256()
+    for name, data in sorted(files.items()):
+        digest.update(name.encode() + b'\0' + hashlib.sha256(data).digest())
+    return digest.hexdigest()
 
 
 def problems(package):
@@ -26,34 +42,41 @@ def problems(package):
             raise ValueError('Hook runtime differs from installed plugin')
         if any(not (root / 'packages' / key / 'scripts' / (name + '.py')).is_file() for name in HOOKS):
             raise ValueError('Incomplete runtime')
+        expected_key = content_key(package_files(Path(package)))
+        if (current.get('sha256') != expected_key or
+                content_key(package_files(root / 'packages' / key)) != expected_key):
+            raise ValueError('Hook runtime content differs from installed plugin')
         return []
     except (OSError, ValueError, KeyError, TypeError):
         return ['hook runtime missing or outdated; run installed scripts/deps.py --runtime-only']
 
 
 def install(package):
-    from storage import atomic_write, write_json
+    from storage import write_many
 
     package = Path(package).resolve()
     manifest = json.loads((package / 'plugin.json').read_text(encoding='utf-8'))
     if manifest.get('name') != 'fullops-squad':
         raise ValueError('FullOps package required for hook runtime')
-    files = {p.relative_to(package).as_posix(): p.read_bytes() for p in package.rglob('*')
-             if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}
-    # Development source keeps dependencies at the repository root.
-    if 'dependencies.json' not in files:
-        files['dependencies.json'] = (package.parents[1] / 'dependencies.json').read_bytes()
+    files = package_files(package)
     for name in HOOKS:
         if f'scripts/{name}.py' not in files:
             raise ValueError(f'Missing hook script: {name}')
-    digest = hashlib.sha256()
-    for name, data in sorted(files.items()):
-        digest.update(name.encode() + b'\0' + hashlib.sha256(data).digest())
-    key = digest.hexdigest()
+    digest = content_key(files)
+    key = digest
     root = runtime_root()
     packages = root / 'packages'
     packages.mkdir(parents=True, exist_ok=True)
     target = packages / key
+    if target.exists():
+        try:
+            intact = content_key(package_files(target)) == digest
+        except (OSError, ValueError):
+            intact = False
+        if not intact:
+            # Publish a fresh location; never remove a snapshot a running hook may use.
+            key = hashlib.sha256((digest + uuid.uuid4().hex).encode()).hexdigest()
+            target = packages / key
     if not target.exists():
         with tempfile.TemporaryDirectory(prefix='.stage-', dir=packages) as temp:
             stage = Path(temp) / 'package'
@@ -66,9 +89,10 @@ def install(package):
             except OSError:
                 if not target.is_dir():
                     raise
-    atomic_write(root / 'scripts/hook_runtime.py', files['scripts/hook_runtime.py'])
     # Running hooks retain their complete snapshot across cache removal or updates.
-    write_json(root / 'current.json', {'package': key, 'version': manifest['version']})
+    write_many({root / 'scripts/hook_runtime.py': files['scripts/hook_runtime.py'],
+                root / 'current.json': json.dumps({'package': key, 'sha256': digest,
+                                                  'version': manifest['version']}) + '\n'})
     return root
 
 

@@ -81,22 +81,39 @@ with tempfile.TemporaryDirectory(prefix='fullops hook ') as directory:
                        env=env, check=True, capture_output=True)
         assert not hook_runtime.problems(source)
         previous = (root / 'current.json').read_bytes()
+        previous_dispatcher = (root / 'scripts/hook_runtime.py').read_bytes()
         first = json.loads(previous)['package']
         source.rename(home / 'old-cache-removed')
         for command in commands:
             invoke(command)
         shutil.copytree(PACKAGE, source)
         (source / 'scripts/caveman_start.py').write_text("print('updated runtime')", encoding='utf-8')
-        with patch.object(storage, 'write_json', side_effect=OSError('disk failure')):
+        assert hook_runtime.problems(source), 'same-version content change was missed'
+        dispatcher = source / 'scripts/hook_runtime.py'
+        dispatcher.write_bytes(dispatcher.read_bytes() + b'\n# changed dispatcher\n')
+        original_write = storage.atomic_write
+        def fail_pointer(path, data):
+            if path == root / 'current.json':
+                raise OSError('disk failure')
+            original_write(path, data)
+        with patch.object(storage, 'atomic_write', side_effect=fail_pointer):
             try:
                 hook_runtime.install(source)
                 raise AssertionError('Expected update failure')
             except OSError:
                 pass
         assert (root / 'current.json').read_bytes() == previous
+        assert (root / 'scripts/hook_runtime.py').read_bytes() == previous_dispatcher
         for command in commands:
             invoke(command)
         hook_runtime.install(source)
+        assert not hook_runtime.problems(source)
+        damaged = json.loads((root / 'current.json').read_bytes())['package']
+        (root / 'packages' / damaged / 'scripts/done_gate.py').unlink()
+        assert hook_runtime.problems(source)
+        hook_runtime.install(source)
+        assert not hook_runtime.problems(source), 'damaged snapshot was not repaired'
+        assert json.loads((root / 'current.json').read_bytes())['package'] != damaged
         source.rename(home / 'new-cache-removed')
         assert invoke(commands[0]).strip() == 'updated runtime'
         assert (root / 'packages' / first / 'scripts/done_gate.py').is_file()
