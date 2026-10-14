@@ -89,3 +89,11 @@ shadcn 연계는 선택형 `python3 tests/shadcn-lint.py --tools <검사 도구 
 - [OpenAI 플러그인 패키징](https://developers.openai.com/plugins/build/plugins): Codex 패키지 구조 참고.
 - [Antigravity CLI 플러그인·스킬](https://antigravity.google/docs/cli/plugins/): agy 패키지 형식과 사용자 스킬 경로.
 - [skills CLI 호스트 매핑](https://github.com/vercel-labs/skills/blob/main/src/agents.ts): `grok`·`antigravity-cli` 설치 대상.
+
+## 고정 hook 실행 경로
+
+hook 명령은 Python의 사용자 홈에서 `.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py`를 실행한다. 호스트의 버전별 캐시나 작업 디렉터리에 의존하지 않는다. `deps.py --host`는 의존성 설치 전에 런타임을 준비하고 `--check --host`는 런타임 버전과 파일 존재도 확인한다. 외부 의존성 갱신 없이 복구할 때는 설치된 새 패키지의 `deps.py --runtime-only`를 사용한다.
+
+`hook_runtime.py`는 동일 사용자 호스트가 공유하는 실행 진입점이다. 마지막으로 명시적으로 설치한 패키지를 사용한다. 전체 패키지 사본은 내용 해시별 `packages/`에 보존하고 `current.json`만 원자적으로 교체한다. hook 하나가 시작할 때 선택한 사본은 실행 도중 바뀌지 않는다. 기존 사본은 실행 중 hook·하위 프로세스가 사용할 수 있어 자동 삭제하지 않는다. 디스크 정리는 모든 호스트 세션을 종료한 뒤 수행한다. 이 런타임은 설치 캐시이며 사용자 설정이나 비밀값을 복사하지 않는다.
+
+기존 버전 경로를 기억한 세션을 소급 변경할 수는 없다. 최초 전환은 런타임 준비 후 새 세션에서 수행한다. 호스트 자동 업데이트만으로 런타임 코드가 갱신되지는 않으므로 설치된 새 패키지의 deps 단계를 완료한다.

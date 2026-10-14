@@ -48,6 +48,10 @@ class Stabilization(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix='fullops-stable-')
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
+        for name, value in (('install', None), ('problems', [])):
+            runtime_patch = patch.object(deps.hook_runtime, name, return_value=value)
+            runtime_patch.start()
+            self.addCleanup(runtime_patch.stop)
         self.repo = self.root / 'repo'
         self.repo.mkdir()
         self.git('init', '-q', '-b', 'main')
