@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from threading import Thread
+from unittest.mock import patch
 
 from playwright.sync_api import sync_playwright
 
@@ -53,7 +54,12 @@ def main():
         board.write_text(json.dumps({'title': '문서 열람 검증', 'phases': [
             {'name': '설계', 'status': 'active', 'deliverables': ['D03', 'D05', 'D07']}]}, ensure_ascii=False), encoding='utf-8')
         before = {p: p.read_bytes() for p in [index, board, *folder.glob('*.md')]}
-        write(repo)
+        issue_data = {'repository': 'team/service', 'limit': 30, 'checked_at': '2026-10-14T12:00:00+09:00',
+                      'error': None, 'items': [
+                          {'number': 28, 'title': '<img src=x onerror="window.boardInjected=1"> 보드 이슈', 'state': 'OPEN'},
+                          {'number': 27, 'title': '완료한 이슈', 'state': 'CLOSED'}]}
+        with patch('board.issues', return_value=issue_data):
+            write(repo)
         page_file = root / 'board/index.html'
         server = ThreadingHTTPServer(('127.0.0.1', 0), partial(QuietHandler, directory=str(repo)))
         thread = Thread(target=server.serve_forever, daemon=True)
@@ -70,6 +76,20 @@ def main():
                     page.route('https://fonts.googleapis.com/**', lambda route: route.abort())
                     page.add_init_script('window.boardRefresh = []; window.setInterval = (callback, delay) => { window.boardRefresh.push({callback, delay}); return 1; };')
                     page.goto(url, wait_until='networkidle')
+                    links = page.locator('.issue-list a')
+                    assert links.count() == 2 and '열림' in links.nth(0).inner_text() and '닫힘' in links.nth(1).inner_text()
+                    assert page.locator('.issues img').count() == 0 and page.evaluate('window.boardInjected') is None
+                    page.context.route('https://github.com/team/service/issues/28', lambda route: route.fulfill(body='GitHub issue fixture'))
+                    links.nth(0).focus()
+                    with page.expect_popup() as opened:
+                        page.keyboard.press('Enter')
+                    popup = opened.value
+                    popup.wait_for_load_state()
+                    assert popup.url == 'https://github.com/team/service/issues/28'
+                    popup.close()
+                    if args.out:
+                        args.out.mkdir(parents=True, exist_ok=True)
+                        page.locator('.issues').screenshot(path=str(args.out / f'{mode}-issues.png'))
                     card = page.locator('.d[data-deliverable="D03"]')
                     card.focus()
                     page.keyboard.press('Enter')
@@ -106,9 +126,19 @@ def main():
                     assert page.locator('#detail .doc-file').is_disabled()
                     page.keyboard.press('Escape')
                     page.set_viewport_size({'width': 360, 'height': 780})
+                    assert page.locator('.issues').evaluate('(s) => s.scrollWidth <= s.clientWidth')
                     card.click()
                     assert page.locator('#detail').evaluate('(d) => d.getBoundingClientRect().width') <= 328
                     assert not errors and not fetches, (errors, fetches)
+                    page.close()
+                for error, expected in [(None, '등록된 이슈가 없습니다.'), ('이슈 조회 실패', '이슈 조회 실패')]:
+                    with patch('board.issues', return_value={**issue_data, 'items': [], 'error': error}):
+                        write(repo)
+                    page = browser.new_page()
+                    page.route('https://fonts.googleapis.com/**', lambda route: route.abort())
+                    page.goto(page_file.as_uri(), wait_until='networkidle')
+                    assert expected in page.locator('.issues').inner_text()
+                    assert page.locator('.roles').count() == 1
                     page.close()
                 missing = page_file.with_name('no-data.html')
                 missing.write_text(page_file.read_text(encoding='utf-8').replace('<script src="board-data.js"></script>', ''), encoding='utf-8')

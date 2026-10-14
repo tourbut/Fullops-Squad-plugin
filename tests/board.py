@@ -4,11 +4,48 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 from board_documents import documents, markdown
+from board import issues
+
+
+def issue_checks():
+    rows = [{'number': 28, 'title': '<img src=x> 보드', 'state': 'OPEN', 'body': 'not exported'},
+            {'number': 27, 'title': '완료', 'state': 'CLOSED'}]
+    for remote in ('https://github.com/team/service.git', 'git@github.com:team/service.git',
+                   'ssh://git@github.com/team/service.git'):
+        with patch('board.git', return_value=remote) as git, patch('board.subprocess.run') as run, \
+                patch.dict('os.environ', {'FULLOPS_OFFLINE': '0'}):
+            run.return_value = subprocess.CompletedProcess([], 0, json.dumps(rows), '')
+            result = issues(Path('.'), {'git': {'remote': 'upstream'}})
+            assert result['repository'] == 'team/service' and result['checked_at'] and not result['error']
+            assert result['items'] == [{k: r[k] for k in ('number', 'title', 'state')} for r in rows]
+            git.assert_called_once_with(Path('.'), 'remote', 'get-url', '--', 'upstream')
+            assert 'github.com/team/service' in run.call_args.args[0] and run.call_args.kwargs['timeout'] == 8
+            for payload in ([], [{'number': True, 'title': 'bad', 'state': 'OPEN'}], {'bad': 'response'}):
+                run.return_value = subprocess.CompletedProcess([], 0, json.dumps(payload), '')
+                result = issues(Path('.'), {})
+                assert bool(result['error']) == bool(payload) and result['items'] == []
+            run.return_value = subprocess.CompletedProcess([], 1, '', 'SECRET TOKEN')
+            result = issues(Path('.'), {})
+            assert result['error'] and 'SECRET' not in json.dumps(result)
+            for failure in (FileNotFoundError(), subprocess.TimeoutExpired('gh', 8), OSError()):
+                run.side_effect = failure
+                assert issues(Path('.'), {})['error']
+    with patch('board.git', return_value='https://github.com/team/service.git'), \
+            patch('board.subprocess.run') as run, patch.dict('os.environ', {'FULLOPS_OFFLINE': '1'}):
+        assert issues(Path('.'), {})['error']
+        run.assert_not_called()
+    for remote in ('', 'https://gitlab.com/team/service', 'https://token@github.com/team/service',
+                   'https://github.com/team/service?token=secret'):
+        with patch('board.git', return_value=remote), patch('board.subprocess.run') as run:
+            result = issues(Path('.'), {})
+            assert result['error'] and not result['repository']
+            run.assert_not_called()
 
 
 def document_checks():
@@ -200,6 +237,7 @@ def main():
 
 
 if __name__ == '__main__':
+    issue_checks()
     main()
     document_checks()
     print('PASS: document bodies, multiple sources, folders, missing/empty/unreadable files, path guards, escaped Markdown')
