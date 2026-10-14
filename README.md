@@ -96,6 +96,8 @@ heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 �
 
 미해결 critical/high와 lint ERROR는 수락을 막습니다. 생성 현황판 파일은 done-gate의 코드 검사에서 제외합니다.
 hook은 셸 우회까지 차단하지 않으며 hook 자체의 오류는 작업을 막지 않습니다.
+done/flow hook의 실제 호출·오류는 작업 트리별 Git 디렉터리에 남습니다. 같은 오류 종류는 세션당 한 번 알리며, 기록이 없으면 실행 확인 불가입니다. 조회법은 [lint 안내](plugins/fullops-squad/assets/repository/.fullops-squad/lint/README.md)의 hook 실행 확인 절을 따릅니다.
+리뷰 준비의 `--lint <결과 JSON>`은 같은 SHA·설정의 기존 실행 증거를 가져옵니다. 관련 환경·의존성이 같다는 근거를 확인하고, 역할이 바뀌었다는 이유로 테스트를 반복하지 않습니다.
 자동 검사는 구현의 정확성을 보증하지 않습니다. 프로젝트 기준이 [공통 규칙](plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/README.md)보다 우선합니다.
 
 setup은 레포의 스택·기존 설정·패키지 스크립트에 맞춰 lint를 구성하고 실행 결과를 확인합니다.

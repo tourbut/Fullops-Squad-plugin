@@ -107,7 +107,7 @@ def anti_slop():
         config['size']['max_diff_added'] = 3
         command = {'name': 'test', 'kind': 'test', 'run': [PY, '-c',
                    'from pathlib import Path; import sys; sys.exit(int(Path("test-fail.py").exists()))']}
-        config['commands'] = [command]
+        config['commands'] = [command, {'name': 'typecheck', 'run': [PY, '-c', 'pass']}]
         config_path.write_text(json.dumps(config))
         (repo / 'old.py').write_text('"""Existing code."""\ntry:\n    work()\nexcept Exception:\n    pass\n')
         (repo / 'build.gradle.kts').write_text('// Existing dependencies.\n')
@@ -177,11 +177,14 @@ def anti_slop():
             return subprocess.run([PY, str(SCRIPTS / 'review.py'), 'check', '--repo', tmp, '--key', 'SLOP',
                                    '--from', base, '--to', head], capture_output=True, text=True)
         assert review(result).returncode == 0
-        assert '테스트 실행 증거' in review({**result, 'commands': []}).stderr
+        assert '검사 실행 증거' in review({**result, 'commands': []}).stderr
+        assert '검사 실행 증거' in review({**result, 'commands': result['commands'][:1]}).stderr
+        assert '검사 실행 증거' in review({**result, 'commands': result['commands'] * 2}).stderr
         record = result['commands'][0]
-        assert '종료코드' in review({**result, 'commands': [{**record, 'exit_code': 1}]}).stderr
-        assert 'ERROR' in review({**result, 'commands': [{**record, 'status': 'failed', 'exit_code': 1}]}).stderr
-        assert 'reason' in review({**result, 'commands': [{**record, 'status': 'unavailable', 'exit_code': None}]}).stderr
+        remaining = result['commands'][1:]
+        assert '종료코드' in review({**result, 'commands': [{**record, 'exit_code': 1}, *remaining]}).stderr
+        assert 'ERROR' in review({**result, 'commands': [{**record, 'status': 'failed', 'exit_code': 1}, *remaining]}).stderr
+        assert 'reason' in review({**result, 'commands': [{**record, 'status': 'unavailable', 'exit_code': None}, *remaining]}).stderr
         failure = checks.run_command(repo, {**command, 'run': [PY, '-c', 'import sys; sys.exit(1)']}, 10)
         assert failure['kind'] == 'test' and failure['status'] == 'failed' and failure['exit_code'] == 1
 
@@ -374,7 +377,7 @@ def main():
         save({**data, 'commands': [{'name': 'missing', 'status': 'unavailable', 'reason': ''}]})
         assert 'reason' in review().stderr
         save({**data, 'commands': [{'name': 'missing', 'status': 'unavailable', 'reason': '폐쇄망'}]})
-        assert review().returncode == 0
+        assert review().returncode != 0  # 설정에 없는 검사로 실행 증거를 대체할 수 없다
         save({**data, 'commands': [{'name': 'x', 'status': 'timeout'}]})
         assert review().returncode != 0
         save({**data, 'head': '0' * 40})

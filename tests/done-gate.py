@@ -45,6 +45,18 @@ def main():
         assert brief['hookEventName'] == 'SessionStart' and 'lint.py' in brief['additionalContext']
         assert hook('start', session='s1', source='resume') == {}  # 시작 지점은 처음 것을 유지한다
         assert hook('stop') == {}  # 변경 없음
+        status = hook('status')
+        assert status['done']['events']['start']['status'] == 'executed'
+        assert status['flow']['status'] == 'unknown'
+        assert hook('status', session='not-started')['done']['status'] == 'unknown'
+        state_path = repo / '.git/fullops-gate/s1.json'
+        saved = state_path.read_bytes()
+        state_path.write_text('{')
+        assert 'systemMessage' in hook('stop')  # 오류는 차단 대신 한 번 안내한다.
+        assert hook('stop') == {}
+        assert hook('status')['done']['status'] == 'error'
+        state_path.write_bytes(saved)
+        assert hook('stop') == {} and hook('status')['done']['status'] == 'executed'
 
         subprocess.run([sys.executable, str(SCRIPTS / 'board.py'), '--repo', tmp],
                        check=True, capture_output=True)

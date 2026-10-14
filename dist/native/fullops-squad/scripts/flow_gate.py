@@ -577,12 +577,13 @@ PRODUCT_BRIEF = {
 }
 
 
-def main():
+def main(event=None):
     mode = sys.argv[1]
-    try:
-        event = json.load(sys.stdin)
-    except ValueError:
-        event = {}
+    if event is None:
+        try:
+            event = json.load(sys.stdin)
+        except ValueError:
+            event = {}
     root = Path(git(field(event, 'cwd') or '.', 'rev-parse', '--show-toplevel'))
     if not (root / '.fullops-squad/fullops.json').is_file():
         return {}
@@ -746,13 +747,5 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        result = main()
-    except policy.PolicyError as error:
-        result = ({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
-                   'permissionDecisionReason': str(error)}} if sys.argv[1] == 'tool' else
-                  {'decision': 'block', 'reason': str(error)} if sys.argv[1] == 'stop' else
-                  {'systemMessage': str(error)})
-    except Exception:  # noqa: BLE001 — hook은 실패해도 작업을 막지 않는다
-        result = {}
-    print(json.dumps(result, ensure_ascii=False))
+    from done_gate import run_hook
+    print(json.dumps(run_hook(main, 'flow'), ensure_ascii=False))

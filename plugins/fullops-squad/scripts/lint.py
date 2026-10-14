@@ -265,6 +265,7 @@ def lint(repo, base_ref):
     gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
     gate.mkdir(exist_ok=True)
     (gate / 'pass.json').unlink(missing_ok=True)
+    (gate / 'lint-result.json').unlink(missing_ok=True)
     attempt = uuid.uuid4().hex
     write_json(gate / 'lint-attempt.json', {'attempt': attempt})
     if git(repo, 'status', '--porcelain'):
@@ -351,6 +352,7 @@ def main():
             raise ValueError('이 체크아웃의 lint가 실행 중입니다. 종료 후 재시도하세요')
         os.close(fd)
         result = lint(repo, args.base)
+        write_json(lock.parent / 'fullops-gate/lint-result.json', result)
         if args.out:
             write_json(Path(args.out), result)
         if not (result['summary']['errors'] or result['summary']['unavailable']):
