@@ -101,6 +101,7 @@ def build_directory(native=NATIVE, output=DIRECTORY):
         shutil.copy2(adapter_root / "README.md", staged / "README.md")
         # Context7은 전역 설치 명령 대신 원격 https 엔드포인트를 쓴다. 선택 키는 userConfig로 받는다.
         shutil.copy2(adapter_root / ".mcp.json", staged / ".mcp.json")
+        shutil.copy2(adapter_root / "icon.png", staged / ".claude-plugin/icon.png")  # 목록 아이콘은 처음 저장·제출할 때 한 번만 정해진다
         write_json(staged / ".claude-plugin/plugin.json", manifest)
         replace(output, staged, Path(temp) / "previous")
     return output
