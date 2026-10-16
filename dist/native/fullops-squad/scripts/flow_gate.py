@@ -119,6 +119,8 @@ def inbox_denial(root, name, content):
 
 def dispatch_inbox_denial(command):
     """추가 자료만으로 착수하지 않고 현재 역할 인박스를 전달하게 한다."""
+    if re.search(r'\bPurpose\s*[:=]\s*review\b', command, re.I):
+        return None  # 리뷰어는 인박스가 아니라 완료 로그·지시서 원문을 요구사항 근거로 읽는다.
     paths = re.findall(r'handovers[/\\][^\s\'"`]+\.md', command)
     if paths and not any(re.fullmatch(r'handovers[/\\]to_[a-z][a-z0-9_-]*\.md', path) for path in paths):
         return ('dispatch의 현재 지시서는 역할 인박스 `handovers/to_<역할>.md`를 지정하세요. '
