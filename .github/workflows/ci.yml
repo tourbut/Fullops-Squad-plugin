@@ -80,6 +80,8 @@ jobs:
       GIT_CONFIG_KEY_1: gc.auto
       GIT_CONFIG_VALUE_1: '0'
     steps:
+      # .gitattributes was removed for the plugin directory. Keep Windows checkouts LF like the committed files.
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
@@ -108,6 +110,8 @@ jobs:
     env:
       PYTHONUTF8: '1'
     steps:
+      # .gitattributes was removed for the plugin directory. Keep Windows checkouts LF like the committed files.
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false

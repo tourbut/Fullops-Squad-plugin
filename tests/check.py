@@ -44,6 +44,9 @@ def main():
         (native / 'obsolete.txt').write_text('old build')
         build.build(native)
         assert not (native / 'obsolete.txt').exists() and snapshot(build.SOURCE) == source_before
+        # 디렉터리 포털은 저장소의 .gitattributes(text·eol·filter 등 내용을 바꾸는 속성)가 있으면 검증을 거부한다.
+        tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files'], text=True).splitlines()
+        assert not [f for f in tracked if f.rsplit('/', 1)[-1] == '.gitattributes'], '.gitattributes 금지(디렉터리 제출 불가)'
         # Anthropic 디렉터리판: 플러그인 폴더 안의 파일만 실행하고 다른 마켓플레이스·전역 MCP에 의존하지 않는다.
         directory = build.build_directory(native, root / 'directory')
         loads = __import__('json').loads
