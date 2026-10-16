@@ -90,7 +90,7 @@ def main():
         inbox.write_text(inbox.read_text().replace('API_KEY=sk-or-abcdefghijklmnop\n', ''))
         command = [sys.executable, str(SCRIPTS / 'jev_context.py'), '--repo', tmp, '--role', 'dev', '--key', 'T-1',
                    '--paths', 'src/auth.py', 'src/old.py']
-        env = {k: v for k, v in os.environ.items() if k != 'OPENROUTER_API_KEY'}  # 키 없음
+        env = {k: v for k, v in os.environ.items() if k not in ('OPENROUTER_API_KEY', 'TYPESAFE_API_KEY')}  # 키 없음
         env['FULLOPS_JEV_CACHE'] = str(repo / 'no-cache')
         done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'keep  src/old.py' in done.stdout, done.stdout + done.stderr

@@ -498,7 +498,7 @@ def main():
     parser.add_argument('--key', required=True, help='과제 키')
     parser.add_argument('--scenario', required=True, help='시나리오 JSON: url, goal, values, checks, max_steps')
     parser.add_argument('--worktree', help='Orca 워크트리 선택자(기본: path:<레포 루트>)')
-    parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 읽을 .env')
+    parser.add_argument('--env-file', help='TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY를 읽을 .env')
     parser.add_argument('--orca', help='orca 실행 파일(기본: 자동 탐색)')
     parser.add_argument('--page', help='사용자가 지정한 기존 Orca 탭 ID. 새 탭을 만들거나 URL을 바꾸지 않는다')
     parser.add_argument('--engine', choices=('orca', 'playwright'), default='orca', help='실행기. 기본 Orca이며 자동 전환하지 않는다')
@@ -530,7 +530,7 @@ def main():
         parser.exit(2, 'orca CLI를 찾지 못했습니다\n')
     key = api_key(args.env_file, repo)
     if not key and not args.assert_only and replay is None:
-        parser.exit(2, 'OPENROUTER_API_KEY가 없어 Jev를 쓸 수 없습니다\n')
+        parser.exit(2, 'TYPESAFE_API_KEY와 OPENROUTER_API_KEY가 모두 없어 Jev를 쓸 수 없습니다\n')
     stamp = datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     out = repo / f'.fullops-squad/docs/evaluations/qa-reports/{args.key}-test/web-{stamp}'
     if args.engine == 'playwright':

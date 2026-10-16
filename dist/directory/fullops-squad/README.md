@@ -6,7 +6,7 @@ FullOps Squad is an opt-in development harness for Git repositories. It helps a 
 
 - Claude Code, with Git and Python 3.10 or later on `PATH`. On Windows, Claude Code runs hooks through Git Bash.
 - Orca IDE for multi-worker orchestration (worker dispatch, terminals, messages). Single-session use works without Orca.
-- Optional: the GitHub CLI `gh` for issue mode and the board's issue list, the `ocr` CLI (open-code-review) for pre-merge review preparation, and an OpenRouter API key for Jev routing and search.
+- Optional: the GitHub CLI `gh` for issue mode and the board's issue list, the `ocr` CLI (open-code-review) for pre-merge review preparation, and a TypeSafe or OpenRouter API key for Jev routing and search.
 
 ## Install
 
@@ -27,11 +27,11 @@ Every key is optional. The plugin installs and sets up without any of them, and 
 
 | Key | Used by | Without it | Where to set it |
 |---|---|---|---|
-| `OPENROUTER_API_KEY` | Jev routing, code and document search, web and Unity test loops (`jev_*.py`) | Routing falls back to the design role, or holds the task as unresolved when product and technical roles are split. Search falls back to local search | Environment variable, or `.fullops-squad/.env` in your repository (git-ignored), or `--env-file` |
+| `TYPESAFE_API_KEY` (official TypeSafe API, preferred) or `OPENROUTER_API_KEY` | Jev routing, code and document search, web and Unity test loops (`jev_*.py`) | Routing falls back to the design role, or holds the task as unresolved when product and technical roles are split. Search falls back to local search | Environment variable, or `.fullops-squad/.env` in your repository (git-ignored), or `--env-file` |
 | GitHub login (`gh auth login`) or `GH_TOKEN` / `GITHUB_TOKEN` | Issue mode, the board's issue list, draft pull requests | Issue mode cannot start. The board shows that the issue list is unavailable | `gh auth login`, or an environment variable |
 | Context7 API key | The bundled Context7 MCP server | Context7 uses its anonymous rate limit | Claude Code asks for `context7_api_key` when you enable the plugin. Change it later in `/plugin` → **Installed** → FullOps Squad → **Configure options**. It is stored in your OS credential store |
 
-The OpenRouter key is not a plugin option, because Claude Code passes plugin options only to hooks and MCP servers, and the Jev scripts run through Claude's shell tool.
+The Jev keys are not plugin options, because Claude Code passes plugin options only to hooks and MCP servers, and the Jev scripts run through Claude's shell tool.
 
 ## What it includes
 
@@ -57,7 +57,7 @@ The OpenRouter key is not a plugin option, because Claude Code passes plugin opt
 
 The plugin writes only inside the repository you set up and inside that repository's Git directory (`.git/fullops-*`). It sends data off your machine only in the cases below:
 
-- **OpenRouter** (`https://openrouter.ai/api/v1/systemone`): Jev routing, context, and search commands send the task text and selected file excerpts. Secret-like values are redacted first. This happens only when you or a skill runs a `jev_*.py` command, and it requires `OPENROUTER_API_KEY` from your environment or a `.env` file you name.
+- **Jev** (`https://api.typesafe.ai/v1/systemone` with `TYPESAFE_API_KEY`, or `https://openrouter.ai/api/v1/systemone` with `OPENROUTER_API_KEY`): Jev routing, context, and search commands send the task text and selected file excerpts. Secret-like values are redacted first. This happens only when you or a skill runs a `jev_*.py` command, and it requires one of the two keys from your environment or a `.env` file you name.
 - **GitHub** (`https://api.github.com` and the `gh` CLI): issue mode reads issues and comments and can create branches and draft pull requests, after you turn it on. The board refresh lists the 30 most recently updated issues of the repository's GitHub remote with `gh issue list`. This refresh also runs from the coordinator's `Stop` hook. Both use your existing `gh` login or `GH_TOKEN`/`GITHUB_TOKEN`. Set `FULLOPS_OFFLINE=1` to skip the issue list.
 - **Context7** (`https://mcp.context7.com/mcp`): when Claude uses the Context7 tools, the library name and the documentation question are sent to Context7. If you set `context7_api_key`, it is sent as an `Authorization: Bearer` header. Do not put private code or secrets in those questions.
 - **Orca IDE** (local): coordination commands call the local `orca` CLI. No data leaves your machine through Orca unless your Orca setup does so.

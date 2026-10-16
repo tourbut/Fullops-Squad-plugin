@@ -219,7 +219,7 @@ def main():
     parser.add_argument('--player', help='브리지가 들어간 Unity 플레이어 실행 파일')
     parser.add_argument('--config', help=f'브리지 설정(기본: {CONFIG})')
     parser.add_argument('--graphics', action='store_true', help='창을 띄워 실행(기본은 -batchmode -nographics)')
-    parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 읽을 .env')
+    parser.add_argument('--env-file', help='TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY를 읽을 .env')
     parser.add_argument('--validate', action='store_true', help='시나리오만 점검하고 실행하지 않는다')
     args = parser.parse_args()
     repo = Path(args.repo).resolve()
@@ -236,7 +236,7 @@ def main():
         parser.exit(2, f'브리지 설정이 없습니다: {config}. `unity_bridge.py install`로 템플릿을 만드세요\n')
     key = api_key(args.env_file, repo)
     if not key:
-        parser.exit(2, 'OPENROUTER_API_KEY가 없어 Jev를 쓸 수 없습니다\n')
+        parser.exit(2, 'TYPESAFE_API_KEY와 OPENROUTER_API_KEY가 모두 없어 Jev를 쓸 수 없습니다\n')
     out = repo / f'.fullops-squad/docs/evaluations/qa-reports/{args.key}-test/unity-{datetime.now():%Y%m%d-%H%M%S-%f}'
     play = out / 'play'
     play.mkdir(parents=True)

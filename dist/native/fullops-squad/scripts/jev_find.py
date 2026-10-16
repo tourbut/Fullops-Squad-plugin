@@ -255,7 +255,7 @@ def main():
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--scope', choices=('code', 'documents'), default='code', help='documents: 하네스 문서를 포함한 Markdown의 title·summary로 탐색')
     parser.add_argument('--force', action='store_true', help='이전 결과를 history에 보존하고 갱신')
-    parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
+    parser.add_argument('--env-file', help='TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     parser.add_argument('--from', dest='base', help='score: 기준 ref')
     parser.add_argument('--to', help='score: worker 결과 ref')
     parser.add_argument('--labels', help='score: 직접 수정/영향/문서 read/update의 기대 경로 JSON; diff와 별도 평가')

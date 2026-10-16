@@ -17,7 +17,7 @@ Orca는 기본 새 탭을 연다. 사용자가 기존 화면을 지정하면 `--
 
 Playwright 선택 준비는 `fullops-frontend/toolchain.md`를 따른다. 기본 package 경로는 `<repo>/.fullops-squad/tools/frontend/playwright/node_modules/@playwright/cli/package.json`이다. 기존 로컬 설치는 `--playwright-package <package.json>`로 재사용한다. 선택한 CLI와 연결된 Playwright의 패키지 정체성·실제 버전·실행 가능 여부를 확인한다. 고정 버전 일치는 요구하지 않는다. `--browser-executable <path>`로 설치된 Chromium 계열 브라우저를 재사용할 수 있고 `--headed`는 창을 표시한다. 브라우저가 없으면 명시적으로 준비한다. 실행 증거에는 실제 CLI·Playwright·브라우저 버전을 남긴다.
 
-`--assert-only`는 모델·조작·setup 없이 독립 checks만 실행한다. `--replay`는 고정 경로를 모델 없이 재생한다. 두 모드에는 Jev 키가 필요 없다. 일반 Jev 조작에는 기존 `OPENROUTER_API_KEY`가 필요하다. 새 탐색은 `exploration: true` 또는 `--explore`로만 켠다. shadow 분석과 CUAWright도 기본 OFF다.
+`--assert-only`는 모델·조작·setup 없이 독립 checks만 실행한다. `--replay`는 고정 경로를 모델 없이 재생한다. 두 모드에는 Jev 키가 필요 없다. 일반 Jev 조작에는 `TYPESAFE_API_KEY` 또는 `OPENROUTER_API_KEY`가 필요하다. 새 탐색은 `exploration: true` 또는 `--explore`로만 켠다. shadow 분석과 CUAWright도 기본 OFF다.
 
 ## 시나리오와 권한
 

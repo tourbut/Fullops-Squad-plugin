@@ -214,7 +214,7 @@ class Frontend(unittest.TestCase):
                 '--model-only', '--role', 'dev', '--request', 'UI task', '--agent', 'grok',
                 '--model', 'user-model', '--effort', 'high', '--strict']
         done = subprocess.run(args, capture_output=True, text=True, encoding='utf-8',
-                              env={**os.environ, 'FULLOPS_OFFLINE': '1', 'OPENROUTER_API_KEY': ''})
+                              env={**os.environ, 'FULLOPS_OFFLINE': '1', 'OPENROUTER_API_KEY': '', 'TYPESAFE_API_KEY': ''})
         self.assertEqual(done.returncode, 0, done.stderr)
         with self.assertRaises(ValueError):
             jev_route.fixed_model('grok', 'm', None)
