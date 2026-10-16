@@ -137,7 +137,7 @@ def transition_preflight(repo):
         result = json.loads(path.read_text(encoding='utf-8'))
         if not result.get('conclusion') or any(item.get('review_status') == 'pending' for item in result.get('files', [])):
             import review
-            if review.superseded_check(repo, path.parent.name[:-7]):
+            if review.superseded_check(repo, path.parent.name[:-7]) or review.abandoned(repo, path.parent.name[:-7]):
                 continue
             raise ValueError('진행 중인 리뷰를 완료한 뒤 전환하세요')
 
