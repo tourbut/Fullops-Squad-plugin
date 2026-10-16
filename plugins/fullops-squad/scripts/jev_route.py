@@ -318,7 +318,7 @@ def main():
     parser.add_argument('--reason', help='--override-role의 근거(500자 이하)')
     parser.add_argument('--force', action='store_true', help='기존 결과를 백업하고 같은 키로 재선정')
     parser.add_argument('--strict', action='store_true', help='Jev 폴백이 발생하면 결과를 기록하지 않고 오류로 종료')
-    parser.add_argument('--env-file', help='OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
+    parser.add_argument('--env-file', help='TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     args = parser.parse_args()
     try:
         if not KEY.fullmatch(args.key):

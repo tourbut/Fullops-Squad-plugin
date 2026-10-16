@@ -149,7 +149,7 @@ def main():
         # CLI: 키가 없으면 오류를 기록하고 후보 없이 끝나며, 기존 결과는 덮어쓰지 않는다.
         out.unlink()
         command = [sys.executable, str(SCRIPTS / 'jev_find.py'), 'find', '--repo', tmp, '--role', 'dev', '--key', 'F-1']
-        env = {**{k: v for k, v in os.environ.items() if k != 'OPENROUTER_API_KEY'},  # Windows는 SYSTEMROOT 등이 필요하다
+        env = {**{k: v for k, v in os.environ.items() if k not in ('OPENROUTER_API_KEY', 'TYPESAFE_API_KEY')},  # Windows는 SYSTEMROOT 등이 필요하다
                'HOME': tmp, 'FULLOPS_JEV_CACHE': str(repo / '.git/jev-cache')}
         done = subprocess.run(command, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'local ' in done.stdout and 'API or response' in done.stdout, done.stdout + done.stderr

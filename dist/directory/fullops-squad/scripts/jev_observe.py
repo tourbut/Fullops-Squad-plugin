@@ -14,6 +14,12 @@ import time
 
 MODEL = '~typesafe/jev-latest'
 URL = 'https://openrouter.ai/api/v1/systemone'
+# Jev는 TypeSafe 공식 API와 OpenRouter 양쪽에서 같은 System One 요청 형식을 받는다. 둘 다 있으면 공식 API를 쓴다.
+PROVIDERS = {
+    'typesafe': {'env': 'TYPESAFE_API_KEY', 'url': 'https://api.typesafe.ai/v1/systemone', 'model': 'jev-latest'},
+    'openrouter': {'env': 'OPENROUTER_API_KEY', 'url': URL, 'model': MODEL},
+}
+KEY_NAMES = ' or '.join(p['env'] for p in PROVIDERS.values())
 VERSION = 'jev-observe-v3'
 # 후보 파일 하나와 과제를 한 요청에 넣고 독립된 예/아니오 네 개를 묻는다(RAG passage filtering). 넣을지는 triage()가 정한다.
 CANDIDATE_QUESTIONS = {
@@ -179,7 +185,8 @@ def validated(result, expected, partial=False):
     answers = response['answers']
     if not isinstance(answers, dict) or (set(answers) - set(expected) if partial else set(answers) != set(expected)):
         raise ValueError('invalid answer IDs')
-    if not isinstance(response.get('model'), str) or not response['model'].startswith('typesafe/jev-'):
+    # OpenRouter는 typesafe/jev-<버전>, 공식 API는 jev-<버전>으로 답한다.
+    if not isinstance(response.get('model'), str) or not re.fullmatch(r'(?:typesafe/)?jev-[A-Za-z0-9._-]+', response['model']):
         raise ValueError('invalid response model')
     usage = response.get('usage')
     if (not isinstance(usage, dict) or any(type(usage.get(k)) is not int or usage[k] < 0
@@ -212,22 +219,36 @@ def identifier(value):
     return value
 
 
+class Key(str):
+    """API 키 문자열에 호출할 제공자를 붙인다. 문자열로 비교·전달하는 기존 호출부를 바꾸지 않는다."""
+    provider = 'openrouter'
+
+    @classmethod
+    def of(cls, value, provider):
+        key = cls(value)
+        key.provider = provider
+        return key
+
+
 def key_from_file(path):
-    for line in Path(path).read_text(encoding='utf-8', errors='replace').splitlines():
-        match = re.fullmatch(r'\s*OPENROUTER_API_KEY\s*=\s*["\']?([A-Za-z0-9._-]+)["\']?\s*', line)
-        if match:
-            return match.group(1)
-    raise ValueError('OPENROUTER_API_KEY is unavailable')
+    lines = Path(path).read_text(encoding='utf-8', errors='replace').splitlines()
+    for provider, spec in PROVIDERS.items():
+        for line in lines:
+            match = re.fullmatch(r'\s*' + spec['env'] + r'\s*=\s*["\']?([A-Za-z0-9._-]+)["\']?\s*', line)
+            if match:
+                return Key.of(match.group(1), provider)
+    raise ValueError(f'{KEY_NAMES} is unavailable')
 
 
 def api_key(env_file=None, repo=None):
-    """--env-file → 환경 변수 → .fullops-squad/.env 순으로 키를 찾는다. 없으면 빈 문자열."""
+    """--env-file → 환경 변수 → .fullops-squad/.env 순으로 키를 찾는다. 같은 출처에서는 공식 API 키가 우선한다. 없으면 빈 문자열."""
     if offline():
         return ''
     if env_file:
         return key_from_file(env_file)
-    if os.environ.get('OPENROUTER_API_KEY'):
-        return os.environ['OPENROUTER_API_KEY']
+    for provider, spec in PROVIDERS.items():
+        if os.environ.get(spec['env']):
+            return Key.of(os.environ[spec['env']], provider)
     local = Path(repo) / '.fullops-squad' / '.env' if repo else None
     if local and local.is_file():
         try:
@@ -263,25 +284,33 @@ def request(payload, key, timeout=30):
     except (OSError, ValueError, TypeError):
         pass
     if not key or not re.fullmatch(r'[A-Za-z0-9._-]+', key):
-        raise ValueError('OPENROUTER_API_KEY is unavailable')
+        raise ValueError(f'{KEY_NAMES} is unavailable')
+    provider = getattr(key, 'provider', 'openrouter')
+    spec = PROVIDERS[provider]
+    # 캐시 키는 요청 원문 그대로다. 제공자별 모델 ID만 전송 직전에 바꾼다.
+    sent = {**payload, 'model': spec['model']} if payload.get('model') == MODEL else payload
     started = time.monotonic()
     # Windows는 열려 있는 NamedTemporaryFile을 다른 프로세스가 열 수 없다(curl exit 26). 닫은 뒤 넘기고 지운다.
     handle, body = tempfile.mkstemp(suffix='.json')
     try:
         with os.fdopen(handle, 'w', encoding='utf-8') as output:
-            json.dump(payload, output, ensure_ascii=False)
+            json.dump(sent, output, ensure_ascii=False)
         config = f'header = "Authorization: Bearer {key}"\n'  # 키는 명령줄이 아니라 표준입력으로 넘긴다
         result = subprocess.run(
             [shutil.which('curl') or 'curl', '--config', '-', '--silent', '--show-error', '--fail', '--max-time', str(timeout),
-             '--header', 'Content-Type: application/json', '--data-binary', '@' + body, URL],
+             '--header', 'Content-Type: application/json', '--data-binary', '@' + body, spec['url']],
             input=config, text=True, capture_output=True, timeout=timeout + 2,
         )
     finally:
         os.unlink(body)
     if result.returncode:
-        raise RuntimeError('OpenRouter request failed')
+        raise RuntimeError(f'{provider} Jev request failed')
     safe_text(result.stdout, len(result.stdout))
     response = json.loads(result.stdout)
+    usage = response.get('usage') if isinstance(response, dict) else None
+    if provider == 'typesafe' and isinstance(usage, dict) and 'cost' not in usage:
+        # shortcut: 공식 API 응답에는 비용이 없어 0으로 기록한다. 실제 비용은 TypeSafe 콘솔에서 확인하고, 응답에 비용이 생기면 그 값을 쓴다.
+        usage['cost'] = 0
     try:  # a cache that cannot be written is not an error; the answer is already in hand
         cached.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         temporary = cached.with_suffix(f'.{os.getpid()}.tmp')
@@ -547,7 +576,7 @@ def main():
     parser.add_argument('--repo', required=True)
     parser.add_argument('--input', required=True)
     parser.add_argument('--output', required=True)
-    parser.add_argument('--env-file', help='Read OPENROUTER_API_KEY without sourcing shell code')
+    parser.add_argument('--env-file', help=f'Read {KEY_NAMES} without sourcing shell code')
     args = parser.parse_args()
     repo = Path(args.repo).resolve(strict=True)
     data = json.loads(Path(args.input).read_text())

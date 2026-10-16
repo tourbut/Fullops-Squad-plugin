@@ -314,6 +314,7 @@ FullOps 활성 저장소에서 `이슈 자동 작업 모드를 설정하고 현�
 
 | 설정 | 기본값 | 의미 |
 |---|---|---|
+| `TYPESAFE_API_KEY` | 빈 값 | Jev 호출용 TypeSafe 공식 API 키. 있으면 우선 사용 |
 | `OPENROUTER_API_KEY` | 빈 값 | Jev 호출용 OpenRouter 키 |
 | `FULLOPS_WORKER_CHECK_MINUTES` | `60` | 정상 작업 확인 주기, 분 |
 | `FULLOPS_WORKER_READY_TIMEOUT_SECONDS` | `90` | worker 시작 준비 대기, 초 |
@@ -324,8 +325,8 @@ FullOps 활성 저장소에서 `이슈 자동 작업 모드를 설정하고 현�
 
 ### Jev
 
-기본 모델은 `~typesafe/jev-latest`입니다. OpenRouter의 System One API를 사용합니다.
-키는 `--env-file` → `OPENROUTER_API_KEY` 환경 변수 → `.fullops-squad/.env` 순서로 찾습니다.
+기본 모델은 Jev 최신판입니다. TypeSafe 공식 API(`TYPESAFE_API_KEY`, 모델 `jev-latest`)와 OpenRouter의 System One API(`OPENROUTER_API_KEY`, 모델 `~typesafe/jev-latest`)를 모두 지원합니다.
+키는 `--env-file` → 환경 변수 → `.fullops-squad/.env` 순서로 찾고, 같은 출처에 둘 다 있으면 공식 API를 씁니다.
 동일 요청은 `~/.cache/fullops-squad/jev`에 캐시합니다. 비밀값으로 보이는 입력은 보내지 않습니다.
 
 | 용도 | 실패·키 없음 처리 |
