@@ -7,6 +7,22 @@
   },
   "homepage": "https://github.com/tourbut/Fullops-Squad-plugin",
   "license": "MIT",
-  "keywords": ["orchestration", "multi-agent", "orca", "handover", "code-review", "workflow"],
-  "skills": "./skills/"
+  "keywords": [
+    "orchestration",
+    "multi-agent",
+    "orca",
+    "handover",
+    "code-review",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "userConfig": {
+    "context7_api_key": {
+      "type": "string",
+      "title": "Context7 API key (optional)",
+      "description": "Raises the Context7 documentation lookup rate limit. Leave empty to use the anonymous limit. Get a free key at https://context7.com/dashboard.",
+      "sensitive": true,
+      "default": ""
+    }
+  }
 }

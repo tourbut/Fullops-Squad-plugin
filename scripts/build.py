@@ -45,6 +45,7 @@ def build(output=NATIVE):
         shutil.copy2(ROOT / "LICENSE", staged / "LICENSE")
         shutil.copytree(ROOT / "docs/releases", staged / "releases")
         shutil.copy2(ROOT / "docs/issue-auto-mode.md", staged / "issue-auto-mode.md")
+        shutil.copy2(ROOT / "docs/credentials.md", staged / "CREDENTIALS.md")
         write_json(staged / "plugin.json", {key: common[key] for key in ("name", "version", "description")})
         for host, directory in (("codex", ".codex-plugin"), ("claude-code", ".claude-plugin")):
             adapter = json.loads((ROOT / f"adapters/{host}.json").read_text())
@@ -70,7 +71,7 @@ def replace(output, staged, previous):
 
 
 def build_directory(native=NATIVE, output=DIRECTORY):
-    """Anthropic 디렉터리판: 플러그인 폴더 안의 파일만 실행하고 다른 마켓플레이스·전역 명령에 의존하지 않는다."""
+    """Anthropic 디렉터리판: 플러그인 폴더 안의 파일과 원격 https MCP만 쓰고 다른 마켓플레이스·전역 명령에 의존하지 않는다."""
     native, output = Path(native), Path(output)
     if output.is_symlink() or (output.exists() and not (output / STAMP).is_file()):
         raise ValueError(f"빌드 생성물이 아닌 경로는 교체하지 않습니다: {output}")
@@ -85,8 +86,7 @@ def build_directory(native=NATIVE, output=DIRECTORY):
         staged = Path(temp) / "fullops-squad"
         shutil.copytree(native, staged)
         shutil.rmtree(staged / ".codex-plugin")
-        for name in (".mcp.json", "mcp_config.json"):
-            (staged / name).unlink()
+        (staged / "mcp_config.json").unlink()
         hooks = json.loads((staged / "hooks/hooks.json").read_text(encoding="utf-8"))
         for groups in hooks["hooks"].values():
             for group in groups:
@@ -99,6 +99,8 @@ def build_directory(native=NATIVE, output=DIRECTORY):
         shutil.copy2(adapter_root / "hooks/run.sh", staged / "hooks/run.sh")
         (staged / "hooks/run.sh").chmod(0o755)
         shutil.copy2(adapter_root / "README.md", staged / "README.md")
+        # Context7은 전역 설치 명령 대신 원격 https 엔드포인트를 쓴다. 선택 키는 userConfig로 받는다.
+        shutil.copy2(adapter_root / ".mcp.json", staged / ".mcp.json")
         write_json(staged / ".claude-plugin/plugin.json", manifest)
         replace(output, staged, Path(temp) / "previous")
     return output

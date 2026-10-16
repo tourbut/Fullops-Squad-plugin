@@ -148,7 +148,7 @@ python3 <플러그인>/scripts/jev_find.py find --repo . --role dev --key TASK-1
 
 필요 환경: Python 3.10+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 AI CLI, Orca IDE.
 일반 설치는 GitHub 마켓플레이스를 사용합니다. 개발 체크아웃·agy 설치는 [개발 문서](docs/development.md)를 따릅니다.
-Anthropic 플러그인 디렉터리판(`dist/directory/fullops-squad`)은 다른 플러그인과 Context7을 자동 설치하지 않습니다. 필요하면 설치된 플러그인의 `scripts/deps.py --host claude-code`로 선택 설치합니다.
+Anthropic 플러그인 디렉터리판(`dist/directory/fullops-squad`)은 다른 플러그인을 자동 설치하지 않습니다. 필요하면 설치된 플러그인의 `scripts/deps.py --host claude-code`로 선택 설치합니다. Context7은 로컬 설치 없이 원격 엔드포인트(`https://mcp.context7.com/mcp`)에 연결합니다.
 
 ### 통합 설치기
 
@@ -306,6 +306,8 @@ fullops-orca route로 분류하고 dispatch해줘.
 FullOps 활성 저장소에서 `이슈 자동 작업 모드를 설정하고 현재 coor에서 켜줘`라고 요청하면 `fullops-issues`가 저장소·허용 작성자·주기(기본 300초, 최소 60초)·작업 범위를 확인합니다. 기본 OFF이며 설치/setup으로 켜지지 않습니다. 로컬 폴러는 모델 호출 없이 수집하고, 동일 coor의 foreground wait로 하나씩 처리합니다. 완료 지점은 테스트/독립 리뷰를 통과한 draft PR이며 main 병합은 사용자 판단입니다. 질문은 원래 이슈에 보내고 원 작성자의 답변을 검토해 새 attempt로 재개합니다. [운영과 실환경 수용 검증](docs/issue-auto-mode.md)을 참고합니다.
 
 ## 설정
+
+사용하는 API 키(OpenRouter·GitHub·Context7)의 용도, 없을 때 동작, 설정 위치는 [API 키와 인증 정보](docs/credentials.md)에 정리했습니다. 모든 키는 선택이며 설치·setup은 키 없이 완료됩니다.
 
 원본 체크아웃의 `.fullops-squad/.env.example`을 `.fullops-squad/.env`로 복사합니다.
 `.env`와 API 키는 커밋하지 않습니다. 기존 레포에서도 ignore와 추적 여부를 확인합니다.

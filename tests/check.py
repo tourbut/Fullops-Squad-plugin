@@ -52,7 +52,13 @@ def main():
         assert manifest['author'].get('url') and manifest['keywords'] and manifest['description'].isascii()
         assert not {'hooks', 'mcpServers', 'dependencies'} & set(manifest)
         assert 'hooks' not in loads((native / '.claude-plugin/plugin.json').read_text(encoding='utf-8'))  # 기본 위치 중복 선언 금지
-        assert not any((directory / name).exists() for name in ('.mcp.json', 'mcp_config.json', '.codex-plugin'))
+        assert not any((directory / name).exists() for name in ('mcp_config.json', '.codex-plugin'))
+        # Context7은 로컬 전역 명령 대신 원격 https MCP와 선택 키(userConfig)로 연결한다.
+        context7 = loads((directory / '.mcp.json').read_text(encoding='utf-8'))['mcpServers']['context7']
+        assert context7['type'] == 'http' and context7['url'].startswith('https://') and 'command' not in context7
+        assert manifest['userConfig']['context7_api_key']['sensitive'] is True
+        assert '${user_config.context7_api_key}' in context7['headers']['Authorization']
+        assert (directory / 'CREDENTIALS.md').is_file() and (native / 'CREDENTIALS.md').is_file()
         hooks = loads((directory / 'hooks/hooks.json').read_text(encoding='utf-8'))
         commands = [h['command'] for groups in hooks['hooks'].values() for group in groups for h in group['hooks']]
         assert len(commands) == 9 and all(c.startswith('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ') for c in commands)
