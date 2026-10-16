@@ -46,7 +46,10 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     assert run('prepare', 'BAD-REUSE', ('--lint', str(bad))).returncode != 0
     result = run('prepare')
     assert result.returncode == 0, result.stderr
+    assert '재사용' in result.stdout, result.stdout  # 같은 SHA의 worker lint 결과를 자동 채택한다.
     directory = repo / '.fullops-squad/docs/evaluations/qa-reports/REVIEW-1-review'
+    assert (directory / 'lint.json').read_bytes() == reusable.read_bytes()
+    assert (directory / 'report.md').read_text(encoding='utf-8').startswith('---\ntitle: REVIEW-1 리뷰\n')
     path = directory / 'result.json'
     preview = json.loads((directory / 'preview.json').read_text())
     assert {f['path'] for f in preview['reviewable_files']} == {'sample.py', 'guide.md', 'sample.test.ts', '.fullops-squad/docs/evaluations/qa-reports/K-evidence/manifest.json'}
@@ -66,6 +69,7 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     def save():
         path.write_text(json.dumps(data))
     save()
+    (directory / 'lint.json').unlink()
     assert 'lint' in run('check').stderr  # lint 결과 누락
     (directory / 'lint.json').write_bytes(lint_out.read_bytes())
     assert run('check').returncode == 0

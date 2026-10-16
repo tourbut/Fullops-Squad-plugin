@@ -5,7 +5,9 @@
     ".fullops-squad/docs/evaluations/qa-reports/**/*.log",
     ".fullops-squad/docs/evaluations/qa-reports/*-test/*/play/state-*.json",
     ".fullops-squad/docs/evaluations/qa-reports/*-test/*/play/action-*.json",
-    "**/*.bak"
+    "**/*.bak",
+    ".fullops-squad/docs/evaluations/jev/**",
+    ".fullops-squad/handovers/logs/**"
   ],
   "rules": [
     {

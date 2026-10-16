@@ -345,12 +345,19 @@ class Stabilization(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, '심볼릭'):
                 review.evidence_hashes(self.repo, 'R1')
             link.unlink()
-        inactive = {'archived': True, 'status': {'worker': 'released', 'liveness': 'dead'}, 'projection': {'workspace': {'id': 'repo::' + str(path)}}}
-        with patch.object(integration, 'orca', return_value={'archived': False}):
+        # Orca 실제 응답: release 뒤 worker 상태는 succeeded/failed로 남고 terminal 목록만 빈다.
+        def orca(terminals, workspace=str(path)):
+            return lambda *args, **kwargs: ({'terminals': terminals} if args[:2] == ('terminal', 'list') else
+                                            {'archived': True, 'status': {'worker': 'succeeded', 'liveness': 'exited'},
+                                             'projection': {'workspace': {'id': 'repo::' + workspace}, 'resource': {'state': 'released'}}})
+        with patch.object(integration, 'orca', side_effect=orca([{'handle': 'term_live'}])), patch.object(review.time, 'sleep'):
             with self.assertRaisesRegex(ValueError, 'release'):
                 review.cleanup(self.repo, 'R1', 'd1', True)
+        with patch.object(integration, 'orca', side_effect=orca([], str(self.repo))):
+            with self.assertRaisesRegex(ValueError, 'reviewer가 아닙니다'):
+                review.cleanup(self.repo, 'R1', 'd1', True)
         (path / 'untracked.txt').write_text('keep')
-        with patch.object(integration, 'orca', return_value=inactive), patch.object(review, 'check', side_effect=lambda *a: review.check_independence(self.repo, result)):
+        with patch.object(integration, 'orca', side_effect=orca([])), patch.object(review, 'check', side_effect=lambda *a: review.check_independence(self.repo, result)):
             with self.assertRaisesRegex(ValueError, '변경'):
                 review.cleanup(self.repo, 'R1', 'd1', True)
             (path / 'untracked.txt').unlink()
@@ -370,6 +377,23 @@ class Stabilization(unittest.TestCase):
         (folder / 'report.md').write_text('tampered')
         with self.assertRaises(ValueError):
             review.historical(self.repo, 'R1')
+
+    def test_prune_closes_vanished_snapshots_and_keeps_live_ones(self):
+        with redirect_stdout(io.StringIO()):
+            gone = review.snapshot(self.repo, 'GONE', self.base, 'a', 'b', 'coordinator')
+            live = review.snapshot(self.repo, 'LIVE', self.base, 'a', 'b', 'coordinator')
+        self.addCleanup(lambda: subprocess.run(['git', '-C', str(self.repo), 'worktree', 'remove', str(live)], capture_output=True))
+        subprocess.run(['git', '-C', str(self.repo), 'worktree', 'remove', str(gone)], check=True)
+        report = review.prune(self.repo)
+        self.assertEqual(report['missing'], ['GONE'])
+        self.assertEqual([item['key'] for item in report['live']], ['LIVE'])
+        self.assertTrue(live.exists())
+        self.assertEqual(json.loads(review.snapshot_record(self.repo, 'GONE').read_text(encoding='utf-8'))['state'], 'missing')
+        self.assertEqual(review.prune(self.repo)['missing'], [])
+        with patch.object(integration, 'orca', return_value={'terminals': []}):
+            review.abandon(self.repo, 'LIVE', 'user stopped review')
+        self.assertFalse(live.exists())
+        self.assertEqual(json.loads(review.snapshot_record(self.repo, 'LIVE').read_text(encoding='utf-8'))['state'], 'abandoned')
 
     def test_host_receipt_retry_and_removed_skill(self):
         skill = self.root / 'skills/x/SKILL.md'

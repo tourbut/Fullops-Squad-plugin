@@ -245,6 +245,27 @@ def deliverable_violations(path, text, index):
     return found
 
 
+NO_CODE = '코드 파일 변경 없음(문서·설정만 변경). required가 아닌 test 명령은 실행하지 않는다'
+
+
+def code_changes(repo, base, head, config):
+    """[(경로, 추가+삭제 줄 수)] lint 제외를 뺀 코드 파일만. 리뷰 필요 판단과 문서 전용 테스트 생략이 같이 쓴다."""
+    fields = git(repo, 'diff', '--numstat', '-z', '--no-renames', '--no-ext-diff', base, head, data=True).decode().split('\0')
+    result = []
+    for field in fields:
+        if field.count('\t') < 2:
+            continue
+        added, deleted, path = field.split('\t', 2)
+        if Path(path).suffix.lower() in PY | HASH | C_STYLE and not any(
+                fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in config['exclude']):
+            result.append((path, (int(added) if added.isdigit() else 0) + (int(deleted) if deleted.isdigit() else 0)))
+    return result
+
+
+def skips_tests(command, code):
+    return command.get('kind') == 'test' and not command.get('required') and not code
+
+
 def run_command(repo, command, timeout):
     entry = {'name': command['name'], 'kind': command.get('kind', 'lint'),
              'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
@@ -308,8 +329,11 @@ def lint(repo, base_ref):
         violations.append({'code': 'SIZE-002', 'severity': 'WARNING', 'line': None, 'path': '',
                            'message': f'변경 추가 {additions}줄 > 상한 {limit}줄. 지시서의 예상 변경 규모와 차이·분할하지 않은 이유를 검토하세요'})
     level, policy_digest = policy.at_ref(repo, merge_base)
-    commands = [run_command(repo, c, config['timeout_seconds']) if policy.command_selected(c, level) else
-                {**c, 'status': 'skipped', 'reason': f'기준 설정 test_level={level}, 명령 최소 level={c["level"]}'}
+    code = code_changes(repo, merge_base, head, config)
+    commands = [{**c, 'status': 'skipped', 'reason': f'기준 설정 test_level={level}, 명령 최소 level={c["level"]}'}
+                if not policy.command_selected(c, level) else
+                {**c, 'status': 'skipped', 'reason': NO_CODE} if skips_tests(c, code) else
+                run_command(repo, c, config['timeout_seconds'])
                 for c in config['commands']]
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,

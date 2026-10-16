@@ -22,6 +22,11 @@ SUBAGENT_BRIEF = {
 }
 
 
+# 대규모 코드 변경만 독립 리뷰 대상이다. min_code_lines=0이면 모든 변경이 대상이다.
+# auto=false이면 대상이어도 coordinator가 사용자에게 진행 여부를 먼저 묻는다.
+REVIEW_POLICY = {'min_code_lines': 400, 'min_code_files': 15, 'always': [], 'auto': False}
+
+
 class PolicyError(ValueError):
     pass
 
@@ -49,7 +54,11 @@ def validate(config):
     if mode == 'dev' and (not role or not isinstance(branch, str) or branch == 'HEAD' or
                          not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*', branch)):
         raise PolicyError('dev 모드의 primary_role·primary_branch를 setup.py에서 지정하세요')
-    return {**config, 'mode': mode, 'test_level': level, 'subagent_level': subagent_level}
+    review = {**REVIEW_POLICY, **(config.get('review_policy') or {})}
+    if any(type(review[k]) is not int or review[k] < 0 for k in ('min_code_lines', 'min_code_files')) or             not isinstance(review['always'], list) or not all(isinstance(g, str) and g for g in review['always']) or \
+            type(review['auto']) is not bool:
+        raise PolicyError('review_policy는 0 이상 정수 min_code_lines·min_code_files, 경로 glob 목록 always, boolean auto여야 합니다')
+    return {**config, 'mode': mode, 'test_level': level, 'subagent_level': subagent_level, 'review_policy': review}
 
 
 def load(root):
@@ -103,11 +112,15 @@ def subagent_brief(level):
             '부모는 결과를 취합하고 완료 전에 하위 작업을 회수한다.')
 
 
-def at_ref(root, ref):
-    """작업 브랜치가 기준 설정의 검사 범위를 낮추지 못하게 한다."""
+def config_at_ref(root, ref):
+    """작업 브랜치가 기준 설정의 검사·리뷰 범위를 낮추지 못하게 한다."""
     process = subprocess.run(['git', '-C', str(root), 'cat-file', 'blob',
                               f'{ref}:.fullops-squad/fullops.json'], capture_output=True)
     raw = process.stdout if process.returncode == 0 else None
-    config = validate(json.loads(raw)) if raw else {'test_level': 'standard'}
+    return (validate(json.loads(raw)) if raw else {'test_level': 'standard', 'review_policy': REVIEW_POLICY}), raw
+
+
+def at_ref(root, ref):
+    config, raw = config_at_ref(root, ref)
     import hashlib
     return config['test_level'], hashlib.sha256(raw).hexdigest() if raw else None
