@@ -38,7 +38,7 @@
 설정은 검사 대상 HEAD가 아니라 **merge-base 시점**의 `lint.json`을 쓴다. 브랜치가 스스로 규칙을 끄거나 `exclude`를 넓혀 통과할 수 없다. 설정 변경은 별도 과제로 병합한 뒤 적용된다.
 
 - `commands`: `[{"name": "ruff", "run": ["ruff", "check", "."], "cwd": "backend"}]` 형식이다. 셸을 거치지 않는 인자 배열이며, `cwd`는 레포 안이어야 한다. setup은 기존 도구를 우선 연결하고 부족한 설정은 아래 레포별 구성 절차로 보완한다.
-- 프로젝트 테스트 명령도 `{"name":"test","kind":"test","run":["npm","test"]}`처럼 등록한다. 실제 프로젝트 명령과 cwd를 사용한다. lint는 각 명령의 kind·종료코드·결과를 같은 HEAD에 기록한다. 테스트 명령이 없으면 미정과 영향을 보고하고, 테스트를 실행했다고 표시하지 않는다.
+- 프로젝트 테스트 명령도 `{"name":"test","kind":"test","run":["npm","test"]}`처럼 등록한다. 실제 프로젝트 명령과 cwd를 사용한다. lint는 각 명령의 kind·종료코드·결과를 같은 HEAD에 기록한다. 테스트 명령이 없으면 미정과 영향을 보고하고, 테스트를 실행했다고 표시하지 않는다. lint 제외를 뺀 코드 파일 변경이 없으면 `required: true`가 아닌 `kind: test` 명령은 skipped와 고정 사유로 기록하고 실행하지 않는다. 문서 변경도 검사해야 하는 테스트는 `required: true`로 등록한다.
 - 기존 린터가 있으면 미사용 규칙(ruff F401/F841, eslint no-unused-vars, oxlint)을 기존 설정에서 활성화해 연결한다. 기본 SLOP 규칙은 미사용 코드 분석을 대신하지 않는다.
 - `size`, `exclude`(glob), `timeout_seconds`는 프로젝트 기준에 맞게 조정한다. 기준을 낮추는 변경은 이유를 지시서에 남긴다.
 - `rules`는 반복되는 실수를 규칙으로 쌓는 곳이다. 형식은 `{"code": "CUSTOM-001", "description": "…", "pattern": "<Python 정규식>", "file_extensions": [".py"], "severity": "ERROR|WARNING", "suggestion": "…", "exclude_patterns": [], "exclude_paths": [], "enabled": true}`다. `exclude_patterns`는 줄 내용(여러 줄 규칙은 일치 구간)의 정규식이고, `exclude_paths`는 레포 상대경로 glob이다. 규칙별 경로 예외는 다른 보안·테스트 검사를 끄지 않는다. 규칙을 끌 때는 삭제하지 않고 `enabled: false`로 둔다. 추가·변경한 이유는 이 문서 아래에 한 줄씩 남긴다.

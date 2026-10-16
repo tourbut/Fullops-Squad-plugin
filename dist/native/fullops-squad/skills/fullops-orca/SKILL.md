@@ -133,16 +133,18 @@ coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summ
 
 ## merge — 병합 책임자
 
-`fullops-review`로 현재 기준/worker SHA의 delegate 리뷰를 완료하고 보고서·check 결과·skipped 사유·lint·테스트 결과를 확인한다. 파일 누락이나 미해결 critical/high가 있으면 수락을 보류한다. check 통과만으로 수락하지 않는다. coordinator가 낮은 모델이면 기계적 기준(check·lint·테스트·critical/high)만 직접 판단한다. 설계와 다르게 구현한 것, 범위 이탈, 트레이드오프 판단은 설계 역할이나 사용자에게 넘긴다. 수정 커밋 이후에는 최신 SHA의 리뷰가 필요하다.
+먼저 이 스킬 기준 `../../scripts/review.py need --repo <루트> --from <기준 ref> --to <worker SHA>`로 독립 리뷰 필요 여부를 확인한다. 판정은 기준 시점 `fullops.json`의 `review_policy`(기본: 코드 400줄 또는 코드 파일 15개 이상, `always` 경로 glob)를 따른다. `required: false`인 소규모·문서·설정 변경은 reviewer worker·snapshot·prepare를 만들지 않는다. 병합 책임자가 diff와 worker의 `lint-result.json`(ERROR 0)을 직접 확인하고 PLANS.md와 병합 커밋 본문에 need 판정 사유를 남긴 뒤 아래 1번부터 진행한다. 같은 SHA에 lint.py를 다시 실행하지 않는다. 사용자가 리뷰를 요청하거나 위험이 보이면 판정과 관계없이 리뷰한다. `action: ask`(대규모 변경, 기본값)이면 reviewer를 띄우기 전에 사용자에게 need 사유와 진행/생략 선택지를 묻고 답을 기다린다. 생략하면 `review.py waive --decided-by user`로 기록한다. 사용자가 자동 진행을 지시했거나 `review_policy.auto`가 true(`action: review`)일 때만 묻지 않고 진행한다. 세부 절차는 fullops-review의 리뷰 필요 판정을 따른다.
+
+리뷰를 진행하면 `fullops-review`로 현재 기준/worker SHA의 delegate 리뷰를 완료하고 보고서·check 결과·skipped 사유·lint·테스트 결과를 확인한다. 파일 누락이나 미해결 critical/high가 있으면 수락을 보류한다. check 통과만으로 수락하지 않는다. coordinator가 낮은 모델이면 기계적 기준(check·lint·테스트·critical/high)만 직접 판단한다. 설계와 다르게 구현한 것, 범위 이탈, 트레이드오프 판단은 설계 역할이나 사용자에게 넘긴다. 수정 커밋 이후에는 최신 SHA의 리뷰가 필요하다.
 
 기본 브랜치의 정본은 `fullops.json`의 `git.base`다. coordinator가 역할 브랜치에서 작업해도 통합 대상은 기본 브랜치다. 원격 연결은 `git.remote`를 사용한다. 로컬 전용 setup은 로컬 기본 브랜치까지만 처리한다. 아래 절차는 개발 완료뿐 아니라 설계 문서·ART·OPS·tester 결과에도 적용한다. 전체 제품 수락과 개별 완료 결과의 통합을 구분하고, 독립 검수나 미해결 critical/high를 생략하지 않는다.
 
-1. 완료 보고를 받는 즉시 해당 SHA의 브랜치 포함 여부, diff, 커밋 본문, 문서·검증 근거를 확인한다. 성공 결과는 위 리뷰 게이트를 통과시킨다. 보고 이후 추가된 미검토 커밋을 함께 병합하지 않는다.
+1. 완료 보고를 받는 즉시 해당 SHA의 브랜치 포함 여부, diff, 커밋 본문, 문서·검증 근거를 확인한다. 성공 결과는 위 need 판정과 필요 시 리뷰 게이트를 통과시킨다. 보고 이후 추가된 미검토 커밋을 함께 병합하지 않는다.
 2. 원격 연결이면 해당 원격을 fetch한다. 기본 브랜치의 깨끗한 체크아웃에서 원격 기본 브랜치를 fast-forward로 반영한다. 기본 브랜치가 다른 워크트리에 체크아웃되어 있으면 그 경로에서 처리한다. 진행 중 작업을 강제로 중단하지 않는다.
-3. 검토한 고정 SHA를 기본 브랜치에 merge하고 필요한 통합 검증을 한 번 실행한다. 충돌이 나면 현재 결과부터 해결한다. 완료 커밋에 인박스·아카이브가 포함됐는지 확인하고 중복 기록하지 않는다. 누적 역할 브랜치 전체를 한꺼번에 수락하지 않는다. 기본 경로는 SHA를 보존하는 merge이며 squash나 cherry-pick으로 완료 SHA의 조상 관계를 없애지 않는다.
+3. 검토한 고정 SHA를 기본 브랜치에 merge하고 필요한 통합 검증을 한 번 실행한다. fast-forward로 SHA가 같으면 worker lint 결과를 재사용하고 다시 실행하지 않는다. 충돌이 나면 현재 결과부터 해결한다. 완료 커밋에 인박스·아카이브가 포함됐는지 확인하고 중복 기록하지 않는다. 누적 역할 브랜치 전체를 한꺼번에 수락하지 않는다. 기본 경로는 SHA를 보존하는 merge이며 squash나 cherry-pick으로 완료 SHA의 조상 관계를 없애지 않는다.
 4. 원격 연결이면 검증한 기본 브랜치를 해당 원격의 기본 브랜치로 일반 push한다. 역할 브랜치 push만으로 통합을 완료했다고 기록하지 않는다. push 실패는 미완료다. 원격 갱신을 fetch로 확인하고, 완료 SHA가 로컬·원격 기본 브랜치의 조상인지 확인한다. force push는 사용하지 않는다.
 5. 병합할 때마다 모든 등록 역할의 워크트리를 조회한다. coordinator 역할 워크트리도 포함한다. Orca의 worker 상태를 확인하고, 쉬고 있으며 작업 트리가 깨끗한 워크트리에 최신 기본 브랜치를 merge 또는 fast-forward로 반영한다. 깨끗하다는 이유만으로 실행 중 worker를 바꾸지 않는다. 작업 중·미커밋 변경·동기화 충돌이 있으면 해당 역할과 최신 기본 SHA를 PLANS.md에 기록하고 동기화를 예약한다. worker가 완료 보고한 뒤 다음 dispatch 전에 예약을 처리한다. 진행 중 worker에게 기준 SHA와 동기화 예약을 coordinator가 알린다. 강제 reset이나 작업 삭제를 사용하지 않는다.
-6. PLANS.md와 현황판에 과제 키·완료 SHA·기본 브랜치 병합 SHA·원격 반영·역할별 동기화 결과를 기록한다. 통합 뒤 위 세션 선택으로 다음 과제의 retain 조건과 교체·release 시점을 결정한다. 완료 delivery를 ack한다. 리뷰 snapshot은 검증·증거 보존·reviewer release를 확인하고 fullops-review의 cleanup을 실행한다. 이후 독립 과제를 배정한다.
+6. PLANS.md와 현황판에 과제 키·완료 SHA·기본 브랜치 병합 SHA·원격 반영·역할별 동기화 결과를 기록한다. 통합 뒤 위 세션 선택으로 다음 과제의 retain 조건과 교체·release 시점을 결정한다. 완료 delivery를 ack한다. 리뷰 snapshot은 검증·증거 보존·reviewer release를 확인하고 fullops-review의 cleanup을 실행한다. 리뷰어의 `worker_done`(spec `Purpose: review`)은 병합 대상이 아니므로 integration에 기록되지 않는다. `integration.py hold`를 따로 호출하지 않는다. 이후 독립 과제를 배정한다.
 
 `orca_wait.py`는 ACK 전에 완료 보고를 Git 공용 디렉터리의 `fullops-integration/`에 저장한다. coordinator가 직접 `orchestration check`를 사용하면 flow-gate도 peek에서 완료 보고를 저장한다. 세션이 바뀌어도 같은 저장소를 사용한다. 미통합 결과가 있으면 flow-gate가 coordinator 종료와 독립 과제 배정을 차단한다. 같은 과제 키의 리뷰·수정 배정은 허용한다. `worker-start --task`의 spec에도 같은 과제 키를 넣는다. 최신 기본 브랜치를 받지 않은 등록 역할의 배정도 차단한다. 확인은 이 스킬 기준 `../../scripts/integration.py --repo <레포 루트> status`로 한다.
 

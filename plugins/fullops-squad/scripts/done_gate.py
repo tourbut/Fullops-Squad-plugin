@@ -177,7 +177,9 @@ def main(event=None):
         except (OSError, ValueError, AttributeError, KeyError, TypeError):
             names = []
         scope = '개발 파일(설정·에셋 포함)' if direct else '코드 파일'
-        completion = ('현재 SHA의 lint와 다른 세션의 독립 리뷰를 통과해야 한다. 반복 Stop으로 생략할 수 없다. ' if direct else
+        completion = ('현재 SHA의 lint를 통과해야 하고, `review.py need`가 대규모 변경으로 판정하면 사용자에게 독립 리뷰 진행 여부를 묻고 '
+                      '다른 세션의 독립 리뷰 또는 사용자 면제(`review.py waive`) 기록을 남겨야 한다. '
+                      '반복 Stop으로 생략할 수 없다. ' if direct else
                       '통과 기록이 없으면 종료가 한 번 막힌다. 적용할 검사가 없으면 이유를 말하고 다시 끝낸다. ')
         brief = (f'FullOps done-gate: 이 세션에서 {scope}을 바꾸면 끝내기 전에 변경을 커밋하고 '
                  f'`python3 {LINT} --repo {root} --from <지시서의 기준 ref>`를 통과시킨다'
@@ -202,7 +204,8 @@ def main(event=None):
         if direct:
             import review
             try:
-                review.direct_check(root, expected, head, state.get('implementer_session'))
+                if not expected or review.need(root, expected, head)['required']:
+                    review.direct_check(root, expected, head, state.get('implementer_session'))
             except (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.CalledProcessError) as error:
                 return {'decision': 'block', 'reason': 'FullOps: ' + str(error)}
         return {}

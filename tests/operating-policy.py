@@ -211,12 +211,24 @@ class OperatingPolicy(unittest.TestCase):
         storage.write_json(config_path, {**settings, 'commands': commands})
         base = self.commit()
         self.config(test_level='exhaustive')
+        (self.repo / 'app.py').write_text('value = 1\n')
         head = self.commit()
         result = lint.lint(self.repo, base)
         self.assertEqual(result['head'], head)
         self.assertEqual(result['test_level'], 'lite')
         self.assertEqual([c['status'] for c in result['commands']],
                          ['passed', 'passed', 'skipped', 'skipped', 'skipped', 'passed', 'passed'])
+        (self.repo / 'NOTES.md').write_text('docs only\n')
+        docs = self.commit()
+        result = lint.lint(self.repo, head)
+        # 문서만 바뀌면 required 검사만 실행하고 check도 같은 생략을 허용한다.
+        self.assertEqual([c['status'] for c in result['commands']], ['skipped'] * 5 + ['passed', 'skipped'])
+        self.assertEqual(result['commands'][0]['reason'], lint.NO_CODE)
+        review.check_lint(self.repo, {'base': head, 'head': docs}, result)
+        forged = json.loads(json.dumps(lint.lint(self.repo, base)))
+        forged['commands'][0].update(status='skipped', reason=lint.NO_CODE)
+        with self.assertRaisesRegex(ValueError, '실행되지'):
+            review.check_lint(self.repo, {'base': base, 'head': docs}, forged)
         self.assertTrue(policy.command_selected({'kind': 'test'}, 'lite'))
         with self.assertRaises(policy.PolicyError):
             policy.command_selected({'kind': 'lint', 'level': 'full'}, 'lite')
@@ -286,6 +298,14 @@ class OperatingPolicy(unittest.TestCase):
         self.assertEqual(hook('stop', stopHookActive=True)['decision'], 'block')
         gate = Path(self.git('rev-parse', '--absolute-git-dir')) / 'fullops-gate'
         storage.write_json(gate / 'pass.json', {'head': head, 'base': base})
+        # 설정·에셋만 바뀐 소규모 변경은 독립 리뷰를 요구하지 않는다.
+        self.assertFalse(review.need(self.repo, base, head)['required'])
+        with patch.object(review, 'direct_check') as check:
+            self.assertEqual(hook('stop'), {})
+            check.assert_not_called()
+        large = patch.object(review, 'need', return_value={'required': True})
+        large.start()
+        self.addCleanup(large.stop)
         self.assertEqual(hook('stop')['decision'], 'block')
         invalid = self.repo / '.fullops-squad/docs/evaluations/qa-reports/BAD-review/result.json'
         storage.write_json(invalid, {'base': base, 'head': head, 'review_schema_version': 2, 'independence': []})
@@ -298,6 +318,62 @@ class OperatingPolicy(unittest.TestCase):
         with patch.object(review, 'direct_check') as check:
             self.assertEqual(hook('stop'), {})
             check.assert_not_called()
+
+    def test_review_need_uses_base_policy_size_and_always_paths(self):
+        (self.repo / 'notes.md').write_text('docs\n')
+        docs = self.commit()
+        self.assertEqual(review.need(self.repo, self.base, docs)['action'], 'skip')
+        (self.repo / 'big.py').write_text(''.join(f'value_{i} = {i}\n' for i in range(400)))
+        big = self.commit()
+        decision = review.need(self.repo, docs, big)
+        # 대규모여도 기본값은 사용자에게 먼저 묻는다.
+        self.assertEqual((decision['action'], decision['code_files'], decision['code_lines']), ('ask', 1, 400))
+        with self.assertRaisesRegex(ValueError, 'user'):
+            review.waive(self.repo, 'BIG', docs, big, 'skip it', 'coordinator')
+        with patch.object(review, 'check') as check:
+            with self.assertRaisesRegex(ValueError, '면제'):
+                review.direct_check(self.repo, docs, big, 'author')
+            with redirect_stdout(io.StringIO()):
+                review.waive(self.repo, 'BIG', docs, big, '사용자: 이번 리팩터링은 리뷰 생략', 'user')
+            review.direct_check(self.repo, docs, big, 'author')
+            check.assert_not_called()
+        with self.assertRaisesRegex(ValueError, '보존'):
+            review.waive(self.repo, 'BIG', docs, big, 'again', 'user')
+        self.config(review_policy={'min_code_lines': 400, 'min_code_files': 15, 'always': ['auth/**'], 'auto': True})
+        configured = self.commit()
+        (self.repo / 'auth').mkdir()
+        (self.repo / 'auth/token.py').write_text('value = 1\n')
+        self.config(review_policy={'min_code_lines': 100000, 'min_code_files': 1000, 'always': []})
+        weakened = self.commit()
+        # 작업 브랜치의 정책 완화는 기준 시점 판정을 바꾸지 못한다.
+        self.assertEqual(review.need(self.repo, configured, weakened)['always'], ['auth/token.py'])
+        self.assertEqual(review.need(self.repo, configured, weakened)['action'], 'review')  # 기준 설정 auto=true
+        with self.assertRaises(policy.PolicyError):
+            policy.validate({'schema_version': 1, 'review_policy': {'min_code_lines': -1}})
+
+    def test_review_reports_and_specs_do_not_trip_integration_or_inbox_gates(self):
+        import hashlib
+        listing = {'tasks': [{'id': 'task_r', 'spec': 'Task key: K; Purpose: review; Review SHA: ' + 'a' * 40}]}
+        with patch.object(integration, 'orca', return_value=listing):
+            integration.record(self.repo, [{'id': 'msg_review', 'type': 'worker_done', 'body': '[리뷰] K 수락 가능',
+                                            'payload': {'taskId': 'task_r'}, 'run_id': 'run_1'}])
+        saved = integration.directory(self.repo) / (hashlib.sha256(b'msg_review').hexdigest() + '.json')
+        self.assertFalse(saved.exists())  # 읽기 전용 리뷰 보고는 미병합 결과가 아니다.
+        log = 'read .fullops-squad/handovers/logs/2026-10-16_to_dev.md'
+        self.assertIsNone(flow_gate.dispatch_inbox_denial(f'worker-start --spec "Task key: K; Purpose: review; {log}"'))
+        self.assertIsNotNone(flow_gate.dispatch_inbox_denial(f'worker-start --spec "Task key: K; {log}"'))
+
+    def test_abandoned_review_closes_pending_folder_without_acceptance(self):
+        folder = self.repo / '.fullops-squad/docs/evaluations/qa-reports/STOP-review'
+        storage.write_json(folder / 'result.json', {'base': self.base, 'head': self.base, 'conclusion': '',
+                                                    'files': [{'review_status': 'pending'}]})
+        self.assertFalse(review.abandoned(self.repo, 'STOP'))
+        with self.assertRaisesRegex(ValueError, 'reason'):
+            review.abandon(self.repo, 'STOP', ' ')
+        review.abandon(self.repo, 'STOP', 'user waived small change')
+        self.assertTrue(review.abandoned(self.repo, 'STOP'))
+        storage.write_json(folder / 'result.json', {'conclusion': 'tampered'})
+        self.assertFalse(review.abandoned(self.repo, 'STOP'))
 
     def test_superseded_pending_review_preserves_original(self):
         (self.repo / 'app.py').write_text('"""behavior needing review"""\nprint("changed")\n')

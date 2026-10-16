@@ -83,13 +83,16 @@ def record(root, messages):
             payload = {}
         task_id = payload.get('taskId')
         task_key = key.group(1) if key else ''
-        if not task_key and task_id:
+        spec = ''
+        if task_id:
             run = message.get('run_id')
             if run not in tasks:
                 listing = orca('orchestration', 'task-list', *(['--run', run] if run else []), cwd=root)
                 tasks[run] = (listing or {}).get('tasks') or []
-            task = next((t for t in tasks[run] if t.get('id') == task_id), {})
-            spec = str(task.get('spec') or '')
+            spec = str(next((t for t in tasks[run] if t.get('id') == task_id), {}).get('spec') or '')
+        if re.search(r'\bPurpose\s*[:=]\s*review\b', spec, re.I):
+            continue  # 읽기 전용 리뷰 보고에는 병합할 커밋이 없다.
+        if not task_key and spec:
             keys = [p.name.removesuffix('-route.json') for p in
                     (Path(root) / '.fullops-squad/docs/evaluations/jev').glob('*-route.json')]
             explicit = re.search(r'\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)', spec, re.I)
