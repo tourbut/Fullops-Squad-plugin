@@ -65,6 +65,11 @@ The plugin writes only inside the repository you set up and inside that reposito
 
 Apart from that board issue list, the hooks do not use the network.
 
+## Support and privacy
+
+- Questions and bug reports: [GitHub issues](https://github.com/tourbut/Fullops-Squad-plugin/issues)
+- Privacy policy: [PRIVACY.md](https://github.com/tourbut/Fullops-Squad-plugin/blob/main/PRIVACY.md)
+
 ## License
 
 MIT. See `LICENSE`.

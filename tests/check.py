@@ -54,6 +54,13 @@ def main():
         assert manifest['license'] == 'MIT' and manifest['displayName'] and manifest['homepage'].startswith('https://')
         assert manifest['author'].get('url') and manifest['keywords'] and manifest['description'].isascii()
         assert not {'hooks', 'mcpServers', 'dependencies'} & set(manifest)
+        # 디렉터리 목록: https URL 필드와 정사각형 PNG 아이콘(512~2048px, 2MB 미만)
+        for field in ('supportUrl', 'documentationUrl', 'privacyPolicyUrl', 'homepage'):
+            assert manifest[field].startswith('https://') and ' ' not in manifest[field] and '`' not in manifest[field], field
+        icon = (directory / '.claude-plugin/icon.png').read_bytes()
+        width, height = __import__('struct').unpack('>II', icon[16:24])
+        assert icon[:8] == bytes([137, 80, 78, 71, 13, 10, 26, 10]) and width == height and 512 <= width <= 2048 and len(icon) < 2 * 1024 * 1024
+        assert manifest['icon'] == './.claude-plugin/icon.png' and (ROOT / 'PRIVACY.md').is_file()
         assert 'hooks' not in loads((native / '.claude-plugin/plugin.json').read_text(encoding='utf-8'))  # 기본 위치 중복 선언 금지
         assert not any((directory / name).exists() for name in ('mcp_config.json', '.codex-plugin'))
         # Context7은 로컬 전역 명령 대신 원격 https MCP와 선택 키(userConfig)로 연결한다.
@@ -70,7 +77,8 @@ def main():
         readme = __import__('re').sub(r'```.*?```', '', (directory / 'README.md').read_text(encoding='utf-8'), flags=__import__('re').S)
         assert len(readme.split()) >= 40 and (directory / 'LICENSE').is_file()
         files = [p for p in directory.rglob('*') if p.is_file()]
-        assert len(files) <= 512 and all(p.stat().st_size < 256 * 1024 for p in files)
+        # 포털: 이미지·글꼴이 아닌 파일은 256 KiB 미만, 모든 파일은 5 MiB 미만
+        assert len(files) <= 512 and all(p.stat().st_size < (5 * 1024 * 1024 if p.suffix == '.png' else 256 * 1024) for p in files)
         assert not any(p.name in ('.DS_Store', 'Thumbs.db', 'desktop.ini') for p in files)
         protected = root / 'user-files'
         protected.mkdir()

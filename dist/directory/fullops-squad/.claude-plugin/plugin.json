@@ -27,5 +27,9 @@
       "sensitive": true,
       "default": ""
     }
-  }
+  },
+  "icon": "./.claude-plugin/icon.png",
+  "supportUrl": "https://github.com/tourbut/Fullops-Squad-plugin/issues",
+  "documentationUrl": "https://github.com/tourbut/Fullops-Squad-plugin#readme",
+  "privacyPolicyUrl": "https://github.com/tourbut/Fullops-Squad-plugin/blob/main/PRIVACY.md"
 }
