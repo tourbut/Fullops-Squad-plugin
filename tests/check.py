@@ -77,7 +77,8 @@ def main():
         readme = __import__('re').sub(r'```.*?```', '', (directory / 'README.md').read_text(encoding='utf-8'), flags=__import__('re').S)
         assert len(readme.split()) >= 40 and (directory / 'LICENSE').is_file()
         files = [p for p in directory.rglob('*') if p.is_file()]
-        assert len(files) <= 512 and all(p.stat().st_size < 256 * 1024 for p in files)
+        # 포털: 이미지·글꼴이 아닌 파일은 256 KiB 미만, 모든 파일은 5 MiB 미만
+        assert len(files) <= 512 and all(p.stat().st_size < (5 * 1024 * 1024 if p.suffix == '.png' else 256 * 1024) for p in files)
         assert not any(p.name in ('.DS_Store', 'Thumbs.db', 'desktop.ini') for p in files)
         protected = root / 'user-files'
         protected.mkdir()
