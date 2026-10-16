@@ -1,9 +1,15 @@
 {
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json",
   "dependencies": [
-    {"name": "ponytail", "marketplace": "ponytail"},
-    {"name": "mattpocock-skills", "marketplace": "claude-plugins-official"}
-  ]
+    {
+      "name": "ponytail",
+      "marketplace": "ponytail"
+    },
+    {
+      "name": "mattpocock-skills",
+      "marketplace": "claude-plugins-official"
+    }
+  ],
+  "license": "MIT"
 }

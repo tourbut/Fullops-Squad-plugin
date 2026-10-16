@@ -1,0 +1,53 @@
+{
+  "title": "프로젝트 이름",
+  "summary": "한 줄 요약. coordinator가 단계와 함께 갱신한다.",
+  "phases": [
+    {
+      "name": "기획",
+      "status": "todo",
+      "deliverables": [
+        "D01",
+        "D02"
+      ],
+      "note": ""
+    },
+    {
+      "name": "설계",
+      "status": "todo",
+      "deliverables": [
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D09",
+        "D10"
+      ],
+      "note": ""
+    },
+    {
+      "name": "구현",
+      "status": "todo",
+      "deliverables": [
+        "D08"
+      ],
+      "note": ""
+    },
+    {
+      "name": "QA",
+      "status": "todo",
+      "deliverables": [],
+      "note": ""
+    },
+    {
+      "name": "이행",
+      "status": "todo",
+      "deliverables": [
+        "D11",
+        "D12",
+        "D13"
+      ],
+      "note": ""
+    }
+  ]
+}

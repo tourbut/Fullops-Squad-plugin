@@ -1,0 +1,39 @@
+---
+name: fullops-review
+description: FullOps 활성 레포에서 worker 구현 완료 후 병합 전 OCR delegate 리뷰를 준비하거나 리뷰 기록을 검증할 때 사용한다.
+---
+
+# 병합 전 delegate 리뷰
+
+dev 모드 주 담당자의 직접 구현도 다른 세션의 깨끗한 고정 SHA detached snapshot 리뷰를 받는다. 부모 dispatch나 worker_done은 요구하지 않는다. 구현자 세션 ID는 done-gate가 시작 시 보존한 실제 host 세션 ID를 사용하며 기존 prepare·check·snapshot 계약을 재사용한다. 테스트 레벨은 rules/common/testing.md를 따르고 lint.json의 선택 범위 밖 검사는 skipped와 사유로 보존한다. 필수 검사가 누락됐거나 같은 작성자 세션이면 수락하지 않는다.
+
+이전 SHA의 실패/중단 리뷰를 후속 리뷰가 대체했으면 `review.py supersede --repo <루트> --key <이전 리뷰 키> --replacement <수락한 후속 키>`로 연결한다. 후속 SHA가 원본의 후손이고 실제 리뷰 검사를 통과해야 한다. 원본 result.json은 수정하지 않으며 대체 기록에 양쪽 증거 hash를 보존한다. 운영 모드 전환은 이 기록이 유효한 과거 pending 리뷰를 활성 검토로 간주하지 않는다. 정상 cleanup 후 같은 SHA의 직접 개발 Stop은 이미 수락한 영수증을 확인하며 신규 수락에 historical을 사용하지 않는다.
+
+문서를 작성하거나 검토할 때 `.fullops-squad/docs/agents/document-writing.md`의 front matter와 한국어 STE 작성 원칙을 적용한다. 기존 레포에 이 파일이 없으면 `setup-fullops` 갱신으로 추가한다.
+
+현재 Git 레포 루트의 `.fullops-squad/fullops.json`으로 활성화를 확인한다. 없으면 `setup-fullops`를 안내하고 멈춘다.
+`.fullops-squad/rules/common/README.md` 및 연결된 세 규칙, `project.md`의 정본과 지시서의 `적용 기준과 예외`를 직접 읽는다. 이전 FULLOPS.md에 링크가 없어도 확인한다. 규칙이 없거나 worker가 사용한 버전과 다르면 setup 갱신 또는 준비 커밋·명시적인 스냅샷으로 일치시키고 재검토 범위를 정하기 전 수락하지 않는다.
+공통 규칙은 OCR의 `review/rule.json`을 자동 대체하지 않는다. report.md에 규칙 식별자·문서 경로·기준 커밋 또는 스냅샷·예외·검증 근거를 남긴다. `review.py check`는 공통 Markdown의 내용·버전이나 등록되지 않은 테스트 성공을 자동 검증하지 않으며 미해결 critical/high 차단은 그대로 유지한다.
+UI 작업은 핸드오버의 디자인 정본·테마 토큰·공용 컴포넌트 경로, 예외 근거, 변경 후 디자인 lint 결과와 테마 전환 검증을 확인한다. 해당 없음·미실행이면 이유와 영향을 report.md에 기록한다. 누락은 수정 요청으로 남기며 DESIGN WARNING의 오탐과 수락 여부는 검토자가 판단한다.
+
+1. 레포의 `fullops.json`, 요구사항·설계·핸드오버 완료 기준을 읽고 병합 책임자 또는 배정된 검토자가 리뷰한다. 고정 리뷰 역할은 없다. 제품/기술 책임 분리 레포의 신규 리뷰는 구현자와 다른 검토자의 별도 세션 및 읽기 전용 고정 SHA detached snapshot을 사용한다. 기획자는 상시 기술 승인자가 아니며 구현자 자기 리뷰로 독립 검토를 대체하지 않는다. 인증·결제·데이터 변경·동시성 등 위험한 변경은 고성능 모델에 배정한다. `open-code-review-delegate` 외부 스킬을 읽는다. OCR 측 LLM 설정과 일반 `ocr review`는 사용하지 않는다.
+2. 레포의 `.fullops-squad/review/rule.json`을 확인한다. setup에서 제품별 테스트·문서·씬·셰이더 등의 include와 생성물 exclude를 구성한다. include는 whitelist가 아니며 사용자 규칙은 첫 매칭으로 기본 언어 규칙을 대체한다. 기존 `.opencodereview/rule.json`을 통합할 때 이 의미를 보존한다. 기본 exclude는 검증 증거의 이미지·영상·원시 로그·백업(`*.bak`)과 Jev 테스트의 `play/` 상태·행동 파일이다. 수백 개의 증거 파일이 대상에 들어가면 파일마다 skipped 사유를 적느라 리뷰 토큰이 늘어난다. `review.py prepare`는 OCR이 제외한 파일 중 `qa-reports/` 아래 증거와 `*.bak`을 skipped와 공통 사유로 미리 채운다. 그 밖의 제외 파일은 지금처럼 직접 판단한다. 제외된 증거는 manifest·`result.json`·`report.md` 같은 요약 파일로 존재와 무결성을 확인하고 report.md에 확인 방법을 적는다. 레포에서 증거를 더 쌓는 경로가 있으면 같은 방식으로 exclude에 더한다. 전역 규칙은 변경하지 않는다.
+3. 이 스킬 기준 `../../scripts/review.py`를 사용해 `python3 <review.py> prepare --repo <루트> --key <리뷰 키> --from <기준 ref> --to <worker ref>`를 실행한다. 같은 base·HEAD·검사 설정·환경의 기존 lint 증거가 있으면 `--lint <결과 JSON>`을 함께 지정한다(6번 기준). SHA를 고정한 preview·rules·result와 report 템플릿이 `docs/evaluations/qa-reports/<키>-review/`에 생성된다. 기존 기록은 덮어쓰지 않으므로 재리뷰는 새 키를 사용한다. OCR CLI가 없거나 JSON 명령이 실패하면 실패를 보고하고 이 스킬 기준 `../../scripts/deps.py --host <지금 CLI>`로 의존성 설치를 안내한다.
+4. preview의 merge_base와 head로 Git diff를 읽는다. rules는 그룹당 한 번 읽고 관련 파일을 적절한 배치로 검토한다. 내부 코드는 diff와 관련 파일을 직접 검색해 읽고, 외부 SDK 근거는 Context7을 사용한다. OCR 제외 파일도 직접 확인하거나 구체적인 생략 사유를 남긴다. 삭제·이름 변경 영향도 검토한다. 요구사항·문서 템플릿·테스트 실행은 FullOps 검토 범위에 포함한다.
+5. result.json의 모든 `(path,status)`에 `review_status: reviewed/skipped`와 `reason`을 기록한다. reviewer와 conclusion을 채운다. review_schema_version=2이면 independence의 implementer_session/reviewer_session에 서로 다른 실제 세션 ID, snapshot_path에 별도 detached snapshot 절대경로, snapshot_head에 고정 head, read_only=true를 기록한다. snapshot은 변경하지 않고 결과/보고서는 기록 체크아웃에 쓴다. read_only 기록과 clean 검사는 OS 쓰기 격리가 아니다. 호스트에 이미 제공된 읽기 전용 실행 환경을 사용할 수 있으면 적용한다. check는 snapshot head·detached·clean 상태를 검증한다. 전환 전 고정 리뷰 기록은 원본을 보존한다. findings에는 `path`, `content`, 필요 시 `start_line/end_line`, `severity: critical/high/medium/low`, `resolved: true/false`를 기록한다. report.md에 발견 사항·재현·검증·커버리지·생략 영향·수락 결론을 같은 톤으로 작성한다. AI가 판단한 결과이며 OCR의 자동 판정으로 보고하지 않는다.
+6. 기존 lint 증거를 우선 확인한다. 구현자의 `<git dir>/fullops-gate/lint-result.json` 또는 `--out` 결과가 같은 base·HEAD·기준 설정·검사 범위이고 관련 환경·의존성이 유지됐으면 prepare에 `--lint <결과 JSON>`을 지정한다. 원본 바이트를 보존하며 명령을 재실행하지 않는다. 환경 동일성은 자동 판정하지 않으므로 report.md에 원본 경로·실행 조건·확인 근거를 기록한다. 확인할 수 없거나 새 실패·증거 결함이 있으면 해당 범위를 검증하고, 유효한 lint 결과가 없으면 worker 체크아웃의 깨끗한 고정 SHA에서 `python3 <lint.py> --repo <루트> --from <기준 ref> --out <리뷰 폴더>/lint.json`을 실행한다. ERROR는 수락하지 않는다. WARNING·실행 불가의 reason·영향과 SIZE-002·DEP-001의 근거는 report.md에서 판단한다. 역할 변경만으로 전체 테스트를 반복하지 않는다.
+7. `python3 <review.py> check --repo <루트> --key <키> --from <현재 기준 ref> --to <현재 worker ref>`를 실행한다. 실제 병합 ref를 전달해야 SHA 변경을 감지한다. 대상 누락, 규칙 변경, pending, 미해결 critical/high, lint 결과 누락·SHA 불일치·ERROR·사유 없는 실행 불가는 실패다. check 통과는 기록 검사이며 skipped의 수락 가능성과 테스트 결과는 검토자가 판단한다. 수정 커밋이 추가되면 새 SHA로 다시 리뷰한다.
+8. 과제의 code/documents find 결과가 있으면 check가 실제 변경 파일과의 교집합 지표를 리뷰 폴더에 각각 남긴다. 이 지표는 참고 문서나 호출자/테스트의 필수 읽기 정확도가 아니다. packet의 영향·문서 read/update 후보는 별도의 기대 목록과 실제 확인 기록으로 평가한다. 리뷰 키가 과제 키와 다르면 check에 `--task-key <과제 키>`를 넘긴다. 수락 판단에는 쓰지 않는다.
+9. 보고서·검증 근거를 완료 기록에 연결하고 미해결 사항은 PLANS.md에 남긴다. GitHub 댓글 게시·자동 병합은 실행하지 않는다. 병합 책임자는 최신 SHA에 대한 리뷰 수락과 허가된 병합 범위를 확인한다.
+
+## 임시 리뷰 snapshot의 수명
+
+FullOps가 새로 만드는 임시 공간은 `review.py snapshot --repo <루트> --key <리뷰 키> --to <고정 SHA> --implementer-session <ID> --reviewer-session <별도 ID> --owner <정리 담당>`으로 생성한다. Git 공용 디렉터리에 과제·정확한 SHA·세션·목적·소유권·증거 위치를 기록한다. 기존 사용자 상설 worktree/clone은 자동 관리 대상으로 등록하지 않는다. 리뷰 결과·보고서·lint는 snapshot 밖 정본 리뷰 폴더에 쓴다.
+
+리뷰·수락·필요 재검증이 끝나면 reviewer를 정상 release한다. `review.py cleanup --repo <루트> --key <리뷰 키> --dispatch <reviewer dispatch> --finished`는 Orca의 released/archived/terminal 종료와 live 독립성, clean 상태, 정본 증거 hash를 확인한 뒤 관리된 Git worktree만 `git worktree remove`로 정리한다. force나 상설 공간 삭제는 하지 않는다. 프로세스 사용 여부가 unknown이거나 미커밋·미추적·ignored 파일이 남으면 hold 사유·담당·재개 조건을 기록한다. release와 Git 정리는 별도 단계다. 임시 clone은 이 명령의 삭제 대상이 아니며 별도 소유권·세션·증거를 확인해 담당자가 정리한다.
+
+정리 후 `review.py check --historical --repo <루트> --key <리뷰 키>`는 보존된 완료 증거의 동일성만 확인한다. 새 수락에는 사용하지 않는다. 신규 check는 여전히 live snapshot을 요구한다. 재검증은 보존된 40자리 SHA로 새 리뷰 키의 snapshot을 만들고 prepare/check한다. 과거 failed/skipped/unknown을 accepted로 바꾸지 않는다. 같은 cleanup 재시도는 중복 삭제하지 않는다.
+
+## 대화 미참조 인계 점검
+
+이전 대화를 읽지 않고 정본 산출물 인덱스에서 시작한다. 현재 요구·결정 이유·구조·구현/미완료 상태·실행/검증 방법·운영/복구(해당 시)·다음 작업을 각각 찾고 경로/절과 실제 점검 결과를 report.md에 남긴다. `확인/미확인/해당 없음`과 누락·오래된 정보·깨진 링크·지원하지 않는 anchor를 구분한다. 형식 검사·front matter·테스트 통과는 의미적 인계 점검 결과를 대신하지 않는다. 변경에 영향을 받는 정본만 갱신하고 모든 D01–D13을 매 과제 생성하지 않는다.

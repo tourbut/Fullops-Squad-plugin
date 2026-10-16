@@ -6,5 +6,6 @@
   "author": {
     "name": "tourbut"
   },
-  "repository": "https://github.com/tourbut/Fullops-Squad-plugin"
+  "repository": "https://github.com/tourbut/Fullops-Squad-plugin",
+  "license": "MIT"
 }

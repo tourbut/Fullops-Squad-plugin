@@ -7,7 +7,6 @@
   },
   "repository": "https://github.com/tourbut/Fullops-Squad-plugin",
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json",
   "dependencies": [
     {
@@ -18,5 +17,6 @@
       "name": "mattpocock-skills",
       "marketplace": "claude-plugins-official"
     }
-  ]
+  ],
+  "license": "MIT"
 }

@@ -148,6 +148,7 @@ python3 <플러그인>/scripts/jev_find.py find --repo . --role dev --key TASK-1
 
 필요 환경: Python 3.10+, Git 2.41+, Node.js 20.18.1+/npm/npx, 사용할 AI CLI, Orca IDE.
 일반 설치는 GitHub 마켓플레이스를 사용합니다. 개발 체크아웃·agy 설치는 [개발 문서](docs/development.md)를 따릅니다.
+Anthropic 플러그인 디렉터리판(`dist/directory/fullops-squad`)은 다른 플러그인과 Context7을 자동 설치하지 않습니다. 필요하면 설치된 플러그인의 `scripts/deps.py --host claude-code`로 선택 설치합니다.
 
 ### 통합 설치기
 

@@ -1,0 +1,22 @@
+{
+  "name": "fullops-squad",
+  "version": "1.4.4",
+  "repository": "https://github.com/tourbut/Fullops-Squad-plugin",
+  "displayName": "FullOps Squad",
+  "description": "Opt-in development harness that coordinates role-based AI workers in Orca with handovers, design documents, lint gates and pre-merge review.",
+  "author": {
+    "name": "tourbut",
+    "url": "https://github.com/tourbut"
+  },
+  "homepage": "https://github.com/tourbut/Fullops-Squad-plugin",
+  "license": "MIT",
+  "keywords": [
+    "orchestration",
+    "multi-agent",
+    "orca",
+    "handover",
+    "code-review",
+    "workflow"
+  ],
+  "skills": "./skills/"
+}
