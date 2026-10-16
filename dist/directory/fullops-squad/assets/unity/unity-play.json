@@ -1,0 +1,22 @@
+{
+  "player": "Player",
+  "groups": [
+    {"name": "enemy", "patterns": ["Enemy*"]},
+    {"name": "npc", "patterns": ["Npc*"]}
+  ],
+  "fields": [
+    {"name": "player_hp", "path": "PlayerHealth.current"}
+  ],
+  "keys": [
+    {"name": "attack", "key": "Space", "note": "Attack whatever is within reach."},
+    {"name": "interact", "key": "E", "note": "Talk to or use the thing within reach."}
+  ],
+  "move": {"up": "W", "down": "S", "left": "A", "right": "D"},
+  "reach": 1.2,
+  "approachSeconds": 3,
+  "pressSeconds": 0.15,
+  "waitSeconds": 1,
+  "startDelay": 1,
+  "decisionTimeout": 120,
+  "maxDecisions": 200
+}

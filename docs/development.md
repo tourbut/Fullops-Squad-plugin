@@ -15,6 +15,7 @@ summary: 플러그인 원본 수정, 통합 설치기 패키징과 배포 검증
 - `plugins/fullops-squad/`: Agent Plugins 1.0.0 표준 원본. `plugin.json`과 `mcp.json`이 공통 정본이다.
 - `adapters/`: 호스트별 메타데이터.
 - `dist/native/fullops-squad/`: `scripts/build.py`가 만드는 생성물. 직접 고치지 않는다. 루트 마켓플레이스 카탈로그가 이 경로를 가리키므로 호스트 검증 전에 빌드한다.
+- `dist/directory/fullops-squad/`: 같은 빌드가 만드는 Anthropic 플러그인 디렉터리 제출판. native에서 다음을 바꾼다. hook은 `${CLAUDE_PLUGIN_ROOT}/hooks/run.sh`로 플러그인 안의 스크립트를 직접 실행하고, 의존 플러그인·Codex 메타데이터는 제거하고, Context7은 원격 https MCP와 선택 `userConfig` 키(`context7_api_key`)로 바꾸고, 영문 README와 LICENSE를 넣는다. 원본은 `adapters/claude-directory.json`과 `adapters/claude-directory/`다. 포털 제출 경로는 이 폴더이고, 제출 전 `claude plugin validate --strict dist/directory/fullops-squad`를 실행한다.
 - `dependencies.json`: 외부 스킬·MCP·도구의 출처와 설치 대상. 외부 구현은 이 레포에 복사하지 않는다.
 - `docs/releases/`: 버전별 변경 범위와 기존 레포 적용 방법.
 

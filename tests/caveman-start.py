@@ -25,7 +25,8 @@ def target(command):
 
 for host in ('codex', 'claude'):
     manifest = json.loads((PACKAGE / f'.{host}-plugin/plugin.json').read_text())
-    config = json.loads((PACKAGE / manifest['hooks']).read_text())
+    # Claude Code는 hooks/hooks.json을 자동으로 읽으므로 manifest에 중복 선언하지 않는다.
+    config = json.loads((PACKAGE / manifest.get('hooks', './hooks/hooks.json')).read_text())
     assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'}
     group, gate, flow = config['hooks']['SessionStart']
     assert group['matcher'] == 'startup|clear'  # Resume/compact must preserve an opt-out.

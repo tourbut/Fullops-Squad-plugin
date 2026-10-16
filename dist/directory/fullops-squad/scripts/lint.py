@@ -1,0 +1,401 @@
+#!/usr/bin/env python3
+"""변경 파일에 프로젝트 lint 명령과 스택 무관 기본 검사를 실행한다. 기존 위반은 소급하지 않는다."""
+import argparse
+import difflib
+from fnmatch import fnmatch
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tokenize
+import uuid
+
+import deliverables
+import policy
+from work import active_repo, safe_file
+from storage import write_json
+
+CONFIG = '.fullops-squad/lint/lint.json'
+DEFAULT = json.loads((Path(__file__).resolve().parents[1] / 'assets/repository' / CONFIG).read_text())
+PY = {'.py'}
+HASH = {'.sh', '.bash', '.rb', '.gd', '.pl', '.r'}
+C_STYLE = {'.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.svelte', '.vue', '.go', '.rs', '.java',
+           '.kt', '.kts', '.scala', '.c', '.h', '.cc', '.cpp', '.hpp', '.cs', '.swift', '.php',
+           '.dart', '.css', '.scss', '.less', '.html', '.gdshader', '.shader'}
+EVAL_TARGETS = PY | {'.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.svelte', '.vue'}
+BLOCK_COMMENTS = (('/*', '*/'), ('<!--', '-->'))
+SUPPRESSIONS = [
+    (re.compile(r'#\s*type:\s*ignore(?!\s*\[)'), '# type: ignore[<code>]'),
+    (re.compile(r'#\s*pyright:\s*ignore(?!\s*\[)'), '# pyright: ignore[<rule>]'),
+    (re.compile(r'#\s*noqa(?!\s*:)', re.IGNORECASE), '# noqa: <code>'),
+    (re.compile(r'@ts-ignore|@ts-nocheck'), '정확한 타입 또는 @ts-expect-error <사유>'),
+    (re.compile(r'eslint-disable(?:-next-line|-line)?\s*(?:\*/|-->)?\s*$'), 'eslint-disable-next-line <rule>'),
+]
+# Canny(qkal/canny)의 테스트 케이스·skip 패턴을 따른다.
+CASE = re.compile(r'\b[xf]?(?:it|test|describe)(?:\.\w+)?\s*\(|\bdef test_\w+|\bfunc Test\w+|#\[test\]|@Test\b|'
+                  r'\bfunc test\w+\s*\(|\b(?:it|test)\s+"[^"]*"\s+do\b')
+SKIP = re.compile(r'\.(?:skip|todo|only)\s*\(|\b[xf](?:it|test|describe)\s*\(|@pytest\.mark\.(?:skip|xfail)|'
+                  r'\bpytest\.(?:skip|xfail)\(|@unittest\.skip|\bt\.Skip(?:f|Now)?\(|#\[ignore\]|@Ignore\b|'
+                  r'@Disabled\b|XCTSkip|\bpending\s*\(')
+EVAL = re.compile(r'(?<![\w.$])(?:eval|exec)\s*\(')
+SECRET = re.compile(r"""(?:password|passwd|pwd|api[_-]?key|apikey|secret(?:_key)?|(?:access_|auth_)?token|"""
+                    r"""db_password|database_password)\s*[:=]\s*["'][^"']+["']""", re.IGNORECASE)
+SECRET_OK = re.compile(r"""[:=]\s*["'](?:test|example|dummy|placeholder|changeme|xxx|your_|<)|"""
+                       r"""os\.environ|process\.env|import\.meta\.env|settings\.""", re.IGNORECASE)
+DEPENDENCY_FILES = ('package.json', 'pyproject.toml', 'requirements*.txt', 'go.mod', 'build.gradle*')
+
+
+def git(repo, *args, data=False, env=None):
+    output = subprocess.check_output(['git', '-C', str(repo), *args], env=env)
+    return output if data else output.decode().strip()
+
+
+def config_blob(repo, ref):
+    """ref 시점의 설정 원문. 없으면 None."""
+    done = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f'{ref}:{CONFIG}'], capture_output=True)
+    return done.stdout if done.returncode == 0 else None
+
+
+def load_config(repo, ref):
+    """검사 대상 브랜치가 스스로 규칙을 느슨하게 하지 못하도록 기준 시점(merge-base)의 설정을 쓴다."""
+    repo = repo.resolve()
+    raw = config_blob(repo, ref)
+    if raw is None:
+        return DEFAULT, None
+    config = {**DEFAULT, **json.loads(raw)}
+    if config.get('schema_version') != 1:
+        raise ValueError('지원하지 않는 lint 설정 버전')
+    for command in config['commands']:
+        policy.command_selected(command, 'standard')
+        run = command.get('run')
+        if not command.get('name') or not isinstance(run, list) or not run or not all(isinstance(a, str) for a in run):
+            raise ValueError('lint 명령은 name과 문자열 배열 run이 필요합니다')
+        cwd = (repo / command.get('cwd', '.')).resolve()
+        if cwd != repo and repo not in cwd.parents:
+            raise ValueError(f'레포 밖 cwd: {command["name"]}')
+    return config, hashlib.sha256(raw).hexdigest()
+
+
+def code_lines(text, ext):
+    if ext == '.md':
+        return len(text.splitlines())
+    if ext in PY:
+        try:
+            code, logical = set(), []
+            skip = {tokenize.COMMENT, tokenize.NL, tokenize.INDENT, tokenize.DEDENT, tokenize.ENCODING, tokenize.ENDMARKER}
+            for tok in tokenize.generate_tokens(io.StringIO(text).readline):
+                if tok.type in skip:
+                    continue
+                if tok.type == tokenize.NEWLINE:
+                    if not (len(logical) == 1 and logical[0].type == tokenize.STRING):  # docstring
+                        for t in logical:
+                            code.update(range(t.start[0], t.end[0] + 1))
+                    logical = []
+                else:
+                    logical.append(tok)
+            return len(code)
+        except (tokenize.TokenError, SyntaxError):
+            pass
+    if ext in HASH:
+        return sum(1 for line in text.splitlines() if line.strip() and not line.strip().startswith('#'))
+    # ponytail: 문자열 안의 주석 마커를 구분하지 않는다. 상한 검사라 적게 세는 쪽이 안전하다.
+    count, closer = 0, None
+    for raw in text.splitlines():
+        s = raw.strip()
+        while s:
+            if closer:
+                s, closer = (s.split(closer, 1)[1].strip(), None) if closer in s else ('', closer)
+                continue
+            opener = next((pair for pair in BLOCK_COMMENTS if s.startswith(pair[0])), None)
+            if not opener:
+                break
+            s, closer = s[len(opener[0]):], opener[1]
+        if s and not s.startswith('//'):
+            count += 1
+    return count
+
+
+def header_summary(text, ext):
+    """파일 머리의 설명 한 줄(docstring·주석·제목). 없으면 ''. jev_find의 코드 지도가 이 값을 쓴다."""
+    lines = [line.strip() for line in text.splitlines()[:40]]
+    lines = [line for line in lines if line and not line.startswith(('#!', '# -*-', '// @ts-', "'use ", '"use '))]
+    if not lines:
+        return ''
+    first = lines[0]
+    if ext == '.md':
+        return first.lstrip('#').strip() if first.startswith('#') else ''
+    if ext in PY:
+        for quote in ('"""', "'''"):
+            if first.startswith(quote):
+                body = first[3:].split(quote)[0].strip()
+                return body or next((line for line in lines[1:] if line and not line.startswith(quote)), '')
+    if ext in PY | HASH and first.startswith('#'):
+        return first.lstrip('#').strip()
+    if ext in C_STYLE:
+        for marker in ('//', '/**', '/*', '<!--'):
+            if first.startswith(marker):
+                body = first[len(marker):].replace('*/', '').replace('-->', '').strip(' *')
+                return body or next((line.strip('/* ') for line in lines[1:] if line.strip('/* ')), '')
+    return ''
+
+
+def is_test(path):
+    name, parts = Path(path).name, Path(path).parts
+    return (name.startswith('test_') or re.search(r'[._](test|spec)\.[^.]+$', name) is not None
+            or re.search(r'Tests?\.(swift|kt|java|cs)$|_spec\.rb$', name) is not None
+            or bool({'test', 'tests', 'spec', 'specs', '__tests__'} & set(parts[:-1])))
+
+
+def changed(repo, base, head, env=None):
+    fields = git(repo, 'diff', '--name-status', '-z', '-M', '--no-ext-diff', base, head, data=True, env=env).decode().split('\0')
+    items, i = [], 0
+    while i < len(fields) - 1:
+        status = fields[i]
+        if status[0] in 'RC':
+            items.append((fields[i + 1], fields[i + 2]))
+            i += 3
+        else:
+            path = fields[i + 1]
+            items.append((None if status[0] == 'A' else path, None if status[0] == 'D' else path))
+            i += 2
+    return items
+
+
+def blob(repo, ref, path):
+    if path is None:
+        return ''  # 추가·삭제된 쪽은 빈 내용으로 비교한다
+    data = git(repo, 'cat-file', 'blob', f'{ref}:{path}', data=True)
+    return None if b'\0' in data else data.decode('utf-8', errors='replace')
+
+
+def added_lines(old, new):
+    lines = new.splitlines()
+    matcher = difflib.SequenceMatcher(None, old.splitlines(), lines, autojunk=False)
+    for tag, _, _, j1, j2 in matcher.get_opcodes():
+        if tag in ('replace', 'insert'):
+            yield from ((j + 1, lines[j]) for j in range(j1, j2))
+
+
+def check_file(path, old, new, config):
+    ext = Path(path).suffix.lower()
+    size = config['size']
+    limit = size['max_doc_lines'] if ext == '.md' else size['max_code_lines']
+    if limit and (ext == '.md' or ext in PY | HASH | C_STYLE):
+        after = code_lines(new, ext)
+        before = code_lines(old, ext) if old else 0
+        if after > limit and after > before:
+            yield ('SIZE-001', size['severity'], None,
+                   f'{after}줄(이전 {before}, 상한 {limit}). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다')
+    test = is_test(path)
+    soft = test or ext == '.md'
+    if not old and ext in PY | HASH | C_STYLE and not header_summary(new, ext):
+        yield ('DOC-001', 'WARNING', None, '새 코드 파일에 무엇을 하는지 적은 헤더 설명(docstring·주석 1~3줄)이 없다')
+    if test and old and len(CASE.findall(new)) < len(CASE.findall(old)):
+        yield ('ANTI-005', 'WARNING', None,
+               f'테스트 케이스 {len(CASE.findall(old)) - len(CASE.findall(new))}개 감소. 대체 테스트나 삭제 이유를 확인한다')
+    rules = [r for r in config['rules'] if r.get('enabled', True)
+             and (not r.get('file_extensions') or ext in r['file_extensions'])
+             and not any(fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:]))
+                         for p in r.get('exclude_paths', []))]
+    additions = list(added_lines(old or '', new))
+    numbers = {number for number, _ in additions}
+    for rule in (r for r in rules if r.get('multiline')):
+        for match in re.finditer(rule['pattern'], new):
+            start = new.count('\n', 0, match.start()) + 1
+            end = new.count('\n', 0, match.end()) + 1
+            if numbers.intersection(range(start, end + 1)) and not any(
+                    re.search(p, match.group()) for p in rule.get('exclude_patterns', [])):
+                yield rule['code'], rule.get('severity', 'WARNING'), start, f"{rule['description']}. {rule.get('suggestion', '')}".strip()
+    for number, line in additions:
+        if ext in PY | HASH | C_STYLE:
+            for pattern, hint in SUPPRESSIONS:
+                if pattern.search(line):
+                    yield 'ANTI-003', 'ERROR', number, f'범위 없는 억제 금지. {hint}로 좁힌다'
+        if test and SKIP.search(line):
+            yield 'ANTI-004', 'ERROR', number, '테스트 skip·only 표식 추가 금지. 실패 원인을 고치거나 테스트를 정당하게 바꾼다'
+        if ext in EVAL_TARGETS and EVAL.search(line):
+            yield 'ANTI-002', 'ERROR', number, 'eval()/exec() 금지'
+        if SECRET.search(line) and not SECRET_OK.search(line):
+            yield 'SEC-001', 'WARNING' if soft else 'ERROR', number, '하드코딩 비밀값 의심. 환경변수·설정으로 옮긴다'
+        for rule in (r for r in rules if not r.get('multiline')):
+            if re.search(rule['pattern'], line) and not any(re.search(p, line) for p in rule.get('exclude_patterns', [])):
+                yield rule['code'], rule.get('severity', 'WARNING'), number, f"{rule['description']}. {rule.get('suggestion', '')}".strip()
+
+
+def deliverable_violations(path, text, index):
+    """바뀐 파일이 산출물 원천 문서면 front matter를 deliverables.py 규칙으로 검사한다(DOC-002)."""
+    if not path.startswith('.fullops-squad/'):
+        return []
+    relative = path[len('.fullops-squad/'):]
+    found = []
+    for doc_id, (_, sources, status) in index.items():
+        if status != '범위 밖' and deliverables.owner_of(sources, relative):
+            for problem in deliverables.problems(text, doc_id, status):
+                found.append({'code': 'DOC-002', 'severity': 'ERROR', 'line': None, 'path': path,
+                              'message': f'{doc_id} front matter: {problem}. '
+                                         f'`deliverables.py --stamp --id {doc_id}`로 다시 쓴다'})
+    if not any(deliverables.owner_of(sources, relative) for _, sources, _ in index.values()) and path.endswith('.md') and text.strip() and not relative.startswith('rules/common/') and not Path(path).name.startswith('_'):
+        found += [{'code': 'DOC-003', 'severity': 'ERROR', 'line': None, 'path': path,
+                   'message': f'front matter: {problem}. `deliverables.py --stamp --path {relative}`로 다시 쓴다'}
+                  for problem in deliverables.problems(text)]
+    return found
+
+
+NO_CODE = '코드 파일 변경 없음(문서·설정만 변경). required가 아닌 test 명령은 실행하지 않는다'
+
+
+def code_changes(repo, base, head, config):
+    """[(경로, 추가+삭제 줄 수)] lint 제외를 뺀 코드 파일만. 리뷰 필요 판단과 문서 전용 테스트 생략이 같이 쓴다."""
+    fields = git(repo, 'diff', '--numstat', '-z', '--no-renames', '--no-ext-diff', base, head, data=True).decode().split('\0')
+    result = []
+    for field in fields:
+        if field.count('\t') < 2:
+            continue
+        added, deleted, path = field.split('\t', 2)
+        if Path(path).suffix.lower() in PY | HASH | C_STYLE and not any(
+                fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in config['exclude']):
+            result.append((path, (int(added) if added.isdigit() else 0) + (int(deleted) if deleted.isdigit() else 0)))
+    return result
+
+
+def skips_tests(command, code):
+    return command.get('kind') == 'test' and not command.get('required') and not code
+
+
+def run_command(repo, command, timeout):
+    entry = {'name': command['name'], 'kind': command.get('kind', 'lint'),
+             'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
+    try:
+        run = [shutil.which(command['run'][0]) or command['run'][0], *command['run'][1:]]  # Windows의 npx.cmd 등
+        done = subprocess.run(run, cwd=repo / entry['cwd'], capture_output=True, text=True,
+                              timeout=timeout, errors='replace')
+    except FileNotFoundError:
+        return {**entry, 'status': 'unavailable', 'exit_code': None, 'output_tail': ''}
+    except subprocess.TimeoutExpired:
+        return {**entry, 'status': 'timeout', 'exit_code': None, 'output_tail': ''}
+    tail = '\n'.join((done.stdout + done.stderr).splitlines()[-40:])
+    return {**entry, 'status': 'passed' if done.returncode == 0 else 'failed',
+            'exit_code': done.returncode, 'output_tail': tail}
+
+
+def lint(repo, base_ref):
+    gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
+    gate.mkdir(exist_ok=True)
+    (gate / 'pass.json').unlink(missing_ok=True)
+    (gate / 'lint-result.json').unlink(missing_ok=True)
+    attempt = uuid.uuid4().hex
+    write_json(gate / 'lint-attempt.json', {'attempt': attempt})
+    if git(repo, 'status', '--porcelain'):
+        raise ValueError('작업 트리가 깨끗하지 않습니다. 커밋 후 실행하세요')
+    head = git(repo, 'rev-parse', 'HEAD')
+    base = git(repo, 'rev-parse', '--verify', base_ref + '^{commit}')
+    merge_base = git(repo, 'merge-base', base, head)
+    config, digest = load_config(repo, merge_base)
+    violations, files, additions = [], 0, 0
+    if config_blob(repo, head) != config_blob(repo, merge_base):
+        violations.append({'code': 'LINT-001', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
+                           'message': '이 브랜치의 lint 설정 변경은 적용하지 않았습니다. 병합 후 적용되니 변경 이유를 검토하세요'})
+    index = deliverables.index_rows(blob(repo, head, '.fullops-squad/' + deliverables.INDEX) or '')
+    for old_path, path in changed(repo, merge_base, head):
+        target = path or old_path
+        if path:
+            new = blob(repo, head, path)
+            if new is not None:
+                violations += deliverable_violations(path, new, index)
+        if any(fnmatch(target, p) or (p.startswith('**/') and fnmatch(target, p[3:])) for p in config['exclude']):
+            continue
+        if any(fnmatch(Path(name).name, pattern) for name in (old_path, path) if name for pattern in DEPENDENCY_FILES):
+            violations.append({'code': 'DEP-001', 'severity': 'WARNING', 'line': None, 'path': target,
+                               'message': '의존성 선언 파일 변경. 완료 보고에 의존성 변경 여부와 필요성·표준 라이브러리 대안을 기록하세요'})
+        if path is None:
+            if is_test(old_path):
+                violations.append({'code': 'ANTI-005', 'severity': 'WARNING', 'line': None, 'path': old_path,
+                                   'message': '테스트 파일 삭제. 대체 테스트나 삭제 이유를 확인한다'})
+            continue
+        new = blob(repo, head, path)
+        old = blob(repo, merge_base, old_path)
+        if new is None or old is None:
+            continue
+        files += 1
+        additions += sum(1 for _ in added_lines(old, new))
+        violations += [dict(zip(('code', 'severity', 'line', 'message'), v), path=path)
+                       for v in check_file(path, old, new, config)]
+    limit = config['size'].get('max_diff_added', DEFAULT['size']['max_diff_added'])
+    if limit and additions > limit:
+        violations.append({'code': 'SIZE-002', 'severity': 'WARNING', 'line': None, 'path': '',
+                           'message': f'변경 추가 {additions}줄 > 상한 {limit}줄. 지시서의 예상 변경 규모와 차이·분할하지 않은 이유를 검토하세요'})
+    level, policy_digest = policy.at_ref(repo, merge_base)
+    code = code_changes(repo, merge_base, head, config)
+    commands = [{**c, 'status': 'skipped', 'reason': f'기준 설정 test_level={level}, 명령 최소 level={c["level"]}'}
+                if not policy.command_selected(c, level) else
+                {**c, 'status': 'skipped', 'reason': NO_CODE} if skips_tests(c, code) else
+                run_command(repo, c, config['timeout_seconds'])
+                for c in config['commands']]
+    if not config['commands']:
+        violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
+                           'message': '프로젝트 lint 명령이 등록되지 않았습니다. setup에서 기존 도구를 연결하세요'})
+    errors = sum(v['severity'] == 'ERROR' for v in violations) + sum(c['status'] in ('failed', 'timeout') for c in commands)
+    return {'schema_version': 1, 'attempt': attempt, 'base': base, 'merge_base': merge_base, 'head': head, 'config_sha256': digest,
+            'test_level': level, 'policy_sha256': policy_digest,
+            'commands': commands, 'violations': violations,
+            'summary': {'files': files, 'added_lines': additions, 'errors': errors,
+                        'warnings': sum(v['severity'] == 'WARNING' for v in violations),
+                        'unavailable': sum(c['status'] == 'unavailable' for c in commands)}}
+
+
+def stamp(repo, result):
+    """done-gate(Stop hook)가 읽는 통과 기록. 체크아웃별 git 디렉터리에 둔다."""
+    try:
+        gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
+        gate.mkdir(exist_ok=True)
+        if json.loads((gate / 'lint-attempt.json').read_text())['attempt'] != result['attempt']:
+            return
+        write_json(gate / 'pass.json', {k: result[k] for k in ('attempt', 'head', 'base', 'merge_base', 'config_sha256')})
+    except (OSError, ValueError, KeyError, subprocess.CalledProcessError):
+        pass  # 기록 실패는 lint 결과를 바꾸지 않는다
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--repo', required=True, help='검사할 체크아웃 루트 (worker 워크트리)')
+    parser.add_argument('--from', required=True, dest='base', help='기준 ref. merge-base 이후 변경만 검사')
+    parser.add_argument('--out', help='결과 JSON 경로 (리뷰 디렉터리의 lint.json)')
+    args = parser.parse_args()
+    lock = None
+    try:
+        repo = active_repo(args.repo)
+        lock = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-lint.lock'
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            lock = None
+            raise ValueError('이 체크아웃의 lint가 실행 중입니다. 종료 후 재시도하세요')
+        os.close(fd)
+        result = lint(repo, args.base)
+        write_json(lock.parent / 'fullops-gate/lint-result.json', result)
+        if args.out:
+            write_json(Path(args.out), result)
+        if not (result['summary']['errors'] or result['summary']['unavailable']):
+            stamp(repo, result)
+    except (OSError, ValueError, KeyError, TypeError, re.error, subprocess.CalledProcessError) as error:
+        parser.exit(2, f'lint 실패: {error}\n')
+    finally:
+        if lock is not None:
+            lock.unlink(missing_ok=True)
+    for c in result['commands']:
+        print(f"[{c['status']}] {c['name']}: {' '.join(c['run'])}")
+        if c['status'] == 'failed':
+            print(c['output_tail'])
+    for v in result['violations']:
+        print(f"{v['severity']} {v['code']} {v['path']}{':' + str(v['line']) if v['line'] else ''} {v['message']}")
+    s = result['summary']
+    print(f"head {result['head'][:12]} / 파일 {s['files']} / ERROR {s['errors']} / WARNING {s['warnings']} / 실행 불가 {s['unavailable']}")
+    raise SystemExit(1 if s['errors'] or s['unavailable'] else 0)
+
+
+if __name__ == '__main__':
+    main()

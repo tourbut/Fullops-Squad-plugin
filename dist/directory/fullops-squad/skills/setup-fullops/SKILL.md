@@ -1,0 +1,30 @@
+---
+name: setup-fullops
+description: 사용자가 현재 레포에 FullOps Squad 하네스 setup 또는 초기화를 요청할 때 사용한다. 플러그인 설치만으로 실행하지 않는다.
+---
+
+# 레포별 setup
+
+운영 모드는 `coor`(주 담당 조율·위임)와 `dev`(주 담당 직접 개발·필요 전문가 호출) 중 선택한다. 신규 coor 구성은 `coor designer dev ops tester`를 먼저 제안하고 사용자가 추가·제외·이름 변경한 역할로 실행한다. 고정 필수 역할 세트가 아니며 기존 역할·모델·effort·브랜치 구성을 우선한다. 테스트는 minimal·lite·standard·full·exhaustive, 하위 에이전트는 off·lite·standard·full 중 별도로 선택한다. 신규 기본값은 두 설정 모두 lite다. 기존 설정 누락은 coor/standard/subagent off로 읽으며 선택하지 않은 기존 값은 유지한다.
+
+`setup.py --mode <coor|dev> --primary-role <등록 역할> --test-level <minimal|lite|standard|full|exhaustive> --subagent-level <off|lite|standard|full>` 중 변경할 옵션을 기존 setup 옵션에 추가한다. 테스트 범위는 rules/common/testing.md, 선택형 위임은 rules/delegation.md가 정본이다. dev 주 담당 기본 역할은 dev이며 전환 체크아웃의 브랜치와 등록 역할 별칭을 기록한다. 기술 계획·코드 작성 권한과 제품 범위 판단 책임을 구분해 배정표에 적는다. 실제 worker 위임은 아래 역할 인박스 계약을 유지한다.
+
+기존 coor → dev 전환은 요청받았을 때만 수행한다. `--dry-run --verbose`로 책임·변경 파일을 확인하고 작업 공간의 dirty/untracked, 활성 dispatch/run, 미처리 메시지, 진행 리뷰·통합·hold를 해결한 작업 경계에서 실행한다. 전환 원본 백업과 공용 복구 기록은 Git common-dir에 남으며 중단 중에는 새 작업이 차단된다. 같은 옵션으로 재시도하거나 같은 체크아웃에서 `--rollback`으로 원본을 복구한다. 복구 중 사용자 변경은 덮어쓰지 않는다. 완료 후 새 세션을 열고 기존 worker 공간은 다음 배정 전에 준비 커밋을 동기화한다. 일반 dev → coor 전환은 이 기능 범위 밖이다.
+
+기존 레포에서 FullOps 업데이트를 요청하면 `update-fullops`를 먼저 적용한다. 설치 전 버전과 레포 적용 버전 이후의 릴리스 내용을 확인해 필요한 변경까지 수행한다. setup 재실행은 이 과정의 없는 파일 추가 단계이며 기존 문서 적용을 대신하지 않는다.
+
+재실행의 remote·기준 브랜치는 명시적 옵션 → 저장된 `fullops.json` 설정 → 최초 origin/원격 HEAD 순으로 선택한다. 원격 연결된 레포에서 `--local-only`는 기존 역할의 파일 유지에만 사용한다. 새 역할은 원격 setup으로 추가해야 하며 로컬 전용 추가는 변경 전에 실패한다. `--local-only`와 `--remote/--base`는 함께 사용하지 않는다.
+
+setup 후 `.fullops-squad/review/rule.json`을 제품별로 구성한다. 기본 문서·일부 테스트 패턴에 더해 레포의 테스트 경로와 게임 씬·셰이더 등 필요한 자산을 include하고 실제 생성물만 exclude한다. 기존 OCR 규칙이 있으면 명시적으로 통합한다. `fullops-review`가 항상 이 파일을 --rule로 전달한다. 기존 setup 재실행 시 추가된 리뷰 파일은 생성되고 기존 규칙과 기록은 보존된다.
+
+0. 이 스킬 기준 `../../scripts/deps.py --check --host <지금 쓰는 CLI>`로 도구 버전·실제 스킬/플러그인·호스트 완료 기록을 확인한다. 미완료면 사용자 승인 뒤 `python3 <deps.py> --host <지금 쓰는 CLI>`로 설치하고, 새 세션이 필요하다고 알린다.
+1. 사용자가 선택한 Git 레포 루트를 확인한다. 이 스킬 기준 `../../scripts/setup.py`를 사용한다. 플러그인 캐시 경로는 레포에 기록하지 않는다.
+2. 제품·기술·작업 규모에 필요한 역할과 책임을 구성한다. 고정 역할 세트는 없다. 역할 ID는 영문 소문자로 시작하고 소문자·숫자·밑줄·하이픈으로 최대 64자다. 기존 역할은 `fullops.json`에서 재사용하며 `--roles`는 추가만 한다.
+3. GitHub remote의 push URL과 기준 브랜치를 확인한다. `python3 <setup.py> --repo <레포 루트> --roles <역할 ID들> --remote <remote 이름> --dry-run`으로 계획을 확인한 뒤 같은 명령에서 `--dry-run`을 빼고 실행한다. 기본 remote는 origin, 기준은 원격 HEAD이며 `--base <브랜치>`로 지정한다. setup 요청은 선택한 레포의 역할 구성과 원격 역할 브랜치 생성 범위다. 원격이 없으면 연결에 필요한 정보만 질문한다. 로컬 구성만 요청받았으면 `--local-only`를 사용한다. 인증 실패나 빈 원격은 실패로 보고한다.
+4. 생성한 `.fullops-squad/FULLOPS.md`, `.fullops-squad/rules/common/README.md` 및 연결된 세 규칙을 읽고 프로젝트 정본을 project.md에 연결한다. `.fullops-squad/lint/README.md`의 `레포별 lint 구성` 순서로 스택·패키지 매니저·기존 설정·CI·스크립트·모노레포 실행 범위를 확인해 lint.json의 commands와 프로젝트 lint 설정을 구성한다. setup.py는 새 lint.json에 루트 package scripts만 자동 연결하므로 실제 범위와 누락 명령을 확인한다. setup 요청은 이 레포에 필요한 개발용 lint 설정·스크립트와 최소 개발 의존성 구성을 포함한다. 기존 사용자 설정·rules·검사 수준은 보존하고 필요한 부분만 통합한다. Tailwind v4 UI가 있으면 같은 README의 `shadcn 디자인 린트`를 따라 @shadcn/lint 연계를 구성하고 실제 규칙 활성화·검출을 확인한다. 다른 스택은 해당 스택의 검사 도구를 사용한다. 프로젝트 테스트 명령은 kind: test로 연결한다. 각 명령을 실제 cwd에서 실행해 종료코드·기존 위반·새 설정 오류·미실행 사유를 구분하고 project.md에 정본과 결과를 기록한다. 커밋 후 같은 HEAD의 lint.py 게이트를 확인한다. 검사 구성이 미완료면 남은 작업과 영향을 보고하고 setup 완료로 표시하지 않는다. 스택·도구 선택을 위해 기존 공통 기준을 낮추지 않는다. 기존 문서와 진행 중 작업은 보존해 필요한 절만 보강한다.
+5. 등록 역할마다 책임·워크트리·기동 방식을 `orca-agents.md` 배정표에 기록하고 기존 배정은 보존한다. 모델·effort는 역할마다 `## 모델 후보`에 약한 것부터 강한 순으로 적고, 배정표의 모델 칸에는 "모델 후보"라고 적는다. 후보가 없는 역할만 배정표에 기본 모델을 적는다. 기획·설계는 고성능 모델, 명확한 구현 과제는 비용이 낮은 모델을 후보로 둔다. 기존 배정표에 모델이 고정돼 있고 같은 역할에 후보도 있으면 사용자에게 알리고 모델 칸을 "모델 후보"로 바꿀지 묻는다. 미정인 사용자 선호만 질문한다. 역할별 원격 브랜치는 `fullops/<역할 ID>`다. setup은 기존 브랜치를 이동하거나 워크트리·터미널을 생성하지 않는다.
+6. `.fullops-squad/board/board.json`의 `title`·`summary`를 레포에 맞게 쓰고, 기본 단계(기획·설계·구현·QA·이행)를 레포의 실제 진행 단계와 상태로 고친다. 이미 있는 산출물 원천이 있으면 해당 단계의 `deliverables`에 연결한다. 이 스킬 기준 `../../scripts/board.py`로 현황판 데이터를 한 번 만들고 `board/index.html` 경로를 보고한다.
+7. 외부 스킬 설정은 `.fullops-squad/docs/agents/`가 정본이다. UI/UX 작업을 요청하면 `fullops-frontend`로 frontend.json의 주 스킬·기존 디자인 정본·호스트/고정 모델을 연결한다. 선택형 tools의 기본값은 빈 목록이며 일반 setup에서는 설치·활성화·실행 검사를 하지 않는다. 기존 frontend.json·고정 모델·effort를 보존한다. 이슈 트래커는 기본 로컬이며 GitHub/Linear 선택 시 실제 연결을 기록한다. 원격 브랜치 생성만으로 GitHub Issues나 Projects 연동이 완료됐다고 보고하지 않는다.
+8. 생성 파일·원격 브랜치·미정 배정·검증 불가 사항을 보고한다. 외부 키(`OPENROUTER_API_KEY`, GitHub 로그인, Context7 키)의 용도·없을 때 동작·설정 위치는 패키지의 `../../CREDENTIALS.md`를 따른다. 키 값은 읽거나 출력하지 않고, 설정 여부와 빠진 키의 영향만 보고한다. `fullops.json`은 활성화 표식과 역할/브랜치 정본이다. 기존 버전은 `--roles`로 역할을 명시해 전환하고 인박스·컨텍스트·로그를 보존한다. 역할 삭제·이름 변경·기존 브랜치 변경은 자동으로 하지 않는다. 원격 생성 뒤 파일 쓰기가 실패하면 같은 명령으로 재시도한다. 생성 파일은 별도 커밋 대상이며 setup이 자동 커밋하지 않는다.
+
+의존성이 없으면 0단계의 `../../scripts/deps.py`로 설치한다. Context7 MCP 실행 파일도 이 스크립트가 npm으로 설치한다. 도구 목록만으로 미설치를 판정하지 말고 설치 경로와 플러그인 목록도 확인한다. 인증값은 호스트 환경에서 제공하고 레포에 기록하지 않는다.

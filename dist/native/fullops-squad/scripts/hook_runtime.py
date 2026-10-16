@@ -30,7 +30,14 @@ def content_key(files):
     return digest.hexdigest()
 
 
+def in_place(package):
+    """The directory edition runs hooks from its own folder through hooks/run.sh and needs no runtime."""
+    return (Path(package) / 'hooks/run.sh').is_file()
+
+
 def problems(package):
+    if in_place(package):
+        return []
     try:
         root = runtime_root()
         current = json.loads((root / 'current.json').read_text(encoding='utf-8'))
@@ -55,6 +62,8 @@ def install(package):
     from storage import write_many
 
     package = Path(package).resolve()
+    if in_place(package):
+        return package  # Nothing is written outside the plugin folder.
     manifest = json.loads((package / 'plugin.json').read_text(encoding='utf-8'))
     if manifest.get('name') != 'fullops-squad':
         raise ValueError('FullOps package required for hook runtime')

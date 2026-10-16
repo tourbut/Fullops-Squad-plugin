@@ -1,0 +1,128 @@
+{
+  "marketplaces": {
+    "ponytail": "DietrichGebert/ponytail",
+    "claude-plugins-official": "anthropics/claude-plugins-official"
+  },
+  "skill_cli": "skills@latest",
+  "skills": [
+    {
+      "source": "JuliusBrussee/caveman",
+      "names": [
+        "caveman"
+      ]
+    },
+    {
+      "source": "typesafe-ai/skills",
+      "names": [
+        "typesafe-ai"
+      ]
+    },
+    {
+      "source": "alibaba/open-code-review",
+      "names": [
+        "open-code-review-delegate"
+      ]
+    },
+    {
+      "source": "cathrynlavery/diagram-design",
+      "names": [
+        "diagram-design"
+      ]
+    },
+    {
+      "source": "anthropics/skills",
+      "path": "skills/frontend-design",
+      "license": "Apache-2.0 (skills/frontend-design/LICENSE.txt)",
+      "names": [
+        "frontend-design"
+      ]
+    },
+    {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "path": ".claude/skills/ui-ux-pro-max",
+      "license": "MIT",
+      "names": [
+        "ui-ux-pro-max"
+      ]
+    },
+    {
+      "source": "pbakaus/impeccable",
+      "path": ".agents/skills/impeccable",
+      "license": "Apache-2.0",
+      "names": [
+        "impeccable"
+      ]
+    },
+    {
+      "source": "vercel-labs/agent-skills",
+      "path": "skills/web-design-guidelines",
+      "license": "NOASSERTION (verify upstream before redistribution)",
+      "names": [
+        "web-design-guidelines"
+      ]
+    }
+  ],
+  "portable_skills": [
+    {
+      "source": "DietrichGebert/ponytail",
+      "names": [
+        "*"
+      ]
+    }
+  ],
+  "frontend_tools": {
+    "playwright": {
+      "source": "https://github.com/microsoft/playwright-cli",
+      "package": "@playwright/cli@latest",
+      "command": "playwright-cli",
+      "license": "Apache-2.0"
+    },
+    "impeccable-engine": {
+      "source": "https://github.com/pbakaus/impeccable",
+      "package": "impeccable@latest",
+      "command": "impeccable",
+      "license": "Apache-2.0"
+    },
+    "shadcn": {
+      "source": "https://ui.shadcn.com/docs/mcp",
+      "package": "shadcn@latest",
+      "command": "shadcn",
+      "license": "MIT"
+    }
+  },
+  "tools": [
+    {
+      "package": "@alibaba-group/open-code-review@latest",
+      "command": "ocr"
+    }
+  ],
+  "mcp": {
+    "context7": {
+      "package": "@upstash/context7-mcp@latest",
+      "command": "context7-mcp"
+    }
+  },
+  "codex": {
+    "plugins": [
+      "ponytail@ponytail"
+    ],
+    "skills": [
+      {
+        "source": "mattpocock/skills",
+        "names": [
+          "*"
+        ]
+      }
+    ]
+  },
+  "optional_skills": [
+    {
+      "source": "microsoft/CUAWright",
+      "path": "skills/cuawright-web",
+      "license": "MIT AND Apache-2.0 (pyproject.toml; preserve LICENSE/NOTICE/licenses)",
+      "names": [
+        "cuawright-web"
+      ]
+    }
+  ]
+}
