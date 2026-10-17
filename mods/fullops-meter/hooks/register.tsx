@@ -6,7 +6,8 @@ import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptToken
 import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, modelName, statusLine, workerBlock, workerLine } from './meter'
-import { parseKeys, parseProgress, parseRows, parseRunId, reconcile } from './workers'
+import type { CardsProps } from './worker-cards'
+import { STAGES, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
@@ -218,12 +219,16 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   const before = (await read($, meterAtom))?.workers ?? []
   const workers = await Promise.all(
     merged.workers.map(async worker => {
-      const kept = before.find(old => old.dispatchId === worker.dispatchId)?.progress ?? null
-      if (worker.phase !== 'active') return { ...worker, progress: kept }
+      const old = before.find(one => one.dispatchId === worker.dispatchId)
+      const kept = old?.progress ?? null
+      // Workers kept from an older load carry no stage.
+      const reached = Math.max(worker.stage, old?.stage ?? 0)
+      if (worker.phase !== 'active') return { ...worker, stage: reached, progress: kept }
       const out = await $.process
         .run(['orca', 'orchestration', 'worker-read', '--dispatch', worker.dispatchId, '--source', 'transcript', '--limit', String(PROGRESS_ROWS), '--json'], { timeoutMs: 15_000 })
         .catch(() => undefined)
-      return { ...worker, progress: (out?.exitCode === 0 ? parseProgress(out.stdout) : null) ?? kept }
+      const progress = (out?.exitCode === 0 ? parseProgress(out.stdout) : null) ?? kept
+      return { ...worker, stage: stageOf(progress?.steps ?? [], reached), progress }
     }),
   )
   await commit($, shared, meter => ({ ...meter, workers }))
@@ -409,11 +414,53 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const elements = $.ui.resolve(e)
+    const { Box, Button, Text } = elements
+    // The animated cards need a surface that runs surface modules (terminal, desktop); the rest get text.
+    const Client = 'Client' in elements ? elements.Client : undefined
     const fullops = await read($, fullopsAtom)
     const meter = await read($, meterAtom)
     const tab = await read($, tabAtom)
     const now = (await read($, nowAtom)) || (await $.clock.now())
+    const workers = meter?.workers ?? null
+    const tabs = (
+      <Box>
+        {TABS.map(item => (
+          <Button
+            key={item.tab}
+            label={item.label}
+            hotkey={item.hotkey}
+            variant={item.tab === tab ? 'primary' : 'secondary'}
+            onPress={() => update($, tabAtom, () => item.tab)}
+          />
+        ))}
+        <Text dimColor> {fullops === null ? '' : `role ${fullops.role}`}</Text>
+      </Box>
+    )
+
+    if (fullops !== null && tab === 'workers' && workers !== null && Client !== undefined) {
+      const cards: CardsProps = {
+        now,
+        stages: [...STAGES],
+        workers: workers.map(w => ({
+          id: w.dispatchId,
+          role: w.role,
+          key: w.key,
+          phase: w.phase,
+          stage: w.phase === 'done' ? STAGES.length : (w.stage ?? 0),
+          since: w.since,
+          lastAt: w.progress?.at ?? 0,
+          needsAction: w.needsAction === true,
+          isLive: w.isLive !== false,
+        })),
+      }
+      return (
+        <Box flexDirection="column">
+          {tabs}
+          <Client key="workers" module="./worker-cards.tsx" props={cards} />
+        </Box>
+      )
+    }
 
     let rows: { head: string; lines: string[] }[]
     const plain = (texts: string[]) => texts.map(head => ({ head, lines: [] }))
@@ -424,18 +471,7 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
-        <Box>
-          {TABS.map(item => (
-            <Button
-              key={item.tab}
-              label={item.label}
-              hotkey={item.hotkey}
-              variant={item.tab === tab ? 'primary' : 'secondary'}
-              onPress={() => update($, tabAtom, () => item.tab)}
-            />
-          ))}
-          <Text dimColor> {fullops === null ? '' : `role ${fullops.role}`}</Text>
-        </Box>
+        {tabs}
         {rows.map((row, at) => (
           <Box key={`row-${at}`} flexDirection="column" marginTop={row.lines.length > 0 ? 1 : 0}>
             <Text>{row.head}</Text>

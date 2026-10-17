@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Seen } from '../types'
-import { KEEP_FINISHED_MS, keyOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf } from './workers'
+import { KEEP_FINISHED_MS, STAGES, keyOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -141,5 +141,25 @@ describe('worker progress', () => {
   test('anything else reads as no progress', () => {
     expect(parseProgress('nope')).toBeNull()
     expect(parseProgress('{"result":{}}')).toBeNull()
+  })
+})
+
+describe('worker stages', () => {
+  test('each tool call maps to the main step it serves', () => {
+    expect(stageOfStep('Read a.md')).toBe(0)
+    expect(stageOfStep('Bash: git status')).toBe(0)
+    expect(stageOfStep('Edit report.md')).toBe(1)
+    expect(stageOfStep('Write register.test.ts')).toBe(1)
+    expect(stageOfStep('Bash: Run FullOps lint at current SHA')).toBe(2)
+    expect(stageOfStep('Bash: Validate the plugin manifest and hooks module')).toBe(2)
+    expect(stageOfStep('Bash: Archive the instruction and completion report with work.py')).toBe(3)
+    expect(stageOfStep('Bash: python3 /p/scripts/orca_wait.py --run R1')).toBe(3)
+  })
+
+  test('the stage never goes back while a worker re-reads files', () => {
+    expect(stageOf(['Edit a.ts', 'Bash: npm test'], 0)).toBe(2)
+    expect(stageOf(['Read a.ts', 'Grep x'], 2)).toBe(2)
+    expect(stageOf([], 1)).toBe(1)
+    expect(STAGES).toEqual(['explore', 'build', 'verify', 'report'])
   })
 })
