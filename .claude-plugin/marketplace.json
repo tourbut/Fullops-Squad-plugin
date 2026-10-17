@@ -12,6 +12,11 @@
     {
       "name": "fullops-squad",
       "source": "./dist/native/fullops-squad"
+    },
+    {
+      "name": "fullops-meter",
+      "source": "./mods/fullops-meter",
+      "description": "Claude Code mod for FullOps: model, context and prompt cache on the hint line; a /fullops pane of animated worker cards and reviews; role label, step cards and spinner."
     }
   ]
 }

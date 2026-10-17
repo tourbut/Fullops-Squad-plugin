@@ -34,9 +34,19 @@ In a FullOps repository:
 
 The mod reads repository files and runs these read-only `orca orchestration` commands: `run-current`, `worker-list`, `task-list` and `worker-read`. It sends nothing anywhere and changes no Orca state.
 
-## Load it
+## Install
 
-From a checkout of this repository:
+In Claude Code 2.1.275 or later:
+
+```
+/plugin install fullops-meter --marketplace tourbut/Fullops-Squad-plugin
+```
+
+If the FullOps Squad marketplace is already added (as it is after installing FullOps Squad), run `/plugin install fullops-meter@fullops-squad` instead. It loads in sessions started after the install, in every repository. In a repository with `.fullops-squad/fullops.json` it adds `/fullops` and the FullOps views. Elsewhere it shows only the hint line.
+
+## Load it from a checkout
+
+To try a working copy without installing it:
 
 ```sh
 claude --plugin-dir <path-to-this-repo>/mods/fullops-meter
