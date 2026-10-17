@@ -3,12 +3,20 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    # Code only: a review runs on the Claude subscription, so docs, evidence and dist/ (a build output) do not trigger one.
+    paths:
+      - "plugins/**"
+      - "adapters/**"
+      - "mods/**"
+      - "scripts/**"
+      - "tests/**"
+      - "bin/**"
+      - ".github/workflows/**"
+
+# A newer push to the same PR cancels the review still running for the older one.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
