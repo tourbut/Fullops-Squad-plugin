@@ -204,7 +204,7 @@ Claude Code 세션에서 실행합니다. 이미 등록된 마켓플레이스는
 /plugin install fullops-squad@fullops-squad
 ```
 
-선택 사항으로, Claude Code 전용 mod인 [fullops-meter](mods/fullops-meter/README.md)를 설치할 수 있습니다.
+선택 사항으로, Claude Code 전용 mod인 [fullops-meter](https://github.com/tourbut/Fullops-Squad-plugin/blob/main/mods/fullops-meter/README.md)를 설치할 수 있습니다.
 - 모든 레포: 프롬프트 아래에 모델, 컨텍스트 잔량, 프롬프트 캐시를 보여 줍니다.
 - FullOps를 적용한 레포: 추가로 아래를 보여 줍니다.
   - `/fullops` 패널: worker 진행 카드와 리뷰 기록
