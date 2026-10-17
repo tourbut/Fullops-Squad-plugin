@@ -1,6 +1,6 @@
 {
   "name": "fullops-meter",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Shows the session's model, context and prompt cache and, in a FullOps repository, a pane of workers and reviews, the session's role, one-line cards for FullOps steps and what the coordinator still has out.",
   "author": {
     "name": "tourbut",
@@ -36,15 +36,15 @@
     "warnSeconds": {
       "type": "number",
       "title": "Cache notice at (seconds)",
-      "description": "Show a notice, and turn the countdown to its warning state, this many seconds before the prompt cache lapses.",
-      "default": 60,
+      "description": "Show a notice, and turn the countdown to its warning state, this many seconds before the prompt cache lapses (at most half its lifetime). Leave time to run /compact.",
+      "default": 300,
       "min": 5,
-      "max": 600
+      "max": 1800
     },
     "compactAtTokens": {
       "type": "number",
       "title": "Suggest /compact above (tokens)",
-      "description": "When the cache has lapsed and the prompt is at least this large, the band suggests /compact before the next message rewrites it. A judgement, not a documented figure.",
+      "description": "When the cache is about to lapse and the prompt is at least this large, the band and notice suggest /compact while it is still cached. A judgement, not a documented figure.",
       "default": 100000,
       "min": 20000,
       "max": 1000000

@@ -101,10 +101,19 @@ describe('time left and advice', () => {
     expect(adviseCache(undefined, '5m', 0, policy).state).toBe('none')
   })
 
-  test('a lapsed cache on a large prompt suggests compacting first', () => {
+  test('a large prompt about to lapse suggests compacting; a lapsed one no longer does', () => {
     const large = sample(0, 150_000, 0, 500)
-    expect(adviseCache(large, '5m', 6 * MIN, policy)).toEqual({ state: 'expired', tokens: 150_500, shouldCompact: true })
-    expect(adviseCache(last, '5m', 6 * MIN + 100_000, policy).shouldCompact).toBe(false)
+    expect(adviseCache(large, '5m', 4.5 * MIN, policy)).toEqual({ state: 'soon', tokens: 150_500, shouldCompact: true })
+    expect(adviseCache(large, '5m', 6 * MIN, policy)).toEqual({ state: 'expired', tokens: 150_500, shouldCompact: false })
+    expect(adviseCache(last, '5m', 100_000 + 4.5 * MIN, policy).shouldCompact).toBe(false)
+  })
+
+  test('the warning starts at most half a lifetime before the lapse', () => {
+    const early = { warnMs: 5 * MIN, compactAtTokens: 100_000 }
+    expect(adviseCache(last, '5m', 100_000 + 2 * MIN, early).state).toBe('warm')
+    expect(adviseCache(last, '5m', 100_000 + 3 * MIN, early).state).toBe('soon')
+    expect(adviseCache(last, '1h', 100_000 + 56 * MIN, early).state).toBe('soon')
+    expect(adviseCache(last, '1h', 100_000 + 54 * MIN, early).state).toBe('warm')
   })
 })
 

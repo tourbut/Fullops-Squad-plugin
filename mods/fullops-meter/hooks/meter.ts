@@ -50,12 +50,11 @@ export const missText = (miss: Miss): string =>
       : 'cache missed: prefix changed (system prompt, tools, CLAUDE.md, settings)'
 
 export const adviceText = (advice: Advice): string => {
-  if (advice.state === 'expired') {
-    return advice.shouldCompact
-      ? `expired: next message rewrites ${tokens(advice.tokens)} tokens. /compact first, or /clear if done`
-      : 'expired: next message rewrites the cache'
-  }
-  return advice.state === 'soon' ? 'expires soon: keep working to keep the cache warm' : ''
+  if (advice.state === 'expired') return `expired: next message rereads ${tokens(advice.tokens)} tokens at full price. /clear if done`
+  if (advice.state !== 'soon') return ''
+  return advice.shouldCompact
+    ? `expires soon: stepping away? /compact now, while ${tokens(advice.tokens)} tokens are still cached`
+    : 'expires soon: keep working to keep the cache warm'
 }
 
 /** Share of all prompt tokens the cache served across the kept requests, as a whole percent. */

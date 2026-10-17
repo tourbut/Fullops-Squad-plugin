@@ -264,7 +264,11 @@ async function tick($: EngineInterface, shared: Shared): Promise<void> {
   const advice = adviseCache(latest, meter.ttl, now, shared.policy)
   if (advice.state === 'soon' && shared.warnedEntry !== latest.startedAt && promptTokens(latest) >= NOTICE_MIN_TOKENS) {
     shared.warnedEntry = latest.startedAt
-    $.ui.toast('Prompt cache expires soon. Keep working to keep it; after expiry the whole prompt is rewritten.')
+    $.ui.toast(
+      advice.shouldCompact
+        ? 'Prompt cache expires soon. Stepping away? Run /compact now: after expiry, the whole conversation is reread at full price.'
+        : 'Prompt cache expires soon. Keep working to keep it; after expiry the whole prompt is reread at full price.',
+    )
   }
   const text = statusLine(meter, now)
   // An expired cache has nothing left to count: leave the last frame alone.
@@ -289,7 +293,7 @@ const details = (meter: Meter | null, now: number, policy: Policy): string => {
 export const register: Register = (on, options) => {
   const shared: Shared = {
     policy: {
-      warnMs: (typeof options.warnSeconds === 'number' ? options.warnSeconds : 60) * 1000,
+      warnMs: (typeof options.warnSeconds === 'number' ? options.warnSeconds : 300) * 1000,
       compactAtTokens: typeof options.compactAtTokens === 'number' ? options.compactAtTokens : 100_000,
     },
     option: options.cacheTtl,

@@ -89,7 +89,7 @@ describe('band', () => {
     expect(line).toContain('5h 23.5%')
   })
 
-  test('names a miss and advises on a lapsed large prompt', () => {
+  test('names a miss and, once lapsed, says the next message rereads it', () => {
     const missed: Meter = {
       ...meter,
       ttl: '5m',
@@ -97,7 +97,8 @@ describe('band', () => {
     }
     const line = bandLine(missed, 20 * MIN, policy)
     expect(line).toContain('cache rewritten after expiry (10:00 gap)')
-    expect(line).toContain('/compact first')
+    expect(line).toContain('next message rereads 142k tokens at full price. /clear if done')
+    expect(line).not.toContain('/compact now')
   })
 
   test('session hit rate counts every kept request', () => {
@@ -107,8 +108,11 @@ describe('band', () => {
 
   test('advice and miss wording', () => {
     expect(adviceText({ state: 'warm', tokens: 10, shouldCompact: false })).toBe('')
-    expect(adviceText({ state: 'soon', tokens: 10, shouldCompact: false })).toContain('expires soon')
-    expect(adviceText({ state: 'expired', tokens: 10, shouldCompact: false })).toContain('rewrites')
+    expect(adviceText({ state: 'soon', tokens: 10, shouldCompact: false })).toContain('keep working')
+    expect(adviceText({ state: 'soon', tokens: 150_000, shouldCompact: true })).toBe(
+      'expires soon: stepping away? /compact now, while 150k tokens are still cached',
+    )
+    expect(adviceText({ state: 'expired', tokens: 10, shouldCompact: false })).toContain('full price')
     expect(missText({ reason: 'model', gapMs: 0 })).toContain('model')
     expect(missText({ reason: 'prefix', gapMs: 0 })).toContain('CLAUDE.md')
   })

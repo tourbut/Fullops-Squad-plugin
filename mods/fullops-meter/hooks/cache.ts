@@ -98,13 +98,18 @@ export type Policy = { warnMs: number; compactAtTokens: number }
 
 export type Advice = { state: 'none' | 'warm' | 'soon' | 'expired'; tokens: number; shouldCompact: boolean }
 
-/** Where the cache stands and whether letting it lapse on a large prompt is worth a /compact first. */
+/**
+ * Where the cache stands and whether a /compact is worth it now. Compacting pays only while the cache
+ * is warm: after it lapses, /compact rereads the whole conversation at full price too.
+ */
 export const adviseCache = (last: Sample | undefined, ttl: Ttl, now: number, policy: Policy): Advice => {
   const left = remainingMs(last, ttl, now)
   if (last === undefined || left === null) return { state: 'none', tokens: 0, shouldCompact: false }
   const tokens = promptTokens(last)
-  if (left === 0) return { state: 'expired', tokens, shouldCompact: tokens >= policy.compactAtTokens }
-  return { state: left <= policy.warnMs ? 'soon' : 'warm', tokens, shouldCompact: false }
+  if (left === 0) return { state: 'expired', tokens, shouldCompact: false }
+  // Half the lifetime at most, so a 5-minute cache is not "about to lapse" from its first second.
+  const isSoon = left <= Math.min(policy.warnMs, ttlMs(ttl) / 2)
+  return { state: isSoon ? 'soon' : 'warm', tokens, shouldCompact: isSoon && tokens >= policy.compactAtTokens }
 }
 
 /** The samples to keep: the newest `keep`, oldest first. */
