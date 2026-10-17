@@ -46,6 +46,8 @@ export type Worker = {
   needsAction: boolean
   /** The furthest main step reached: an index into STAGES (explore, build, verify, report), or STAGES.length when done. */
   stage: number
+  /** When `stage` last moved, in `$.clock.now()` milliseconds; the dispatch's `since` until it does. */
+  stageAt: number
   /** What it is doing, read from its transcript for active workers only; null until read. */
   progress: Progress | null
 }

@@ -148,6 +148,7 @@ export const reconcile = (
         isLive: row.isLive,
         needsAction: row.needsAction,
         stage: row.phase === 'done' ? STAGES.length : 0,
+        stageAt: since,
         progress: null,
       })
     }
@@ -157,19 +158,26 @@ export const reconcile = (
   return { seen: next, workers }
 }
 
+/** A worker in one stage this long is told of as stalled. */
+export const STALL_MS = 30 * 60_000
+
 /**
- * What changed since the last look, one line each for a notice: a worker that finished, and one
- * that now waits on someone, with its last words. Baseline work never reaches `workers`, so a fresh
- * session tells only of what is still waiting.
+ * What changed since the last look, one line each for a notice: a worker that finished, one that now
+ * waits on someone (with its last words), and one that has sat in a stage for STALL_MS as of this look
+ * but not the last (`lastAt`). Baseline work never reaches `workers`, so a fresh session tells only of
+ * what is still waiting or stalled.
  */
-export const noticesOf = (before: Seen, workers: readonly Worker[]): string[] => {
+export const noticesOf = (before: Seen, workers: readonly Worker[], lastAt: number, now: number): string[] => {
   const out: string[] = []
   for (const w of workers) {
     const old = before[w.dispatchId]
     const name = [w.role, w.key].filter(Boolean).join(' ')
     if (w.phase !== 'active' && old?.phase !== w.phase) out.push(`${name} ${w.phase}${w.detail === '' ? '' : `: ${w.detail}`}`)
+    if (w.phase !== 'active') continue
     const said = w.progress?.said ?? ''
     if (w.needsAction && old?.needsAction !== true) out.push(`${name} waiting on you${said === '' ? '' : `: ${said}`}`)
+    const inStage = now - w.stageAt
+    if (inStage >= STALL_MS && lastAt - w.stageAt < STALL_MS) out.push(`${name} in ${STAGES[w.stage] ?? 'done'} for ${Math.round(inStage / 60_000)}m`)
   }
   return out
 }

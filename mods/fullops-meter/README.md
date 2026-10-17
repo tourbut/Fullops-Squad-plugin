@@ -14,8 +14,8 @@ In a FullOps repository:
 
 - **`/fullops` pane**, with two tabs (`w` and `r` switch them while the pane has focus):
   - **Workers**: what the coordinator's Orca run sent out, drawn as animated cards. A summary row counts running, done and failed workers. Each running worker is a card with:
-    - a badge in its role's colour, its task key (cut to fit) and a live clock
-    - a flag when Orca says it waits on you (`⚠ needs you`), when its agent is gone, or when it has been silent for 5 minutes (`⏸ idle`)
+    - a badge in its role's colour, its task key (cut to fit), how long it has been in its current stage (`build 12m`, drawn as a warning from 30 minutes) and a live clock
+    - a flag when Orca says it waits on you (`⚠ needs you`), when its agent is gone, or when it has been silent for 5 minutes (`⏸ idle`). A waiting worker's last words show under the rail, so the question is read here.
     - a stage rail, `explore → build → verify → report → done`. The current stage spins and the next link flows. In a pane too narrow for the labels, the rail shows icons only, followed by the current stage's name.
 
     The stage comes from two sources, read every 15 seconds, and never goes back:
@@ -28,6 +28,7 @@ In a FullOps repository:
 - **Footer label**: `fullops coor`, `fullops dev` and so on. The role comes from the checkout's branch and the `roles` in `fullops.json`.
 - **Step cards**: a Bash call that runs a FullOps step draws as one line, such as `FullOps start worker → dev K7 (claude)`, `FullOps review prepare K1` or `FullOps wait for worker reports`. Chained commands keep their own row.
 - **Spinner**: `… · 2 workers running · 1 review open` while the coordinator has work out.
+- **Notices**: a worker that finishes or fails (`dev K7 done`, `ops K3 failed: process_exited`), one that now waits on someone with its last words (`tester K2 waiting on you: Merge now?`), and one that has sat in a stage for 30 minutes (`dev K7 in build for 30m`), each told once from the 15-second poll.
 
 The mod reads repository files and runs these read-only `orca orchestration` commands: `run-current`, `worker-list`, `task-list` and `worker-read`. It sends nothing anywhere and changes no Orca state.
 

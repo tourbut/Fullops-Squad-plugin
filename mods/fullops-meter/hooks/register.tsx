@@ -57,6 +57,8 @@ type Shared = {
   /** undefined: not read yet; null: auto-compaction is off. */
   compactAt: number | null | undefined
   isFirstPoll: boolean
+  /** When the last worker poll ran, so a stall is told of once, as it crosses the limit; 0 before any. */
+  lastPollAt: number
   isFullOps: boolean
   lastStatus: string
   hasWarnedContext: boolean
@@ -231,7 +233,7 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
       const kept = old?.progress ?? null
       // Workers kept from an older load carry no stage.
       const reached = Math.max(worker.stage, old?.stage ?? 0)
-      if (worker.phase !== 'active') return { ...worker, stage: reached, progress: kept }
+      if (worker.phase !== 'active') return { ...worker, stage: reached, stageAt: old?.stageAt ?? worker.since, progress: kept }
       const workspace = rows.find(row => row.dispatchId === worker.dispatchId)?.workspace ?? ''
       // shortcut: `since` is when this mod first saw the dispatch, so records a worker wrote before a reload
       // or a late install are missed and the word rules stand in; carry the dispatch time from Orca to do better.
@@ -242,12 +244,16 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
         readRecordStage($, workspace, worker.role, worker.since),
       ])
       const progress = (out?.exitCode === 0 ? parseProgress(out.stdout) : null) ?? kept
-      return { ...worker, stage: stageOf(progress?.steps ?? [], Math.max(reached, recorded)), progress }
+      const stage = stageOf(progress?.steps ?? [], Math.max(reached, recorded))
+      // Workers kept from an older load carry no stageAt.
+      const stageAt = stage > (old?.stage ?? 0) ? now : (old?.stageAt ?? worker.since)
+      return { ...worker, stage, stageAt, progress }
     }),
   )
   await commit($, shared, meter => ({ ...meter, workers }))
-  // The coordinator waits in the background, so what finished or asks for someone is told without the pane.
-  for (const line of noticesOf(seen, workers)) $.ui.toast(line)
+  // The coordinator waits in the background, so what finished, asks for someone or stalls is told without the pane.
+  for (const line of noticesOf(seen, workers, shared.lastPollAt, now)) $.ui.toast(line)
+  shared.lastPollAt = now
 }
 
 /** One refresh of the repository and Orca state; skipped while the previous one still runs. */
@@ -375,6 +381,7 @@ export const register: Register = (on, options) => {
     timers: [],
     compactAt: undefined,
     isFirstPoll: true,
+    lastPollAt: 0,
     isFullOps: false,
     lastStatus: '',
     hasWarnedContext: false,
@@ -488,6 +495,7 @@ export const register: Register = (on, options) => {
           // Workers kept from an older load carry no stage.
           stage: w.stage ?? 0,
           since: w.since,
+          stageAt: w.stageAt ?? w.since,
           lastAt: w.progress?.at ?? 0,
           needsAction: w.needsAction === true,
           isLive: w.isLive !== false,

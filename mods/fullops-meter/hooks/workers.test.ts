@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Seen, Worker } from '../types'
-import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, phaseOf, reconcile, roleOf, stageOf, stageOfRecords, stageOfStep } from './workers'
+import { KEEP_FINISHED_MS, STAGES, STALL_MS, declaredKey, keyOf, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, phaseOf, reconcile, roleOf, stageOf, stageOfRecords, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -142,19 +142,27 @@ describe('what to tell', () => {
     activity: '',
     isLive: true,
     needsAction,
-    stage: 0,
+    stage: 1,
+    stageAt: 0,
     progress: said === '' ? null : { said, steps: [], at: 1 },
   })
   const seen = (phase: Row['phase'], needsAction = false): Seen => ({ a: { phase, since: 0, isBaseline: false, needsAction } })
 
   test('a worker that finished, or now waits on someone, is told once', () => {
-    expect(noticesOf(seen('active'), [worker('a', 'done')])).toEqual(['dev K1 done'])
-    expect(noticesOf(seen('active'), [worker('a', 'failed')])).toEqual(['dev K1 failed: process_exited'])
-    expect(noticesOf({}, [worker('a', 'done')])).toEqual(['dev K1 done'])
-    expect(noticesOf(seen('done'), [worker('a', 'done')])).toEqual([])
-    expect(noticesOf(seen('active'), [worker('a', 'active', true, 'Merge now?')])).toEqual(['dev K1 waiting on you: Merge now?'])
-    expect(noticesOf(seen('active', true), [worker('a', 'active', true, 'Merge now?')])).toEqual([])
-    expect(noticesOf(seen('active'), [worker('a', 'active')])).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'done')], 0, 0)).toEqual(['dev K1 done'])
+    expect(noticesOf(seen('active'), [worker('a', 'failed')], 0, 0)).toEqual(['dev K1 failed: process_exited'])
+    expect(noticesOf({}, [worker('a', 'done')], 0, 0)).toEqual(['dev K1 done'])
+    expect(noticesOf(seen('done'), [worker('a', 'done')], 0, 0)).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active', true, 'Merge now?')], 0, 0)).toEqual(['dev K1 waiting on you: Merge now?'])
+    expect(noticesOf(seen('active', true), [worker('a', 'active', true, 'Merge now?')], 0, 0)).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active')], 0, 0)).toEqual([])
+  })
+
+  test('a worker stuck in a stage is told of when it crosses the limit, and a finished one never', () => {
+    expect(noticesOf(seen('active'), [worker('a', 'active')], STALL_MS - 1, STALL_MS)).toEqual(['dev K1 in build for 30m'])
+    expect(noticesOf(seen('active'), [worker('a', 'active')], STALL_MS, STALL_MS + 15_000)).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active')], 0, STALL_MS - 1)).toEqual([])
+    expect(noticesOf(seen('done'), [worker('a', 'done')], 0, 2 * STALL_MS)).toEqual([])
   })
 })
 
