@@ -138,6 +138,7 @@ export const reconcile = (
         activity: row.activity,
         isLive: row.isLive,
         needsAction: row.needsAction,
+        stage: row.phase === 'done' ? STAGES.length : 0,
         progress: null,
       })
     }
@@ -187,3 +188,18 @@ export const parseProgress = (stdout: string): Progress | null => {
     at,
   }
 }
+
+/** A worker's main steps, in order; `done` follows the last. */
+export const STAGES = ['explore', 'build', 'verify', 'report'] as const
+
+/** The stage one tool call belongs to, by what it does. */
+export const stageOfStep = (step: string): number => {
+  if (/worker_done|work\.py finish|orca_wait|orchestration (send|reply)|archive|completion report/i.test(step)) return 3
+  if (/^Bash\b/.test(step) && /\b(tests?|lint|gate|checks?|verify|validate|pytest|tsc|make)\b/i.test(step)) return 2
+  if (/^(Edit|Write|MultiEdit|NotebookEdit)\b/.test(step)) return 1
+  return 0
+}
+
+/** The furthest stage a worker reached: it never goes back, as a worker re-reads files while it tests. */
+export const stageOf = (steps: readonly string[], before: number): number =>
+  steps.reduce((furthest, step) => Math.max(furthest, stageOfStep(step)), before)

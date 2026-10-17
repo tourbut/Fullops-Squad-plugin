@@ -129,6 +129,7 @@ describe('worker line', () => {
     activity: '',
     isLive: true,
     needsAction: false,
+    stage: 0,
     progress: null,
   })
 
@@ -164,6 +165,7 @@ describe('worker block', () => {
         activity: 'working',
         isLive: true,
         needsAction: true,
+        stage: 1,
         progress: { said: 'Docs updated.', steps: ['Edit report.md', 'Bash: Run lint'], at: 2 * MIN - 40_000 },
       },
       2 * MIN,

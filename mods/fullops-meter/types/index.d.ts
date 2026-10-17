@@ -44,6 +44,8 @@ export type Worker = {
   isLive: boolean
   /** True when Orca flags the dispatch as waiting on someone (a question, a gate). */
   needsAction: boolean
+  /** The furthest main step reached: an index into STAGES (explore, build, verify, report), or STAGES.length when done. */
+  stage: number
   /** What it is doing, read from its transcript for active workers only; null until read. */
   progress: Progress | null
 }

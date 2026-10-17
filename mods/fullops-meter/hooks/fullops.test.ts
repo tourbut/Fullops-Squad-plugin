@@ -80,7 +80,7 @@ describe('tool cards', () => {
 })
 
 describe('spinner', () => {
-  const worker = (phase: Worker['phase']): Worker => ({ dispatchId: phase, role: 'dev', key: 'K1', phase, detail: '', since: 0, activity: '', isLive: true, needsAction: false, progress: null })
+  const worker = (phase: Worker['phase']): Worker => ({ dispatchId: phase, role: 'dev', key: 'K1', phase, detail: '', since: 0, activity: '', isLive: true, needsAction: false, stage: 0, progress: null })
 
   test('counts running workers and open reviews', () => {
     expect(spinnerText([worker('active'), worker('active'), worker('done')], [summarizeReview('K1', null, null, 0)])).toBe(

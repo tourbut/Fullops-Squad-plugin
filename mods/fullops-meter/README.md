@@ -13,13 +13,20 @@ It works only in Claude Code. It is kept apart from the portable plugin in `plug
 In a FullOps repository:
 
 - **`/fullops` pane**, with two tabs (`w` and `r` switch them while the pane has focus):
-  - **Workers**: what the coordinator's Orca run sent out. For each running worker it shows:
-    - Orca's activity and attention flags
-    - the worker's last words
-    - its latest tool calls
-    - when it last did anything
+  - **Workers**: what the coordinator's Orca run sent out, drawn as animated cards. A summary row counts running, done and failed workers. Each running worker is a card with:
+    - a badge in its role's colour, its task key (cut to fit) and a live clock
+    - a flag when Orca says it waits on you (`⚠ needs you`), when its agent is gone, or when it has been silent for 5 minutes (`⏸ idle`)
+    - a stage rail, `explore → build → verify → report → done`. The current stage spins and the next link flows. In a pane too narrow for the labels, the rail shows icons only, followed by the current stage's name.
 
-    These are read every 15 seconds from `orca orchestration worker-read --source transcript`. A finished worker shows one line for 10 minutes.
+    The stage comes from the worker's latest tool calls, read every 15 seconds from `orca orchestration worker-read --source transcript`:
+    - Edit and Write mean build
+    - a Bash call that names a test, lint, gate, check, validate or make step means verify
+    - `worker_done`, `work.py finish` or `orca_wait` mean report
+    - anything else means explore
+
+    The stage never goes back. These are word rules, so a worker that runs undescribed commands (a tester, for one) can stay at explore while it works.
+
+    A finished worker shows one coloured line for 10 minutes. Surfaces that cannot run the card module (mobile) show the same as a text list.
   - **Reviews**: the newest `.fullops-squad/docs/evaluations/qa-reports/*-review/` folders. Each shows its state (recorded, waived, abandoned, superseded or open), its open findings and the start of its conclusion.
 - **Footer label**: `fullops coor`, `fullops dev` and so on. The role comes from the checkout's branch and the `roles` in `fullops.json`.
 - **Step cards**: a Bash call that runs a FullOps step draws as one line, such as `FullOps start worker → dev K7 (claude)`, `FullOps review prepare K1` or `FullOps wait for worker reports`. Chained commands keep their own row.
