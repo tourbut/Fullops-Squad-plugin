@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import type { Seen } from '../types'
-import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
+import type { Seen, Worker } from '../types'
+import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, noticesOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -115,6 +115,33 @@ describe('which workers show', () => {
       false,
     )
     expect(result.workers.map(w => w.dispatchId)).toEqual(['b', 'a', 'c'])
+  })
+})
+
+describe('what to tell', () => {
+  const worker = (dispatchId: string, phase: Row['phase'], needsAction = false, said = ''): Worker => ({
+    dispatchId,
+    role: 'dev',
+    key: 'K1',
+    phase,
+    detail: phase === 'failed' ? 'process_exited' : '',
+    since: 0,
+    activity: '',
+    isLive: true,
+    needsAction,
+    stage: 0,
+    progress: said === '' ? null : { said, steps: [], at: 1 },
+  })
+  const seen = (phase: Row['phase'], needsAction = false): Seen => ({ a: { phase, since: 0, isBaseline: false, needsAction } })
+
+  test('a worker that finished, or now waits on someone, is told once', () => {
+    expect(noticesOf(seen('active'), [worker('a', 'done')])).toEqual(['dev K1 done'])
+    expect(noticesOf(seen('active'), [worker('a', 'failed')])).toEqual(['dev K1 failed: process_exited'])
+    expect(noticesOf({}, [worker('a', 'done')])).toEqual(['dev K1 done'])
+    expect(noticesOf(seen('done'), [worker('a', 'done')])).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active', true, 'Merge now?')])).toEqual(['dev K1 waiting on you: Merge now?'])
+    expect(noticesOf(seen('active', true), [worker('a', 'active', true, 'Merge now?')])).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active')])).toEqual([])
   })
 })
 

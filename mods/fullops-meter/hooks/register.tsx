@@ -7,7 +7,7 @@ import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, modelName, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
-import { STAGES, asRecord, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf, text } from './workers'
+import { STAGES, asRecord, noticesOf, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
@@ -216,7 +216,8 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   const now = await $.clock.now()
   // A failed listing keeps the keys already known, so the cards do not lose their task names for a poll.
   const keys = tasks.exitCode === 0 ? parseKeys(tasks.stdout) : ((await read($, fullopsAtom))?.keys ?? {})
-  const merged = reconcile(await read($, seenAtom), parseRows(list.stdout), keys, now, shared.isFirstPoll)
+  const seen = await read($, seenAtom)
+  const merged = reconcile(seen, parseRows(list.stdout), keys, now, shared.isFirstPoll)
   shared.isFirstPoll = false
   await update($, seenAtom, () => merged.seen)
   await update($, fullopsAtom, before => (before === null ? null : { ...before, keys }))
@@ -236,6 +237,8 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
     }),
   )
   await commit($, shared, meter => ({ ...meter, workers }))
+  // The coordinator waits in the background, so what finished or asks for someone is told without the pane.
+  for (const line of noticesOf(seen, workers)) $.ui.toast(line)
 }
 
 /** One refresh of the repository and Orca state; skipped while the previous one still runs. */
@@ -460,6 +463,7 @@ export const register: Register = (on, options) => {
           lastAt: w.progress?.at ?? 0,
           needsAction: w.needsAction === true,
           isLive: w.isLive !== false,
+          said: w.progress?.said ?? '',
         })),
       }
       return (

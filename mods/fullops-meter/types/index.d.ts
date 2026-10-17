@@ -80,7 +80,7 @@ export type Meter = {
 }
 
 /** What was seen of each dispatch, so a finished one can leave the list after a while. */
-export type Seen = Record<string, { phase: Worker['phase']; since: number; isBaseline: boolean }>
+export type Seen = Record<string, { phase: Worker['phase']; since: number; isBaseline: boolean; needsAction: boolean }>
 
 /** One `<key>-review` folder under `.fullops-squad/docs/evaluations/qa-reports/`. */
 export type Review = {

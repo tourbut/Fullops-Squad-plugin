@@ -125,7 +125,7 @@ export const reconcile = (
     const before = seen[row.dispatchId]
     const isBaseline = before?.isBaseline ?? (isFirst && row.phase !== 'active')
     const since = before !== undefined && before.phase === row.phase ? before.since : now
-    next[row.dispatchId] = { phase: row.phase, since, isBaseline }
+    next[row.dispatchId] = { phase: row.phase, since, isBaseline, needsAction: row.needsAction }
     const isShown = row.phase === 'active' || (!isBaseline && now - since <= KEEP_FINISHED_MS)
     if (isShown) {
       workers.push({
@@ -146,6 +146,23 @@ export const reconcile = (
   // Active first, then the most recent change.
   workers.sort((a, b) => Number(b.phase === 'active') - Number(a.phase === 'active') || b.since - a.since)
   return { seen: next, workers }
+}
+
+/**
+ * What changed since the last look, one line each for a notice: a worker that finished, and one
+ * that now waits on someone, with its last words. Baseline work never reaches `workers`, so a fresh
+ * session tells only of what is still waiting.
+ */
+export const noticesOf = (before: Seen, workers: readonly Worker[]): string[] => {
+  const out: string[] = []
+  for (const w of workers) {
+    const old = before[w.dispatchId]
+    const name = [w.role, w.key].filter(Boolean).join(' ')
+    if (w.phase !== 'active' && old?.phase !== w.phase) out.push(`${name} ${w.phase}${w.detail === '' ? '' : `: ${w.detail}`}`)
+    const said = w.progress?.said ?? ''
+    if (w.needsAction && old?.needsAction !== true) out.push(`${name} waiting on you${said === '' ? '' : `: ${said}`}`)
+  }
+  return out
 }
 
 const STEPS = 6

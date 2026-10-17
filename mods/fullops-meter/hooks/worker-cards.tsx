@@ -13,6 +13,8 @@ export type Card = {
   lastAt: number
   needsAction: boolean
   isLive: boolean
+  /** The worker's last words, first line; shown when it waits on someone, so the question is read here. */
+  said: string
 }
 
 export type CardsProps = { now: number; stages: string[]; workers: Card[] }
@@ -164,6 +166,11 @@ const WorkerCards: ClientModule<CardsProps, State> = (props, surface) => {
               </Box>
             </Box>
             <Box>{rail(w)}</Box>
+            {w.needsAction && w.said !== '' && (
+              <Text color="warning" wrap="truncate-end">
+                {fit(`❝ ${w.said}`, inner)}
+              </Text>
+            )}
           </Box>
         )
       })}
