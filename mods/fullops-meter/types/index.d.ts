@@ -46,6 +46,8 @@ export type Worker = {
   needsAction: boolean
   /** The furthest main step reached: an index into STAGES (explore, build, verify, report), or STAGES.length when done. */
   stage: number
+  /** When `stage` last moved, in `$.clock.now()` milliseconds; the dispatch's `since` until it does. */
+  stageAt: number
   /** What it is doing, read from its transcript for active workers only; null until read. */
   progress: Progress | null
 }
@@ -80,7 +82,7 @@ export type Meter = {
 }
 
 /** What was seen of each dispatch, so a finished one can leave the list after a while. */
-export type Seen = Record<string, { phase: Worker['phase']; since: number; isBaseline: boolean }>
+export type Seen = Record<string, { phase: Worker['phase']; since: number; isBaseline: boolean; needsAction: boolean }>
 
 /** One `<key>-review` folder under `.fullops-squad/docs/evaluations/qa-reports/`. */
 export type Review = {
@@ -104,6 +106,8 @@ export type FullOps = {
   reviews: Review[]
   /** Orca task id to task key, so a dispatch card can name the task. */
   keys: Record<string, string>
+  /** The keys of tasks still waiting for a worker, in listing order. */
+  queued: string[]
 }
 
 export type Tab = 'workers' | 'reviews'

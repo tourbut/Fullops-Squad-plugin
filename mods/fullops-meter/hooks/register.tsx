@@ -4,10 +4,10 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
-import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
-import { bandLine, contextText, modelName, statusLine, workerBlock, workerLine } from './meter'
+import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
+import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
-import { STAGES, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf } from './workers'
+import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
@@ -57,6 +57,8 @@ type Shared = {
   /** undefined: not read yet; null: auto-compaction is off. */
   compactAt: number | null | undefined
   isFirstPoll: boolean
+  /** When the last worker poll ran, so a stall is told of once, as it crosses the limit; 0 before any. */
+  lastPollAt: number
   isFullOps: boolean
   lastStatus: string
   hasWarnedContext: boolean
@@ -143,7 +145,10 @@ async function readContext($: EngineInterface, shared: Shared): Promise<void> {
   // No reading (no response yet, an engine error) leaves the meter as it was; the hooks calling this must go on.
   const reading = await $.session.usage().catch(() => undefined)
   if (reading === undefined) return
-  shared.account = accountOf(reading.rateLimits)
+  const account = accountOf(reading.rateLimits)
+  // A lifetime proven under the old account kind (plan usage run out, or restored) no longer holds.
+  if (account !== shared.account) shared.observed = undefined
+  shared.account = account
   chooseTtl(shared)
   // The compaction point is a local estimate and does not move within a session, so it is read once.
   if (shared.compactAt === undefined) {
@@ -206,16 +211,21 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   }
   const [list, tasks] = await Promise.all([
     $.process.run(['orca', 'orchestration', 'worker-list', '--run', runId, '--limit', '100', '--json'], { timeoutMs: 20_000 }),
-    $.process.run(['orca', 'orchestration', 'task-list', '--run', runId, '--json'], { timeoutMs: 20_000 }),
+    // --brief caps each spec at 160 characters: the key is declared at its start.
+    $.process.run(['orca', 'orchestration', 'task-list', '--run', runId, '--brief', '--json'], { timeoutMs: 20_000 }),
   ]).catch(() => [undefined, undefined] as const)
   if (list === undefined || tasks === undefined || list.exitCode !== 0) return
 
   const now = await $.clock.now()
-  const keys = parseKeys(tasks.stdout)
-  const merged = reconcile(await read($, seenAtom), parseRows(list.stdout), keys, now, shared.isFirstPoll)
+  // A failed listing keeps the tasks already known, so the cards do not lose their task names for a poll.
+  const known = await read($, fullopsAtom)
+  const { keys, queued } = tasks.exitCode === 0 ? parseTasks(tasks.stdout) : { keys: known?.keys ?? {}, queued: known?.queued ?? [] }
+  const seen = await read($, seenAtom)
+  const rows = parseRows(list.stdout)
+  const merged = reconcile(seen, rows, keys, now, shared.isFirstPoll)
   shared.isFirstPoll = false
   await update($, seenAtom, () => merged.seen)
-  await update($, fullopsAtom, before => (before === null ? null : { ...before, keys }))
+  await update($, fullopsAtom, before => (before === null ? null : { ...before, keys, queued }))
   const before = (await read($, meterAtom))?.workers ?? []
   const workers = await Promise.all(
     merged.workers.map(async worker => {
@@ -223,15 +233,27 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
       const kept = old?.progress ?? null
       // Workers kept from an older load carry no stage.
       const reached = Math.max(worker.stage, old?.stage ?? 0)
-      if (worker.phase !== 'active') return { ...worker, stage: reached, progress: kept }
-      const out = await $.process
-        .run(['orca', 'orchestration', 'worker-read', '--dispatch', worker.dispatchId, '--source', 'transcript', '--limit', String(PROGRESS_ROWS), '--json'], { timeoutMs: 15_000 })
-        .catch(() => undefined)
+      if (worker.phase !== 'active') return { ...worker, stage: reached, stageAt: old?.stageAt ?? worker.since, progress: kept }
+      const workspace = rows.find(row => row.dispatchId === worker.dispatchId)?.workspace ?? ''
+      // shortcut: `since` is when this mod first saw the dispatch, so records a worker wrote before a reload
+      // or a late install are missed and the word rules stand in; carry the dispatch time from Orca to do better.
+      const [out, recorded] = await Promise.all([
+        $.process
+          .run(['orca', 'orchestration', 'worker-read', '--dispatch', worker.dispatchId, '--source', 'transcript', '--limit', String(PROGRESS_ROWS), '--json'], { timeoutMs: 15_000 })
+          .catch(() => undefined),
+        readRecordStage($, workspace, worker.role, worker.since),
+      ])
       const progress = (out?.exitCode === 0 ? parseProgress(out.stdout) : null) ?? kept
-      return { ...worker, stage: stageOf(progress?.steps ?? [], reached), progress }
+      const stage = stageOf(progress?.steps ?? [], Math.max(reached, recorded))
+      // Workers kept from an older load carry no stageAt.
+      const stageAt = stage > (old?.stage ?? 0) ? now : (old?.stageAt ?? worker.since)
+      return { ...worker, stage, stageAt, progress }
     }),
   )
   await commit($, shared, meter => ({ ...meter, workers }))
+  // The coordinator waits in the background, so what finished, asks for someone or stalls is told without the pane.
+  for (const line of noticesOf(seen, workers, shared.lastPollAt, now)) $.ui.toast(line)
+  shared.lastPollAt = now
 }
 
 /** One refresh of the repository and Orca state; skipped while the previous one still runs. */
@@ -246,12 +268,28 @@ async function poll($: EngineInterface, shared: Shared): Promise<void> {
   }
 }
 
-/** The checkout's branch, from `.git/HEAD`; a worktree's `.git` is a file naming its own git folder. */
+/** The git folder a checkout uses: a worktree's `.git` is a file naming its own, the main checkout's is the folder. */
+async function gitDirOf($: EngineInterface, root: string): Promise<string> {
+  const pointer = await $.fs.read(`${root}/.git`).catch(() => null)
+  const named = pointer === null ? undefined : /^gitdir:\s*(.+)$/m.exec(pointer)?.[1]?.trim()
+  if (named === undefined) return `${root}/.git`
+  return /^([A-Za-z]:)?[\\/]/.test(named) ? named : `${root}/${named}`
+}
+
+/** The checkout's branch, from `.git/HEAD`. */
 async function readBranch($: EngineInterface): Promise<string | null> {
-  const pointer = await $.fs.read('.git').catch(() => null)
-  const gitDir = pointer === null ? '.git' : /^gitdir:\s*(.+)$/m.exec(pointer)?.[1]?.trim()
-  if (gitDir === undefined) return null
-  return branchOf(await $.fs.read(`${gitDir}/HEAD`).catch(() => ''))
+  return branchOf(await $.fs.read(`${await gitDirOf($, '.')}/HEAD`).catch(() => ''))
+}
+
+/** The stage a worker's own checkout proves: the gate files lint.py leaves and the archived completion report. */
+async function readRecordStage($: EngineInterface, workspace: string, role: string, since: number): Promise<number> {
+  const root = workspace.split('::').pop() ?? ''
+  if (root === '') return 0
+  const [gate, logs] = await Promise.all([
+    $.fs.list(`${await gitDirOf($, root)}/fullops-gate`).catch(() => []),
+    $.fs.list(`${root}/.fullops-squad/handovers/logs`).catch(() => []),
+  ])
+  return stageOfRecords(gate, logs, role, since)
 }
 
 /** The newest review folders, each with what its files say. */
@@ -283,7 +321,7 @@ async function readFullOps($: EngineInterface): Promise<void> {
   if (config === null) return
   const role = checkoutRole(config, await readBranch($))
   const reviews = await readReviews($)
-  await update($, fullopsAtom, before => ({ role, reviews, keys: before?.keys ?? {} }))
+  await update($, fullopsAtom, before => ({ role, reviews, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
 }
 
 /** Redraws the countdown and gives the "about to lapse" notice once per cache entry. */
@@ -308,6 +346,9 @@ async function tick($: EngineInterface, shared: Shared): Promise<void> {
   shared.lastStatus = text
   await update($, nowAtom, () => now)
 }
+
+/** The shell command a Bash tool call runs; empty for any other tool, which `cardOf` turns down. */
+const bashCommand = (tool: string, input: unknown): string => (tool === 'Bash' ? text(asRecord(input).command) : '')
 
 /** The text `/meter` answers with. */
 const details = (meter: Meter | null, now: number, policy: Policy): string => {
@@ -340,6 +381,7 @@ export const register: Register = (on, options) => {
     timers: [],
     compactAt: undefined,
     isFirstPoll: true,
+    lastPollAt: 0,
     isFullOps: false,
     lastStatus: '',
     hasWarnedContext: false,
@@ -351,9 +393,9 @@ export const register: Register = (on, options) => {
     // The meter is not reset here: a reload runs session.start again, and `$.state` is the session's own anyway.
     // 0.2.0 pinned its line with $.ui.status, which the engine prefixes with the plugin name; clear what it left.
     $.ui.status(undefined)
-    shared.isFullOps = await $.fs.exists('.fullops-squad/fullops.json').catch(() => false)
+    shared.isFullOps = await $.fs.exists(CONFIG).catch(() => false)
     await $.command
-      .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band)', argumentHint: '[hide|show]' })
+      .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band, history lists the requests)', argumentHint: '[hide|show|history]' })
       .catch(() => undefined)
     if (shared.isFullOps) {
       await $.command
@@ -404,7 +446,9 @@ export const register: Register = (on, options) => {
       return { text: argument === 'hide' ? 'Band hidden. Run /meter show to bring it back.' : 'Band shown.' }
     }
     const now = await $.clock.now()
-    return { text: details(await read($, meterAtom), now, shared.policy) }
+    const meter = await read($, meterAtom)
+    if (argument === 'history') return { text: meter === null ? 'No data yet. It appears after the first response.' : historyText(meter, now) }
+    return { text: details(meter, now, shared.policy) }
   })
 
   on('command.run', { command: FULLOPS_COMMAND }, async $ => {
@@ -437,6 +481,9 @@ export const register: Register = (on, options) => {
         <Text dimColor> {fullops === null ? '' : `role ${fullops.role}`}</Text>
       </Box>
     )
+    // Tasks the coordinator has not sent out yet; state from an older load carries no list.
+    const queued = tab === 'workers' && fullops !== null && workers !== null ? queuedText(fullops.queued ?? []) : ''
+    const queue = queued === '' ? null : <Text dimColor>{queued}</Text>
 
     if (fullops !== null && tab === 'workers' && workers !== null && Client !== undefined) {
       const cards: CardsProps = {
@@ -447,17 +494,48 @@ export const register: Register = (on, options) => {
           role: w.role,
           key: w.key,
           phase: w.phase,
-          stage: w.phase === 'done' ? STAGES.length : (w.stage ?? 0),
+          // Workers kept from an older load carry no stage.
+          stage: w.stage ?? 0,
           since: w.since,
+          stageAt: w.stageAt ?? w.since,
           lastAt: w.progress?.at ?? 0,
           needsAction: w.needsAction === true,
           isLive: w.isLive !== false,
+          said: w.progress?.said ?? '',
         })),
       }
       return (
         <Box flexDirection="column">
           {tabs}
           <Client key="workers" module="./worker-cards.tsx" props={cards} />
+          {queue}
+        </Box>
+      )
+    }
+
+    if (fullops !== null && tab === 'reviews') {
+      const reviews = sortReviews(fullops.reviews)
+      return (
+        <Box flexDirection="column">
+          {tabs}
+          <Text dimColor>Independent reviews before merge (review.py). Open findings first.</Text>
+          {reviews.length === 0 && <Text>No review records yet.</Text>}
+          {reviews.map(review => {
+            const line = reviewLine(review, now)
+            return (
+              <Box key={review.key} flexDirection="column" marginTop={1}>
+                <Box>
+                  <Text color={line.tone} bold>
+                    {line.icon}{' '}
+                  </Text>
+                  <Text bold>{review.key}</Text>
+                  <Text color={line.tone}> {line.state}</Text>
+                  <Text dimColor> · {line.when}</Text>
+                </Box>
+                {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
+              </Box>
+            )
+          })}
         </Box>
       )
     }
@@ -465,7 +543,6 @@ export const register: Register = (on, options) => {
     let rows: { head: string; lines: string[] }[]
     const plain = (texts: string[]) => texts.map(head => ({ head, lines: [] }))
     if (fullops === null) rows = plain(['This repository has no .fullops-squad/fullops.json.'])
-    else if (tab === 'reviews') rows = plain(fullops.reviews.length === 0 ? ['No review records yet.'] : fullops.reviews.map(reviewText))
     else if (meter?.workers === null || meter?.workers === undefined) rows = plain(['No Orca run is bound to this session.'])
     else rows = meter.workers.length === 0 ? plain(['No workers out.']) : meter.workers.map(worker => workerBlock(worker, now))
 
@@ -483,6 +560,7 @@ export const register: Register = (on, options) => {
             ))}
           </Box>
         ))}
+        {queue}
       </Box>
     )
   })
@@ -499,18 +577,14 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
     if (e.props.isExpanded || !shared.isFullOps) return next(e)
     const keys = (await read($, fullopsAtom))?.keys ?? {}
-    const hasStep = e.props.calls.some(call => {
-      const command = call.tool === 'Bash' ? (call.input as { command?: unknown } | null)?.command : undefined
-      return typeof command === 'string' && cardOf(command, keys) !== null
-    })
+    const hasStep = e.props.calls.some(call => cardOf(bashCommand(call.tool, call.input), keys) !== null)
     return next(hasStep ? { ...e, props: { ...e.props, isExpanded: true } } : e)
   })
 
   // A FullOps step run through Bash draws as one card in place of its long command.
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
-    if (e.props.tool !== 'Bash' || !shared.isFullOps) return next(e)
-    const command = (e.props.input as { command?: unknown } | null)?.command
-    const card = typeof command === 'string' ? cardOf(command, (await read($, fullopsAtom))?.keys ?? {}) : null
+    if (!shared.isFullOps) return next(e)
+    const card = cardOf(bashCommand(e.props.tool, e.props.input), (await read($, fullopsAtom))?.keys ?? {})
     if (card === null) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)

@@ -9,10 +9,14 @@ export type Card = {
   /** Index into `stages`, or `stages.length` when done. */
   stage: number
   since: number
+  /** When `stage` last moved. */
+  stageAt: number
   /** When the worker last did anything; 0 when unknown. */
   lastAt: number
   needsAction: boolean
   isLive: boolean
+  /** The worker's last words, first line; shown when it waits on someone, so the question is read here. */
+  said: string
 }
 
 export type CardsProps = { now: number; stages: string[]; workers: Card[] }
@@ -24,6 +28,8 @@ const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', 
 const FLOW = ['▸┄┄', '┄▸┄', '┄┄▸']
 /** A worker silent this long is flagged as idle. */
 const IDLE_MS = 5 * 60_000
+/** A worker in one stage this long has its stage time drawn as a warning. */
+const STALL_MS = 30 * 60_000
 /** The width the pane asks for, used before the first layout reports one. */
 const PANE_COLUMNS = 56
 
@@ -143,9 +149,12 @@ const WorkerCards: ClientModule<CardsProps, State> = (props, surface) => {
         const idle = w.lastAt > 0 ? now - w.lastAt : 0
         const flag = !w.isLive ? '✖ gone' : w.needsAction ? '⚠ needs you' : idle >= IDLE_MS ? `⏸ idle ${clock(idle)}` : ''
         const time = clock(now - w.since)
+        // How long the current stage has run: `build 12m`.
+        const inStage = now - w.stageAt
+        const stageTime = `${[...props.stages, 'done'][w.stage] ?? ''} ${Math.floor(Math.max(0, inStage) / 60_000)}m`
         const badge = ` ${w.role} `
-        // Badge, a space, the key, a gap, the flag and its gap, the clock: the key takes what is left.
-        const keyWidth = inner - badge.length - 2 - time.length - (flag === '' ? 0 : flag.length + 1)
+        // Badge, a space, the key, a gap, the flag and its gap, the stage time, a dot, the clock: the key takes what is left.
+        const keyWidth = inner - badge.length - 2 - stageTime.length - 3 - time.length - (flag === '' ? 0 : flag.length + 1)
         return (
           <Box key={w.id} flexDirection="column" borderStyle="round" borderColor={roleColor(w.role)} paddingX={1}>
             <Box justifyContent="space-between">
@@ -160,10 +169,16 @@ const WorkerCards: ClientModule<CardsProps, State> = (props, surface) => {
               </Box>
               <Box gap={1} flexShrink={0}>
                 {flag !== '' && <Text color={w.isLive ? 'warning' : 'error'}>{flag}</Text>}
-                <Text color="subtle">{time}</Text>
+                <Text color={inStage >= STALL_MS ? 'warning' : 'subtle'}>{stageTime}</Text>
+                <Text color="subtle">· {time}</Text>
               </Box>
             </Box>
             <Box>{rail(w)}</Box>
+            {w.needsAction && w.said !== '' && (
+              <Text color="warning" wrap="truncate-end">
+                {fit(`❝ ${w.said}`, inner)}
+              </Text>
+            )}
           </Box>
         )
       })}

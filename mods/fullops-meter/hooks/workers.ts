@@ -16,7 +16,7 @@ export const phaseOf = (workerState: string, dispatchStatus: string): Phase => {
 
 /** The task key a spec declares as `Task key: X`; empty when it declares none. */
 export const declaredKey = (spec: string): string =>
-  /\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)?.[1]?.replace(/\.$/, '') ?? ''
+  /\bTask\s+key\b\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)?.[1]?.replace(/\.$/, '') ?? ''
 
 /** The task key a dispatch's spec carries: the declared one, else the spec's first word. */
 export const keyOf = (spec: string): string => declaredKey(spec) || (/^\s*([A-Za-z0-9][A-Za-z0-9._-]*)/.exec(spec)?.[1] ?? '')
@@ -79,23 +79,32 @@ export const parseRows = (stdout: string): Row[] => {
   })
 }
 
-/** Task id to task key, from `orca orchestration task-list --json`. */
-export const parseKeys = (stdout: string): Record<string, string> => {
+/** A task that is over, whether or not it was ever sent out. */
+const OVER = new Set(['completed', 'cancelled', 'canceled', 'failed'])
+
+/**
+ * `orca orchestration task-list --json`: task id to task key, and the keys of tasks still waiting
+ * for a worker (no dispatch yet and not over), in listing order.
+ */
+export const parseTasks = (stdout: string): { keys: Record<string, string>; queued: string[] } => {
   let parsed: unknown
   try {
     parsed = JSON.parse(stdout)
   } catch {
-    return {}
+    return { keys: {}, queued: [] }
   }
   const tasks = asRecord(asRecord(parsed).result).tasks
   const keys: Record<string, string> = {}
+  const queued: string[] = []
   if (Array.isArray(tasks)) {
     for (const item of tasks) {
       const task = asRecord(item)
-      keys[text(task.id)] = keyOf(text(task.spec))
+      const key = keyOf(text(task.spec))
+      keys[text(task.id)] = key
+      if (text(task.dispatch_id) === '' && !OVER.has(text(task.status))) queued.push(key || text(task.id))
     }
   }
-  return keys
+  return { keys, queued }
 }
 
 /** `C:/.../repo/dev` or `<repoId>::C:/.../repo/dev` to `dev`. */
@@ -125,7 +134,7 @@ export const reconcile = (
     const before = seen[row.dispatchId]
     const isBaseline = before?.isBaseline ?? (isFirst && row.phase !== 'active')
     const since = before !== undefined && before.phase === row.phase ? before.since : now
-    next[row.dispatchId] = { phase: row.phase, since, isBaseline }
+    next[row.dispatchId] = { phase: row.phase, since, isBaseline, needsAction: row.needsAction }
     const isShown = row.phase === 'active' || (!isBaseline && now - since <= KEEP_FINISHED_MS)
     if (isShown) {
       workers.push({
@@ -139,6 +148,7 @@ export const reconcile = (
         isLive: row.isLive,
         needsAction: row.needsAction,
         stage: row.phase === 'done' ? STAGES.length : 0,
+        stageAt: since,
         progress: null,
       })
     }
@@ -146,6 +156,30 @@ export const reconcile = (
   // Active first, then the most recent change.
   workers.sort((a, b) => Number(b.phase === 'active') - Number(a.phase === 'active') || b.since - a.since)
   return { seen: next, workers }
+}
+
+/** A worker in one stage this long is told of as stalled. */
+export const STALL_MS = 30 * 60_000
+
+/**
+ * What changed since the last look, one line each for a notice: a worker that finished, one that now
+ * waits on someone (with its last words), and one that has sat in a stage for STALL_MS as of this look
+ * but not the last (`lastAt`). Baseline work never reaches `workers`, so a fresh session tells only of
+ * what is still waiting or stalled.
+ */
+export const noticesOf = (before: Seen, workers: readonly Worker[], lastAt: number, now: number): string[] => {
+  const out: string[] = []
+  for (const w of workers) {
+    const old = before[w.dispatchId]
+    const name = [w.role, w.key].filter(Boolean).join(' ')
+    if (w.phase !== 'active' && old?.phase !== w.phase) out.push(`${name} ${w.phase}${w.detail === '' ? '' : `: ${w.detail}`}`)
+    if (w.phase !== 'active') continue
+    const said = w.progress?.said ?? ''
+    if (w.needsAction && old?.needsAction !== true) out.push(`${name} waiting on you${said === '' ? '' : `: ${said}`}`)
+    const inStage = now - w.stageAt
+    if (inStage >= STALL_MS && lastAt - w.stageAt < STALL_MS) out.push(`${name} in ${STAGES[w.stage] ?? 'done'} for ${Math.round(inStage / 60_000)}m`)
+  }
+  return out
 }
 
 const STEPS = 6
@@ -197,6 +231,20 @@ export const stageOfStep = (step: string): number => {
   if (/worker_done|work\.py finish|orca_wait|orchestration (send|reply)|archive|completion report/i.test(step)) return 3
   if (/^Bash\b/.test(step) && /\b(tests?|lint|gate|checks?|verify|validate|pytest|tsc|make)\b/i.test(step)) return 2
   if (/^(Edit|Write|MultiEdit|NotebookEdit)\b/.test(step)) return 1
+  return 0
+}
+
+export type Entry = { name: string; mtimeMs: number }
+
+/**
+ * The stage the harness's own records prove, from files written since the dispatch began: verify once
+ * `lint.py` left its result in the checkout's gate folder, report once `work.py finish` archived the
+ * completion report. The role worktree is reused across tasks, so older files say nothing.
+ */
+export const stageOfRecords = (gate: readonly Entry[], logs: readonly Entry[], role: string, since: number): number => {
+  const fresh = (entry: Entry) => entry.mtimeMs >= since
+  if (logs.some(entry => fresh(entry) && entry.name.endsWith(`_to_${role}.md`))) return 3
+  if (gate.some(entry => fresh(entry) && (entry.name === 'lint-result.json' || entry.name === 'pass.json'))) return 2
   return 0
 }
 

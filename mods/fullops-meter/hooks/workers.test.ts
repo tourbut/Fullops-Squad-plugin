@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import type { Seen } from '../types'
-import { KEEP_FINISHED_MS, STAGES, keyOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
+import type { Seen, Worker } from '../types'
+import { KEEP_FINISHED_MS, STAGES, STALL_MS, declaredKey, keyOf, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, phaseOf, reconcile, roleOf, stageOf, stageOfRecords, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -29,6 +29,7 @@ describe('reading Orca', () => {
     expect(keyOf('Task key=K1.')).toBe('K1')
     expect(keyOf('K2 implement the thing')).toBe('K2')
     expect(keyOf('')).toBe('')
+    expect(declaredKey('the task keys below are K1 and K2')).toBe('')
   })
 
   test('the role is the worktree folder', () => {
@@ -71,7 +72,20 @@ describe('reading Orca', () => {
       },
     ])
     expect(parseRows('not json')).toEqual([])
-    expect(parseKeys(JSON.stringify({ result: { tasks: [{ id: 'task_1', spec: 'Task key: K9' }] } }))).toEqual({ task_1: 'K9' })
+    expect(
+      parseTasks(
+        JSON.stringify({
+          result: {
+            tasks: [
+              { id: 'task_1', spec: 'Task key: K9', status: 'completed', dispatch_id: 'ctx_1' },
+              { id: 'task_2', spec: 'Task key: K10', status: 'pending', dispatch_id: null },
+              { id: 'task_3', spec: 'Task key: K11', status: 'cancelled', dispatch_id: null },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({ keys: { task_1: 'K9', task_2: 'K10', task_3: 'K11' }, queued: ['K10'] })
+    expect(parseTasks('nope')).toEqual({ keys: {}, queued: [] })
     expect(parseRunId(JSON.stringify({ result: { run: { id: 'run_a' } } }))).toBe('run_a')
     expect(parseRunId(JSON.stringify({ result: { run: null } }))).toBeNull()
     expect(parseRunId('')).toBeNull()
@@ -117,6 +131,41 @@ describe('which workers show', () => {
   })
 })
 
+describe('what to tell', () => {
+  const worker = (dispatchId: string, phase: Row['phase'], needsAction = false, said = ''): Worker => ({
+    dispatchId,
+    role: 'dev',
+    key: 'K1',
+    phase,
+    detail: phase === 'failed' ? 'process_exited' : '',
+    since: 0,
+    activity: '',
+    isLive: true,
+    needsAction,
+    stage: 1,
+    stageAt: 0,
+    progress: said === '' ? null : { said, steps: [], at: 1 },
+  })
+  const seen = (phase: Row['phase'], needsAction = false): Seen => ({ a: { phase, since: 0, isBaseline: false, needsAction } })
+
+  test('a worker that finished, or now waits on someone, is told once', () => {
+    expect(noticesOf(seen('active'), [worker('a', 'done')], 0, 0)).toEqual(['dev K1 done'])
+    expect(noticesOf(seen('active'), [worker('a', 'failed')], 0, 0)).toEqual(['dev K1 failed: process_exited'])
+    expect(noticesOf({}, [worker('a', 'done')], 0, 0)).toEqual(['dev K1 done'])
+    expect(noticesOf(seen('done'), [worker('a', 'done')], 0, 0)).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active', true, 'Merge now?')], 0, 0)).toEqual(['dev K1 waiting on you: Merge now?'])
+    expect(noticesOf(seen('active', true), [worker('a', 'active', true, 'Merge now?')], 0, 0)).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active')], 0, 0)).toEqual([])
+  })
+
+  test('a worker stuck in a stage is told of when it crosses the limit, and a finished one never', () => {
+    expect(noticesOf(seen('active'), [worker('a', 'active')], STALL_MS - 1, STALL_MS)).toEqual(['dev K1 in build for 30m'])
+    expect(noticesOf(seen('active'), [worker('a', 'active')], STALL_MS, STALL_MS + 15_000)).toEqual([])
+    expect(noticesOf(seen('active'), [worker('a', 'active')], 0, STALL_MS - 1)).toEqual([])
+    expect(noticesOf(seen('done'), [worker('a', 'done')], 0, 2 * STALL_MS)).toEqual([])
+  })
+})
+
 describe('worker progress', () => {
   const transcript = (messages: unknown[]) => JSON.stringify({ result: { transcript: { messages } } })
 
@@ -154,6 +203,18 @@ describe('worker stages', () => {
     expect(stageOfStep('Bash: Validate the plugin manifest and hooks module')).toBe(2)
     expect(stageOfStep('Bash: Archive the instruction and completion report with work.py')).toBe(3)
     expect(stageOfStep('Bash: python3 /p/scripts/orca_wait.py --run R1')).toBe(3)
+  })
+
+  test('the checkout records prove verify and report, but only files newer than the dispatch count', () => {
+    const gate = [{ name: 'lint-result.json', mtimeMs: 50 }]
+    const logs = [{ name: '2026-10-17_to_dev.md', mtimeMs: 70 }]
+    expect(stageOfRecords(gate, [], 'dev', 10)).toBe(2)
+    expect(stageOfRecords([{ name: 'pass.json', mtimeMs: 50 }], [], 'dev', 10)).toBe(2)
+    expect(stageOfRecords(gate, logs, 'dev', 10)).toBe(3)
+    expect(stageOfRecords(gate, logs, 'tester', 10)).toBe(2)
+    expect(stageOfRecords(gate, logs, 'dev', 60)).toBe(3)
+    expect(stageOfRecords(gate, logs, 'dev', 80)).toBe(0)
+    expect(stageOfRecords([{ name: 'other.json', mtimeMs: 50 }], [], 'dev', 10)).toBe(0)
   })
 
   test('the stage never goes back while a worker re-reads files', () => {

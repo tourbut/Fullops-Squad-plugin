@@ -58,6 +58,10 @@ describe('what the request timing proves', () => {
     expect(observeTtl(prev, sample(10 * MIN, 0, 120, 0), undefined)).toBe('5m')
   })
 
+  test('a few cached tokens from a shared prefix are a miss, not a proven hour', () => {
+    expect(observeTtl(prev, sample(6 * MIN, 5, 95, 0), undefined)).toBe('5m')
+  })
+
   test('a miss does not undo a proven hour, and a model change proves nothing', () => {
     expect(observeTtl(prev, sample(10 * MIN, 0, 120, 0), '1h')).toBe('1h')
     expect(observeTtl(prev, sample(10 * MIN, 0, 120, 0, 'sonnet'), undefined)).toBeUndefined()

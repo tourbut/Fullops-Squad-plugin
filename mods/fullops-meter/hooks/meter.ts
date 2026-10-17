@@ -2,13 +2,15 @@ import type { Context, Meter, Worker } from '../types'
 import { adviseCache, hitRatio, missOf, promptTokens, remainingMs } from './cache'
 import type { Advice, Miss, Policy } from './cache'
 
-/** Tokens in short form: 950, 12.3k, 124k, 1.2M. */
+/** Tokens in short form: 950, 12.3k, 124k, 1.2M. The steps sit where rounding would print 100.0k or 1000k. */
 export const tokens = (n: number): string =>
-  n >= 1_000_000
+  n >= 999_950
     ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000
-      ? `${(n / 1_000).toFixed(n >= 100_000 ? 0 : 1)}k`
-      : String(n)
+    : n >= 99_950
+      ? `${Math.round(n / 1_000)}k`
+      : n >= 1_000
+        ? `${(n / 1_000).toFixed(1)}k`
+        : String(n)
 
 /** Milliseconds as m:ss, or h:mm:ss from an hour up. */
 export const clock = (ms: number): string => {
@@ -86,6 +88,26 @@ export const bandLine = (meter: Meter, now: number, policy: Policy): string => {
   return parts.join(' · ')
 }
 
+/** `/meter history`: one line per kept request, oldest first: when, hit rate, prompt size, gap from the previous, why it missed. */
+export const historyText = (meter: Meter, now: number): string => {
+  if (meter.samples.length === 0) return 'No requests yet.'
+  const lines = meter.samples.map((s, i) => {
+    const prev = meter.samples[i - 1]
+    const ratio = hitRatio(s)
+    const miss = missOf(prev, s, meter.ttl)
+    return [
+      `${ago(now - s.startedAt)} ago`,
+      `hit ${ratio === null ? '-' : `${Math.round(ratio * 100)}%`}`,
+      `${tokens(promptTokens(s))} prompt`,
+      prev === undefined ? 'first' : `gap ${clock(s.startedAt - prev.startedAt)}`,
+      miss === undefined ? '' : missText(miss),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  })
+  return [`${meter.samples.length} requests kept, oldest first · cache TTL ${meter.ttl}`, ...lines].join('\n')
+}
+
 const SYMBOL: Record<Worker['phase'], string> = { active: '▶', done: '✔', failed: '✖', stopped: '■' }
 
 const SHOWN = 4
@@ -97,7 +119,8 @@ export const workerText = (w: Worker, now: number): string => {
   return `${SYMBOL[w.phase]} ${w.role}${w.key === '' ? '' : ` ${w.key}`}${age}${detail}`
 }
 
-const ago = (ms: number): string => (ms < 60_000 ? `${Math.max(0, Math.round(ms / 1000))}s` : `${Math.round(ms / 60_000)}m`)
+/** `42s` under a minute, else `7m`. */
+export const ago = (ms: number): string => (ms < 60_000 ? `${Math.max(0, Math.round(ms / 1000))}s` : `${Math.round(ms / 60_000)}m`)
 
 /** One worker in the pane: its line, then what it last said and did. */
 export const workerBlock = (w: Worker, now: number): { head: string; lines: string[] } => {
@@ -113,6 +136,13 @@ export const workerBlock = (w: Worker, now: number): { head: string; lines: stri
   const lines = [...(p.said === '' ? [] : [`“${p.said}”`]), ...p.steps.map(step => `› ${step}`)]
   if (w.phase === 'active' && p.at > 0) lines.push(`last activity ${ago(now - p.at)} ago`)
   return { head, lines }
+}
+
+/** `queued: K8, K9 · +3` for the tasks still waiting for a worker; empty for none. */
+export const queuedText = (queued: readonly string[]): string => {
+  if (queued.length === 0) return ''
+  const more = queued.length > SHOWN ? ` · +${queued.length - SHOWN}` : ''
+  return `queued: ${queued.slice(0, SHOWN).join(', ')}${more}`
 }
 
 /** The band's second line:the workers the coordinator sent work to. Empty when there is nothing to show. */

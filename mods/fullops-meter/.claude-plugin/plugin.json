@@ -1,6 +1,6 @@
 {
   "name": "fullops-meter",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Shows the session's model, context and prompt cache and, in a FullOps repository, a pane of workers and reviews, the session's role, one-line cards for FullOps steps and what the coordinator still has out.",
   "author": {
     "name": "tourbut",

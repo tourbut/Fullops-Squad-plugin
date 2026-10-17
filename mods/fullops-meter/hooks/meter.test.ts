@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Meter, Sample, Worker } from '../types'
-import { adviceText, bandLine, clock, contextText, missText, modelName, sessionHit, statusLine, tokens, workerBlock, workerLine } from './meter'
+import { adviceText, bandLine, clock, contextText, historyText, missText, modelName, queuedText, sessionHit, statusLine, tokens, workerBlock, workerLine } from './meter'
 
 const MIN = 60_000
 const policy = { warnMs: 60_000, compactAtTokens: 100_000 }
@@ -36,6 +36,8 @@ describe('numbers', () => {
     expect(tokens(12_345)).toBe('12.3k')
     expect(tokens(124_000)).toBe('124k')
     expect(tokens(1_250_000)).toBe('1.3M')
+    expect(tokens(99_960)).toBe('100k')
+    expect(tokens(999_960)).toBe('1.0M')
   })
 
   test('clock counts minutes and seconds, then hours, never below zero', () => {
@@ -75,6 +77,17 @@ describe('status line', () => {
       samples: [],
     }
     expect(statusLine(empty, 0)).toBe('- - · ctx - · cache - -')
+  })
+})
+
+describe('history', () => {
+  test('one line per request with its hit rate, size, gap and miss reason', () => {
+    const missed: Meter = { ...meter, ttl: '5m', samples: [sample(0, 140_000, 0, 500), sample(10 * MIN, 0, 141_000, 500)] }
+    const lines = historyText(missed, 12 * MIN).split('\n')
+    expect(lines[0]).toBe('2 requests kept, oldest first · cache TTL 5m')
+    expect(lines[1]).toBe('12m ago · hit 100% · 141k prompt · first')
+    expect(lines[2]).toBe('2m ago · hit 0% · 142k prompt · gap 10:00 · cache rewritten after expiry (10:00 gap)')
+    expect(historyText({ ...meter, samples: [] }, 0)).toBe('No requests yet.')
   })
 })
 
@@ -130,6 +143,7 @@ describe('worker line', () => {
     isLive: true,
     needsAction: false,
     stage: 0,
+    stageAt: 0,
     progress: null,
   })
 
@@ -150,6 +164,12 @@ describe('worker line', () => {
     const many = ['a', 'b', 'c', 'd', 'e', 'f'].map(role => worker('active', role, ''))
     expect(workerLine(many, MIN)).toContain('· +2')
   })
+
+  test('queued tasks are listed by key, cut with a count', () => {
+    expect(queuedText([])).toBe('')
+    expect(queuedText(['K8', 'K9'])).toBe('queued: K8, K9')
+    expect(queuedText(['a', 'b', 'c', 'd', 'e', 'f'])).toBe('queued: a, b, c, d · +2')
+  })
 })
 
 describe('worker block', () => {
@@ -166,6 +186,7 @@ describe('worker block', () => {
         isLive: true,
         needsAction: true,
         stage: 1,
+        stageAt: 0,
         progress: { said: 'Docs updated.', steps: ['Edit report.md', 'Bash: Run lint'], at: 2 * MIN - 40_000 },
       },
       2 * MIN,

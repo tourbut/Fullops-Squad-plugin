@@ -1,4 +1,5 @@
 import type { Review, Worker } from '../types'
+import { ago } from './meter'
 import { asRecord, declaredKey, text } from './workers'
 
 export type Config = { mode: string; primaryRole: string | null; roles: Record<string, string> }
@@ -11,6 +12,7 @@ export const parseConfig = (source: string): Config | null => {
   } catch {
     return null
   }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
   const config = asRecord(parsed)
   const roles: Record<string, string> = {}
   for (const [role, branch] of Object.entries(asRecord(config.roles))) {
@@ -153,13 +155,27 @@ export const spinnerText = (workers: readonly Worker[] | null, reviews: readonly
   return parts.join(' · ')
 }
 
-/** Reviewers write paragraph-long conclusions; the pane shows the start. */
-const CONCLUSION_CHARS = 80
-
-/** One review in the pane:`K1 recorded · 1 open (high) · <conclusion>`. */
-export const reviewText = (review: Review): string => {
-  if (review.state !== 'recorded') return `${review.key} ${review.state}`
-  const findings = review.findings === 0 ? 'no findings' : review.unresolved === 0 ? `${review.findings} resolved` : `${review.unresolved} open (${review.worst})`
-  const conclusion = review.conclusion.length > CONCLUSION_CHARS ? `${review.conclusion.slice(0, CONCLUSION_CHARS - 1)}…` : review.conclusion
-  return [`${review.key} recorded`, findings, conclusion].filter(Boolean).join(' · ')
+export type ReviewLine = {
+  icon: string
+  tone: 'claude' | 'success' | 'error' | 'inactive'
+  /** What stands: `reviewing`, `2 open · high`, `3 resolved`, `no findings`, `waived`, ... */
+  state: string
+  when: string
+  /** The reviewer's conclusion, first line; empty when there is none to show. */
+  detail: string
 }
+
+/** One review as the pane draws it: an icon in the state's colour, the state in words, and the conclusion under it. */
+export const reviewLine = (review: Review, now: number): ReviewLine => {
+  const when = `${ago(now - review.at)} ago`
+  if (review.state === 'open') return { icon: '…', tone: 'claude', state: 'reviewing', when, detail: '' }
+  if (review.state !== 'recorded') return { icon: '–', tone: 'inactive', state: review.state, when, detail: '' }
+  const isClean = review.unresolved === 0
+  const state = review.findings === 0 ? 'no findings' : isClean ? `${review.findings} resolved` : `${review.unresolved} open · ${review.worst}`
+  return { icon: isClean ? '✔' : '✖', tone: isClean ? 'success' : 'error', state, when, detail: review.conclusion }
+}
+
+const rank = (review: Review): number => (review.state === 'recorded' && review.unresolved > 0 ? 2 : review.state === 'open' ? 1 : 0)
+
+/** Reviews with findings still open first, then the ones under way, then the newest. */
+export const sortReviews = (reviews: readonly Review[]): Review[] => [...reviews].sort((a, b) => rank(b) - rank(a) || b.at - a.at)
