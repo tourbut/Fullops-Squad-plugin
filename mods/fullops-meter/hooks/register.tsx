@@ -7,7 +7,7 @@ import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
-import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, text } from './workers'
+import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
@@ -219,7 +219,8 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   const known = await read($, fullopsAtom)
   const { keys, queued } = tasks.exitCode === 0 ? parseTasks(tasks.stdout) : { keys: known?.keys ?? {}, queued: known?.queued ?? [] }
   const seen = await read($, seenAtom)
-  const merged = reconcile(seen, parseRows(list.stdout), keys, now, shared.isFirstPoll)
+  const rows = parseRows(list.stdout)
+  const merged = reconcile(seen, rows, keys, now, shared.isFirstPoll)
   shared.isFirstPoll = false
   await update($, seenAtom, () => merged.seen)
   await update($, fullopsAtom, before => (before === null ? null : { ...before, keys, queued }))
@@ -231,11 +232,17 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
       // Workers kept from an older load carry no stage.
       const reached = Math.max(worker.stage, old?.stage ?? 0)
       if (worker.phase !== 'active') return { ...worker, stage: reached, progress: kept }
-      const out = await $.process
-        .run(['orca', 'orchestration', 'worker-read', '--dispatch', worker.dispatchId, '--source', 'transcript', '--limit', String(PROGRESS_ROWS), '--json'], { timeoutMs: 15_000 })
-        .catch(() => undefined)
+      const workspace = rows.find(row => row.dispatchId === worker.dispatchId)?.workspace ?? ''
+      // shortcut: `since` is when this mod first saw the dispatch, so records a worker wrote before a reload
+      // or a late install are missed and the word rules stand in; carry the dispatch time from Orca to do better.
+      const [out, recorded] = await Promise.all([
+        $.process
+          .run(['orca', 'orchestration', 'worker-read', '--dispatch', worker.dispatchId, '--source', 'transcript', '--limit', String(PROGRESS_ROWS), '--json'], { timeoutMs: 15_000 })
+          .catch(() => undefined),
+        readRecordStage($, workspace, worker.role, worker.since),
+      ])
       const progress = (out?.exitCode === 0 ? parseProgress(out.stdout) : null) ?? kept
-      return { ...worker, stage: stageOf(progress?.steps ?? [], reached), progress }
+      return { ...worker, stage: stageOf(progress?.steps ?? [], Math.max(reached, recorded)), progress }
     }),
   )
   await commit($, shared, meter => ({ ...meter, workers }))
@@ -255,12 +262,28 @@ async function poll($: EngineInterface, shared: Shared): Promise<void> {
   }
 }
 
-/** The checkout's branch, from `.git/HEAD`; a worktree's `.git` is a file naming its own git folder. */
+/** The git folder a checkout uses: a worktree's `.git` is a file naming its own, the main checkout's is the folder. */
+async function gitDirOf($: EngineInterface, root: string): Promise<string> {
+  const pointer = await $.fs.read(`${root}/.git`).catch(() => null)
+  const named = pointer === null ? undefined : /^gitdir:\s*(.+)$/m.exec(pointer)?.[1]?.trim()
+  if (named === undefined) return `${root}/.git`
+  return /^([A-Za-z]:)?[\\/]/.test(named) ? named : `${root}/${named}`
+}
+
+/** The checkout's branch, from `.git/HEAD`. */
 async function readBranch($: EngineInterface): Promise<string | null> {
-  const pointer = await $.fs.read('.git').catch(() => null)
-  const gitDir = pointer === null ? '.git' : /^gitdir:\s*(.+)$/m.exec(pointer)?.[1]?.trim()
-  if (gitDir === undefined) return null
-  return branchOf(await $.fs.read(`${gitDir}/HEAD`).catch(() => ''))
+  return branchOf(await $.fs.read(`${await gitDirOf($, '.')}/HEAD`).catch(() => ''))
+}
+
+/** The stage a worker's own checkout proves: the gate files lint.py leaves and the archived completion report. */
+async function readRecordStage($: EngineInterface, workspace: string, role: string, since: number): Promise<number> {
+  const root = workspace.split('::').pop() ?? ''
+  if (root === '') return 0
+  const [gate, logs] = await Promise.all([
+    $.fs.list(`${await gitDirOf($, root)}/fullops-gate`).catch(() => []),
+    $.fs.list(`${root}/.fullops-squad/handovers/logs`).catch(() => []),
+  ])
+  return stageOfRecords(gate, logs, role, since)
 }
 
 /** The newest review folders, each with what its files say. */

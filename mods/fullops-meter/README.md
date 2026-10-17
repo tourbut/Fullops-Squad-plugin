@@ -18,13 +18,9 @@ In a FullOps repository:
     - a flag when Orca says it waits on you (`⚠ needs you`), when its agent is gone, or when it has been silent for 5 minutes (`⏸ idle`)
     - a stage rail, `explore → build → verify → report → done`. The current stage spins and the next link flows. In a pane too narrow for the labels, the rail shows icons only, followed by the current stage's name.
 
-    The stage comes from the worker's latest tool calls, read every 15 seconds from `orca orchestration worker-read --source transcript`:
-    - Edit and Write mean build
-    - a Bash call that names a test, lint, gate, check, validate or make step means verify
-    - `worker_done`, `work.py finish` or `orca_wait` mean report
-    - anything else means explore
-
-    The stage never goes back. These are word rules, so a worker that runs undescribed commands (a tester, for one) can stay at explore while it works.
+    The stage comes from two sources, read every 15 seconds, and never goes back:
+    - the harness records in the worker's checkout, which are certain: `lint-result.json` or `pass.json` in its git folder's `fullops-gate/` means verify, and a `_to_<role>.md` log under `.fullops-squad/handovers/logs/` means report. Only files newer than the dispatch count, as the role worktree is reused across tasks.
+    - its latest tool calls, from `orca orchestration worker-read --source transcript`: Edit and Write mean build; a Bash call that names a test, lint, gate, check, validate or make step means verify; `worker_done`, `work.py finish` or `orca_wait` mean report; anything else means explore. These are word rules, so a worker that runs undescribed commands can sit at explore until a record proves more.
 
     A finished worker shows one coloured line for 10 minutes. Surfaces that cannot run the card module (mobile) show the same as a text list.
   - **Reviews**: the independent reviews `review.py` runs before a merge, read from the newest `.fullops-squad/docs/evaluations/qa-reports/*-review/` folders. Each is a block: an icon in the state's colour, the task key, the state in words (`reviewing`, `2 open · high`, `3 resolved`, `no findings`, `waived`, `abandoned`, `superseded`) and how long ago it changed, then the first line of the reviewer's conclusion. Reviews with open findings come first, then the ones under way, then the newest.

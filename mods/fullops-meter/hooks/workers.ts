@@ -226,6 +226,20 @@ export const stageOfStep = (step: string): number => {
   return 0
 }
 
+export type Entry = { name: string; mtimeMs: number }
+
+/**
+ * The stage the harness's own records prove, from files written since the dispatch began: verify once
+ * `lint.py` left its result in the checkout's gate folder, report once `work.py finish` archived the
+ * completion report. The role worktree is reused across tasks, so older files say nothing.
+ */
+export const stageOfRecords = (gate: readonly Entry[], logs: readonly Entry[], role: string, since: number): number => {
+  const fresh = (entry: Entry) => entry.mtimeMs >= since
+  if (logs.some(entry => fresh(entry) && entry.name.endsWith(`_to_${role}.md`))) return 3
+  if (gate.some(entry => fresh(entry) && (entry.name === 'lint-result.json' || entry.name === 'pass.json'))) return 2
+  return 0
+}
+
 /** The furthest stage a worker reached: it never goes back, as a worker re-reads files while it tests. */
 export const stageOf = (steps: readonly string[], before: number): number =>
   steps.reduce((furthest, step) => Math.max(furthest, stageOfStep(step)), before)

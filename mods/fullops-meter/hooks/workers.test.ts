@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Seen, Worker } from '../types'
-import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
+import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, phaseOf, reconcile, roleOf, stageOf, stageOfRecords, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -195,6 +195,18 @@ describe('worker stages', () => {
     expect(stageOfStep('Bash: Validate the plugin manifest and hooks module')).toBe(2)
     expect(stageOfStep('Bash: Archive the instruction and completion report with work.py')).toBe(3)
     expect(stageOfStep('Bash: python3 /p/scripts/orca_wait.py --run R1')).toBe(3)
+  })
+
+  test('the checkout records prove verify and report, but only files newer than the dispatch count', () => {
+    const gate = [{ name: 'lint-result.json', mtimeMs: 50 }]
+    const logs = [{ name: '2026-10-17_to_dev.md', mtimeMs: 70 }]
+    expect(stageOfRecords(gate, [], 'dev', 10)).toBe(2)
+    expect(stageOfRecords([{ name: 'pass.json', mtimeMs: 50 }], [], 'dev', 10)).toBe(2)
+    expect(stageOfRecords(gate, logs, 'dev', 10)).toBe(3)
+    expect(stageOfRecords(gate, logs, 'tester', 10)).toBe(2)
+    expect(stageOfRecords(gate, logs, 'dev', 60)).toBe(3)
+    expect(stageOfRecords(gate, logs, 'dev', 80)).toBe(0)
+    expect(stageOfRecords([{ name: 'other.json', mtimeMs: 50 }], [], 'dev', 10)).toBe(0)
   })
 
   test('the stage never goes back while a worker re-reads files', () => {
