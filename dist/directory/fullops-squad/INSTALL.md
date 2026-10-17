@@ -9,7 +9,7 @@ summary: Orca에서 AI worker의 배정, 문서, 검증, 리뷰를 관리하는 
 # FullOps Squad
 
 Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는 플러그인입니다.
-작업 지시서와 결과를 Git 레포에 기록하고, 구현 결과를 lint와 독립 리뷰로 확인합니다.
+작업 지시서와 결과를 Git 레포에 기록하고, 구현 결과를 lint와 독립 리뷰로 확인합니다. [15초 소개 영상](docs/intro/README.md)
 
 **Orca IDE가 필요합니다.** 플러그인은 Orca 앱을 설치하지 않습니다.
 설치는 CLI 사용자 범위에 적용됩니다. 서비스 레포의 `.fullops-squad/`를 만드는 setup은 별도로 요청합니다.

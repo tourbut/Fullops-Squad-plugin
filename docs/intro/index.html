@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>FullOps Squad intro</title>
+<!-- Template: #3 "Orange dot kinetic motion system" structure (by @rossaxbt, https://x.com/rossaxbt/status/2108570705692357094) with the #7 hook -> techniques -> clean end shape. -->
+<style>
+  :root { --ink: #F4F1EA; --bg: #0E0E0E; --accent: #FF5A1F; --dim: #8A8780; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  #stage { position: absolute; inset: 0; overflow: hidden; font-family: 'Malgun Gothic', sans-serif; color: var(--ink); }
+  .abs { position: absolute; left: 0; top: 0; will-change: auto; }
+  .title { font-size: 168px; font-weight: 700; letter-spacing: -0.045em; white-space: nowrap; line-height: 1; }
+  .mono { font-family: Consolas, monospace; font-size: 30px; letter-spacing: 0.04em; color: var(--dim); white-space: nowrap; }
+  .caption { font-size: 46px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+  .g { display: inline-block; white-space: pre; }
+  #dot { z-index: 5; border-radius: 50%; background: var(--accent); }
+  .chip { padding: 18px 34px; border: 3px solid var(--ink); border-radius: 999px; font-size: 40px; font-weight: 700; white-space: nowrap; background: var(--bg); }
+  .step { width: 190px; height: 92px; border: 3px solid #3A3936; border-radius: 22px; display: flex; align-items: center; justify-content: center;
+          font-size: 36px; font-weight: 700; background: var(--bg); box-sizing: border-box; }
+  .big, #crumb4 { z-index: 7; }
+  .big { font-size: 190px; font-weight: 700; letter-spacing: -0.05em; color: var(--bg); white-space: nowrap; line-height: 1.05; }
+  svg { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg width="1920" height="1080" id="wires"></svg>
+  <div id="dot" class="abs"></div>
+  <div id="coorLabel" class="abs mono" style="z-index:6;color:#0E0E0E;font-size:34px;font-weight:700">coor</div>
+  <div id="title" class="abs title"></div>
+  <div id="crumb" class="abs mono"></div>
+  <div id="cap2" class="abs caption"></div>
+  <div id="cap3" class="abs caption"></div>
+  <div id="big1" class="abs big"></div>
+  <div id="big2" class="abs big"></div>
+  <div id="crumb4" class="abs mono" style="color:#0E0E0E;font-size:34px"></div>
+  <div id="endSub" class="abs caption" style="font-weight:400;color:var(--dim)"></div>
+  <div id="endUrl" class="abs mono"></div>
+</div>
+<script>
+const W = 1920, H = 1080, CX = 960, CY = 540
+const $ = id => document.getElementById(id)
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const ease = v => { v = clamp(v); return v * v * (3 - 2 * v) }
+
+// Closed-form underdamped step response: 0 before t=0, settles at 1 with a small overshoot.
+const spring = (t, f = 2.2, z = 0.72) => {
+  if (t <= 0) return 0
+  const w = 2 * Math.PI * f, wd = w * Math.sqrt(1 - z * z)
+  return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t))
+}
+// A value that changes target many times: the sum of one spring per change keeps it a pure function of time.
+const track = (keys, t, f, z) => keys.slice(1).reduce((v, k, i) => v + (k[1] - keys[i][1]) * spring(t - k[0], f, z), keys[0][1])
+
+// Splits text into glyph spans once; seek moves them.
+const split = (el, text) => { el.innerHTML = ''; return [...text].map(ch => { const s = document.createElement('span'); s.className = 'g'; s.textContent = ch; el.appendChild(s); return s }) }
+const place = (el, x, y) => { el.style.transform = `translate(${x}px, ${y}px)` }
+// Glyphs enter on a stagger with a spring and leave together with a fast ease.
+const kinetic = (glyphs, t, tIn, tOut, { stagger = 0.035, rise = 70, exitRise = -40 } = {}) => {
+  glyphs.forEach((g, i) => {
+    const e = spring(t - tIn - i * stagger, 2.6, 0.7)
+    const x = ease((t - tOut - i * 0.012) / 0.22)
+    g.style.opacity = clamp(e * 1.4) * (1 - x)
+    g.style.transform = `translateY(${(1 - e) * rise + x * exitRise}px)`
+    g.style.filter = `blur(${clamp(1 - e) * 8 + x * 6}px)`
+  })
+}
+
+const title = split($('title'), 'FullOps Squad')
+const crumb = split($('crumb'), 'ORCA IDE · AI WORKER HARNESS')
+const cap2 = split($('cap2'), 'Claude Code · Codex · grok · agy를 역할별 worker로')
+const cap3 = split($('cap3'), '지시서와 결과는 Git 레포에 기록')
+const big1 = split($('big1'), '구현은 worker가,')
+const big2 = split($('big2'), '검증은 다른 세션이.')
+const crumb4 = split($('crumb4'), 'LINT · FIXED SHA · INDEPENDENT REVIEW · WORKER_DONE')
+const endSub = split($('endSub'), 'Orca에서 AI 팀을 운영하는 플러그인')
+const endUrl = split($('endUrl'), 'github.com/tourbut/Fullops-Squad-plugin')
+
+// Layout measured once (fonts are local, so this is the same on every frame).
+const measure = el => el.getBoundingClientRect().width
+let TW, TX, TY = 430, DOTX
+const AGENTS = [['Claude Code', -560, -250], ['Codex', 470, -250], ['grok', -500, 250], ['agy', 520, 250]]
+const chips = AGENTS.map(([name]) => { const d = document.createElement('div'); d.className = 'abs chip'; d.textContent = name; $('stage').appendChild(d); return d })
+const STEPS = ['요청', '지시서', '구현', 'lint', '리뷰', '통합']
+const stepX = i => 330 + i * 252
+const steps = STEPS.map(name => { const d = document.createElement('div'); d.className = 'abs step'; d.textContent = name; $('stage').appendChild(d); return d })
+const svg = $('wires'), NS = 'http://www.w3.org/2000/svg'
+const line = () => { const l = document.createElementNS(NS, 'line'); l.setAttribute('stroke-width', 4); l.setAttribute('stroke-linecap', 'round'); svg.appendChild(l); return l }
+const spokes = AGENTS.map(line)
+const rail = line()
+
+let ready = false
+const layout = () => {
+  TW = measure($('title')); TX = CX - (TW + 60) / 2; DOTX = TX + TW + 30
+  ready = true
+}
+
+window.seek = async t => {
+  if (!ready) { await document.fonts.ready; layout() }
+
+  // The dot: one element through every scene. [time, value]
+  const DY = TY + 132 // sits on the title baseline as its period
+  const x = track([[0, CX], [0.45, DOTX], [2.0, CX], [5.0, stepX(0) + 95], [5.5, stepX(0) + 95], [6.0, stepX(1) + 95], [6.5, stepX(2) + 95], [7.0, stepX(3) + 95], [7.5, stepX(4) + 95], [8.0, stepX(5) + 95], [8.6, CX], [11.2, CX], [11.75, DOTX], [14.3, CX]], t, 2.0, 0.75)
+  const y = track([[0, CY], [0.45, DY], [2.0, CY], [5.0, 730], [8.6, CY], [11.2, CY], [11.75, DY], [14.3, CY]], t, 2.0, 0.75)
+  const r = track([[0, 16], [0.45, 16], [2.0, 74], [5.0, 16], [8.6, 16], [8.85, 1250], [10.95, 1250], [11.2, 16], [14.3, 16]], t, 1.6, 0.8)
+  // Hook: the opening dot breathes on the first beats, and the loop ends on the same still dot.
+  const pulse = t < 0.45 ? 1 + 0.25 * Math.sin(Math.PI * t / 0.45) : 1
+  const R = Math.max(0, r * pulse)
+  $('dot').style.width = $('dot').style.height = `${2 * R}px`
+  place($('dot'), x - R, y - R)
+
+  // 1. Hook: title slams in beside the dot.
+  place($('title'), TX, TY)
+  // The title appears twice: the hook, then the end card.
+  if (t < 6) kinetic(title, t, 0.35, 1.75, { stagger: 0.03, rise: 110 })
+  else kinetic(title, t, 11.45, 14.0, { stagger: 0.03, rise: 110 })
+  place($('crumb'), CX - measure($('crumb')) / 2, TY + 230)
+  kinetic(crumb, t, 0.9, 1.75, { stagger: 0.012, rise: 20 })
+
+  // 2. The dot becomes the coordinator; workers spring out on the beat and wire back to it.
+  const cl = clamp((t - 2.25) / 0.2) * (1 - clamp((t - 4.75) / 0.15))
+  $('coorLabel').style.opacity = cl
+  place($('coorLabel'), CX - 40, CY - 19)
+  chips.forEach((chip, i) => {
+    const [, dx, dy] = AGENTS[i]
+    const tin = 2.5 + i * 0.5
+    const e = spring(t - tin, 2.4, 0.68)
+    const out = ease((t - 4.8) / 0.3)
+    const cw = chip.offsetWidth, ch = chip.offsetHeight
+    const px = CX + dx * e * (1 - out), py = CY + dy * e * (1 - out)
+    chip.style.opacity = clamp(e * 2) * (1 - out)
+    chip.style.transform = `translate(${px - cw / 2}px, ${py - ch / 2}px) scale(${0.6 + 0.4 * clamp(e)})`
+    const l = spokes[i]
+    const d = clamp((t - tin - 0.1) / 0.3) * (1 - out)
+    l.setAttribute('x1', CX); l.setAttribute('y1', CY)
+    l.setAttribute('x2', CX + (px - CX) * d); l.setAttribute('y2', CY + (py - CY) * d)
+    l.setAttribute('stroke', '#FF5A1F'); l.setAttribute('opacity', d > 0 ? 1 : 0)
+  })
+  place($('cap2'), CX - measure($('cap2')) / 2, 900)
+  kinetic(cap2, t, 2.6, 4.7, { stagger: 0.018, rise: 30 })
+
+  // 3. Pipeline: each step lights as the dot lands on it, one per beat.
+  steps.forEach((s, i) => {
+    const e = spring(t - 4.9 - i * 0.06, 2.6, 0.7)
+    const out = ease((t - 8.35 - i * 0.03) / 0.25)
+    const lit = t >= 5.5 + i * 0.5 - 0.1 && t < 8.35
+    s.style.opacity = clamp(e * 2) * (1 - out)
+    s.style.transform = `translate(${stepX(i)}px, ${594 + (1 - e) * 60 - out * 30}px)`
+    s.style.borderColor = lit ? '#FF5A1F' : '#3A3936'
+    s.style.color = lit ? '#FF5A1F' : 'var(--ink)'
+  })
+  const railP = clamp((t - 5.5) / 2.5) * (1 - ease((t - 8.35) / 0.2))
+  rail.setAttribute('x1', stepX(0) + 95); rail.setAttribute('y1', 730)
+  rail.setAttribute('x2', clamp(x, stepX(0) + 95, stepX(5) + 95)); rail.setAttribute('y2', 730)
+  rail.setAttribute('stroke', '#FF5A1F'); rail.setAttribute('opacity', railP > 0 ? 0.35 : 0)
+  svg.insertBefore(rail, svg.firstChild)
+  place($('cap3'), CX - measure($('cap3')) / 2, 380)
+  kinetic(cap3, t, 5.2, 8.3, { stagger: 0.02, rise: 30 })
+
+  // 4. The dot fills the frame; the claim lands in black on orange.
+  place($('big1'), 150, 290); place($('big2'), 150, 500)
+  kinetic(big1, t, 9.0, 10.75, { stagger: 0.03, rise: 90 })
+  kinetic(big2, t, 9.5, 10.75, { stagger: 0.03, rise: 90 })
+  place($('crumb4'), 156, 800)
+  kinetic(crumb4, t, 9.9, 10.75, { stagger: 0.008, rise: 16 })
+
+  // 5. End card: the title returns with the dot as its period, then everything hands back to the opening dot.
+  place($('endSub'), CX - measure($('endSub')) / 2, TY + 225)
+  kinetic(endSub, t, 11.95, 14.0, { stagger: 0.015, rise: 24 })
+  place($('endUrl'), CX - measure($('endUrl')) / 2, TY + 310)
+  kinetic(endUrl, t, 12.35, 14.0, { stagger: 0.008, rise: 16 })
+}
+// Opened in a browser without the renderer: play in real time.
+if (!navigator.webdriver) { const t0 = performance.now(); const loop = () => { window.seek(((performance.now() - t0) / 1000) % 15).then(() => requestAnimationFrame(loop)) }; loop() }
+</script>
+</body>
+</html>
