@@ -79,23 +79,32 @@ export const parseRows = (stdout: string): Row[] => {
   })
 }
 
-/** Task id to task key, from `orca orchestration task-list --json`. */
-export const parseKeys = (stdout: string): Record<string, string> => {
+/** A task that is over, whether or not it was ever sent out. */
+const OVER = new Set(['completed', 'cancelled', 'canceled', 'failed'])
+
+/**
+ * `orca orchestration task-list --json`: task id to task key, and the keys of tasks still waiting
+ * for a worker (no dispatch yet and not over), in listing order.
+ */
+export const parseTasks = (stdout: string): { keys: Record<string, string>; queued: string[] } => {
   let parsed: unknown
   try {
     parsed = JSON.parse(stdout)
   } catch {
-    return {}
+    return { keys: {}, queued: [] }
   }
   const tasks = asRecord(asRecord(parsed).result).tasks
   const keys: Record<string, string> = {}
+  const queued: string[] = []
   if (Array.isArray(tasks)) {
     for (const item of tasks) {
       const task = asRecord(item)
-      keys[text(task.id)] = keyOf(text(task.spec))
+      const key = keyOf(text(task.spec))
+      keys[text(task.id)] = key
+      if (text(task.dispatch_id) === '' && !OVER.has(text(task.status))) queued.push(key || text(task.id))
     }
   }
-  return keys
+  return { keys, queued }
 }
 
 /** `C:/.../repo/dev` or `<repoId>::C:/.../repo/dev` to `dev`. */

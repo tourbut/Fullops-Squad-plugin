@@ -117,6 +117,13 @@ export const workerBlock = (w: Worker, now: number): { head: string; lines: stri
   return { head, lines }
 }
 
+/** `queued: K8, K9 · +3` for the tasks still waiting for a worker; empty for none. */
+export const queuedText = (queued: readonly string[]): string => {
+  if (queued.length === 0) return ''
+  const more = queued.length > SHOWN ? ` · +${queued.length - SHOWN}` : ''
+  return `queued: ${queued.slice(0, SHOWN).join(', ')}${more}`
+}
+
 /** The band's second line:the workers the coordinator sent work to. Empty when there is nothing to show. */
 export const workerLine = (workers: readonly Worker[] | null, now: number): string => {
   if (workers === null || workers.length === 0) return ''

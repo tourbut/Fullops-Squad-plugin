@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Meter, Sample, Worker } from '../types'
-import { adviceText, bandLine, clock, contextText, missText, modelName, sessionHit, statusLine, tokens, workerBlock, workerLine } from './meter'
+import { adviceText, bandLine, clock, contextText, missText, modelName, queuedText, sessionHit, statusLine, tokens, workerBlock, workerLine } from './meter'
 
 const MIN = 60_000
 const policy = { warnMs: 60_000, compactAtTokens: 100_000 }
@@ -151,6 +151,12 @@ describe('worker line', () => {
   test('long lists are cut with a count', () => {
     const many = ['a', 'b', 'c', 'd', 'e', 'f'].map(role => worker('active', role, ''))
     expect(workerLine(many, MIN)).toContain('· +2')
+  })
+
+  test('queued tasks are listed by key, cut with a count', () => {
+    expect(queuedText([])).toBe('')
+    expect(queuedText(['K8', 'K9'])).toBe('queued: K8, K9')
+    expect(queuedText(['a', 'b', 'c', 'd', 'e', 'f'])).toBe('queued: a, b, c, d · +2')
   })
 })
 

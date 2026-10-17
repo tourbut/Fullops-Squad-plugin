@@ -104,6 +104,8 @@ export type FullOps = {
   reviews: Review[]
   /** Orca task id to task key, so a dispatch card can name the task. */
   keys: Record<string, string>
+  /** The keys of tasks still waiting for a worker, in listing order. */
+  queued: string[]
 }
 
 export type Tab = 'workers' | 'reviews'

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Seen, Worker } from '../types'
-import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, noticesOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
+import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -72,7 +72,20 @@ describe('reading Orca', () => {
       },
     ])
     expect(parseRows('not json')).toEqual([])
-    expect(parseKeys(JSON.stringify({ result: { tasks: [{ id: 'task_1', spec: 'Task key: K9' }] } }))).toEqual({ task_1: 'K9' })
+    expect(
+      parseTasks(
+        JSON.stringify({
+          result: {
+            tasks: [
+              { id: 'task_1', spec: 'Task key: K9', status: 'completed', dispatch_id: 'ctx_1' },
+              { id: 'task_2', spec: 'Task key: K10', status: 'pending', dispatch_id: null },
+              { id: 'task_3', spec: 'Task key: K11', status: 'cancelled', dispatch_id: null },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({ keys: { task_1: 'K9', task_2: 'K10', task_3: 'K11' }, queued: ['K10'] })
+    expect(parseTasks('nope')).toEqual({ keys: {}, queued: [] })
     expect(parseRunId(JSON.stringify({ result: { run: { id: 'run_a' } } }))).toBe('run_a')
     expect(parseRunId(JSON.stringify({ result: { run: null } }))).toBeNull()
     expect(parseRunId('')).toBeNull()

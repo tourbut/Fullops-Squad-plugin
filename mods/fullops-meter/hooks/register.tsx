@@ -5,9 +5,9 @@ import type { Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
-import { bandLine, contextText, modelName, statusLine, workerBlock, workerLine } from './meter'
+import { bandLine, contextText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
-import { STAGES, asRecord, noticesOf, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf, text } from './workers'
+import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
@@ -209,18 +209,20 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   }
   const [list, tasks] = await Promise.all([
     $.process.run(['orca', 'orchestration', 'worker-list', '--run', runId, '--limit', '100', '--json'], { timeoutMs: 20_000 }),
-    $.process.run(['orca', 'orchestration', 'task-list', '--run', runId, '--json'], { timeoutMs: 20_000 }),
+    // --brief caps each spec at 160 characters: the key is declared at its start.
+    $.process.run(['orca', 'orchestration', 'task-list', '--run', runId, '--brief', '--json'], { timeoutMs: 20_000 }),
   ]).catch(() => [undefined, undefined] as const)
   if (list === undefined || tasks === undefined || list.exitCode !== 0) return
 
   const now = await $.clock.now()
-  // A failed listing keeps the keys already known, so the cards do not lose their task names for a poll.
-  const keys = tasks.exitCode === 0 ? parseKeys(tasks.stdout) : ((await read($, fullopsAtom))?.keys ?? {})
+  // A failed listing keeps the tasks already known, so the cards do not lose their task names for a poll.
+  const known = await read($, fullopsAtom)
+  const { keys, queued } = tasks.exitCode === 0 ? parseTasks(tasks.stdout) : { keys: known?.keys ?? {}, queued: known?.queued ?? [] }
   const seen = await read($, seenAtom)
   const merged = reconcile(seen, parseRows(list.stdout), keys, now, shared.isFirstPoll)
   shared.isFirstPoll = false
   await update($, seenAtom, () => merged.seen)
-  await update($, fullopsAtom, before => (before === null ? null : { ...before, keys }))
+  await update($, fullopsAtom, before => (before === null ? null : { ...before, keys, queued }))
   const before = (await read($, meterAtom))?.workers ?? []
   const workers = await Promise.all(
     merged.workers.map(async worker => {
@@ -290,7 +292,7 @@ async function readFullOps($: EngineInterface): Promise<void> {
   if (config === null) return
   const role = checkoutRole(config, await readBranch($))
   const reviews = await readReviews($)
-  await update($, fullopsAtom, before => ({ role, reviews, keys: before?.keys ?? {} }))
+  await update($, fullopsAtom, before => ({ role, reviews, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
 }
 
 /** Redraws the countdown and gives the "about to lapse" notice once per cache entry. */
@@ -447,6 +449,9 @@ export const register: Register = (on, options) => {
         <Text dimColor> {fullops === null ? '' : `role ${fullops.role}`}</Text>
       </Box>
     )
+    // Tasks the coordinator has not sent out yet; state from an older load carries no list.
+    const queued = tab === 'workers' && fullops !== null && workers !== null ? queuedText(fullops.queued ?? []) : ''
+    const queue = queued === '' ? null : <Text dimColor>{queued}</Text>
 
     if (fullops !== null && tab === 'workers' && workers !== null && Client !== undefined) {
       const cards: CardsProps = {
@@ -470,6 +475,7 @@ export const register: Register = (on, options) => {
         <Box flexDirection="column">
           {tabs}
           <Client key="workers" module="./worker-cards.tsx" props={cards} />
+          {queue}
         </Box>
       )
     }
@@ -495,6 +501,7 @@ export const register: Register = (on, options) => {
             ))}
           </Box>
         ))}
+        {queue}
       </Box>
     )
   })
