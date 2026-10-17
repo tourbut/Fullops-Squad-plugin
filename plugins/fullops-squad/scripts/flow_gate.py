@@ -16,6 +16,7 @@ import subprocess
 import sys
 
 import board
+import decision
 import deps
 import env_link
 import deliverables
@@ -634,6 +635,10 @@ def main(event=None):
             brief += (' 완료 보고마다 현재 SHA의 리뷰·기본 브랜치 병합·원격 push·하위 워크트리 동기화를 '
                       '바로 처리한다. 절차는 fullops-orca의 merge 절을 따른다. coordinator 역할 브랜치만 push하지 않는다.')
             brief += ' 자동 이슈 과제 GH-<저장소 ID>-<번호>-A<attempt>는 예외로 draft PR과 integration hold까지만 처리하고 main 병합은 사용자 판단을 기다린다.'
+            try:  # 이전 세션이 요청한 사용자 결정을 이어받는다. 실패해도 세션을 막지 않는다
+                brief += decision.brief(root)
+            except Exception:  # noqa: BLE001
+                pass
         try:  # 워크트리에 빠진 .fullops-squad/.env*를 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)
         except Exception:  # noqa: BLE001

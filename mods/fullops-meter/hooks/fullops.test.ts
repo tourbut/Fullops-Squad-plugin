@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Worker } from '../types'
-import { branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview, words } from './fullops'
+import { branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview, words } from './fullops'
 
 const config = parseConfig(JSON.stringify({ mode: 'coor', primary_role: 'coor', roles: { coor: 'fullops/coor', dev: 'fullops/dev' } }))
 
@@ -98,5 +98,38 @@ describe('spinner', () => {
       '2 workers running · 1 review open',
     )
     expect(spinnerText(null, [])).toBe('')
+  })
+})
+
+describe('decisions waiting for the person', () => {
+  const record = (fields: Record<string, unknown>) =>
+    JSON.stringify({ id: 'D002', status: 'open', key: 'K9', question: 'Switch to Postgres?', options: ['yes', 'no'], blocks: 'dev K9 question m-7', asked_at: '2026-10-17T09:00:00+00:00', ...fields })
+
+  test('a worktree reads the shared folder its commondir names; the main checkout is its own', () => {
+    expect(commonDirOf('/r/.git/worktrees/coor', '../..\n')).toBe('/r/.git/worktrees/coor/../..')
+    expect(commonDirOf('C:/r/.git/worktrees/coor', 'C:\\r\\.git')).toBe('C:\\r\\.git')
+    expect(commonDirOf('/r/.git', null)).toBe('/r/.git')
+  })
+
+  test('only open, well-formed records are shown', () => {
+    const decision = parseDecision(record({}))
+    expect(decision?.options).toEqual(['yes', 'no'])
+    expect(decision?.askedAt).toBe(Date.parse('2026-10-17T09:00:00Z'))
+    expect(parseDecision(record({ status: 'answered' }))).toBeNull()
+    expect(parseDecision(record({ id: '../x' }))).toBeNull()
+    expect(parseDecision(record({ question: '' }))).toBeNull()
+    expect(parseDecision('not json')).toBeNull()
+    expect(parseDecision(record({ key: null, options: [1, 'only'], asked_at: 'never' }))).toEqual({
+      id: 'D002', key: '', question: 'Switch to Postgres?', options: ['only'], blocks: 'dev K9 question m-7', askedAt: 0,
+    })
+  })
+
+  test('the pane names the decision, its age, the choices and what waits on it', () => {
+    const decision = parseDecision(record({}))!
+    expect(decisionLines(decision, decision.askedAt + 5 * 60_000)).toEqual({
+      head: 'D002 K9 · asked 5m ago',
+      lines: ['Switch to Postgres?', '1) yes  2) no', 'blocks dev K9 question m-7'],
+    })
+    expect(decisionLines({ ...decision, key: '', options: [], blocks: '', askedAt: 0 }, 0)).toEqual({ head: 'D002', lines: ['Switch to Postgres?'] })
   })
 })

@@ -99,6 +99,19 @@ export type Review = {
   at: number
 }
 
+/** One open decision the coordinator asked the person for, from `decision.py` in the git common folder. */
+export type Decision = {
+  id: string
+  /** The task key it belongs to; empty when none was given. */
+  key: string
+  question: string
+  options: string[]
+  /** What waits on it (a role, a task, a worker question's message id); empty when none was given. */
+  blocks: string
+  /** When it was asked, in milliseconds; 0 when the record has no readable time. */
+  askedAt: number
+}
+
 /** What the FullOps pane and labels read from the repository. */
 export type FullOps = {
   /** The role this checkout plays (`coor`, `dev`, ...). */
@@ -108,6 +121,8 @@ export type FullOps = {
   keys: Record<string, string>
   /** The keys of tasks still waiting for a worker, in listing order. */
   queued: string[]
+  /** Open decisions, oldest first; state from an older load carries none. */
+  decisions?: Decision[]
 }
 
 export type Tab = 'workers' | 'reviews'

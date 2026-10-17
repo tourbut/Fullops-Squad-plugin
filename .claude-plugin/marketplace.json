@@ -16,7 +16,7 @@
     {
       "name": "fullops-meter",
       "source": "./mods/fullops-meter",
-      "description": "Claude Code mod for FullOps: model, context and prompt cache on the hint line; a /fullops pane of animated worker cards and reviews; role label, step cards and spinner."
+      "description": "Claude Code mod for FullOps: model, context and prompt cache on the hint line; a /fullops pane of animated worker cards and reviews over the decisions waiting for you; role label, step cards and spinner."
     }
   ]
 }
