@@ -1,4 +1,18 @@
-# 공식 스킬 참조와 로컬 실행
+# 도구 참조와 로컬 실행
+
+## 기본 경로: 단일 HTML 렌더
+
+필요한 것은 Node 20 이상, 영상 폴더에 설치한 `playwright`(또는 시스템 Chrome과 `playwright-core`), FFmpeg/FFprobe다. 영상 폴더의 package/lock과 설치 버전을 기록한다. 패키지와 브라우저 설치는 환경 준비를 요청받았을 때만 한다.
+
+```bash
+cd videos/<작업>
+node <스킬 경로>/render.mjs index.html --stills 0,0.5,1,1.5 --out qa/v01/stills --width 1920 --height 1080
+node <스킬 경로>/render.mjs index.html --out renders/v01/clip.mp4 --width 1920 --height 1080 --fps 60 --duration 15 --subframes 4 [--audio audio/mix.wav]
+```
+
+`render.mjs`는 페이지의 `window.seek(t)`를 프레임 시각마다 호출하고 화면을 캡처해 FFmpeg(H.264, yuv420p, CFR)로 보낸다. `--subframes N`은 한 프레임 안의 N개 시각을 평균해 모션 블러를 만든다. 시스템 Chrome은 `--channel chrome`, PATH 밖의 FFmpeg는 `--ffmpeg <경로>`로 지정한다. 브라우저는 로컬 파일만 연다. 입력 오류는 exit 2, 렌더 실패는 exit 1이다.
+
+## HyperFrames·Remotion
 
 2026-10-07 검토 기준. 실행한 환경과 한계는 개발 저장소 `docs/motion-graphics.md`에 기록한다. 이것은 전 OS/CPU 지원 보증이 아니다.
 
@@ -9,7 +23,7 @@
 | Remotion CLI/패키지 | `remotion@latest`·`@remotion/*@latest`, 한 프로젝트의 실제 패키지 버전 일치 | [CLI](https://www.remotion.dev/docs/cli), [공식 스킬](https://www.remotion.dev/docs/ai/skills) |
 | Remotion 스킬 | 공식 저장소의 최신 `remotion-best-practices` 스킬 | [공식 스킬 원천](https://github.com/remotion-dev/skills) |
 
-## 기존 로컬 환경 확인
+### 기존 로컬 환경 확인
 
 1. 영상 폴더의 package/lock와 로컬 실행 파일을 먼저 확인한다. Node·브라우저·FFmpeg/FFprobe 버전·OS/CPU를 기록한다. HyperFrames는 `--version`, Remotion은 `versions`로 실제 설치를 확인한다. `npx`의 자동 다운로드로 존재 검사를 대신하지 않는다.
 2. 설치·업데이트 요청이면 별도 작업 폴더에서 latest를 설치하고 호환 검증한다. 기존 작업의 패키지와 lock은 보존하며 실제 설치 버전을 기록한다.
@@ -17,7 +31,7 @@
 
 설치된 최신 공식 스킬에서 필요한 entry와 상대 참조를 읽는다. 출처를 확인하고 실제 설치 ref를 실행 증거에 기록한다. 갱신 전 기존 스킬을 백업하고 기존 프로젝트를 보존한다. 전체 스킬 복사나 독자 포크를 유지하지 않는다.
 
-## 로컬 명령
+### 로컬 명령
 
 공식 CLI의 해당 버전 `--help`와 스킬 참조를 읽고 실행한다. 스킬 설치는 환경 준비 단계에서 처리하며 `HYPERFRAMES_SKIP_SKILLS=1`로 init의 자동 latest 스킬 조회를 막는다. 기본 blank의 외부 GSAP/font URL도 로컬 승인 자산으로 바꾼다. registry/add/capture는 별도의 네트워크 작업이다.
 
@@ -37,7 +51,7 @@ HyperFrames와 Remotion의 브라우저 실행에는 upstream 기본 `--no-sandb
 
 ## 비용과 라이선스
 
-HyperFrames는 [Apache-2.0](https://github.com/heygen-com/hyperframes). 외부 스톡·글꼴·음성·클라우드의 권리는 별도다.
+Playwright는 [Apache-2.0](https://github.com/microsoft/playwright), HyperFrames는 [Apache-2.0](https://github.com/heygen-com/hyperframes). 외부 스톡·글꼴·음성·클라우드의 권리는 별도다.
 
 Remotion은 [현재 라이선스](https://www.remotion.dev/docs/license)의 사용 주체 조건을 확인한다. 개인, 직원 3명 이하 영리 조직, 비영리 조직 또는 아직 상업적으로 쓰지 않는 적합성 평가가 무료 대상이다. 그 밖의 조직은 Company License가 필요하다. 무료 전용인데 적합성이 불명확하면 Remotion 실행을 보류하며 자격이나 이미 보유한 라이선스를 확인한다. 로컬 렌더라는 이유로 무료라고 단정하지 않는다.
 

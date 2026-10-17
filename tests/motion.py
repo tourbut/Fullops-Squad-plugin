@@ -182,6 +182,18 @@ with tempfile.TemporaryDirectory() as directory:
             generated = json.loads((root / 'intro-spec.json').read_text(encoding='utf-8'))
             motion.validate(generated, root)
 
+# The default renderer rejects bad input before it needs Playwright; templates carry structure, not source prompts.
+SKILL = ROOT / 'plugins/fullops-squad/skills/fullops-motion'
+if shutil.which('node'):
+    for args in ([], ['index.html'], ['index.html', '--out', 'o.mp4', '--width', '0', '--height', '9', '--duration', '1'],
+                 ['index.html', '--out', 'o', '--width', '9', '--height', '9', '--stills', 'a']):
+        done = subprocess.run(['node', str(SKILL / 'render.mjs'), *args], capture_output=True, text=True)
+        assert done.returncode == 2 and 'render.mjs:' in done.stderr, (args, done.stderr)
+templates = (SKILL / 'templates.md').read_text(encoding='utf-8')
+assert templates.count('](https://x.com/') == 12
+for phrase in ('go all out', 'world-class motion designer', 'Ask me for', 'ピクセル'):
+    assert phrase not in templates, phrase
+
 # Common install plans must remain independent of video tools on every host.
 for host in ('codex', 'claude-code', 'grok', 'agy', 'all'):
     plan = list(deps.commands(host))
