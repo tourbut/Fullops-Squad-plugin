@@ -458,6 +458,18 @@ export const register: Register = (on, options) => {
     return next({ ...e, props: { ...e.props, modes: [...e.props.modes, `fullops ${fullops.role}`] } })
   })
 
+  // The engine folds read-only calls into one count line (`Ran 1 shell command`), which never reaches the
+  // ToolUse hook below; a group holding a FullOps step is unfolded so its card shows.
+  on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
+    if (e.props.isExpanded || !shared.isFullOps) return next(e)
+    const keys = (await read($, fullopsAtom))?.keys ?? {}
+    const hasStep = e.props.calls.some(call => {
+      const command = call.tool === 'Bash' ? (call.input as { command?: unknown } | null)?.command : undefined
+      return typeof command === 'string' && cardOf(command, keys) !== null
+    })
+    return next(hasStep ? { ...e, props: { ...e.props, isExpanded: true } } : e)
+  })
+
   // A FullOps step run through Bash draws as one card in place of its long command.
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     if (e.props.tool !== 'Bash' || !shared.isFullOps) return next(e)
