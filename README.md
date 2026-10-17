@@ -9,7 +9,7 @@ summary: Orca에서 AI worker의 배정, 문서, 검증, 리뷰를 관리하는 
 # FullOps Squad
 
 Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는 플러그인입니다.
-작업 지시서와 결과를 Git 레포에 기록하고, 구현 결과를 lint와 독립 리뷰로 확인합니다.
+작업 지시서와 결과를 Git 레포에 기록하고, 구현 결과를 lint와 독립 리뷰로 확인합니다. [15초 소개 영상](docs/intro/README.md)
 
 **Orca IDE가 필요합니다.** 플러그인은 Orca 앱을 설치하지 않습니다.
 설치는 CLI 사용자 범위에 적용됩니다. 서비스 레포의 `.fullops-squad/`를 만드는 setup은 별도로 요청합니다.
@@ -87,7 +87,7 @@ heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 �
 | 도구 | 확인하는 것 |
 |---|---|
 | `fullops-test` | 코드·웹·Unity 검증. 웹 기본 Orca/현재 탭, 선택 Playwright, 모델 없는 회귀와 독립 checks. [실행기 계약](plugins/fullops-squad/skills/fullops-test/web-engine.md) |
-| `fullops-motion` | 선택형 모션그래픽 제작. HyperFrames/Remotion 공식 스킬, 로컬 렌더·클립 합성·검수·재렌더 인계 |
+| `fullops-motion` | 선택형 모션그래픽 제작. 모션 템플릿 기반 단일 HTML을 로컬 Playwright·FFmpeg로 렌더, HyperFrames/Remotion은 지정 시 선택. 검수·재렌더 인계 |
 | `fullops-frontend` | UI/UX 작업별 주 스킬·호스트/고정 모델 선택, 기존 디자인 정본·비평·브라우저 QA 연결 |
 | `fullops-review` | OCR CLI가 준비한 파일·규칙을 호스트 AI가 리뷰. 별도 OCR LLM API 키는 불필요 |
 | `lint.py` | 프로젝트 검사·테스트 명령, 코드·디자인 경고, 변경 규모·의존성 선언, 억제·비밀값·문서 메타데이터 |

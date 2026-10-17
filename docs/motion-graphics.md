@@ -1,7 +1,7 @@
 ---
 title: 로컬 모션그래픽 연결과 검증
 status: draft
-updated: 2026-10-08
+updated: 2026-10-17
 owner: maintainer
 summary: HyperFrames와 Remotion 공식 스킬 참조, 로컬 클립 합성 및 재렌더 검증 기록
 ---
@@ -12,6 +12,12 @@ summary: HyperFrames와 Remotion 공식 스킬 참조, 로컬 클립 합성 및 
 FullOps에는 `fullops-motion` 연결 스킬만 배포한다. 공식 스킬을 참고하고 제작·미리보기·렌더는 로컬 도구로 직접 수행한다.
 공통 의존성·setup·역할/워크트리 수를 늘리지 않는다. 외부 생성 API·클라우드 렌더·업로드/게시를 실행하지 않는다.
 개발용 예제와 검사기는 `tests/motion-example/`, `tests/motion_check.py`이며 플러그인 패키지에 포함하지 않는다.
+
+## 템플릿 기본 경로 (#57)
+
+2026-10-17부터 기본 제작 경로는 `fullops-motion/templates.md`의 템플릿에서 시작한 단일 HTML이다. `window.seek(t)`로 프레임을 계산하고 `render.mjs`(Playwright 캡처 → FFmpeg)로 렌더한다.
+HyperFrames·Remotion은 사용자가 지정하거나 기존 프로젝트가 쓸 때만 쓴다. 템플릿은 공개 프롬프트의 구조를 다시 쓴 요약이며, 원문은 권리 문제로 싣지 않고 제작자와 원본 링크만 남긴다.
+검증: Windows 11, Node 24.13.0, playwright-core 1.49.1과 시스템 Chrome, FFmpeg 8.0.1에서 320×160·30fps·2초·4-subframe 렌더를 확인했다(60프레임, CFR, 블러 육안 확인). 스틸 추출과 `seek` 없는 페이지 거부도 확인했다.
 
 ## 도구와 조합
 
