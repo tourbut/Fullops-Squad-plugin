@@ -1,0 +1,53 @@
+{
+  "name": "fullops-meter",
+  "version": "0.4.0",
+  "description": "Shows the session's model, context and prompt cache and, in a FullOps repository, a pane of workers and reviews, the session's role, one-line cards for FullOps steps and what the coordinator still has out.",
+  "author": {
+    "name": "tourbut",
+    "url": "https://github.com/tourbut"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "cacheTtl": {
+      "type": "string",
+      "title": "Prompt cache lifetime",
+      "description": "auto decides from your settings and account (1 hour on a Claude subscription within its plan usage, else 5 minutes) and corrects itself from the request timing. 5m or 1h pins it.",
+      "options": [
+        "auto",
+        "5m",
+        "1h"
+      ],
+      "default": "auto"
+    },
+    "warnContextPercent": {
+      "type": "number",
+      "title": "Warn at context percent",
+      "description": "Show a notice when the context window is at least this full.",
+      "default": 80,
+      "min": 1,
+      "max": 100
+    },
+    "showBand": {
+      "type": "boolean",
+      "title": "Show the worker band above the prompt",
+      "description": "The band shows coor worker dispatches when a FullOps run has any. Model, context and cache stay on the status line.",
+      "default": true
+    },
+    "warnSeconds": {
+      "type": "number",
+      "title": "Cache notice at (seconds)",
+      "description": "Show a notice, and turn the countdown to its warning state, this many seconds before the prompt cache lapses (at most half its lifetime). Leave time to run /compact.",
+      "default": 300,
+      "min": 5,
+      "max": 1800
+    },
+    "compactAtTokens": {
+      "type": "number",
+      "title": "Suggest /compact above (tokens)",
+      "description": "When the cache is about to lapse and the prompt is at least this large, the band and notice suggest /compact while it is still cached. A judgement, not a documented figure.",
+      "default": 100000,
+      "min": 20000,
+      "max": 1000000
+    }
+  }
+}
