@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Meter, Sample, Worker } from '../types'
-import { adviceText, bandLine, clock, contextText, missText, modelName, queuedText, sessionHit, statusLine, tokens, workerBlock, workerLine } from './meter'
+import { adviceText, bandLine, clock, contextText, historyText, missText, modelName, queuedText, sessionHit, statusLine, tokens, workerBlock, workerLine } from './meter'
 
 const MIN = 60_000
 const policy = { warnMs: 60_000, compactAtTokens: 100_000 }
@@ -77,6 +77,17 @@ describe('status line', () => {
       samples: [],
     }
     expect(statusLine(empty, 0)).toBe('- - · ctx - · cache - -')
+  })
+})
+
+describe('history', () => {
+  test('one line per request with its hit rate, size, gap and miss reason', () => {
+    const missed: Meter = { ...meter, ttl: '5m', samples: [sample(0, 140_000, 0, 500), sample(10 * MIN, 0, 141_000, 500)] }
+    const lines = historyText(missed, 12 * MIN).split('\n')
+    expect(lines[0]).toBe('2 requests kept, oldest first · cache TTL 5m')
+    expect(lines[1]).toBe('12m ago · hit 100% · 141k prompt · first')
+    expect(lines[2]).toBe('2m ago · hit 0% · 142k prompt · gap 10:00 · cache rewritten after expiry (10:00 gap)')
+    expect(historyText({ ...meter, samples: [] }, 0)).toBe('No requests yet.')
   })
 })
 

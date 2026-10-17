@@ -5,7 +5,7 @@ import type { Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
-import { bandLine, contextText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
+import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
 import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
 
@@ -395,7 +395,7 @@ export const register: Register = (on, options) => {
     $.ui.status(undefined)
     shared.isFullOps = await $.fs.exists(CONFIG).catch(() => false)
     await $.command
-      .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band)', argumentHint: '[hide|show]' })
+      .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band, history lists the requests)', argumentHint: '[hide|show|history]' })
       .catch(() => undefined)
     if (shared.isFullOps) {
       await $.command
@@ -446,7 +446,9 @@ export const register: Register = (on, options) => {
       return { text: argument === 'hide' ? 'Band hidden. Run /meter show to bring it back.' : 'Band shown.' }
     }
     const now = await $.clock.now()
-    return { text: details(await read($, meterAtom), now, shared.policy) }
+    const meter = await read($, meterAtom)
+    if (argument === 'history') return { text: meter === null ? 'No data yet. It appears after the first response.' : historyText(meter, now) }
+    return { text: details(meter, now, shared.policy) }
   })
 
   on('command.run', { command: FULLOPS_COMMAND }, async $ => {

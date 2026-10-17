@@ -88,6 +88,26 @@ export const bandLine = (meter: Meter, now: number, policy: Policy): string => {
   return parts.join(' · ')
 }
 
+/** `/meter history`: one line per kept request, oldest first: when, hit rate, prompt size, gap from the previous, why it missed. */
+export const historyText = (meter: Meter, now: number): string => {
+  if (meter.samples.length === 0) return 'No requests yet.'
+  const lines = meter.samples.map((s, i) => {
+    const prev = meter.samples[i - 1]
+    const ratio = hitRatio(s)
+    const miss = missOf(prev, s, meter.ttl)
+    return [
+      `${ago(now - s.startedAt)} ago`,
+      `hit ${ratio === null ? '-' : `${Math.round(ratio * 100)}%`}`,
+      `${tokens(promptTokens(s))} prompt`,
+      prev === undefined ? 'first' : `gap ${clock(s.startedAt - prev.startedAt)}`,
+      miss === undefined ? '' : missText(miss),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  })
+  return [`${meter.samples.length} requests kept, oldest first · cache TTL ${meter.ttl}`, ...lines].join('\n')
+}
+
 const SYMBOL: Record<Worker['phase'], string> = { active: '▶', done: '✔', failed: '✖', stopped: '■' }
 
 const SHOWN = 4

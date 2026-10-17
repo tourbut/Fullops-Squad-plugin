@@ -7,7 +7,7 @@ It works only in Claude Code. It is kept apart from the portable plugin in `plug
 ## What it shows
 
 - **Hint line** (under the prompt): `opus-5-5 high · ctx 26% · 736k left · cache 94% 59:00`. These are the model and effort, the context used and left, and the last request's cache hit rate with the time until the cache lapses.
-- **`/meter`**: the same in detail. It adds the auto-compact point, where the cache lifetime came from and the cache miss reason. `/meter hide` and `/meter show` hide and show the band above the prompt.
+- **`/meter`**: the same in detail. It adds the auto-compact point, where the cache lifetime came from and the cache miss reason. `/meter hide` and `/meter show` hide and show the band above the prompt. `/meter history` lists the last 50 requests, oldest first, each with its cache hit rate, prompt size, gap from the previous request and the reason it missed, for tracing why the cache was rewritten.
 - **Notices**: one when the context reaches `warnContextPercent`, and one before a large prompt cache lapses (`warnSeconds`, 5 minutes by default, and at most half the cache lifetime: 2.5 minutes for a 5-minute cache). Above `compactAtTokens`, the notice and the band suggest `/compact` while the cache is still warm. After it lapses, `/compact` would reread the whole conversation at full price too, so the band then only says so and suggests `/clear` when done.
 
 In a FullOps repository:
