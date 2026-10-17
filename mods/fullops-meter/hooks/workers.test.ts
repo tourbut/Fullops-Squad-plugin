@@ -210,6 +210,7 @@ describe('worker stages', () => {
     const logs = [{ name: '2026-10-17_to_dev.md', mtimeMs: 70 }]
     expect(stageOfRecords(gate, [], 'dev', 10)).toBe(2)
     expect(stageOfRecords([{ name: 'pass.json', mtimeMs: 50 }], [], 'dev', 10)).toBe(2)
+    expect(stageOfRecords([{ name: 'lint-attempt.json', mtimeMs: 50 }], [], 'dev', 10)).toBe(2)
     expect(stageOfRecords(gate, logs, 'dev', 10)).toBe(3)
     expect(stageOfRecords(gate, logs, 'tester', 10)).toBe(2)
     expect(stageOfRecords(gate, logs, 'dev', 60)).toBe(3)
