@@ -63,6 +63,13 @@ export const decideTtl = (input: TtlInputs): { ttl: Ttl; source: string } => {
 }
 
 /**
+ * Whether the cache served the request's prompt. A subagent or background request can refresh the
+ * shared system-prompt prefix on its own, so a few cached tokens are not a hit on the conversation.
+ * Measured against the smaller prompt: after /compact the next prompt is far shorter and still served.
+ */
+const isServed = (prev: Sample, cur: Sample): boolean => cur.read >= 0.1 * Math.min(promptTokens(prev), promptTokens(cur))
+
+/**
  * What the request timing proves about the lifetime, which beats every rule above.
  * A hit more than 5 minutes after the previous request can only be a 1-hour entry. A miss
  * 5 to 60 minutes after it, on the same model and a prompt that did not shrink, says the
@@ -71,7 +78,7 @@ export const decideTtl = (input: TtlInputs): { ttl: Ttl; source: string } => {
 export const observeTtl = (prev: Sample | undefined, cur: Sample, known: Ttl | undefined): Ttl | undefined => {
   if (prev === undefined || prev.model !== cur.model) return known
   const gap = cur.startedAt - prev.startedAt
-  const isHit = cur.read > 0
+  const isHit = isServed(prev, cur)
   if (isHit && gap > 5 * MINUTE + SLACK) return '1h'
   const isLapse = !isHit && gap > 5 * MINUTE + SLACK && gap < 60 * MINUTE - SLACK
   if (isLapse && known !== '1h' && promptTokens(cur) >= promptTokens(prev)) return '5m'
@@ -82,10 +89,7 @@ export type Miss = { reason: 'model' | 'lapsed' | 'prefix'; gapMs: number }
 
 /** Why a request did not read what the previous one left in the cache; undefined when it did. */
 export const missOf = (prev: Sample | undefined, cur: Sample, ttl: Ttl): Miss | undefined => {
-  if (prev === undefined) return undefined
-  // Measured against the smaller prompt: after /compact the next prompt is far shorter and still served.
-  const isServed = cur.read >= 0.1 * Math.min(promptTokens(prev), promptTokens(cur))
-  if (isServed) return undefined
+  if (prev === undefined || isServed(prev, cur)) return undefined
   const gapMs = cur.startedAt - prev.startedAt
   if (prev.model !== cur.model) return { reason: 'model', gapMs }
   return { reason: gapMs > ttlMs(ttl) ? 'lapsed' : 'prefix', gapMs }

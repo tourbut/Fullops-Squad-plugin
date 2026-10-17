@@ -36,6 +36,8 @@ describe('numbers', () => {
     expect(tokens(12_345)).toBe('12.3k')
     expect(tokens(124_000)).toBe('124k')
     expect(tokens(1_250_000)).toBe('1.3M')
+    expect(tokens(99_960)).toBe('100k')
+    expect(tokens(999_960)).toBe('1.0M')
   })
 
   test('clock counts minutes and seconds, then hours, never below zero', () => {

@@ -19,6 +19,8 @@ describe('which role a checkout plays', () => {
   test('a repo without a primary role falls back to its mode', () => {
     expect(checkoutRole(parseConfig('{"mode":"dev","roles":{}}')!, 'main')).toBe('dev')
     expect(parseConfig('not json')).toBeNull()
+    expect(parseConfig('42')).toBeNull()
+    expect(parseConfig('[]')).toBeNull()
   })
 })
 

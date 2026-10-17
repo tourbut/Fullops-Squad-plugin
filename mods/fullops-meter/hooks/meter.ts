@@ -2,13 +2,15 @@ import type { Context, Meter, Worker } from '../types'
 import { adviseCache, hitRatio, missOf, promptTokens, remainingMs } from './cache'
 import type { Advice, Miss, Policy } from './cache'
 
-/** Tokens in short form: 950, 12.3k, 124k, 1.2M. */
+/** Tokens in short form: 950, 12.3k, 124k, 1.2M. The steps sit where rounding would print 100.0k or 1000k. */
 export const tokens = (n: number): string =>
-  n >= 1_000_000
+  n >= 999_950
     ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000
-      ? `${(n / 1_000).toFixed(n >= 100_000 ? 0 : 1)}k`
-      : String(n)
+    : n >= 99_950
+      ? `${Math.round(n / 1_000)}k`
+      : n >= 1_000
+        ? `${(n / 1_000).toFixed(1)}k`
+        : String(n)
 
 /** Milliseconds as m:ss, or h:mm:ss from an hour up. */
 export const clock = (ms: number): string => {

@@ -11,6 +11,7 @@ export const parseConfig = (source: string): Config | null => {
   } catch {
     return null
   }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
   const config = asRecord(parsed)
   const roles: Record<string, string> = {}
   for (const [role, branch] of Object.entries(asRecord(config.roles))) {

@@ -16,7 +16,7 @@ export const phaseOf = (workerState: string, dispatchStatus: string): Phase => {
 
 /** The task key a spec declares as `Task key: X`; empty when it declares none. */
 export const declaredKey = (spec: string): string =>
-  /\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)?.[1]?.replace(/\.$/, '') ?? ''
+  /\bTask\s+key\b\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)?.[1]?.replace(/\.$/, '') ?? ''
 
 /** The task key a dispatch's spec carries: the declared one, else the spec's first word. */
 export const keyOf = (spec: string): string => declaredKey(spec) || (/^\s*([A-Za-z0-9][A-Za-z0-9._-]*)/.exec(spec)?.[1] ?? '')

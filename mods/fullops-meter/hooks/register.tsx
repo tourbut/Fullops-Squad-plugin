@@ -7,7 +7,7 @@ import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, modelName, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
-import { STAGES, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf } from './workers'
+import { STAGES, asRecord, parseKeys, parseProgress, parseRows, parseRunId, reconcile, stageOf, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
@@ -143,7 +143,10 @@ async function readContext($: EngineInterface, shared: Shared): Promise<void> {
   // No reading (no response yet, an engine error) leaves the meter as it was; the hooks calling this must go on.
   const reading = await $.session.usage().catch(() => undefined)
   if (reading === undefined) return
-  shared.account = accountOf(reading.rateLimits)
+  const account = accountOf(reading.rateLimits)
+  // A lifetime proven under the old account kind (plan usage run out, or restored) no longer holds.
+  if (account !== shared.account) shared.observed = undefined
+  shared.account = account
   chooseTtl(shared)
   // The compaction point is a local estimate and does not move within a session, so it is read once.
   if (shared.compactAt === undefined) {
@@ -211,7 +214,8 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   if (list === undefined || tasks === undefined || list.exitCode !== 0) return
 
   const now = await $.clock.now()
-  const keys = parseKeys(tasks.stdout)
+  // A failed listing keeps the keys already known, so the cards do not lose their task names for a poll.
+  const keys = tasks.exitCode === 0 ? parseKeys(tasks.stdout) : ((await read($, fullopsAtom))?.keys ?? {})
   const merged = reconcile(await read($, seenAtom), parseRows(list.stdout), keys, now, shared.isFirstPoll)
   shared.isFirstPoll = false
   await update($, seenAtom, () => merged.seen)
@@ -309,6 +313,9 @@ async function tick($: EngineInterface, shared: Shared): Promise<void> {
   await update($, nowAtom, () => now)
 }
 
+/** The shell command a Bash tool call runs; empty for any other tool, which `cardOf` turns down. */
+const bashCommand = (tool: string, input: unknown): string => (tool === 'Bash' ? text(asRecord(input).command) : '')
+
 /** The text `/meter` answers with. */
 const details = (meter: Meter | null, now: number, policy: Policy): string => {
   if (meter === null) return 'No data yet. It appears after the first response.'
@@ -351,7 +358,7 @@ export const register: Register = (on, options) => {
     // The meter is not reset here: a reload runs session.start again, and `$.state` is the session's own anyway.
     // 0.2.0 pinned its line with $.ui.status, which the engine prefixes with the plugin name; clear what it left.
     $.ui.status(undefined)
-    shared.isFullOps = await $.fs.exists('.fullops-squad/fullops.json').catch(() => false)
+    shared.isFullOps = await $.fs.exists(CONFIG).catch(() => false)
     await $.command
       .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band)', argumentHint: '[hide|show]' })
       .catch(() => undefined)
@@ -447,7 +454,8 @@ export const register: Register = (on, options) => {
           role: w.role,
           key: w.key,
           phase: w.phase,
-          stage: w.phase === 'done' ? STAGES.length : (w.stage ?? 0),
+          // Workers kept from an older load carry no stage.
+          stage: w.stage ?? 0,
           since: w.since,
           lastAt: w.progress?.at ?? 0,
           needsAction: w.needsAction === true,
@@ -499,18 +507,14 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
     if (e.props.isExpanded || !shared.isFullOps) return next(e)
     const keys = (await read($, fullopsAtom))?.keys ?? {}
-    const hasStep = e.props.calls.some(call => {
-      const command = call.tool === 'Bash' ? (call.input as { command?: unknown } | null)?.command : undefined
-      return typeof command === 'string' && cardOf(command, keys) !== null
-    })
+    const hasStep = e.props.calls.some(call => cardOf(bashCommand(call.tool, call.input), keys) !== null)
     return next(hasStep ? { ...e, props: { ...e.props, isExpanded: true } } : e)
   })
 
   // A FullOps step run through Bash draws as one card in place of its long command.
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
-    if (e.props.tool !== 'Bash' || !shared.isFullOps) return next(e)
-    const command = (e.props.input as { command?: unknown } | null)?.command
-    const card = typeof command === 'string' ? cardOf(command, (await read($, fullopsAtom))?.keys ?? {}) : null
+    if (!shared.isFullOps) return next(e)
+    const card = cardOf(bashCommand(e.props.tool, e.props.input), (await read($, fullopsAtom))?.keys ?? {})
     if (card === null) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)

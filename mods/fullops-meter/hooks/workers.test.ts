@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Seen } from '../types'
-import { KEEP_FINISHED_MS, STAGES, keyOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
+import { KEEP_FINISHED_MS, STAGES, declaredKey, keyOf, parseKeys, parseProgress, parseRows, parseRunId, phaseOf, reconcile, roleOf, stageOf, stageOfStep } from './workers'
 import type { Row } from './workers'
 
 const row = (dispatchId: string, phase: Row['phase'], workspace = 'repo::C:/orca/repo/dev'): Row => ({
@@ -29,6 +29,7 @@ describe('reading Orca', () => {
     expect(keyOf('Task key=K1.')).toBe('K1')
     expect(keyOf('K2 implement the thing')).toBe('K2')
     expect(keyOf('')).toBe('')
+    expect(declaredKey('the task keys below are K1 and K2')).toBe('')
   })
 
   test('the role is the worktree folder', () => {
