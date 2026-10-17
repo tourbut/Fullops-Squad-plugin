@@ -241,10 +241,13 @@ export type Entry = { name: string; mtimeMs: number }
  * `lint.py` left its result in the checkout's gate folder, report once `work.py finish` archived the
  * completion report. The role worktree is reused across tasks, so older files say nothing.
  */
+// lint.py writes lint-attempt.json when it starts and lint-result.json or pass.json when it ends.
+const GATE_RECORDS = new Set(['lint-attempt.json', 'lint-result.json', 'pass.json'])
+
 export const stageOfRecords = (gate: readonly Entry[], logs: readonly Entry[], role: string, since: number): number => {
   const fresh = (entry: Entry) => entry.mtimeMs >= since
   if (logs.some(entry => fresh(entry) && entry.name.endsWith(`_to_${role}.md`))) return 3
-  if (gate.some(entry => fresh(entry) && (entry.name === 'lint-result.json' || entry.name === 'pass.json'))) return 2
+  if (gate.some(entry => fresh(entry) && GATE_RECORDS.has(entry.name))) return 2
   return 0
 }
 

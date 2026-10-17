@@ -19,7 +19,7 @@ In a FullOps repository:
     - a stage rail, `explore → build → verify → report → done`. The current stage spins and the next link flows. In a pane too narrow for the labels, the rail shows icons only, followed by the current stage's name.
 
     The stage comes from two sources, read every 15 seconds, and never goes back:
-    - the harness records in the worker's checkout, which are certain: `lint-result.json` or `pass.json` in its git folder's `fullops-gate/` means verify, and a `_to_<role>.md` log under `.fullops-squad/handovers/logs/` means report. Only files newer than the dispatch count, as the role worktree is reused across tasks.
+    - the harness records in the worker's checkout, which are certain: `lint-attempt.json`, `lint-result.json` or `pass.json` in its git folder's `fullops-gate/` means verify, and a `_to_<role>.md` log under `.fullops-squad/handovers/logs/` means report. Only files newer than the dispatch count, as the role worktree is reused across tasks.
     - its latest tool calls, from `orca orchestration worker-read --source transcript`: Edit and Write mean build; a Bash call that names a test, lint, gate, check, validate or make step means verify; `worker_done`, `work.py finish` or `orca_wait` mean report; anything else means explore. These are word rules, so a worker that runs undescribed commands can sit at explore until a record proves more.
 
     A finished worker shows one coloured line for 10 minutes. Surfaces that cannot run the card module (mobile) show the same as a text list.
