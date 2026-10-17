@@ -109,6 +109,15 @@ worker는 리뷰·병합이 끝날 때까지 retain한다. 병합 후 다음 과
 - coordinator는 그 답을 줄이거나 해석하지 않고 원래 질문의 message id로 `reply`한다. 답이 지시서 변경을 포함하면 worker에게 해당 SHA를 반영하라고 적는다.
 - 설계 역할도 판단할 수 없는 사용자 결정은 사용자에게 묻는다. 답을 받을 때까지 worker의 질문은 열어 둔다.
 
+## 사용자 결정 기록
+
+사용자에게 결정을 요청할 때는 묻기 전에 항목마다 이 스킬 기준 `../../scripts/decision.py`로 `python3 <decision.py> add --repo <레포 루트> --question "<질문>" [--key <과제 키>] [--option <선택지> ...] [--blocks "<기다리는 역할·과제·질문 message id>"]`를 실행한다. 한 번에 여러 결정을 물으면 각각 기록하고, 답변에 결정 id(D001 등)를 함께 적는다. 기록은 Git 공용 디렉터리의 `fullops-decisions/`에 남아 세션·워크트리가 바뀌어도 유지되며 fullops-meter 패널 하단에 표시된다.
+
+- 사용자가 답하면 `decision.py answer --id <id> --answer "<답>"`으로 닫는다. 질문이 필요 없어졌으면 `decision.py drop --id <id> --reason "<사유>"`로 닫는다.
+- 사용자 답이 일부 결정만 다뤘으면 남은 열린 결정을 그 답변 끝에 id와 함께 다시 나열한다. 열린 결정에 걸린 작업은 추정으로 진행하지 않는다.
+- 새 coordinator 세션은 SessionStart 문맥으로 열린 결정을 받는다. 관련 작업을 이어가기 전에 사용자에게 다시 묻는다. 현재 목록은 `decision.py list`로 확인한다.
+- worker 질문이 사용자 결정을 기다리면 `--blocks`에 그 질문의 message id를 넣는다. 답을 받으면 결정을 닫고 원래 질문에 `reply`한다.
+
 ## 메시지 — worker
 
 - 지시서 범위 안의 비파괴 작업은 묻지 않고 완료 기준까지 진행한다. 진행 확인을 받으려고 멈추지 않는다.

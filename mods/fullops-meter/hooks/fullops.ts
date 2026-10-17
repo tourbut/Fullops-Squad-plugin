@@ -1,4 +1,4 @@
-import type { Review, Worker } from '../types'
+import type { Decision, Review, Worker } from '../types'
 import { ago } from './meter'
 import { asRecord, declaredKey, text } from './workers'
 
@@ -179,3 +179,42 @@ const rank = (review: Review): number => (review.state === 'recorded' && review.
 
 /** Reviews with findings still open first, then the ones under way, then the newest. */
 export const sortReviews = (reviews: readonly Review[]): Review[] => [...reviews].sort((a, b) => rank(b) - rank(a) || b.at - a.at)
+
+/** The folder all of a repository's checkouts share: a worktree's git folder names it in `commondir`. */
+export const commonDirOf = (gitDir: string, commondir: string | null): string => {
+  const named = commondir?.trim()
+  if (named === undefined || named === '') return gitDir
+  return /^([A-Za-z]:)?[\\/]/.test(named) ? named : `${gitDir}/${named}`
+}
+
+/** One `fullops-decisions/D<n>.json` record, or null when it is not an open decision. */
+export const parseDecision = (source: string): Decision | null => {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(source)
+  } catch {
+    return null
+  }
+  const record = asRecord(parsed)
+  const id = text(record.id)
+  const question = text(record.question)
+  if (record.status !== 'open' || !/^D\d+$/.test(id) || question === '') return null
+  const askedAt = Date.parse(text(record.asked_at))
+  return {
+    id,
+    key: text(record.key),
+    question,
+    options: Array.isArray(record.options) ? record.options.filter((option): option is string => typeof option === 'string') : [],
+    blocks: text(record.blocks),
+    askedAt: Number.isNaN(askedAt) ? 0 : askedAt,
+  }
+}
+
+/** One decision as the pane draws it: the head line, then the question and what it waits on. */
+export const decisionLines = (decision: Decision, now: number): { head: string; lines: string[] } => {
+  const when = decision.askedAt === 0 ? '' : ` · asked ${ago(now - decision.askedAt)} ago`
+  const lines = [decision.question]
+  if (decision.options.length > 0) lines.push(decision.options.map((option, at) => `${at + 1}) ${option}`).join('  '))
+  if (decision.blocks !== '') lines.push(`blocks ${decision.blocks}`)
+  return { head: `${decision.id}${decision.key === '' ? '' : ` ${decision.key}`}${when}`, lines }
+}

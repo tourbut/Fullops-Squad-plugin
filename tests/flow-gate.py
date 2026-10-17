@@ -56,6 +56,14 @@ def main():
 
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
+        # 이전 세션의 열린 사용자 결정을 새 coordinator 세션이 이어받고, 닫힌 결정은 빠진다
+        sys.path.insert(0, str(SCRIPTS))
+        import decision
+        asked = decision.add(repo, 'Postgres로 바꿀까요?', key='K9', options=['예', '아니오'])
+        started = hook('start', session_id='c2', source='startup')['hookSpecificOutput']['additionalContext']
+        assert f"{asked['id']}(K9): Postgres로 바꿀까요? [예 / 아니오]" in started and '사용자 결정 대기 1건' in started
+        decision.close(repo, asked['id'], 'answered', answer='예', decided_by='user')
+        assert '사용자 결정 대기' not in hook('start', session_id='c3', source='startup')['hookSpecificOutput']['additionalContext']
         native_env = {'ORCA_TERMINAL_HANDLE': 'term-native-test'}
         for host_session in ('native-first', 'native-next'):
             hook('start', native_env=native_env, session_id=host_session)

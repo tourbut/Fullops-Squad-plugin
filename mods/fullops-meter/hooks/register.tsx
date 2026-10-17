@@ -1,10 +1,10 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, Timer } from 'claude-code'
+import type { EngineInterface, Register, RenderElement, Timer } from 'claude-code'
 
-import type { Meter, Review, Sample, Tab, Ttl } from '../types'
+import type { Decision, Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
-import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
+import { MARKERS, branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
 import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
@@ -25,6 +25,8 @@ const PANE = 'fullops'
 const CONFIG = '.fullops-squad/fullops.json'
 const REVIEWS = '.fullops-squad/docs/evaluations/qa-reports'
 const KEEP_REVIEWS = 8
+/** Where decision.py keeps its records, under the git folder all checkouts share. */
+const DECISIONS = 'fullops-decisions'
 /** Transcript rows read per active worker: enough to reach its last words past a run of tool calls. */
 const PROGRESS_ROWS = 30
 /** The dock width the pane asks for; the person can still drag it. */
@@ -315,13 +317,22 @@ async function readReviews($: EngineInterface): Promise<Review[]> {
   )
 }
 
-/** The role and reviews, read from the repository's own files. */
+/** The open decisions `decision.py` keeps in the folder every checkout shares, so a new session sees the old ones. */
+async function readDecisions($: EngineInterface): Promise<Decision[]> {
+  const gitDir = await gitDirOf($, '.')
+  const folder = `${commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))}/${DECISIONS}`
+  const files = (await $.fs.list(folder).catch(() => [])).filter(entry => entry.kind === 'file' && /^D\d+\.json$/.test(entry.name))
+  const decisions = await Promise.all(files.map(async file => parseDecision(await $.fs.read(`${folder}/${file.name}`).catch(() => ''))))
+  return decisions.filter((one): one is Decision => one !== null).sort((a, b) => a.askedAt - b.askedAt || a.id.localeCompare(b.id))
+}
+
+/** The role, reviews and open decisions, read from the repository's own files. */
 async function readFullOps($: EngineInterface): Promise<void> {
   const config = parseConfig(await $.fs.read(CONFIG).catch(() => ''))
   if (config === null) return
   const role = checkoutRole(config, await readBranch($))
-  const reviews = await readReviews($)
-  await update($, fullopsAtom, before => ({ role, reviews, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
+  const [reviews, decisions] = await Promise.all([readReviews($), readDecisions($)])
+  await update($, fullopsAtom, before => ({ role, reviews, decisions, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
 }
 
 /** Redraws the countdown and gives the "about to lapse" notice once per cache entry. */
@@ -399,7 +410,7 @@ export const register: Register = (on, options) => {
       .catch(() => undefined)
     if (shared.isFullOps) {
       await $.command
-        .register({ name: FULLOPS_COMMAND, description: 'Open the FullOps pane: workers and reviews' })
+        .register({ name: FULLOPS_COMMAND, description: 'Open the FullOps pane: workers or reviews above, decisions waiting for you below' })
         .catch(() => undefined)
     }
 
@@ -484,6 +495,41 @@ export const register: Register = (on, options) => {
     // Tasks the coordinator has not sent out yet; state from an older load carries no list.
     const queued = tab === 'workers' && fullops !== null && workers !== null ? queuedText(fullops.queued ?? []) : ''
     const queue = queued === '' ? null : <Text dimColor>{queued}</Text>
+    // The pane is tall: workers or reviews take the top half, the decisions waiting on the person the bottom.
+    const decisions = fullops?.decisions ?? []
+    const lower = (
+      <Box flexDirection="column">
+        <Text bold>{decisions.length === 0 ? 'Decisions' : `Decisions waiting for you (${decisions.length})`}</Text>
+        {decisions.length === 0 && <Text dimColor>{fullops === null ? '' : 'No decisions waiting.'}</Text>}
+        {decisions.map(decision => {
+          const block = decisionLines(decision, now)
+          return (
+            <Box key={decision.id} flexDirection="column" marginTop={1}>
+              <Text color="claude" bold>
+                {block.head}
+              </Text>
+              {block.lines.map((line, n) => (
+                <Text key={`d-${n}`} dimColor={n > 0}>
+                  {'  '}
+                  {line}
+                </Text>
+              ))}
+            </Box>
+          )
+        })}
+      </Box>
+    )
+    const halves = (upper: RenderElement) => (
+      <Box flexDirection="column" height="100%">
+        <Box flexDirection="column" height="50%" overflow="hidden">
+          {upper}
+        </Box>
+        <Box flexDirection="column" flexGrow={1} overflow="hidden">
+          <Text dimColor>{'─'.repeat(PANE_COLUMNS)}</Text>
+          {lower}
+        </Box>
+      </Box>
+    )
 
     if (fullops !== null && tab === 'workers' && workers !== null && Client !== undefined) {
       const cards: CardsProps = {
@@ -504,7 +550,7 @@ export const register: Register = (on, options) => {
           said: w.progress?.said ?? '',
         })),
       }
-      return (
+      return halves(
         <Box flexDirection="column">
           {tabs}
           <Client key="workers" module="./worker-cards.tsx" props={cards} />
@@ -515,7 +561,7 @@ export const register: Register = (on, options) => {
 
     if (fullops !== null && tab === 'reviews') {
       const reviews = sortReviews(fullops.reviews)
-      return (
+      return halves(
         <Box flexDirection="column">
           {tabs}
           <Text dimColor>Independent reviews before merge (review.py). Open findings first.</Text>
@@ -546,7 +592,7 @@ export const register: Register = (on, options) => {
     else if (meter?.workers === null || meter?.workers === undefined) rows = plain(['No Orca run is bound to this session.'])
     else rows = meter.workers.length === 0 ? plain(['No workers out.']) : meter.workers.map(worker => workerBlock(worker, now))
 
-    return (
+    return halves(
       <Box flexDirection="column">
         {tabs}
         {rows.map((row, at) => (
