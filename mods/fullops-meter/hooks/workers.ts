@@ -14,12 +14,12 @@ export const phaseOf = (workerState: string, dispatchStatus: string): Phase => {
   return 'active'
 }
 
-/** The task key a dispatch's spec carries: `Task key: X`, else the spec's first word. */
-export const keyOf = (spec: string): string => {
-  const named = /\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)
-  if (named !== null) return (named[1] ?? '').replace(/\.$/, '')
-  return /^\s*([A-Za-z0-9][A-Za-z0-9._-]*)/.exec(spec)?.[1] ?? ''
-}
+/** The task key a spec declares as `Task key: X`; empty when it declares none. */
+export const declaredKey = (spec: string): string =>
+  /\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)?.[1]?.replace(/\.$/, '') ?? ''
+
+/** The task key a dispatch's spec carries: the declared one, else the spec's first word. */
+export const keyOf = (spec: string): string => declaredKey(spec) || (/^\s*([A-Za-z0-9][A-Za-z0-9._-]*)/.exec(spec)?.[1] ?? '')
 
 export type Row = {
   dispatchId: string
@@ -33,10 +33,11 @@ export type Row = {
   needsAction: boolean
 }
 
-const asRecord = (value: unknown): Record<string, unknown> =>
-  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
+/** A JSON object's fields; `{}` for anything else, arrays included. */
+export const asRecord = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
 
-const text = (value: unknown): string => (typeof value === 'string' ? value : '')
+export const text = (value: unknown): string => (typeof value === 'string' ? value : '')
 
 /** The Orca run this coordinator is bound to, from `orca orchestration run-current --json`; null when none. */
 export const parseRunId = (stdout: string): string | null => {
@@ -117,10 +118,11 @@ export const reconcile = (
   now: number,
   isFirst: boolean,
 ): { seen: Seen; workers: Worker[] } => {
-  const next: Seen = { ...seen }
+  // Only the dispatches in this listing are kept, so `seen` does not grow across runs.
+  const next: Seen = {}
   const workers: Worker[] = []
   for (const row of rows) {
-    const before = next[row.dispatchId]
+    const before = seen[row.dispatchId]
     const isBaseline = before?.isBaseline ?? (isFirst && row.phase !== 'active')
     const since = before !== undefined && before.phase === row.phase ? before.since : now
     next[row.dispatchId] = { phase: row.phase, since, isBaseline }

@@ -80,6 +80,9 @@ describe('misses', () => {
     expect(missOf(prev, sample(2 * MIN, 0, 100, 0), '5m')?.reason).toBe('prefix')
     expect(missOf(prev, sample(10 * MIN, 0, 100, 0), '1h')?.reason).toBe('prefix')
     expect(missOf(undefined, sample(0, 0, 100, 0), '5m')).toBeUndefined()
+    // After /compact: a 300k prompt becomes 25k, 20k of it served from the cache.
+    expect(missOf(sample(0, 290_000, 10_000, 0), sample(MIN, 20_000, 0, 5_000), '5m')).toBeUndefined()
+    expect(missOf(sample(0, 290_000, 10_000, 0), sample(MIN, 0, 20_000, 5_000), '5m')?.reason).toBe('prefix')
   })
 })
 

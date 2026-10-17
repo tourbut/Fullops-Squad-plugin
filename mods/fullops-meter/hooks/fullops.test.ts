@@ -1,23 +1,23 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Worker } from '../types'
-import { branchOf, cardOf, parseConfig, reviewText, roleOf, spinnerText, summarizeReview, words } from './fullops'
+import { branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview, words } from './fullops'
 
 const config = parseConfig(JSON.stringify({ mode: 'coor', primary_role: 'coor', roles: { coor: 'fullops/coor', dev: 'fullops/dev' } }))
 
 describe('which role a checkout plays', () => {
   test('a worker worktree on its role branch is that role', () => {
     expect(config).not.toBeNull()
-    expect(roleOf(config!, branchOf('ref: refs/heads/fullops/dev\n'))).toBe('dev')
+    expect(checkoutRole(config!, branchOf('ref: refs/heads/fullops/dev\n'))).toBe('dev')
   })
 
   test('the main checkout on main is the primary role', () => {
-    expect(roleOf(config!, branchOf('ref: refs/heads/main'))).toBe('coor')
-    expect(roleOf(config!, branchOf('0123abcd'))).toBe('coor')
+    expect(checkoutRole(config!, branchOf('ref: refs/heads/main'))).toBe('coor')
+    expect(checkoutRole(config!, branchOf('0123abcd'))).toBe('coor')
   })
 
   test('a repo without a primary role falls back to its mode', () => {
-    expect(roleOf(parseConfig('{"mode":"dev","roles":{}}')!, 'main')).toBe('dev')
+    expect(checkoutRole(parseConfig('{"mode":"dev","roles":{}}')!, 'main')).toBe('dev')
     expect(parseConfig('not json')).toBeNull()
   })
 })
@@ -60,6 +60,14 @@ describe('tool cards', () => {
     expect(cardOf('python3 C:/p/fullops-squad/scripts/review.py prepare --repo . --key K1', {})).toBe('review prepare K1')
     expect(cardOf('python3 /p/scripts/orca_wait.py --orca orca --repo . --run R1', {})).toBe('wait for worker reports')
     expect(cardOf('python3 /p/scripts/orca_wait.py --repo . --settings', {})).toBe('read worker settings')
+  })
+
+  test('a second line, or orca not being the command run, keeps the row', () => {
+    expect(cardOf('python3 /p/scripts/review.py prepare --key K1\nrm -rf build', {})).toBeNull()
+    expect(cardOf('echo orca orchestration dispatch --task T --to dev', {})).toBeNull()
+    expect(cardOf('ssh host orca orchestration worker-start --spec "Task key: K1"', {})).toBeNull()
+    expect(cardOf('python3 -I /p/scripts/review.py need --repo .', {})).toBe('review need')
+    expect(cardOf('python3 build.py /p/scripts/review.py', {})).toBeNull()
   })
 
   test('chains and other commands keep their own row', () => {

@@ -83,7 +83,8 @@ export type Miss = { reason: 'model' | 'lapsed' | 'prefix'; gapMs: number }
 /** Why a request did not read what the previous one left in the cache; undefined when it did. */
 export const missOf = (prev: Sample | undefined, cur: Sample, ttl: Ttl): Miss | undefined => {
   if (prev === undefined) return undefined
-  const isServed = cur.read >= 0.1 * promptTokens(prev)
+  // Measured against the smaller prompt: after /compact the next prompt is far shorter and still served.
+  const isServed = cur.read >= 0.1 * Math.min(promptTokens(prev), promptTokens(cur))
   if (isServed) return undefined
   const gapMs = cur.startedAt - prev.startedAt
   if (prev.model !== cur.model) return { reason: 'model', gapMs }

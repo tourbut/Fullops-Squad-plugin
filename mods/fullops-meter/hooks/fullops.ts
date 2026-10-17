@@ -1,9 +1,5 @@
 import type { Review, Worker } from '../types'
-
-const asRecord = (value: unknown): Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
-
-const text = (value: unknown): string => (typeof value === 'string' ? value : '')
+import { asRecord, declaredKey, text } from './workers'
 
 export type Config = { mode: string; primaryRole: string | null; roles: Record<string, string> }
 
@@ -27,7 +23,7 @@ export const parseConfig = (source: string): Config | null => {
 export const branchOf = (head: string): string | null => /^ref:\s*refs\/heads\/(\S+)/.exec(head.trim())?.[1] ?? null
 
 /** The role this checkout plays: the role whose branch it is on, else the repo's primary role. */
-export const roleOf = (config: Config, branch: string | null): string => {
+export const checkoutRole = (config: Config, branch: string | null): string => {
   const own = Object.entries(config.roles).find(([, roleBranch]) => roleBranch === branch)?.[0]
   return own ?? config.primaryRole ?? config.mode
 }
@@ -86,12 +82,13 @@ export const words = (command: string): string[] | null => {
     if (char === '"' || char === "'") {
       quote = char
       isWord = true
+    } else if (/[;&|<>`\r\n]/.test(char) || (char === '$' && command[i + 1] === '(')) {
+      // A newline runs a second command, so it counts as a chain too; checked before plain whitespace.
+      return null
     } else if (/\s/.test(char)) {
       if (isWord) out.push(word)
       word = ''
       isWord = false
-    } else if (/[;&|<>`]/.test(char) || (char === '$' && command[i + 1] === '(')) {
-      return null
     } else {
       word += char
       isWord = true
@@ -109,24 +106,21 @@ const flag = (args: readonly string[], name: string): string => {
 
 const lastPart = (path: string): string => path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() ?? ''
 
-/** The task key in a worker spec: `Task key: X`. */
-const keyIn = (spec: string): string => /\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)/i.exec(spec)?.[1]?.replace(/\.$/, '') ?? ''
-
 /**
  * The one-line card for a FullOps step a Bash call runs, or null for any other command.
+ * Only the command that runs counts (`echo orca ...` or `ssh host orca ...` is no Orca step).
  * `keys` maps an Orca task id to its task key, from the coordinator's last listing.
  */
 export const cardOf = (command: string, keys: Readonly<Record<string, string>>): string | null => {
   const args = words(command)
   if (args === null || args.length === 0) return null
 
-  const orca = args.findIndex(arg => lastPart(arg).replace(/\.(exe|cmd)$/i, '') === 'orca')
-  if (orca !== -1 && args[orca + 1] === 'orchestration') {
-    const verb = args[orca + 2] ?? ''
-    const rest = args.slice(orca + 3)
+  if (lastPart(args[0] ?? '').replace(/\.(exe|cmd)$/i, '') === 'orca' && args[1] === 'orchestration') {
+    const verb = args[2] ?? ''
+    const rest = args.slice(3)
     if (verb === 'worker-start') {
       const role = lastPart(flag(rest, '--worktree'))
-      const key = keyIn(flag(rest, '--spec'))
+      const key = declaredKey(flag(rest, '--spec'))
       const agent = flag(rest, '--agent')
       return `start worker → ${[role || flag(rest, '--terminal'), key].filter(Boolean).join(' ')}${agent === '' ? '' : ` (${agent})`}`
     }
@@ -137,8 +131,9 @@ export const cardOf = (command: string, keys: Readonly<Record<string, string>>):
     return null
   }
 
-  const script = args.findIndex(arg => /[\\/]scripts[\\/][a-z_]+\.py$/.test(arg))
-  if (script === -1 || !/^(python3?|py)(\.exe)?$/i.test(lastPart(args[0] ?? ''))) return null
+  // The script is the interpreter's first non-flag word (`python3 -I .../scripts/review.py`).
+  const script = args.findIndex((arg, at) => at > 0 && !arg.startsWith('-'))
+  if (!/^(python3?|py)(\.exe)?$/i.test(lastPart(args[0] ?? '')) || !/[\\/]scripts[\\/][a-z_]+\.py$/.test(args[script] ?? '')) return null
   const name = lastPart(args[script] ?? '').replace(/\.py$/, '')
   if (name === 'orca_wait') return args.includes('--settings') ? 'read worker settings' : 'wait for worker reports'
   const rest = args.slice(script + 1)

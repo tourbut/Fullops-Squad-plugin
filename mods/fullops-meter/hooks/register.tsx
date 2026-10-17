@@ -1,10 +1,10 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
-import type { Policy } from './cache'
-import { MARKERS, branchOf, cardOf, parseConfig, reviewText, roleOf, spinnerText, summarizeReview } from './fullops'
+import type { Account, Policy, TtlInputs } from './cache'
+import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, modelName, statusLine, workerBlock, workerLine } from './meter'
 import { parseKeys, parseProgress, parseRows, parseRunId, reconcile } from './workers'
 
@@ -45,6 +45,14 @@ type Shared = {
   ttlSource: string
   /** A lifetime the request timing proved; it beats every rule. */
   observed: Ttl | undefined
+  /** The environment and settings the lifetime rules read, once a load. */
+  ttlInputs: Omit<TtlInputs, 'option' | 'account'>
+  /** The account kind from the last usage reading. */
+  account: Account
+  /** True while a poll of Orca runs, so a slow Orca does not pile polls up. */
+  isPolling: boolean
+  /** The timers this load started. */
+  timers: Timer[]
   /** undefined: not read yet; null: auto-compaction is off. */
   compactAt: number | null | undefined
   isFirstPoll: boolean
@@ -71,9 +79,10 @@ const blank = (now: number, shared: Shared): Meter => ({
 /** Writes a change to the meter, which redraws the hint line, then the notices. */
 async function commit($: EngineInterface, shared: Shared, patch: (meter: Meter) => Meter): Promise<void> {
   const now = await $.clock.now()
-  const meter = patch((await read($, meterAtom)) ?? blank(now, shared))
-  await update($, meterAtom, () => meter)
+  // The patch runs on the stored value inside the update, so concurrent commits do not drop each other's writes.
+  await update($, meterAtom, stored => patch(stored ?? blank(now, shared)))
   await update($, nowAtom, () => now)
+  const meter = (await read($, meterAtom)) ?? blank(now, shared)
 
   shared.lastStatus = statusLine(meter, now)
 
@@ -88,32 +97,34 @@ async function commit($: EngineInterface, shared: Shared, patch: (meter: Meter) 
   }
 }
 
-/** The lifetime to expect: the rules, then what the request timing proved. */
-async function chooseTtl($: EngineInterface, shared: Shared): Promise<void> {
+/** The environment and settings the lifetime rules read: read once a load, as they do not change mid-session. */
+async function readTtlInputs($: EngineInterface, shared: Shared): Promise<void> {
   const [force5m, ttlVariable, enable1h] = await Promise.all([
     $.env.get('FORCE_PROMPT_CACHING_5M').catch(() => undefined),
     $.env.get('CLAUDE_CODE_PROMPT_CACHE_TTL').catch(() => undefined),
     $.env.get('ENABLE_PROMPT_CACHING_1H').catch(() => undefined),
   ])
-  const usage = await $.session.usage().catch(() => undefined)
-  const setting = await readSetting($)
-  const choice = decideTtl({
-    option: shared.option,
-    force5m,
-    ttlVariable,
-    enable1h,
-    setting,
-    account: accountOf(usage?.rateLimits ?? []),
-  })
+  shared.ttlInputs = { force5m, ttlVariable, enable1h, setting: await readSetting($) }
+}
+
+/** The lifetime to expect: the rules, then what the request timing proved. No I/O, so it can run every request. */
+function chooseTtl(shared: Shared): void {
+  const choice = decideTtl({ option: shared.option, ...shared.ttlInputs, account: shared.account })
   shared.ttl = shared.observed ?? choice.ttl
   shared.ttlSource = shared.observed === undefined ? choice.source : `observed from request gaps (${choice.source}: ${choice.ttl})`
 }
 
 /** `promptCacheTtl` from the first settings file that sets it: local, project, then user. */
 async function readSetting($: EngineInterface): Promise<unknown> {
-  const home = await $.env.get('HOME').catch(() => undefined)
+  const [configDir, home, profile] = await Promise.all([
+    $.env.get('CLAUDE_CONFIG_DIR').catch(() => undefined),
+    $.env.get('HOME').catch(() => undefined),
+    $.env.get('USERPROFILE').catch(() => undefined),
+  ])
+  // Native Windows often has no HOME; CLAUDE_CONFIG_DIR moves the user folder altogether.
+  const userDir = configDir || ((home || profile) && `${home || profile}/.claude`)
   const cwd = await $.session.cwd().catch(() => undefined)
-  const files = [cwd && `${cwd}/.claude/settings.local.json`, cwd && `${cwd}/.claude/settings.json`, home && `${home}/.claude/settings.json`]
+  const files = [cwd && `${cwd}/.claude/settings.local.json`, cwd && `${cwd}/.claude/settings.json`, userDir && `${userDir}/settings.json`]
   for (const file of files) {
     if (!file) continue
     try {
@@ -128,7 +139,11 @@ async function readSetting($: EngineInterface): Promise<unknown> {
 
 /** After each main-loop turn: the context window, the cost and the rate limit. */
 async function readContext($: EngineInterface, shared: Shared): Promise<void> {
-  const reading = await $.session.usage()
+  // No reading (no response yet, an engine error) leaves the meter as it was; the hooks calling this must go on.
+  const reading = await $.session.usage().catch(() => undefined)
+  if (reading === undefined) return
+  shared.account = accountOf(reading.rateLimits)
+  chooseTtl(shared)
   // The compaction point is a local estimate and does not move within a session, so it is read once.
   if (shared.compactAt === undefined) {
     const full = await $.session.usage({ breakdown: 'summary' }).catch(() => undefined)
@@ -169,7 +184,7 @@ async function record(
   }
   const before = (await read($, meterAtom))?.samples ?? []
   shared.observed = observeTtl(before[before.length - 1], sample, shared.observed)
-  await chooseTtl($, shared)
+  chooseTtl(shared)
   await commit($, shared, meter => ({
     ...meter,
     samples: keepSamples(meter.samples, sample, KEEP_SAMPLES),
@@ -214,6 +229,18 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   await commit($, shared, meter => ({ ...meter, workers }))
 }
 
+/** One refresh of the repository and Orca state; skipped while the previous one still runs. */
+async function poll($: EngineInterface, shared: Shared): Promise<void> {
+  if (shared.isPolling) return
+  shared.isPolling = true
+  try {
+    await readFullOps($)
+    await pollWorkers($, shared)
+  } finally {
+    shared.isPolling = false
+  }
+}
+
 /** The checkout's branch, from `.git/HEAD`; a worktree's `.git` is a file naming its own git folder. */
 async function readBranch($: EngineInterface): Promise<string | null> {
   const pointer = await $.fs.read('.git').catch(() => null)
@@ -249,7 +276,7 @@ async function readReviews($: EngineInterface): Promise<Review[]> {
 async function readFullOps($: EngineInterface): Promise<void> {
   const config = parseConfig(await $.fs.read(CONFIG).catch(() => ''))
   if (config === null) return
-  const role = roleOf(config, await readBranch($))
+  const role = checkoutRole(config, await readBranch($))
   const reviews = await readReviews($)
   await update($, fullopsAtom, before => ({ role, reviews, keys: before?.keys ?? {} }))
 }
@@ -302,6 +329,10 @@ export const register: Register = (on, options) => {
     ttl: '5m',
     ttlSource: 'default',
     observed: undefined,
+    ttlInputs: {},
+    account: 'other',
+    isPolling: false,
+    timers: [],
     compactAt: undefined,
     isFirstPoll: true,
     isFullOps: false,
@@ -316,24 +347,24 @@ export const register: Register = (on, options) => {
     // 0.2.0 pinned its line with $.ui.status, which the engine prefixes with the plugin name; clear what it left.
     $.ui.status(undefined)
     shared.isFullOps = await $.fs.exists('.fullops-squad/fullops.json').catch(() => false)
-    await chooseTtl($, shared)
-    await readContext($, shared)
     await $.command
       .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band)', argumentHint: '[hide|show]' })
       .catch(() => undefined)
-
-    $.clock.every(TICK_MS, () => tick($, shared))
     if (shared.isFullOps) {
       await $.command
         .register({ name: FULLOPS_COMMAND, description: 'Open the FullOps pane: workers and reviews' })
         .catch(() => undefined)
-      await readFullOps($)
-      await pollWorkers($, shared)
-      $.clock.every(POLL_MS, async () => {
-        await readFullOps($)
-        await pollWorkers($, shared)
-      })
     }
+
+    // session.start can run more than once in a load: one set of timers only.
+    for (const timer of shared.timers.splice(0)) timer.cancel()
+    shared.timers.push($.clock.every(TICK_MS, () => tick($, shared)))
+    if (shared.isFullOps) shared.timers.push($.clock.every(POLL_MS, () => poll($, shared)))
+
+    await readTtlInputs($, shared)
+    await readContext($, shared)
+    // Not awaited: a slow or hung Orca must not hold the session's start.
+    if (shared.isFullOps) void poll($, shared)
 
     return started
   })
@@ -405,11 +436,14 @@ export const register: Register = (on, options) => {
           ))}
           <Text dimColor> {fullops === null ? '' : `role ${fullops.role}`}</Text>
         </Box>
-        {rows.map(row => (
-          <Box flexDirection="column" marginTop={row.lines.length > 0 ? 1 : 0}>
+        {rows.map((row, at) => (
+          <Box key={`row-${at}`} flexDirection="column" marginTop={row.lines.length > 0 ? 1 : 0}>
             <Text>{row.head}</Text>
-            {row.lines.map(line => (
-              <Text dimColor>  {line}</Text>
+            {row.lines.map((line, n) => (
+              <Text key={`line-${n}`} dimColor>
+                {'  '}
+                {line}
+              </Text>
             ))}
           </Box>
         ))}
