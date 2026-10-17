@@ -27,7 +27,8 @@ In a FullOps repository:
     The stage never goes back. These are word rules, so a worker that runs undescribed commands (a tester, for one) can stay at explore while it works.
 
     A finished worker shows one coloured line for 10 minutes. Surfaces that cannot run the card module (mobile) show the same as a text list.
-  - **Reviews**: the newest `.fullops-squad/docs/evaluations/qa-reports/*-review/` folders. Each shows its state (recorded, waived, abandoned, superseded or open), its open findings and the start of its conclusion.
+  - **Reviews**: the independent reviews `review.py` runs before a merge, read from the newest `.fullops-squad/docs/evaluations/qa-reports/*-review/` folders. Each is a block: an icon in the state's colour, the task key, the state in words (`reviewing`, `2 open · high`, `3 resolved`, `no findings`, `waived`, `abandoned`, `superseded`) and how long ago it changed, then the first line of the reviewer's conclusion. Reviews with open findings come first, then the ones under way, then the newest.
+  - The Workers tab ends with `queued: K8, K9` for tasks the coordinator has not sent out yet.
 - **Footer label**: `fullops coor`, `fullops dev` and so on. The role comes from the checkout's branch and the `roles` in `fullops.json`.
 - **Step cards**: a Bash call that runs a FullOps step draws as one line, such as `FullOps start worker → dev K7 (claude)`, `FullOps review prepare K1` or `FullOps wait for worker reports`. Chained commands keep their own row.
 - **Spinner**: `… · 2 workers running · 1 review open` while the coordinator has work out.

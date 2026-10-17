@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Worker } from '../types'
-import { branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview, words } from './fullops'
+import { branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview, words } from './fullops'
 
 const config = parseConfig(JSON.stringify({ mode: 'coor', primary_role: 'coor', roles: { coor: 'fullops/coor', dev: 'fullops/dev' } }))
 
@@ -37,13 +37,22 @@ describe('reviews', () => {
   test('a recorded review names its worst open finding', () => {
     const review = summarizeReview('K1', result, null, 0)
     expect(review).toMatchObject({ state: 'recorded', findings: 3, unresolved: 2, worst: 'high' })
-    expect(reviewText(review)).toBe('K1 recorded · 2 open (high) · Merge after the fix.')
+    expect(reviewLine(review, 5 * 60_000)).toEqual({ icon: '✖', tone: 'error', state: '2 open · high', when: '5m ago', detail: 'Merge after the fix.' })
   })
 
   test('a receipt outranks the record, and a folder with neither is open', () => {
     expect(summarizeReview('K2', result, 'superseded', 0).state).toBe('superseded')
     expect(summarizeReview('K3', null, 'waived', 0).state).toBe('waived')
-    expect(reviewText(summarizeReview('K4', null, null, 0))).toBe('K4 open')
+    expect(reviewLine(summarizeReview('K3', null, 'waived', 0), 0)).toMatchObject({ icon: '–', tone: 'inactive', state: 'waived' })
+    expect(reviewLine(summarizeReview('K4', null, null, 0), 0)).toMatchObject({ icon: '…', tone: 'claude', state: 'reviewing' })
+  })
+
+  test('a clean record is a tick, and open findings sort first', () => {
+    const clean = summarizeReview('K5', JSON.stringify({ conclusion: 'Fine.', findings: [{ severity: 'low', resolved: true }] }), null, 9)
+    expect(reviewLine(clean, 9)).toMatchObject({ icon: '✔', tone: 'success', state: '1 resolved', detail: 'Fine.' })
+    const open = summarizeReview('K4', null, null, 1)
+    const dirty = summarizeReview('K1', result, null, 0)
+    expect(sortReviews([clean, open, dirty]).map(review => review.key)).toEqual(['K1', 'K4', 'K5'])
   })
 })
 

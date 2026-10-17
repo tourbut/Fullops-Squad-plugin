@@ -99,7 +99,8 @@ export const workerText = (w: Worker, now: number): string => {
   return `${SYMBOL[w.phase]} ${w.role}${w.key === '' ? '' : ` ${w.key}`}${age}${detail}`
 }
 
-const ago = (ms: number): string => (ms < 60_000 ? `${Math.max(0, Math.round(ms / 1000))}s` : `${Math.round(ms / 60_000)}m`)
+/** `42s` under a minute, else `7m`. */
+export const ago = (ms: number): string => (ms < 60_000 ? `${Math.max(0, Math.round(ms / 1000))}s` : `${Math.round(ms / 60_000)}m`)
 
 /** One worker in the pane: its line, then what it last said and did. */
 export const workerBlock = (w: Worker, now: number): { head: string; lines: string[] } => {

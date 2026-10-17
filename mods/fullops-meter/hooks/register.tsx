@@ -4,7 +4,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
-import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewText, spinnerText, summarizeReview } from './fullops'
+import { MARKERS, branchOf, cardOf, checkoutRole, parseConfig, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
 import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, text } from './workers'
@@ -480,10 +480,36 @@ export const register: Register = (on, options) => {
       )
     }
 
+    if (fullops !== null && tab === 'reviews') {
+      const reviews = sortReviews(fullops.reviews)
+      return (
+        <Box flexDirection="column">
+          {tabs}
+          <Text dimColor>Independent reviews before merge (review.py). Open findings first.</Text>
+          {reviews.length === 0 && <Text>No review records yet.</Text>}
+          {reviews.map(review => {
+            const line = reviewLine(review, now)
+            return (
+              <Box key={review.key} flexDirection="column" marginTop={1}>
+                <Box>
+                  <Text color={line.tone} bold>
+                    {line.icon}{' '}
+                  </Text>
+                  <Text bold>{review.key}</Text>
+                  <Text color={line.tone}> {line.state}</Text>
+                  <Text dimColor> · {line.when}</Text>
+                </Box>
+                {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
+              </Box>
+            )
+          })}
+        </Box>
+      )
+    }
+
     let rows: { head: string; lines: string[] }[]
     const plain = (texts: string[]) => texts.map(head => ({ head, lines: [] }))
     if (fullops === null) rows = plain(['This repository has no .fullops-squad/fullops.json.'])
-    else if (tab === 'reviews') rows = plain(fullops.reviews.length === 0 ? ['No review records yet.'] : fullops.reviews.map(reviewText))
     else if (meter?.workers === null || meter?.workers === undefined) rows = plain(['No Orca run is bound to this session.'])
     else rows = meter.workers.length === 0 ? plain(['No workers out.']) : meter.workers.map(worker => workerBlock(worker, now))
 
