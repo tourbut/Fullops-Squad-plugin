@@ -172,7 +172,7 @@ npx --yes fullops-squad@latest install --hosts codex,grok
 ```
 
 Codex는 현재 `CODEX_HOME`, 기본 사용자 홈, 기존 Windows Orca 홈을 처리합니다. 다른 홈은 `--codex-home PATH`로 추가합니다.
-설치나 업데이트가 끝나면 각 CLI에서 새 에이전트 세션을 엽니다.
+설치가 끝나면 각 CLI에서 새 에이전트 세션을 엽니다. 업데이트 뒤 세션 전환은 아래 [업데이트](#업데이트) 절을 따릅니다.
 
 **업데이트 중 hook 경로:** hook은 버전별 캐시 대신 `~/.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py`를 호출합니다.
 `deps.py --host <현재 CLI>`가 패키지 전체를 캐시 밖에 보존하고 준비가 끝난 사본으로 전환합니다. 실행 중 hook은 기존 사본을 유지합니다.
@@ -271,7 +271,9 @@ grok plugin update fullops-squad
 ```
 
 CLI별 직접 업데이트 후에는 설치된 새 패키지의 `scripts/deps.py --host <현재 CLI>`로 외부 의존성을 갱신하고, 설치 버전과 `deps.py --check --host <현재 CLI>`를 확인합니다. 단독 `--check`는 CLI 존재만 검사합니다.
-실행 중인 세션은 이전 hook 경로를 사용할 수 있습니다. 작업을 정리한 뒤 새 세션으로 전환합니다.
+Claude Code는 검사가 통과하면 `/reload-plugins`를 실행하고 같은 세션에서 계속합니다. 플러그인 MCP가 바뀌어 reload가 보류되면 `/reload-plugins --force`를 실행합니다.
+Claude Code라도 1.4.4 이전에 연 세션, CLAUDE.md의 FullOps 블록이 바뀐 경우, SessionStart 문맥(caveman, flow 시작 상태)을 새로 받아야 할 때, 터미널 없는 세션에서 플러그인 MCP가 바뀐 경우에는 새 세션이나 `/clear`로 전환합니다.
+Codex와 grok의 실행 중인 세션은 이전 hook 경로를 사용할 수 있습니다. 작업을 정리한 뒤 새 세션으로 전환합니다.
 다른 PC와 Orca가 별도로 사용하는 CLI 홈도 갱신해야 합니다.
 
 ## 레포에 적용
