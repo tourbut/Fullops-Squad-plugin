@@ -1,3 +1,5 @@
 .env*
 !.env.example
 tools/frontend/
+# 판정에 쓰지 않은 캡처·첫 실행 실패본·스냅샷·중간 SHA gate 로그 (rules/common/testing.md)
+docs/evaluations/qa-reports/**/raw/

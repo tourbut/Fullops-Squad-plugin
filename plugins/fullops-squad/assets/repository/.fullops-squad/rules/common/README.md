@@ -1,6 +1,6 @@
 # FullOps 공통 개발 규칙
 
-규칙 묶음: `fullops-common-0.3.3`
+규칙 묶음: `fullops-common-0.3.4`
 
 ## 적용
 

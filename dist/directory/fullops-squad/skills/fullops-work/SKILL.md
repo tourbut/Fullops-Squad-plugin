@@ -55,14 +55,14 @@ UI/UX 설계·화면 구현·디자인 비평·다듬기는 `fullops-frontend`�
 
 worker는 지시서의 완료 기준을 채울 때까지 진행 보고나 승인 대기 없이 작업한다. 지시서가 정한 예외에서만 멈추고 묻는다. `해야 할 일` 항목을 끝낼 때마다 인박스에 체크해, 대화가 요약된 뒤에도 인박스로 진행 상태를 되찾는다.
 
-구현과 함께 영향을 받는 원천 문서와 QA 결과를 `.fullops-squad/docs/`에 갱신한다. 상세 결정·검증은 직접 작업을 포함해 `docs/exec-plans/phases/<과제키>.md`에 기록한다.
+구현과 함께 영향을 받는 원천 문서와 QA 결과를 `.fullops-squad/docs/`에 갱신한다. 검증 결과의 정본은 `docs/evaluations/qa-reports/<과제 키>-<역할>-test/report.md` 하나다. 통과한 검사는 명령·실행 위치·SHA·종료코드 한 줄로 적고, 실패·미실행·한계만 상세히 적는다. `docs/exec-plans/phases/<과제키>.md`는 지시와 다른 결정이나 설계 판단이 있을 때만 쓴다. 같은 내용을 여러 문서에 되풀이해 적지 않는다.
 
-인박스의 `## 완료 보고`에 브랜치·완료 SHA, 변경 이유, 지시와 달라진 판단·범위, 충돌, 검증한 것과 못 한 것, 산출물·후속을 전문으로 쓴다. `남은 일`에 다른 역할이 할 후속(예: tester 독립 QA)을 쓰면 finish가 PLANS.md `## 완료 보고 후속 요청`에 체크 항목으로 등재한다. `python3 <work.py> finish --repo <레포 루트> --role <역할> --key <과제 키>`가 지시서와 결과를 날짜별 로그에 append·검증한 뒤 인박스를 비운다. 실패하면 인박스를 유지하고 기록을 확인한다.
+인박스의 `## 완료 보고`에 브랜치·완료 SHA, 변경 이유, 지시와 달라진 판단·범위, 충돌, 검증한 것과 못 한 것, 산출물·후속을 쓴다. 항목당 1~2줄이며 상세는 report.md 링크로 대신한다. `남은 일`에 다른 역할이 할 후속(예: tester 독립 QA)을 쓰면 finish가 PLANS.md `## 완료 보고 후속 요청`에 체크 항목으로 등재한다. `python3 <work.py> finish --repo <레포 루트> --role <역할> --key <과제 키>`가 지시서와 결과를 날짜별 로그에 append·검증한 뒤 인박스를 비운다. 실패하면 인박스를 유지하고 기록을 확인한다.
 `contexts/<role>.md`에는 날짜·결정·교훈을 항목당 3줄 이내로 append하고 상세 로그를 연결한다. 150줄 또는 10KB를 넘으면 전문을 `contexts/archive/`에 보관하고 유효한 원칙만 요약한다. 결정이 바뀌면 기존 항목에 대체 과제/결정 링크를 남기고 유효한 요약에서 제외한다. `PLANS.md` 상태도 갱신한다.
 
 새 코드 파일은 맨 위 docstring·주석 1~3줄에 무엇을 하는지 적는다. 이 설명이 Jev 코드 지도가 되며, 없으면 lint DOC-001 WARNING이다.
 변경 파일과 산출물을 커밋해 브랜치·SHA를 확보한다. 커밋이 허가되지 않았거나 실패하면 미커밋 상태를 명시한다.
-코드를 바꿨으면 커밋한 뒤 이 스킬 기준 `../../scripts/lint.py`로 `python3 <lint.py> --repo <자기 체크아웃 루트> --from <지시서의 기준 ref>`를 실행한다. 규약은 `.fullops-squad/lint/README.md`를 따른다. ERROR를 모두 고치고 다시 커밋해 통과시킨다. 완료 보고의 검증 항목에 HEAD·ERROR·WARNING·실행 불가와 사유를 적는다. 같은 실수가 반복되면 `lint.json`의 `rules`에 규칙을 추가하도록 제안한다. worker 브랜치에서 바꾼 `lint.json`은 병합 전까지 적용되지 않는다. 테스트 실행 증거는 명령 자신의 종료코드를 남긴다. `| tail`처럼 파이프로 종료코드를 가린 로그는 통과 근거로 쓰지 않는다(`set -o pipefail` 또는 파일 저장 후 확인).
+코드를 바꿨으면 커밋한 뒤 이 스킬 기준 `../../scripts/lint.py`로 `python3 <lint.py> --repo <자기 체크아웃 루트> --from <지시서의 기준 ref>`를 실행한다. 규약은 `.fullops-squad/lint/README.md`를 따른다. ERROR를 모두 고치고 다시 커밋해 통과시킨다. 완료 보고의 검증 항목에 HEAD·ERROR·WARNING·실행 불가와 사유를 적는다. 보존하는 gate 로그는 완료 SHA 1건뿐이다. 중간 커밋의 로그·해시 목록과 자기 판정 항목이 아닌 렌더는 `qa-reports/<과제 키>-test/raw/`(gitignore)에 두거나 만들지 않는다. 시각 검수 캡처는 designer·tester 몫이다. 같은 실수가 반복되면 `lint.json`의 `rules`에 규칙을 추가하도록 제안한다. worker 브랜치에서 바꾼 `lint.json`은 병합 전까지 적용되지 않는다. 테스트 실행 증거는 명령 자신의 종료코드를 남긴다. `| tail`처럼 파이프로 종료코드를 가린 로그는 통과 근거로 쓰지 않는다(`set -o pipefail` 또는 파일 저장 후 확인).
 지시서의 `갱신할 산출물`이 있으면 `fullops-deliverables`로 해당 원천 문서를 갱신하고 front matter는 `deliverables.py --stamp --task <과제 키>`로 쓴 뒤, 완료 보고의 산출물 항목에 바꾼 ID를 적는다.
 worker는 지시서의 복귀 주소로 `fullops-orca` report를 직접 실행한다. 전송 실패 시 보존한 로그는 유지하고 회신 재시도를 남긴다. 검토자는 같은 과제를 다시 아카이빙하지 않는다.
 
