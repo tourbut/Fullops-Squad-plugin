@@ -100,6 +100,7 @@ def finish(repo, role, key):
         raise ValueError("완료 보고 전문을 인박스에 먼저 작성하세요")
     from jev_packet import check
     check(repo, role, key, completion=True, text=content)
+    requests = followups(repo, role, key, report)
     log = safe_file(repo, f".fullops-squad/handovers/logs/{date.today()}_to_{role}.md")
     meta = deliverables.front_matter(content) or {}
     attempt = meta.get('attempt') or hashlib.sha256(content.encode()).hexdigest()
@@ -123,8 +124,73 @@ def finish(repo, role, key):
         raise OSError("아카이브 확인 실패: 인박스를 유지합니다")
     if inbox.read_text() != content:
         raise ValueError("아카이브 중 인박스가 변경됐습니다. 새 내용을 보존합니다")
+    queue_followups(repo, requests)
     atomic_write(inbox, b'')
     print(log.relative_to(repo))
+
+
+FOLLOWUPS = '## 완료 보고 후속 요청'
+
+
+def followups(repo, role, key, report):
+    """완료 보고 `남은 일`에서 다른 역할에게 넘기는 항목을 뽑는다. coordinator가 잊지 않도록 PLANS.md 대기 목록에 올린다."""
+    roles = [r for r in json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text()).get('roles', {}) if r != role]
+    _, found, rest = report.partition('남은 일')
+    if not found:
+        return []
+    rest = rest.split('\n## ')[0].split('\n\n')[0]  # 한 줄 항목이나 다음 빈 줄까지의 목록
+    lines = []
+    for part in re.split(r'[,;·\n]', rest):
+        part = part.strip(' :：-*\t.')
+        hit = next((r for r in roles if re.search(rf'\b{re.escape(r)}\b', part, re.I)), None)
+        if hit and part:
+            lines.append(f'- [ ] {key} → {hit}: {part} (완료 보고 자동 등재 {date.today()})')
+    return lines
+
+
+def queue_followups(repo, lines):
+    plans = safe_file(repo, '.fullops-squad/PLANS.md')
+    text = plans.read_text(encoding='utf-8') if plans.is_file() else ''
+    new = [line for line in lines if line.split(' (완료 보고 자동 등재')[0] not in text]
+    if not new:
+        return
+    if FOLLOWUPS not in text:
+        text = text.rstrip('\n') + f'\n\n{FOLLOWUPS}\n\n'
+    atomic_write(plans, text.rstrip('\n') + '\n' + '\n'.join(new) + '\n')
+
+
+def recover(repo, role, key):
+    """끊긴 worker 세션의 미커밋 작업을 WIP 커밋으로 보존하고 기본 브랜치·탐색 패킷을 맞춰 재배정 가능하게 만든다."""
+    instruction(repo, role, key)
+    config = json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text())
+
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
+    if git('rev-parse', '--abbrev-ref', 'HEAD') != config['roles'][role]:
+        raise ValueError('역할 브랜치가 체크아웃된 worker 워크트리에서 실행하세요')
+    wip, changed = None, []
+    if git('status', '--porcelain', '--untracked-files=all'):
+        git('add', '-A')
+        git('commit', '-q', '-m', f'wip({role}): {key} 세션 복구 전 작업 보존')
+        wip = git('rev-parse', 'HEAD')
+        changed = git('diff', '--name-only', 'HEAD~1', 'HEAD').splitlines()
+    remote, base = config.get('git', {}).get('remote'), config.get('git', {}).get('base', 'main')
+    target = f'{remote}/{base}' if remote else base
+    if remote:
+        git('fetch', '-q', remote)
+    try:
+        git('merge', '--no-edit', target)
+    except subprocess.CalledProcessError:
+        subprocess.run(['git', '-C', str(repo), 'merge', '--abort'], check=False)
+        raise ValueError(f'{target} 병합 충돌. WIP 커밋 {wip}은 보존했다. 충돌을 해결하고 커밋한 뒤 다시 실행하세요')
+    packet = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{key}-packet.json')
+    if packet.is_file():
+        options = json.loads(packet.read_text(encoding='utf-8')).get('options', {})
+        from jev_packet import build
+        build(repo, role, key, sorted(set(options.get('seeds', [])) | set(changed)), options.get('required', []),
+              options.get('updates', []), force=True, write_inbox=True)
+    print(json.dumps({'wip': wip, 'head': git('rev-parse', 'HEAD'), 'merged': target,
+                      'packet': packet.relative_to(repo).as_posix() if packet.is_file() else None}, ensure_ascii=False))
 
 
 def validate_role(repo, role):
@@ -185,7 +251,7 @@ def save_result(path, result):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("new", "reopen", "finish"))
+    parser.add_argument("mode", choices=("new", "reopen", "finish", "recover"))
     parser.add_argument("--repo", required=True)
     parser.add_argument("--role", required=True)
     parser.add_argument("--key", required=True)
@@ -200,6 +266,8 @@ def main():
             if args.goal is None:
                 parser.error("new에는 --goal이 필요합니다")
             new(repo, args.role, args.key, args.goal, args.base, args.mode == 'reopen')
+        elif args.mode == 'recover':
+            recover(repo, args.role, args.key)
         else:
             finish(repo, args.role, args.key)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
