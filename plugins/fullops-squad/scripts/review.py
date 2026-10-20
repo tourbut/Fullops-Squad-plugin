@@ -154,7 +154,7 @@ def prepare(repo, key, base, head, lint_source=None):
         raise ValueError('규칙 스키마 또는 실행 중 규칙 변경을 확인하세요')
     version = subprocess.check_output([ocr_command(), '--version'], text=True, env=env).strip()
     result = {'base': base, 'head': head, 'rule_sha256': digest, 'ocr_version': version,
-              'reviewer': '', 'conclusion': '',
+              'prepared_at': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'reviewer': '', 'conclusion': '',
               'files': [file_entry(item, True) for item in preview['reviewable_files']] +
                        [file_entry(item, False) for item in preview['excluded_files']],
               'findings': []}

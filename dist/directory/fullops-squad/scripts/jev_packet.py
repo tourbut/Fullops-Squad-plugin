@@ -15,6 +15,17 @@ from work import active_repo, instruction, instruction_digest, input_identity, p
 from storage import atomic_write
 
 CATEGORIES = ('direct_edit', 'impact_check', 'document_read', 'document_update')
+PACKET_BLOCK = r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*'
+# 문자열 검색에서 뺀다: 과거 산출물·증거·보관 기록은 명시 seed·필수·producer 추천으로만 들어온다.
+NOISE = ('artifacts/', '.fullops-squad/docs/evaluations/', '.fullops-squad/contexts/archive/', '.fullops-squad/handovers/logs/')
+SEARCH_REASON = 'symbol/keyword occurrence; reference semantics require verification'
+
+
+def delivered(result):
+    """지시서에 싣고 완료 검사가 요구하는 항목: 필수·직접 수정·문서 갱신·상위 문맥 경로. 나머지 참조 후보는 정본 JSON에만 남는다."""
+    context = set(result.get('context_paths', []))
+    return [i for i in result['items'] if not i.get('optional') and (
+        i['required'] or i['path'] in context or set(i['categories']) & {'direct_edit', 'document_update'})]
 
 
 def evaluate(result, labels=None):
@@ -36,7 +47,7 @@ def evaluate(result, labels=None):
 
 def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     inbox, text = instruction(repo, role, key)
-    text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
+    text = re.sub(PACKET_BLOCK, '', text)
     head = git(repo, 'rev-parse', 'HEAD')
     current = input_identity(repo, role, key, {})
     sources, unknown, entries, producer_status = {}, [], {}, {}
@@ -65,15 +76,15 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     explicit.update(p for p in git(repo, 'diff', '--name-only', 'HEAD').splitlines() if not p.startswith(
                   ('.fullops-squad/handovers/', '.fullops-squad/board/', '.fullops-squad/docs/evaluations/jev/')))
     direct = explicit
-    mandatory = set(REQUIRED) | set(required) | {inbox.relative_to(repo).as_posix()}
+    mandatory = set(REQUIRED) | set(required)
     route = sources.get('route', {})
-    update_ids = set(updates) | set(route.get('deliverables', [])) | set(route.get('additional_deliverables', []))
+    update_ids = set(updates) | set(route.get('deliverables', []))
     documents = {c['path'] for c in sources.get('documents-find', {}).get('candidates', [])} | set(sources.get('documents-find', {}).get('seed_paths', [])) | {p for p in recommended if p.endswith('.md')}
     ctx = sources.get('context', {}).get('context') or {}
     contexts = {path: cid for cid, path in ctx.get('candidate_paths', {}).items()}
     optional = {p for p, cid in contexts.items() if (ctx.get('signals', {}).get(cid) or {}).get('decision') == 'suggest_omit'}
     mandatory.update(path for path in ctx.get('required_paths', []) if path)
-    mapped = {path for scope in ('code', 'documents') for path, _ in code_map(repo, head, scope)}
+    mapped = {path for scope in ('code', 'documents') for path, _ in code_map(repo, head, scope) if not path.startswith(NOISE)}
     mapped.update(direct | mandatory | documents | set(contexts))
     texts, file_hashes, source_basis = {}, {}, {}
     tracked = set(git(repo, 'ls-files', '-z').split('\0'))
@@ -121,6 +132,8 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     terms = set(re.findall(r'`([A-Za-z_][A-Za-z_0-9]*)`|\b([A-Za-z_][A-Za-z_0-9]{3,})\b', query))
     terms = {a or b for a, b in terms} - {'Task', 'read', 'None', 'True', 'False', 'with', 'from', 'import',
         'Rename', 'rename', 'returns', 'return', 'update', 'callers', 'tests', 'response', 'contract', 'and', 'add', 'the', 'API'}
+    noise_terms = set(re.split(r'[^a-z0-9]+', key.lower())) | {role.lower()}  # 과제 키 조각은 모든 기록에 나온다
+    terms = {t for t in terms if t.lower() not in noise_terms}
     symbols = {}
     for path in direct:
         body = texts.get(path, '')
@@ -141,6 +154,10 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
         symbols.setdefault(term, []).append('inbox')
     if len(terms) > 64:
         unknown.append({'reason': 'keyword budget exceeded; full inbox search required'})
+    limit = max(25, len(texts) // 10)
+    ubiquitous = sorted(s for s in symbols if sum(1 for b in texts.values() if re.search(rf'\b{re.escape(s)}\b', b)) > limit)
+    for symbol in ubiquitous:  # 레포 전체에 깔린 이름은 근거가 아니다
+        symbols.pop(symbol)
     for path, body in texts.items():
         for line, value in enumerate(body.splitlines(), 1):
             matches = [s for s in symbols if re.search(rf'\b{re.escape(s)}\b', value)]
@@ -148,7 +165,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                 if path in direct:
                     continue
                 category = 'document_read' if path.endswith('.md') else 'impact_check'
-                add(path, category, 'symbol/keyword occurrence; reference semantics require verification',
+                add(path, category, SEARCH_REASON,
                     {'method': 'string-search', 'symbol': symbol, 'line': line, 'seeds': symbols[symbol]})
             if path.endswith('.md'):
                 for target in re.findall(r'\]\(([^)\s]+)\)', value):
@@ -187,7 +204,8 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     if identity['head'] != head:
         raise ValueError('HEAD changed while preparing packet; regenerate')
     items = sorted(entries.values(), key=lambda item: (bool(item.get('optional')), item['priority'], item['path']))
-    primary = [i['path'] for i in items if not i['required'] and not i.get('optional')]
+    primary = [i['path'] for i in sorted((i for i in items if not i['required'] and not i.get('optional')),
+               key=lambda i: (i['reasons'] == [SEARCH_REASON], -len(i['evidence']), i['path']))]
     return {**identity, 'version': 'jev-packet-v2', 'base': head, 'worktree_dirty': bool(dirty), 'items': items,
         'snapshot': 'HEAD search with tracked worktree and explicit/required local overlays',
         'source_hash_policy': 'verify before worker start; regenerate on change; completion allows implementation changes',
@@ -196,22 +214,37 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
         'partial': bool(unknown), 'unknown': unknown, 'producer_status': producer_status,
         'worker_decisions': decisions, 'worker_decisions_mode': 'annotations; original recommendations preserved',
         'fallback': 'bounded string/definition search; dynamic references and language server semantics unverified',
-        'context_paths': primary[:20], 'required_paths': sorted(mandatory),
+        'ubiquitous_terms': ubiquitous, 'context_paths': primary[:20], 'required_paths': sorted(mandatory),
         'optional_context_paths': [i['path'] for i in items if i.get('optional')], 'remaining_context_paths': primary[20:]}
 
 
 def handover(result, output):
+    shown = delivered(result)
     lines = ['<!-- fullops-packet:start -->', '### 탐색 근거와 읽을 구간', '', f'정본: `{output}` / SHA `{result["head"]}` / partial={result["partial"]}']
-    for item in result['items']:
-        if item.get('optional'):
-            continue
+    for item in shown:
         spans = ', '.join(str(e.get('line')) for e in item['evidence'] if e.get('line'))
         lines.append(f'- `{item["path"]}` ({", ".join(item["categories"])}) · 줄 {spans or "전체/미확인"} · {item["status"]}' +
                      (' · 필수' if item['required'] else '') + (f' · {item["context_signal"]}' if item.get('context_signal') else ''))
+    rest = sum(1 for i in result['items'] if not i.get('optional')) - len(shown)
+    lines.append(f'나머지 참조 후보 {rest}건은 정본 JSON의 remaining_context_paths에 있다. 완료 검사(packet-outcomes)는 위 목록만 요구한다.')
     for decision in result['worker_decisions']:
         lines.append(f'- 작업자 의견(원본 추천 유지): `{decision["path"]}` {decision["action"]} — {decision["reason"]}')
-    lines += [f'미확인 {len(result["unknown"])}건: 정본의 unknown/producer_status/remaining_context_paths/optional_context_paths 확인. {result["fallback"]}', '<!-- fullops-packet:end -->']
+    detail = '; '.join(f"{u.get('path') or u.get('source') or u.get('doc_id') or '-'}: {u['reason']}" for u in result['unknown'][:5])
+    lines += [f'미확인 {len(result["unknown"])}건: {detail}{" …" if len(result["unknown"]) > 5 else ""}. 정본의 unknown/producer_status 확인. {result["fallback"]}',
+              '<!-- fullops-packet:end -->']
     return '\n'.join(lines)
+
+
+def build(repo, role, key, seeds=(), required=(), updates=(), decisions=(), force=False, write_inbox=False):
+    result = packet(repo, role, key, seeds, required, updates, decisions)
+    output = result_path(repo, key, 'packet')
+    if not previous_result(output, result, force):
+        save_result(output, result)
+    if write_inbox:
+        inbox, text = instruction(repo, role, key)
+        text = re.sub(PACKET_BLOCK, '', text)
+        atomic_write(inbox, text.replace('## 완료 보고', handover(result, output.relative_to(repo)) + '\n\n## 완료 보고', 1))
+    return result, output
 
 
 def check(repo, role, key, completion=False, required=False, head=None, text=None):
@@ -243,7 +276,7 @@ def check(repo, role, key, completion=False, required=False, head=None, text=Non
                 if not item.get('optional') and (item.get('required') or item.get('status') != 'unknown'):
                     body = read(item['path'])  # 워크트리 간 파일 공유를 가정하지 않는다.
                     if item['path'] == result.get('instruction'):
-                        body = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', body)
+                        body = re.sub(PACKET_BLOCK, '', body)
                     actual = instruction_digest(body) if item['path'] == result.get('instruction') else digest(body.replace('\r\n', '\n').encode())
                     if item.get('source_sha256') and actual != item['source_sha256']:
                         raise ValueError('packet source changed; regenerate packet before worker start')
@@ -251,15 +284,16 @@ def check(repo, role, key, completion=False, required=False, head=None, text=Non
         outcomes = json.loads(read(result_path(repo, key, 'packet-outcomes').relative_to(repo).as_posix()))
         if outcomes.get('packet_input_sha256') != result['input_sha256'] or outcomes.get('attempt') != result['attempt']:
             raise ValueError('packet outcomes identity differs')
-        expected = {(i['path'], c) for i in result['items'] if not i.get('optional') for c in i['categories']}
+        allowed = {(i['path'], c) for i in result['items'] if not i.get('optional') for c in i['categories']}
+        expected = {(i['path'], c) for i in delivered(result) for c in i['categories']}
         rows = outcomes.get('items', [])
         seen = set()
         for item in rows:
             pair = (item.get('path'), item.get('category'))
-            if pair in seen or pair not in expected or item.get('status') not in ('completed', 'no_change') or not isinstance(item.get('reason'), str) or not item['reason'].strip():
+            if pair in seen or pair not in allowed or item.get('status') not in ('completed', 'no_change') or not isinstance(item.get('reason'), str) or not item['reason'].strip():
                 raise ValueError('packet item needs unique completed/no_change status and reason; unknown remains pending')
             seen.add(pair)
-        if seen != expected:
+        if not expected <= seen:
             raise ValueError('packet document/read/impact outcomes incomplete')
         if result.get('partial') and not str(outcomes.get('uncertainty_review') or '').strip():
             raise ValueError('partial packet needs manual uncertainty review evidence')
@@ -282,18 +316,9 @@ def main():
             raise ValueError('invalid task key')
         repo = active_repo(args.repo)
         decisions = json.loads(local_file(repo, args.decisions).read_text()) if args.decisions else []
-        result = packet(repo, args.role, args.key, args.seeds, args.required, args.update_docs, decisions)
-        output = result_path(repo, args.key, 'packet')
-        reused = previous_result(output, result, args.force)
-        if not reused:
-            save_result(output, result)
-        if args.write_inbox:
-            inbox, text = instruction(repo, args.role, args.key)
-            text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
-            block = handover(result, output.relative_to(repo))
-            atomic_write(inbox, text.replace('## 완료 보고', block + '\n\n## 완료 보고', 1))
+        result, output = build(repo, args.role, args.key, args.seeds, args.required, args.update_docs, decisions, args.force, args.write_inbox)
         print(output.relative_to(repo))
-        print(f'후보 {len(result["items"])} · partial={result["partial"]} · 미확인 {len(result["unknown"])}')
+        print(f'후보 {len(result["items"])} · 전달 {len(delivered(result))} · partial={result["partial"]} · 미확인 {len(result["unknown"])}')
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'탐색 패킷 실패: {error}\n')
 
