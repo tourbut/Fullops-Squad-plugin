@@ -4,12 +4,14 @@
 
 - 작성일:
 - From / To:
-- 상태: ready / running / blocked (과제 상태. front matter `status`는 문서 상태 draft/review/approved — lint DOC-003 어휘 — 라 서로 다른 값이 맞다)
+- 상태: ready / running / blocked
 - 테스트 레벨 / 하위 에이전트 레벨: fullops.json 선택값과 같은 값
 - 승인된 범위 / 추가 승인이 필요한 행위:
 - 담당 repo id / 워크트리 절대경로 / 브랜치:
 - 병합 책임자 / 기본 브랜치:
 - 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id:
+
+`상태`는 과제 상태다. front matter `status`는 문서 상태(draft/review/approved, lint DOC-003 어휘)라 서로 다른 값이 맞다.
 
 ## 현재 상황과 확인 근거
 
