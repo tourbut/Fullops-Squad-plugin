@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
 import jev_test_web as web
 import web_contract as contract
+import web_ego
 import web_playwright
 import web_analysis
 import web_poc
@@ -304,6 +305,37 @@ global.document = {activeElement: {
         browser.process = Mock()
         browser.responses.put({'id': 1, 'ok': True})
         self.assertIsNone(browser.rpc('eval', expression='undefined'))
+
+    def test_ego_unavailable_does_not_switch_engine(self):
+        browser = web_ego.EgoBrowser(contract.policy(self.scenario()), str(Path(self.temp.name) / 'missing-ego-browser'))
+        with self.assertRaisesRegex(RuntimeError, 'no engine fallback'):
+            self.execute(browser=browser, assertions_only=True)
+
+    def test_ego_bridge_reads_only_its_marked_answer(self):
+        from types import SimpleNamespace
+        browser = web_ego.EgoBrowser(contract.policy(self.scenario()), sys.executable)
+        browser.folder = Path(self.temp.name)
+        answer = lambda err: SimpleNamespace(stdout='', stderr=err)
+        with patch.object(web_ego.subprocess, 'run', return_value=answer('[ego-browser:notice] update\nFULLOPS_EGO {"ok":true}\n')):
+            self.assertIsNone(browser.rpc('eval', expression='undefined'))
+        with patch.object(web_ego.subprocess, 'run', return_value=answer('FULLOPS_EGO {"ok":false,"error":"origin_not_allowed"}\n')):
+            with self.assertRaisesRegex(RuntimeError, 'origin_not_allowed'):
+                browser.rpc('open', url='https://example.com/')
+        with patch.object(web_ego.subprocess, 'run', return_value=answer('{"ok":true,"result":1}\n')):
+            with self.assertRaisesRegex(RuntimeError, 'no_answer'):
+                browser.rpc('eval', expression='1')
+
+    def test_ego_acts_only_on_the_preflighted_target(self):
+        browser = web_ego.EgoBrowser(contract.policy(self.scenario()), sys.executable)
+        self.assertEqual(browser.act('click', 'e1'), 'error: stale_state')
+        with patch.object(browser, 'rpc', return_value=None):
+            self.assertIsNone(browser.preflight({'url': 'u', 'digest': 'd'}, 'click', 'e1', {}))
+        self.assertEqual(browser.act('click', 'e2'), 'error: stale_state')
+        with patch.object(browser, 'rpc', side_effect=[None, {'outcome': 'ok', 'popups': 1}]) as rpc:
+            browser.preflight({'url': 'u', 'digest': 'd'}, 'click', 'e1', {})
+            self.assertEqual(browser.act('click', 'e1'), 'ok')
+        self.assertEqual(rpc.call_args.kwargs['page'], {'url': 'u', 'digest': 'd'})
+        self.assertEqual(browser.identity['popups_closed'], 1)
 
     def test_invalid_scenarios_are_rejected_before_browser_or_model(self):
         for change in ({'max_steps': True}, {'setup_js': [1]}, {'checks': [{'text': 1}]},

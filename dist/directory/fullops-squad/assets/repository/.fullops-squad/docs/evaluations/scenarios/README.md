@@ -24,7 +24,7 @@
 | `candidate_limit`, `max_input_chars` | 선택 | | 웹 모델 후보/입력 크기 제한. 후보는 NONE을 포함해 최대 255개 |
 | `exploration` | 선택 | | 새 후보 탐색. 기본 false |
 
-웹 실행·기존 Orca 탭 연결·권한·선택 Playwright·shadow/CUAWright·모델 없는 회귀의 정본은 플러그인의 `fullops-test/web-engine.md`다. 일반 조작은 격리 fixture가 필요하다. 원격 효과를 요청 차단으로 제한할 수 없는 Orca는 읽기/스크롤/검사만 허용하고, 조작은 loopback fixture에서 수행한다. `--assert-only`는 setup도 실행하지 않는다. `setup_js`와 checks JS는 검토한 신뢰 코드이며 sandbox가 아니다.
+웹 실행·기존 Orca 탭 연결·권한·선택 Playwright·ego·shadow/CUAWright·모델 없는 회귀의 정본은 플러그인의 `fullops-test/web-engine.md`다. 일반 조작은 격리 fixture가 필요하다. 원격 효과를 요청 차단으로 제한할 수 없는 Orca와 ego는 읽기/스크롤/검사만 허용하고, 조작은 loopback fixture에서 수행한다. `--assert-only`는 setup도 실행하지 않는다. `setup_js`와 checks JS는 검토한 신뢰 코드이며 sandbox가 아니다.
 
 checks 종류:
 - 웹: `{"text": "보일 글자"}`, `{"url": "주소 일부"}`, `{"js": "<식>", "equals": <값>}`

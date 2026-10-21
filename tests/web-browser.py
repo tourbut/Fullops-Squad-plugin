@@ -1,4 +1,4 @@
-"""격리된 같은 앱/fixture를 Orca·Playwright에서 모델 없이 검증한다. 기본 npm test에는 브라우저가 필요 없다."""
+"""격리된 같은 앱/fixture를 Orca·Playwright·ego에서 모델 없이 검증한다. 기본 npm test에는 브라우저가 필요 없다."""
 import argparse
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
 import jev_test_web as web
 import web_contract as contract
+from web_ego import EgoBrowser
 from web_playwright import PlaywrightBrowser
 
 HTML = '''<!doctype html><meta charset="utf-8"><title>Isolated engine fixture</title>
@@ -110,9 +111,10 @@ def exercise(factory, url, out):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--engine', choices=('orca', 'playwright', 'both'), default='playwright')
+    parser.add_argument('--engine', choices=('orca', 'playwright', 'ego', 'both'), default='playwright')
     parser.add_argument('--playwright-package', type=Path)
     parser.add_argument('--browser-executable')
+    parser.add_argument('--ego', help='ego-browser 실행 파일(기본: 자동 탐색)')
     parser.add_argument('--worktree', default='path:' + ROOT.as_posix())
     parser.add_argument('--out', type=Path)
     args = parser.parse_args()
@@ -126,6 +128,8 @@ def main():
             result = {}
             if args.engine in ('playwright', 'both'):
                 result['playwright'] = exercise(lambda safety: PlaywrightBrowser(ROOT, safety, args.playwright_package, args.browser_executable), url, out / 'playwright')
+            if args.engine == 'ego':
+                result['ego'] = exercise(lambda safety: EgoBrowser(safety, args.ego), url, out / 'ego')
             if args.engine in ('orca', 'both'):
                 version = subprocess.run([web.find_orca(), '--version'], capture_output=True, text=True, timeout=10)
                 def factory(safety):

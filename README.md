@@ -86,7 +86,7 @@ heartbeat·status는 스크립트가 흡수합니다. 정상 작업의 진행 �
 
 | 도구 | 확인하는 것 |
 |---|---|
-| `fullops-test` | 코드·웹·Unity 검증. 웹 기본 Orca/현재 탭, 선택 Playwright, 모델 없는 회귀와 독립 checks. [실행기 계약](plugins/fullops-squad/skills/fullops-test/web-engine.md) |
+| `fullops-test` | 코드·웹·Unity 검증. 웹 기본 Orca/현재 탭, 선택 Playwright·ego, 모델 없는 회귀와 독립 checks. [실행기 계약](plugins/fullops-squad/skills/fullops-test/web-engine.md) |
 | `fullops-motion` | 선택형 모션그래픽 제작. 모션 템플릿 기반 단일 HTML을 로컬 Playwright·FFmpeg로 렌더, HyperFrames/Remotion은 지정 시 선택. 검수·재렌더 인계 |
 | `fullops-frontend` | UI/UX 작업별 주 스킬·호스트/고정 모델 선택, 기존 디자인 정본·비평·브라우저 QA 연결 |
 | `fullops-review` | OCR CLI가 준비한 파일·규칙을 호스트 AI가 리뷰. 별도 OCR LLM API 키는 불필요 |
