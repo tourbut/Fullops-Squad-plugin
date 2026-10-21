@@ -1,23 +1,22 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement, Timer } from 'claude-code'
 
-import type { Decision, Meter, Review, Sample, Tab, Ttl } from '../types'
+import type { Decision, HookRun, Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
+import { HOOK_EVENTS, hookLines, hookOutcome, recordHookRun } from './hook-runs'
 import { MARKERS, branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
-import { commandLine, isHookMessage, recordShell, shellLine, shellOutcome } from './shell'
 import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
-const shellAtom = atom({ plugin: 'fullops-meter', key: 'shell' } as const, [])
-const hookAtom = atom({ plugin: 'fullops-meter', key: 'hook' } as const, '')
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
 const isHiddenAtom = atom({ plugin: 'fullops-meter', key: 'isHidden' } as const, false)
 const seenAtom = atom({ plugin: 'fullops-meter', key: 'seen' } as const, {})
 const fullopsAtom = atom({ plugin: 'fullops-meter', key: 'fullops' } as const, null)
 const tabAtom = atom({ plugin: 'fullops-meter', key: 'tab' } as const, 'workers')
+const hooksAtom = atom({ plugin: 'fullops-meter', key: 'hooks' } as const, [])
 
 const KEEP_SAMPLES = 50
 const TICK_MS = 1000
@@ -37,7 +36,6 @@ const PANE_COLUMNS = 56
 const TABS: readonly { tab: Tab; label: string; hotkey: string }[] = [
   { tab: 'workers', label: 'Workers', hotkey: 'w' },
   { tab: 'reviews', label: 'Reviews', hotkey: 'r' },
-  { tab: 'shell', label: 'Shell', hotkey: 's' },
 ]
 /** A prompt this small is not worth a notice when its cache lapses. */
 const NOTICE_MIN_TOKENS = 20_000
@@ -47,8 +45,6 @@ type Shared = {
   policy: Policy
   option: unknown
   showBand: boolean
-  /** True to draw Bash rows and hook spinner text as nothing; the Shell tab shows them instead. */
-  quietShell: boolean
   warnPercent: number
   ttl: Ttl
   ttlSource: string
@@ -388,7 +384,6 @@ export const register: Register = (on, options) => {
     },
     option: options.cacheTtl,
     showBand: options.showBand !== false,
-    quietShell: options.quietShell !== false,
     warnPercent: typeof options.warnContextPercent === 'number' ? options.warnContextPercent : 80,
     ttl: '5m',
     ttlSource: 'default',
@@ -451,6 +446,25 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // FullOps Squad's settings hooks (done_gate, flow_gate, ...) run inside these classic events; the pane shows each run and its verdict.
+  let hookSeq = 0
+  on('classic.*', async ($, e, next) => {
+    const event = next.event.slice('classic.'.length)
+    if (!shared.isFullOps || !HOOK_EVENTS.has(event)) return next(e)
+    const run: HookRun = { id: `h${++hookSeq}`, event, startedAt: await $.clock.now(), endedAt: null, status: 'running', detail: '' }
+    await update($, hooksAtom, list => recordHookRun(list, run))
+    try {
+      const result = await next(e)
+      const endedAt = await $.clock.now()
+      await update($, hooksAtom, list => recordHookRun(list, hookOutcome(run, result, endedAt)))
+      return result
+    } catch (error) {
+      const endedAt = await $.clock.now()
+      await update($, hooksAtom, list => recordHookRun(list, { ...run, endedAt, status: 'blocked', detail: String(error) }))
+      throw error
+    }
+  })
+
   on('turn.complete', async ($, e, next) => {
     if (e.agentId === undefined) await readContext($, shared)
 
@@ -504,6 +518,7 @@ export const register: Register = (on, options) => {
     const queue = queued === '' ? null : <Text dimColor>{queued}</Text>
     // The pane is tall: workers or reviews take the top half, the decisions waiting on the person the bottom.
     const decisions = fullops?.decisions ?? []
+    const hooks = fullops === null ? [] : hookLines(await read($, hooksAtom), now)
     const lower = (
       <Box flexDirection="column">
         <Text bold>{decisions.length === 0 ? 'Decisions' : `Decisions waiting for you (${decisions.length})`}</Text>
@@ -524,6 +539,21 @@ export const register: Register = (on, options) => {
             </Box>
           )
         })}
+        {fullops !== null && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text bold>Hooks</Text>
+            {hooks.length === 0 && <Text dimColor>No hook runs yet.</Text>}
+            {hooks.map((line, n) => (
+              <Box key={`h-${n}`} flexDirection="column">
+                <Box>
+                  <Text color={line.tone}>{line.icon} </Text>
+                  <Text>{line.text}</Text>
+                </Box>
+                {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
+              </Box>
+            ))}
+          </Box>
+        )}
       </Box>
     )
     const halves = (upper: RenderElement) => (
@@ -537,34 +567,6 @@ export const register: Register = (on, options) => {
         </Box>
       </Box>
     )
-
-    if (tab === 'shell') {
-      const shells = await read($, shellAtom)
-      const hook = await read($, hookAtom)
-      return halves(
-        <Box flexDirection="column">
-          {tabs}
-          <Text dimColor>Bash calls the transcript hides (ctrl+o shows them). Newest first.</Text>
-          {hook !== '' && <Text color="warning">{hook}</Text>}
-          {shells.length === 0 && <Text>No shell calls yet.</Text>}
-          {shells.map(shell => {
-            const line = shellLine(shell, now)
-            return (
-              <Box key={shell.id} flexDirection="column" marginTop={1}>
-                <Box>
-                  <Text color={line.tone} bold>
-                    {line.icon}{' '}
-                  </Text>
-                  <Text bold>{line.head}</Text>
-                  <Text dimColor> · {line.when}</Text>
-                </Box>
-                {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
-              </Box>
-            )
-          })}
-        </Box>
-      )
-    }
 
     if (fullops !== null && tab === 'workers' && workers !== null && Client !== undefined) {
       const cards: CardsProps = {
@@ -662,34 +664,11 @@ export const register: Register = (on, options) => {
     return next(hasStep ? { ...e, props: { ...e.props, isExpanded: true } } : e)
   })
 
-  // Every Bash call goes to the Shell tab: what ran, how it ended and its last output line.
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const entry = { id: e.tool_use_id, command: commandLine(e.command), startedAt: await $.clock.now(), endedAt: null, status: 'running' as const, tail: '' }
-    await update($, shellAtom, list => recordShell(list, entry))
-    const ran = await next(e)
-    const done = shellOutcome(entry, ran, await $.clock.now())
-    await update($, shellAtom, list => recordShell(list, done))
-    return ran
-  })
-
-  // `isExpanded` (ctrl+o, --verbose) arrived in a build after the one that laid the mod's types.
-  const isExpanded = (props: object): boolean => (props as { isExpanded?: boolean }).isExpanded === true
-
-  // A Bash row the transcript would draw is drawn as nothing; ctrl+o and --verbose still show it.
-  on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
-    if (!shared.quietShell || e.props.tool !== 'Bash' || isExpanded(e.props)) return next(e)
-    const { Box } = $.ui.resolve(e)
-    return <Box />
-  })
-
-  // A FullOps step run through Bash draws as one card in place of its long command; any other Bash call as nothing.
+  // A FullOps step run through Bash draws as one card in place of its long command.
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
-    const card = shared.isFullOps ? cardOf(bashCommand(e.props.tool, e.props.input), (await read($, fullopsAtom))?.keys ?? {}) : null
-    if (card === null) {
-      if (!shared.quietShell || e.props.tool !== 'Bash' || isExpanded(e.props)) return next(e)
-      const { Box } = $.ui.resolve(e)
-      return <Box />
-    }
+    if (!shared.isFullOps) return next(e)
+    const card = cardOf(bashCommand(e.props.tool, e.props.input), (await read($, fullopsAtom))?.keys ?? {})
+    if (card === null) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
     const state = e.props.isInterrupted ? ' interrupted' : e.props.isErrored ? ' failed' : e.props.isRunning ? ' running' : ''
@@ -702,15 +681,12 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // While the coordinator works, the spinner says what is still out. A hook message (`Running Stop hook…`)
-  // leaves the line for the Shell tab.
+  // While the coordinator works, the spinner says what is still out.
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
-    const hook = shared.quietShell && isHookMessage(e.props.message) ? e.props.message : ''
-    await update($, hookAtom, () => hook)
     const fullops = await read($, fullopsAtom)
     const extra = fullops === null ? '' : spinnerText((await read($, meterAtom))?.workers ?? null, fullops.reviews)
-    if (extra === '' && hook === '') return next(e)
-    return next({ ...e, props: { ...e.props, ...(hook === '' ? {} : { message: null }), ...(extra === '' ? {} : { suffix: `… · ${extra}` }) } })
+    if (extra === '') return next(e)
+    return next({ ...e, props: { ...e.props, suffix: `… · ${extra}` } })
   })
 
   // The hint line under the prompt draws `tail` dim after its own text, with no plugin prefix.
