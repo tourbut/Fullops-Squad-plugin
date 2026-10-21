@@ -7,9 +7,12 @@ import type { Account, Policy, TtlInputs } from './cache'
 import { MARKERS, branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
 import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
+import { commandLine, isHookMessage, recordShell, shellLine, shellOutcome } from './shell'
 import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
 
 const meterAtom = atom({ plugin: 'fullops-meter', key: 'meter' } as const, null)
+const shellAtom = atom({ plugin: 'fullops-meter', key: 'shell' } as const, [])
+const hookAtom = atom({ plugin: 'fullops-meter', key: 'hook' } as const, '')
 const nowAtom = atom({ plugin: 'fullops-meter', key: 'now' } as const, 0)
 const isHiddenAtom = atom({ plugin: 'fullops-meter', key: 'isHidden' } as const, false)
 const seenAtom = atom({ plugin: 'fullops-meter', key: 'seen' } as const, {})
@@ -34,6 +37,7 @@ const PANE_COLUMNS = 56
 const TABS: readonly { tab: Tab; label: string; hotkey: string }[] = [
   { tab: 'workers', label: 'Workers', hotkey: 'w' },
   { tab: 'reviews', label: 'Reviews', hotkey: 'r' },
+  { tab: 'shell', label: 'Shell', hotkey: 's' },
 ]
 /** A prompt this small is not worth a notice when its cache lapses. */
 const NOTICE_MIN_TOKENS = 20_000
@@ -43,6 +47,8 @@ type Shared = {
   policy: Policy
   option: unknown
   showBand: boolean
+  /** True to draw Bash rows and hook spinner text as nothing; the Shell tab shows them instead. */
+  quietShell: boolean
   warnPercent: number
   ttl: Ttl
   ttlSource: string
@@ -382,6 +388,7 @@ export const register: Register = (on, options) => {
     },
     option: options.cacheTtl,
     showBand: options.showBand !== false,
+    quietShell: options.quietShell !== false,
     warnPercent: typeof options.warnContextPercent === 'number' ? options.warnContextPercent : 80,
     ttl: '5m',
     ttlSource: 'default',
@@ -531,6 +538,34 @@ export const register: Register = (on, options) => {
       </Box>
     )
 
+    if (tab === 'shell') {
+      const shells = await read($, shellAtom)
+      const hook = await read($, hookAtom)
+      return halves(
+        <Box flexDirection="column">
+          {tabs}
+          <Text dimColor>Bash calls the transcript hides (ctrl+o shows them). Newest first.</Text>
+          {hook !== '' && <Text color="warning">{hook}</Text>}
+          {shells.length === 0 && <Text>No shell calls yet.</Text>}
+          {shells.map(shell => {
+            const line = shellLine(shell, now)
+            return (
+              <Box key={shell.id} flexDirection="column" marginTop={1}>
+                <Box>
+                  <Text color={line.tone} bold>
+                    {line.icon}{' '}
+                  </Text>
+                  <Text bold>{line.head}</Text>
+                  <Text dimColor> · {line.when}</Text>
+                </Box>
+                {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
+              </Box>
+            )
+          })}
+        </Box>
+      )
+    }
+
     if (fullops !== null && tab === 'workers' && workers !== null && Client !== undefined) {
       const cards: CardsProps = {
         now,
@@ -627,11 +662,34 @@ export const register: Register = (on, options) => {
     return next(hasStep ? { ...e, props: { ...e.props, isExpanded: true } } : e)
   })
 
-  // A FullOps step run through Bash draws as one card in place of its long command.
+  // Every Bash call goes to the Shell tab: what ran, how it ended and its last output line.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const entry = { id: e.tool_use_id, command: commandLine(e.command), startedAt: await $.clock.now(), endedAt: null, status: 'running' as const, tail: '' }
+    await update($, shellAtom, list => recordShell(list, entry))
+    const ran = await next(e)
+    const done = shellOutcome(entry, ran, await $.clock.now())
+    await update($, shellAtom, list => recordShell(list, done))
+    return ran
+  })
+
+  // `isExpanded` (ctrl+o, --verbose) arrived in a build after the one that laid the mod's types.
+  const isExpanded = (props: object): boolean => (props as { isExpanded?: boolean }).isExpanded === true
+
+  // A Bash row the transcript would draw is drawn as nothing; ctrl+o and --verbose still show it.
+  on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
+    if (!shared.quietShell || e.props.tool !== 'Bash' || isExpanded(e.props)) return next(e)
+    const { Box } = $.ui.resolve(e)
+    return <Box />
+  })
+
+  // A FullOps step run through Bash draws as one card in place of its long command; any other Bash call as nothing.
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
-    if (!shared.isFullOps) return next(e)
-    const card = cardOf(bashCommand(e.props.tool, e.props.input), (await read($, fullopsAtom))?.keys ?? {})
-    if (card === null) return next(e)
+    const card = shared.isFullOps ? cardOf(bashCommand(e.props.tool, e.props.input), (await read($, fullopsAtom))?.keys ?? {}) : null
+    if (card === null) {
+      if (!shared.quietShell || e.props.tool !== 'Bash' || isExpanded(e.props)) return next(e)
+      const { Box } = $.ui.resolve(e)
+      return <Box />
+    }
 
     const { Box, Text } = $.ui.resolve(e)
     const state = e.props.isInterrupted ? ' interrupted' : e.props.isErrored ? ' failed' : e.props.isRunning ? ' running' : ''
@@ -644,12 +702,15 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // While the coordinator works, the spinner says what is still out.
+  // While the coordinator works, the spinner says what is still out. A hook message (`Running Stop hook…`)
+  // leaves the line for the Shell tab.
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
+    const hook = shared.quietShell && isHookMessage(e.props.message) ? e.props.message : ''
+    await update($, hookAtom, () => hook)
     const fullops = await read($, fullopsAtom)
     const extra = fullops === null ? '' : spinnerText((await read($, meterAtom))?.workers ?? null, fullops.reviews)
-    if (extra === '') return next(e)
-    return next({ ...e, props: { ...e.props, suffix: `… · ${extra}` } })
+    if (extra === '' && hook === '') return next(e)
+    return next({ ...e, props: { ...e.props, ...(hook === '' ? {} : { message: null }), ...(extra === '' ? {} : { suffix: `… · ${extra}` }) } })
   })
 
   // The hint line under the prompt draws `tail` dim after its own text, with no plugin prefix.
