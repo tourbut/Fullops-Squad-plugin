@@ -501,10 +501,11 @@ def main():
     parser.add_argument('--env-file', help='TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY를 읽을 .env')
     parser.add_argument('--orca', help='orca 실행 파일(기본: 자동 탐색)')
     parser.add_argument('--page', help='사용자가 지정한 기존 Orca 탭 ID. 새 탭을 만들거나 URL을 바꾸지 않는다')
-    parser.add_argument('--engine', choices=('orca', 'playwright'), default='orca', help='실행기. 기본 Orca이며 자동 전환하지 않는다')
+    parser.add_argument('--engine', choices=('orca', 'playwright', 'ego'), default='orca', help='실행기. 기본 Orca이며 자동 전환하지 않는다')
     parser.add_argument('--playwright-package', type=Path, help='재사용할 고정 @playwright/cli package.json 경로')
     parser.add_argument('--browser-executable', help='Playwright에서 명시적으로 재사용할 브라우저 실행 파일')
     parser.add_argument('--headed', action='store_true', help='선택한 Playwright 브라우저 창을 표시한다')
+    parser.add_argument('--ego', help='ego 실행기에서 쓸 ego-browser 실행 파일(기본: PATH, 다음 ~/.local/share/ego/active_version_dir)')
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--assert-only', action='store_true', help='모델 호출·UI 조작 없이 현재 화면의 독립 checks만 실행')
     parser.add_argument('--explore', action='store_true', help='선택형 후보 범위 확장. 기본 OFF')
@@ -536,6 +537,9 @@ def main():
     if args.engine == 'playwright':
         from web_playwright import PlaywrightBrowser
         browser = PlaywrightBrowser(repo, contract.policy(scenario), args.playwright_package, args.browser_executable, args.headed)
+    elif args.engine == 'ego':
+        from web_ego import EgoBrowser
+        browser = EgoBrowser(contract.policy(scenario), args.ego)
     else:
         browser = Browser(orca, args.worktree or f'path:{repo.as_posix()}', args.page)
         version = subprocess.run([orca, '--version'], capture_output=True, text=True, timeout=10)

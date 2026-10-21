@@ -1,6 +1,6 @@
 # 웹 실행기 계약
 
-기본 실행기는 Orca 내장 브라우저다. `--engine playwright`를 지정하면 선택 설치된 Playwright 런타임을 쓴다. 설치·브라우저 다운로드·다른 엔진으로의 자동 전환은 실행기가 수행하지 않는다. Windows와 macOS에서 같은 Python/Node 경로를 사용한다. 기존 프로젝트 E2E·보안·lint·done/review 게이트는 계속 실행한다.
+기본 실행기는 Orca 내장 브라우저다. `--engine playwright`를 지정하면 선택 설치된 Playwright 런타임을 쓰고, `--engine ego`를 지정하면 사용자가 설치한 ego lite의 `ego-browser`를 쓴다. 설치·브라우저 다운로드·다른 엔진으로의 자동 전환은 실행기가 수행하지 않는다. Windows와 macOS에서 같은 Python/Node 경로를 사용한다. 기존 프로젝트 E2E·보안·lint·done/review 게이트는 계속 실행한다.
 
 ## 실행
 
@@ -11,9 +11,12 @@ python3 <script> --repo <repo> --key W21 --scenario <scenario.json> --validate
 python3 <script> --repo <repo> --key W21 --scenario <scenario.json>
 python3 <script> --repo <repo> --key W21 --scenario <scenario.json> --page <Orca-page-id> --assert-only
 python3 <script> --repo <repo> --key W21 --scenario <scenario.json> --engine playwright --replay <regression.json>
+python3 <script> --repo <repo> --key W21 --scenario <scenario.json> --engine ego --replay <regression.json>
 ```
 
 Orca는 기본 새 탭을 연다. 사용자가 기존 화면을 지정하면 `--page`로 그 ID에 연결한다. 시나리오 URL이 실제 URL과 정확히 같아야 하며 연결 시 이동하지 않는다. 탭은 결과 확인을 위해 남긴다. 작업 후 원래 스크롤·포커스 등 필요한 상태를 복구한다. Playwright는 별도 비영구 context를 만들고 종료 시 자신이 만든 프로세스만 정리한다.
+
+ego 실행기는 ego lite 앱과 온보딩이 끝난 `ego-browser` 명령이 필요하다. 설치는 사용자가 https://lite.ego.app/ 에서 하고 실행기는 설치하지 않는다. 명령은 `--ego <실행 파일>`, `PATH`, `~/.local/share/ego/active_version_dir` 순서로 찾는다. 온보딩 전에 연 터미널은 새 PATH를 모르므로 마지막 경로가 필요하다. 실행마다 `fullops-web-<무작위>` task space 하나를 만들고 종료 시 `finish({keep: []})`로 닫는다. 사용자의 ego 프로필 쿠키를 그대로 쓰므로 로그인 상태가 테스트에 섞일 수 있다. 쿠키·캐시를 지우는 명령은 프로필 전체에 닿으므로 실행기가 쓰지 않는다. `ego-browser`는 스크립트에 stdin을 넘기지 않아 명령마다 프로세스 하나를 띄운다(호출당 약 0.3초). 관측과 판정은 Playwright와 같은 `web_dom.js` 프로브를 쓰고, 조작 직전 digest·URL·가림·비활성·민감·목적지 origin을 다시 검사한 뒤 focus한 요소의 역할·이름이 관측과 같을 때만 실행한다. 열린 shadow root가 있는 화면은 대상 번호가 어긋날 수 있어 조작하지 않는다. 팝업은 닫고 수를 `popups_closed`에 남기며 JS 대화상자는 닫는다.
 
 Playwright 선택 준비는 `fullops-frontend/toolchain.md`를 따른다. 기본 package 경로는 `<repo>/.fullops-squad/tools/frontend/playwright/node_modules/@playwright/cli/package.json`이다. 기존 로컬 설치는 `--playwright-package <package.json>`로 재사용한다. 선택한 CLI와 연결된 Playwright의 패키지 정체성·실제 버전·실행 가능 여부를 확인한다. 고정 버전 일치는 요구하지 않는다. `--browser-executable <path>`로 설치된 Chromium 계열 브라우저를 재사용할 수 있고 `--headed`는 창을 표시한다. 브라우저가 없으면 명시적으로 준비한다. 실행 증거에는 실제 CLI·Playwright·브라우저 버전을 남긴다.
 
@@ -45,7 +48,7 @@ origin 기본값은 시작 URL의 origin 하나다. 포트까지 정확히 지�
 
 Playwright는 허용 origin의 문서·정적 자원 GET/HEAD와 명시한 요청만 통과시킨다. service worker·WebSocket·popup·download는 허용하지 않는다. 차단된 요청이 있으면 checks가 참이어도 PASS로 처리하지 않는다. GET 자체가 효과를 내는 앱과 서버의 후속 효과까지 격리하는 장치는 아니다. 테스트 tenant와 서버 측 권한을 함께 제한한다.
 
-Orca CLI에는 이 adapter의 요청 차단 기능이 없다. 원격 사이트의 효과가 있는 동작은 차단한다. 읽기·스크롤·assertions는 가능하며, 조작 회귀는 외부 효과가 없는 loopback fixture에서만 수행한다. 원격 격리 tenant를 조작하려면 요청 제한이 있는 Playwright를 명시적으로 선택한다. 엔진이 바뀌면 새 context의 인증·fixture 조건을 따로 확인한다.
+Orca CLI와 ego에는 이 adapter의 요청 차단 기능이 없다. 원격 사이트의 효과가 있는 동작은 차단한다. 읽기·스크롤·assertions는 가능하며, 조작 회귀는 외부 효과가 없는 loopback fixture에서만 수행한다. 원격 격리 tenant를 조작하려면 요청 제한이 있는 Playwright를 명시적으로 선택한다. 엔진이 바뀌면 새 context의 인증·fixture 조건을 따로 확인한다.
 
 `setup_js`와 checks의 `js`는 시나리오 작성자가 검토한 신뢰 코드다. 페이지 문구·모델 답으로 생성하거나 외부 페이지에서 복사해 자동 실행하지 않는다. JS 평가기는 보안 sandbox가 아니다. 비밀값·개인정보를 읽는 식을 쓰지 않는다. 모델에는 URL query/fragment·원시 DOM·현재 입력 필드 값·HTML을 보내지 않는다. 시나리오 fixture 값은 선택지 설명으로 제공하되 이메일·전화번호·비밀 패턴을 마스킹하고 실제 입력은 로컬의 원래 값 ID에서 가져온다. 요소 이름·인접 문구·증거도 제한·마스킹한다. 마스킹은 보조 수단이므로 민감한 실제 데이터가 있는 화면을 모델 탐색 대상으로 삼지 않는다.
 
@@ -77,4 +80,4 @@ CUAWright는 별도 Python Playwright/호스트 스킬 실험이며 Orca/Playwri
 
 기존 `result.json`, `events.jsonl`, `report.md`에 scope·실행기 버전·실행 파일 SHA·시나리오 SHA·상태/후보 ID·관측 범위·예산·assertions·비용을 추가한다. 같은 폴더를 덮어쓰지 않는다. 탐색/비용 절감 수치는 같은 fixture·검사·예산·실행기 버전의 반복 측정과 사람이 라벨한 정상/결함 사례가 있어야 주장한다. 모델 없는 재생의 비용 0을 모델 탐색의 성능 개선으로 해석하지 않는다.
 
-플러그인 개발 검사는 `python3 tests/web-engine.py`(모델/브라우저 불필요)와 `python3 tests/web-browser.py --engine playwright --playwright-package <package.json>`(격리 로컬 실제 브라우저)다. 로컬 Orca가 연결돼 있으면 `--engine both`로 동일 정상/삽입 결함 fixture를 비교한다. 실제 OS에서 실행한 결과와 CI 설정만 추가한 OS를 구분해 기록한다.
+플러그인 개발 검사는 `python3 tests/web-engine.py`(모델/브라우저 불필요)와 `python3 tests/web-browser.py --engine playwright --playwright-package <package.json>`(격리 로컬 실제 브라우저)다. 로컬 Orca가 연결돼 있으면 `--engine both`로 동일 정상/삽입 결함 fixture를 비교한다. ego lite가 있으면 `--engine ego`로 같은 fixture를 검사한다. 실제 OS에서 실행한 결과와 CI 설정만 추가한 OS를 구분해 기록한다.
