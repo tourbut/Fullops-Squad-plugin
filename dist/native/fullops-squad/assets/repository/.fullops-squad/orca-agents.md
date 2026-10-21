@@ -22,12 +22,14 @@ coordinator는 비용이 낮은 모델로 계속 띄워 두고, 설계 역할은
 Jev가 고른 후보와 확률 차이가 0.05 이내인 더 강한 후보가 있으면 품질을 위해 그쪽을 쓴다. design으로 분류되면 설계 역할도 후보에서 고르므로 설계 역할 후보도 적을 수 있다.
 Jev를 쓸 수 없으면 가장 강한 마지막 후보를 쓴다. 후보가 하나면 그대로 쓴다.
 설명에는 어떤 작업에 이 후보를 쓰는지 적는다. 모델 ID는 실제 CLI가 받는 값으로 적는다. 후보가 없는 역할은 배정표의 기본값을 쓴다.
+`reviewer`는 역할이 아니라 병합 전 고정 SHA 독립 리뷰 세션의 후보 키다. 리뷰어 worker는 `jev_route.py --model-only --role reviewer --request "<need 판정 사유>"`가 고른 tuple로 띄운다. 후보를 하나만 적으면 그 모델로 고정된다. 후보가 없으면 가장 강한 `dev` 후보를 쓴다.
 아래는 형식 예시다. 코드 블록 안의 줄은 읽지 않으니 실제 후보는 블록 밖에 적는다.
 
 ```text
 - `dev` `codex` `gpt-6-sol` `low`: 문구·수치 변경 같은 단순 수정
 - `dev` `claude` `claude-sonnet-5` `medium`: 기존 패턴을 따르는 일반 구현과 버그 수정
 - `dev` `claude` `claude-opus-5-5` `high`: 설계 판단이 섞이거나 여러 모듈에 걸친 구현
+- `reviewer` `claude` `claude-opus-5-5` `high`: 병합 전 고정 SHA 독립 코드 리뷰
 ```
 
 ## 라우팅 기준

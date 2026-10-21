@@ -85,7 +85,8 @@ def main():
         guide_path.write_text(guide_path.read_text(encoding='utf-8').replace('## 모델 후보\n', '## 모델 후보\n\n'
             '- `dev` `codex` `gpt-6-sol` `low`: 문구·수치 같은 단순 수정\n'
             '- `dev` `claude` `claude-opus-5-5` `high`: 여러 모듈에 걸친 구현\n'
-            '- `art` `codex` `gpt-6-sol` `medium`: 에셋 교체\n', 1), encoding='utf-8')
+            '- `art` `codex` `gpt-6-sol` `medium`: 에셋 교체\n'
+            '- `reviewer` `claude` `claude-opus-5-5` `high`: 고정 SHA 독립 코드 리뷰\n', 1), encoding='utf-8')
         candidates = jev.model_candidates(repo)
         assert [c['model'] for c in candidates['dev']][:2] == ['gpt-6-sol', 'claude-opus-5-5'], candidates
         seen = []
@@ -164,6 +165,15 @@ def main():
         strict_cmd[5] = 'M-4-STRICT'
         strict_cli = subprocess.run(strict_cmd, capture_output=True, text=True, env=fallback_env)
         assert strict_cli.returncode == 2 and 'Jev 생략' in strict_cli.stderr
+        # reviewer는 fullops.json 역할이 아니다. 지시서 없이 --request만으로 고르고, 후보가 하나면 Jev를 부르지 않는다.
+        before = len(seen)
+        reviewer = jev.model_only(repo, 'M-4-REVIEW', 'reviewer', two_calls(None, 'm1'), '코드 18파일 520줄')
+        assert reviewer['model'] == {'agent': 'claude', 'provider': 'anthropic', 'model': 'claude-opus-5-5', 'effort': 'high', 'source': 'only'} and len(seen) == before, reviewer
+        try:
+            jev.model_only(repo, 'M-4-REVIEW', 'reviewer', two_calls(None, 'm1'))
+            raise AssertionError('reviewer에 --request 없이 허용')
+        except ValueError:
+            pass
         (repo / '.fullops-squad/handovers/to_dev.md').write_text('', encoding='utf-8')
         try:
             jev.model_only(repo, 'M-5', 'dev', two_calls(None, 'm1'))

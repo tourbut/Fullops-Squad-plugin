@@ -26,6 +26,7 @@ SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과
 DOC, DOC_MAX = 0.5, 3  # 산출물: 확률 하한, 최대 개수
 CANDIDATE = re.compile(r'^- `([a-z][a-z0-9_-]*)` `([A-Za-z0-9._-]+)` `([A-Za-z0-9._:/-]+)` `([A-Za-z0-9_-]+)`\s*:\s*(.+?)\s*$', re.M)
 MODEL_TIE = 0.05  # 1등과 이만큼 이내인 후보가 있으면 품질 쪽(더 높은 레벨)을 쓴다
+REVIEWER = 'reviewer'  # 고정 SHA 독립 리뷰 전용 후보 키. fullops.json 역할이 아니라 지시서가 없다
 PROVIDER = {'claude': 'anthropic', 'codex': 'openai', 'grok': 'xai', 'agy': 'google'}  # 에이전트 CLI → 모델 제공사
 MODEL_HINT = ('Candidates are ordered by level: level 1 is the cheapest and weakest, the highest level is the strongest '
               'and most expensive, across providers. Pick the lowest level that can still do `request` well for this role. Choose a higher '
@@ -224,13 +225,18 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
 
 def model_only(repo, key, role, call, text=None, agent=None, model=None, effort=None):
     """설계를 거친 worker용. 요청 원문 대신 그 역할의 지시서(없으면 --request)로 모델을 고른다."""
-    from work import validate_role
-    validate_role(repo, role)
+    if role == REVIEWER:
+        body = text or ''
+        if not body.strip():
+            raise ValueError('reviewer는 지시서가 없습니다. --request에 need 판정 사유(파일 수·줄 수·always 경로)를 주세요')
+    else:
+        from work import validate_role
+        validate_role(repo, role)
+        handover = safe_file(repo, f'.fullops-squad/handovers/to_{role}.md')
+        body = text or (handover.read_text(encoding='utf-8')[:3500] if handover.is_file() else '')
+        if not body.strip():
+            raise ValueError(f'{role} 지시서가 비어 있습니다. 지시서를 먼저 쓰거나 --request를 주세요')
     chosen = fixed_model(agent, model, effort)
-    handover = safe_file(repo, f'.fullops-squad/handovers/to_{role}.md')
-    body = text or (handover.read_text(encoding='utf-8')[:3500] if handover.is_file() else '')
-    if not body.strip():
-        raise ValueError(f'{role} 지시서가 비어 있습니다. 지시서를 먼저 쓰거나 --request를 주세요')
     checked_request(body)
     return {'version': 'jev-model-v1', 'task_key': key, 'role': role, 'model': chosen or pick_model(repo, role, body, call),
             'candidate_hash': candidate_hash(repo, role)}
@@ -309,7 +315,7 @@ def main():
     parser.add_argument('--key', required=True)
     parser.add_argument('--request', help='사용자 요청 원문 (4000자 이하, 비밀값 금지). --model-only면 생략 시 지시서를 읽는다')
     parser.add_argument('--model-only', action='store_true', help='분류 없이 --role의 모델만 고른다(설계 뒤 worker 배정용)')
-    parser.add_argument('--role', help='--model-only 대상 역할')
+    parser.add_argument('--role', help='--model-only 대상 역할. `reviewer`는 고정 SHA 독립 리뷰 세션용 후보 키다')
     parser.add_argument('--agent', choices=[*PROVIDER, 'claude-code'], help='사용자 고정 CLI. --model·--effort와 함께 지정')
     parser.add_argument('--model', help='사용자 고정 모델 (후보·Jev보다 우선)')
     parser.add_argument('--effort', help='사용자 고정 effort')
