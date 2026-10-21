@@ -1,7 +1,7 @@
 {
   "name": "fullops-meter",
-  "version": "0.8.0",
-  "description": "Shows the session's model, context and prompt cache, hides Bash rows and hook spinner text behind a Shell tab and, in a FullOps repository, a pane of workers and reviews over the decisions waiting for you, the session's role, one-line cards for FullOps steps and what the coordinator still has out.",
+  "version": "0.7.0",
+  "description": "Shows the session's model, context and prompt cache and, in a FullOps repository, a pane of workers and reviews over the decisions waiting for you, the session's role, one-line cards for FullOps steps and what the coordinator still has out.",
   "author": {
     "name": "tourbut",
     "url": "https://github.com/tourbut"
@@ -31,12 +31,6 @@
       "type": "boolean",
       "title": "Show the worker band above the prompt",
       "description": "The band shows coor worker dispatches when a FullOps run has any. Model, context and cache stay on the status line.",
-      "default": true
-    },
-    "quietShell": {
-      "type": "boolean",
-      "title": "Hide Bash rows and hook spinner text",
-      "description": "Bash calls and their output draw as nothing in the transcript (ctrl+o still shows them), and a 'Running Stop hook' spinner message is left out. The Shell tab of the /fullops pane lists the calls and the running hook instead.",
       "default": true
     },
     "warnSeconds": {

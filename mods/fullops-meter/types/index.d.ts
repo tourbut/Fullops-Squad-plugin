@@ -125,35 +125,10 @@ export type FullOps = {
   decisions?: Decision[]
 }
 
-/** One Bash call the transcript hides and the Shell tab shows instead. */
-export type Shell = {
-  /** The call's tool_use_id. */
-  id: string
-  /** The command's first line, cut to fit the tab. */
-  command: string
-  /** In `$.clock.now()` milliseconds. */
-  startedAt: number
-  endedAt: number | null
-  status: 'running' | 'ok' | 'failed' | 'interrupted' | 'denied'
-  /** The output's last line, or the deny or error text. */
-  tail: string
-}
-
-export type Tab = 'workers' | 'reviews' | 'shell'
+export type Tab = 'workers' | 'reviews'
 
 declare module 'claude-code' {
   interface PluginState {
-    'fullops-meter': {
-      meter: Meter | null
-      now: number
-      isHidden: boolean
-      seen: Seen
-      fullops: FullOps | null
-      tab: Tab
-      /** The latest Bash calls, newest first. */
-      shell: Shell[]
-      /** The spinner's hook message while a settings hook runs (`Running Stop hook…`); empty otherwise. */
-      hook: string
-    }
+    'fullops-meter': { meter: Meter | null; now: number; isHidden: boolean; seen: Seen; fullops: FullOps | null; tab: Tab }
   }
 }
