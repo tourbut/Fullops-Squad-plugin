@@ -125,10 +125,23 @@ export type FullOps = {
   decisions?: Decision[]
 }
 
+/** One run of a settings hook event FullOps Squad hooks, from the `classic.*` chain. */
+export type HookRun = {
+  id: string
+  /** The classic event name: `Stop`, `PreToolUse`, ... */
+  event: string
+  /** In `$.clock.now()` milliseconds. */
+  startedAt: number
+  endedAt: number | null
+  status: 'running' | 'ok' | 'blocked'
+  /** The block or deny reason's first line; empty when the run passed. */
+  detail: string
+}
+
 export type Tab = 'workers' | 'reviews'
 
 declare module 'claude-code' {
   interface PluginState {
-    'fullops-meter': { meter: Meter | null; now: number; isHidden: boolean; seen: Seen; fullops: FullOps | null; tab: Tab }
+    'fullops-meter': { meter: Meter | null; now: number; isHidden: boolean; seen: Seen; fullops: FullOps | null; tab: Tab; hooks: HookRun[] }
   }
 }
