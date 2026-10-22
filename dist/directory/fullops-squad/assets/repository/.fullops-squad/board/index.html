@@ -8,19 +8,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper:#f5f5f5; --card:#ffffff; --ink:#2d3142; --muted:#4f5d75; --soft:#7a8399;
+    --paper:#f5f5f5; --card:#ffffff; --ink:#2d3142; --muted:#4f5d75; --soft:#5f6880;
     --rule:rgba(45,49,66,0.12); --rule-strong:rgba(45,49,66,0.22); --accent:#eb6c36; --link:#2e5aa8;
+    /* --accent is for dots and borders; text in the accent hue uses --accent-ink to keep 4.5:1. Blocked and failed use --danger. */
+    --accent-ink:#c2410c; --danger:#b42318;
     --sans:'Geist','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
     --serif:'Instrument Serif','Noto Serif KR','Times New Roman',serif;
     --mono:'Geist Mono',ui-monospace,'Cascadia Mono',Menlo,Consolas,monospace;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --paper:#2d3142; --card:#343949; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#8e98ac;
-      --rule:rgba(245,245,245,0.12); --rule-strong:rgba(245,245,245,0.24); --accent:#f08a59; --link:#6a95d8; color-scheme: dark; }
+    :root:not([data-theme="light"]) { --paper:#2d3142; --card:#343949; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#9aa3b5;
+      --rule:rgba(245,245,245,0.12); --rule-strong:rgba(245,245,245,0.24); --accent:#f08a59; --link:#86aae6; --accent-ink:#f08a59; --danger:#ff8a80; color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --paper:#2d3142; --card:#343949; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#8e98ac;
-      --rule:rgba(245,245,245,0.12); --rule-strong:rgba(245,245,245,0.24); --accent:#f08a59; --link:#6a95d8; color-scheme: dark; }
+  :root[data-theme="dark"] { --paper:#2d3142; --card:#343949; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#9aa3b5;
+      --rule:rgba(245,245,245,0.12); --rule-strong:rgba(245,245,245,0.24); --accent:#f08a59; --link:#86aae6; --accent-ink:#f08a59; --danger:#ff8a80; color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--paper); color:var(--ink); font:14px/1.55 var(--sans); }
   .wrap { max-width:1120px; margin:0 auto; padding-inline:20px; padding-block:48px 40px; }
@@ -42,6 +44,7 @@
   table.fixed { table-layout:fixed; }
   .key { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono); font-size:12px; color:var(--muted); }
   .clip { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .alert { margin:24px 0 0; padding:10px 16px; border:1px solid var(--danger); border-radius:6px; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; }
   .notice { margin:24px 0 0; padding:12px 16px; border:1px dashed var(--accent); border-radius:6px; color:var(--ink); }
 
   /* status: dot + label */
@@ -49,26 +52,27 @@
   .dot { width:7px; height:7px; border-radius:50%; flex:none; border:1.5px solid var(--soft); }
   .is-done .dot { background:var(--ink); border-color:var(--ink); }
   .is-active .dot { background:var(--accent); border-color:var(--accent); }
-  .is-active { color:var(--accent); }
-  .is-blocked .dot { border-color:var(--accent); }
-  .is-blocked { color:var(--accent); }
+  .is-active { color:var(--accent-ink); }
+  .is-blocked .dot { border-color:var(--danger); }
+  .is-blocked { color:var(--danger); }
   .is-review .dot { background:var(--link); border-color:var(--link); }
 
   /* phases */
   .progress { font:400 12px var(--mono); color:var(--soft); }
-  .phases { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px; }
+  .phases { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
   .phase { width:100%; height:132px; display:flex; flex-direction:column; gap:6px; padding:14px 16px; text-align:left; cursor:pointer;
     font:inherit; color:inherit; background:var(--card); border:1px solid var(--rule); border-radius:6px; }
   .phase:hover { border-color:var(--rule-strong); }
   .phase:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .phase.is-active { border-color:var(--accent); }
+  .phase.is-blocked, .role.stuck { border-color:var(--danger); }
   .phase.is-done { background:color-mix(in srgb, var(--card) 92%, var(--ink)); }
   .phase .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   .phase .idx { font:400 11px var(--mono); color:var(--soft); }
   .phase .name { font-weight:600; line-height:1.4; }
-  .phase.is-active .name { color:var(--accent); }
+  .phase.is-active .name { color:var(--accent-ink); }
   .phase .foot { margin-top:auto; display:flex; justify-content:space-between; gap:8px; font:400 11px var(--mono); color:var(--soft); }
-  .phase .long { color:var(--accent); }
+  .phase .long { color:var(--accent-ink); }
   .refs { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:8px; }
   .ref { display:inline-flex; align-items:center; gap:4px; font:400 11px var(--mono); color:var(--muted); }
   .ref .dot { width:6px; height:6px; }
@@ -85,11 +89,11 @@
   /* tables */
   .scroll { overflow-x:auto; }
   table { width:100%; border-collapse:collapse; }
-  th { text-align:left; font:500 10px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); padding:0 12px 8px 0; border-bottom:1px solid var(--rule-strong); }
-  td { padding:10px 12px 10px 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { text-align:left; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); padding:0 12px 8px 0; border-bottom:1px solid var(--rule-strong); }
+  td { padding:10px 12px 10px 0; border-bottom:1px solid var(--rule); vertical-align:top; overflow-wrap:anywhere; }
   tr:last-child td { border-bottom:0; }
   td.num { font-family:var(--mono); font-variant-numeric:tabular-nums; }
-  .bad { color:var(--accent); font-weight:600; }
+  .bad { color:var(--danger); font-weight:600; }
   .notes { list-style:none; margin:0 0 20px; padding:0 0 0 14px; border-left:2px solid var(--accent); display:grid; gap:6px; }
   .notes li { color:var(--muted); font-size:13px; }
   .more { font:500 11px var(--mono); letter-spacing:0.06em; color:var(--link); background:none; border:0; padding:0; cursor:pointer; margin:-12px 0 20px; }
@@ -102,7 +106,7 @@
   .issue-list { list-style:none; padding:0; margin:16px 0 0; }
   .issue-list a { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:12px 4px; border-bottom:1px solid var(--rule); }
   .issue-list .issue-title { min-width:0; }
-  tr.grp td { padding-top:18px; font:500 10px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); border-bottom:1px solid var(--rule-strong); }
+  tr.grp td { padding-top:18px; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); border-bottom:1px solid var(--rule-strong); }
   .is-skip { color:var(--soft); }
   .is-skip .dot { border-style:dashed; }
   .d.is-skip .name { color:var(--soft); text-decoration:line-through; text-decoration-color:var(--rule-strong); }
@@ -119,7 +123,7 @@
 
   .tools { display:flex; justify-content:flex-end; margin-bottom:8px; }
   .theme { font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); background:transparent;
-    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; cursor:pointer; }
+    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; min-height:32px; cursor:pointer; }
   .theme:hover { border-color:var(--ink); }
   .theme:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   dialog.detail { width:min(640px, calc(100% - 32px)); max-height:80vh; padding:28px; background:var(--card); color:var(--ink);
@@ -129,7 +133,7 @@
   .detail .body { white-space:pre-wrap; color:var(--ink); margin:16px 0 0; }
   .detail ul { margin:16px 0 0; padding-left:18px; display:grid; gap:6px; }
   .detail .close { float:right; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); background:transparent;
-    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; cursor:pointer; }
+    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; min-height:32px; cursor:pointer; }
   dialog.detail.document { width:min(940px, calc(100% - 32px)); }
   .doc-files { padding:0; list-style:none; }
   .doc-file, .back { font:inherit; color:var(--link); background:none; border:1px solid var(--rule); border-radius:4px; padding:8px 12px; text-align:left; cursor:pointer; }
@@ -144,6 +148,11 @@
   .doc-body ul, .doc-body ol { display:block; margin:12px 0; padding-left:24px; }
   .doc-body blockquote { border-left:3px solid var(--rule-strong); padding-left:16px; margin-left:0; color:var(--muted); }
   .doc-body a { color:var(--link); }
+  @media (max-width:560px) {
+    .meta { text-align:left; } .tools { justify-content:flex-start; }
+    .phases { grid-template-columns:repeat(2, minmax(0,1fr)); } .phase { height:auto; min-height:104px; }
+    table.fixed { min-width:560px; }  /* the .scroll wrapper scrolls it sideways instead of breaking words */
+  }
   footer { padding-top:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font:400 11px var(--mono); letter-spacing:0.06em; color:var(--soft); }
 </style>
 <script>try { var t = localStorage.getItem('fullops-board-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}</script>
@@ -182,6 +191,11 @@
   h.push('<header><div><p class="eyebrow">FullOps · 작업 현황판</p><h1>' + esc(B.title) + '</h1>' +
          (B.summary ? '<p class="summary">' + esc(B.summary) + '</p>' : '') + '</div>' +
          '<div class="meta"><div class="tools"><button type="button" class="theme" id="theme"></button></div>' + esc(B.repo) + '<br>' + esc(B.branch) + ' @ ' + esc(B.head) + '<br>마지막 변경 ' + esc((B.updated_at || '').replace('T', ' ').slice(0, 16)) + '</div></header>');
+  var attention = [['막힌 단계', phases.filter(function (p) { return p.status === 'blocked'; }).length],
+    ['막힌 과제', (B.roles || []).filter(function (r) { return r.task && r.task.status === 'blocked'; }).length],
+    ['실패한 테스트', (B.tests || []).filter(function (t) { return !t.passed; }).length],
+    ['차단 지적이 있는 리뷰', (B.reviews || []).filter(function (r) { return r.blocking; }).length]].filter(function (a) { return a[1]; });
+  if (attention.length) h.push('<p class="alert">' + st('is-blocked', '확인 필요') + attention.map(function (a) { return '<span>' + a[0] + ' ' + a[1] + '</span>'; }).join('') + '</p>');
   if (B.board_error) h.push('<p class="notice">' + esc(B.board_error) + '. coordinator가 board.json을 고치면 단계가 다시 보입니다.</p>');
 
   h.push('<section><div class="head"><h2>프로젝트 단계</h2>' + (phases.length ? '<span class="progress">' + done + ' / ' + phases.length + ' 완료</span>' : '') + '</div>');
@@ -206,7 +220,7 @@
   roles.forEach(function (r) {
     var t = r.task, s = t ? (TASK[t.status] || TASK.ready) : null, route = t && (B.routes || {})[t.key];
     var model = t && ((B.models || {})[t.key + '|' + r.role] || (route && route.role === r.role ? route.model : null));
-    h.push('<div class="role' + (t && t.status === 'running' ? ' is-active' : '') + '"><div class="top"><span class="name">' + esc(r.role) + '</span>' +
+    h.push('<div class="role' + (t && t.status === 'running' ? ' is-active' : t && t.status === 'blocked' ? ' stuck' : '') + '"><div class="top"><span class="name">' + esc(r.role) + '</span>' +
            (t ? st(s[0], s[1]) : st('is-todo', '대기')) + '</div><span class="mono soft">' + esc(r.branch) + '</span>' +
            (t ? '<div class="goal"><span class="mono">' + esc(t.key) + '</span><br>' + esc(t.goal) + '</div>' + (model ? '<span class="mono soft">model · ' + esc(model.agent + ' ' + model.model + ' ' + model.effort) + '</span>' : '') +
               (route ? '<span class="mono soft">route · ' + esc(route.route) + ((route.deliverables || []).length ? ' · 산출물 ' + esc(route.deliverables.join(' ')) : '') + '</span>' : '')
