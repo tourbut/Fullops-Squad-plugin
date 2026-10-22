@@ -35,7 +35,7 @@
   .head { display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:20px; }
   h2 { font:400 24px/1.2 var(--serif); margin:0; }
   .count { font:400 12px var(--mono); color:var(--soft); }
-  .cols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 48px; align-items:start; }
+  .cols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 48px; }  /* stretch: both halves end on one rule */
   .cols > section { min-width:0; }
   @media (max-width:880px) { .cols { grid-template-columns:1fr; } }
   .mono { font-family:var(--mono); font-size:12px; color:var(--muted); }
@@ -256,7 +256,7 @@
   if (notes.length) h.push('<ul class="notes">' + notes.slice(0, 3).map(function (n) { return '<li class="clip">' + esc(n) + '</li>'; }).join('') + '</ul>' +
                            '<button type="button" class="more" data-notes="1">요약 전체 보기 (' + notes.length + ')</button>');
   if (plans.length) {
-    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:52%"><col style="width:12%"><col style="width:36%"></colgroup>' +
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:50%"><col style="width:18%"><col style="width:32%"></colgroup>' +
            '<thead><tr><th>과제 · 목표</th><th>담당</th><th>상태</th></tr></thead><tbody>');
     var group = null;
     plans.forEach(function (p) {
@@ -268,7 +268,7 @@
   } else if (!notes.length) h.push('<p class="empty">PLANS.md에 등록된 과제가 없습니다.</p>');
   h.push('</section><section><div class="head"><h2>리뷰 결과</h2><span class="count">최근 ' + reviews.length + '건</span></div>');
   if (reviews.length) {
-    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:36%"><col style="width:44%"><col style="width:8%"><col style="width:12%"></colgroup>' +
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:30%"><col style="width:44%"><col style="width:10%"><col style="width:16%"></colgroup>' +
            '<thead><tr><th>날짜 · 과제</th><th>결론</th><th>차단</th><th>lint E/W</th></tr></thead><tbody>');
     reviews.forEach(function (r) {
       var lint = r.lint_errors == null ? '<span class="soft">-</span>' : '<span class="' + (r.lint_errors ? 'bad' : '') + '">' + r.lint_errors + '</span><span class="soft"> / ' + (r.lint_warnings == null ? '-' : r.lint_warnings) + '</span>';
