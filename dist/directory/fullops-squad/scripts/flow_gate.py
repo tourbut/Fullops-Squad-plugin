@@ -568,7 +568,8 @@ BRIEF = {
                     '기준 SHA와 완료 조건을 기록하고 현재 HEAD의 lint 및 다른 세션의 고정 SHA 독립 리뷰 후 완료한다.'),
     'coordinator': ('FullOps coordinator: 새 개발 요청은 과제 키를 정하고 `jev_route.py`로 먼저 분류한다. 플러그인·setup 갱신, 워크트리 동기화·병합, 현황판 정리 같은 운영 작업은 분류하지 않고 직접 처리한다. simple이면 그 역할 지시서를, '
                     'design이면 설계 역할을 `worker-start --run`으로 띄운다. 설계·범위 질문은 직접 답하지 않고 설계 역할에게 넘긴다. '
-                    '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다.'),
+                    '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다. '
+                    '여러 과제·역할에 걸치는 묶음 작업은 docs/planning/intents/<묶음 키>.md를 쓰고 사용자 승인 뒤 배정한다. 병합하는 SHA는 독립 리뷰한 SHA다.'),
     'designer': ('FullOps 설계 역할: 설계 문서와 역할별 지시서만 쓰고 코드는 고치지 않는다. 끝나면 preamble의 `worker_done`으로 '
                  '`[설계] <과제 키> | 지시서: … | 역할: … | SHA …`를 보낸다.'),
     'tester': ('FullOps tester: 동작 검증을 맡는다. 제품 코드는 고치지 않고 테스트 코드·시나리오·검증 증거만 만든다. '
@@ -581,7 +582,8 @@ BRIEF = {
 PRODUCT_BRIEF = {
     'coordinator': ('FullOps coordinator: 제품 규칙/범위/공유 제품 기준 결정만 기획자에게 배정한다. 기술 계획·분석·구현·테스트는 담당 worker의 같은 과제다. '
                     '`jev_route.py`의 implementation은 목표·규칙·범위·완료 조건·정본 링크로 짧게 인계하고, product는 기획자에게, unresolved는 배정 근거를 확인한다. '
-                    '정상 worker는 worker_done 중심으로 기다리고 로그 재독은 설정된 간격을 따른다. 운영 작업은 직접 처리하고 PLANS/board 상태를 함께 갱신한다.'),
+                    '정상 worker는 worker_done 중심으로 기다리고 로그 재독은 설정된 간격을 따른다. 운영 작업은 직접 처리하고 PLANS/board 상태를 함께 갱신한다. '
+                    '여러 과제·역할에 걸치는 묶음 작업은 docs/planning/intents/<묶음 키>.md를 쓰고 사용자 승인 뒤 배정한다. 병합하는 SHA는 독립 리뷰한 SHA다.'),
     'designer': ('FullOps 제품 기획자: 플레이/제품 목표·규칙/수치·화면/아트 방향·우선순위·사용자 완료 조건과 모호한 공유 제품 기준을 결정한다. '
                  '기술 계획·구조/API·버그 수정 방법은 DEV 책임이다. 제품 코드는 고치지 않는다. 완료하면 preamble의 worker_done으로 고정 SHA·결정·인계 링크를 보낸다.'),
     'worker': ('FullOps worker: 기존 요구 안의 코드 파악→짧은 기술 계획→구현→테스트·기술 문서 갱신을 같은 과제에서 수행한다. '
