@@ -60,6 +60,31 @@ class UpdateTests(unittest.TestCase):
         update.plan(self.repo, None, self.plugin)
         self.assertEqual(before, {str(p): p.read_bytes() for p in self.repo.rglob('*') if p.is_file()})
 
+    def test_required_items_are_listed_checked_and_verified(self):
+        (self.plugin / 'releases/0.9.10.md').write_text(
+            '# 0.9.10\n\n## 필수 적용\n\n'
+            '- 규칙 문구 — 확인: `.fullops-squad/rules.md`에 `큰 틀 검수`\n'
+            '- 새 템플릿 — 확인: `.fullops-squad/intents/_TEMPLATE.md` 있음\n'
+            '- 옛 폴더 정리 — 확인: `.fullops-squad/cps/.gitkeep` 없음\n'
+            '- 형식이 다른 줄은 무시한다\n\n## 기존 레포 적용\n- 확인: `x` 있음은 필수 절 밖이다\n', encoding='utf-8')
+        items = update.plan(self.repo, None, self.plugin)['required']
+        self.assertEqual([(i['version'], i['path'], i['met']) for i in items], [
+            ('0.9.10', '.fullops-squad/rules.md', False), ('0.9.10', '.fullops-squad/intents/_TEMPLATE.md', False),
+            ('0.9.10', '.fullops-squad/cps/.gitkeep', True)])
+        (self.plugin / 'scripts').mkdir()  # CLI는 자기 위치의 plugin.json·releases를 읽는다
+        (self.plugin / 'scripts/update.py').write_bytes((ROOT / 'plugins/fullops-squad/scripts/update.py').read_bytes())
+        cli = ['python3', str(self.plugin / 'scripts/update.py'), '--repo', str(self.repo), '--verify']
+        failed = subprocess.run(cli, capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn('미충족 0.9.10: 규칙 문구', failed.stdout)
+        self.assertIn('필수 적용 1/3 충족', failed.stdout)
+        (self.repo / '.fullops-squad/rules.md').write_text('UI는 큰 틀 검수에서 본다', encoding='utf-8')
+        (self.repo / '.fullops-squad/intents').mkdir()
+        (self.repo / '.fullops-squad/intents/_TEMPLATE.md').write_text('#', encoding='utf-8')
+        self.assertEqual(subprocess.run(cli, capture_output=True, text=True, encoding='utf-8').returncode, 0)
+        self.set_applied('0.9.10')  # 적용 버전을 올리면 그 릴리스의 필수 항목은 더 확인하지 않는다
+        self.assertEqual(update.plan(self.repo, None, self.plugin)['required'], [])
+
     def test_same_version_has_no_new_releases(self):
         self.set_applied('0.9.10')
         self.assertEqual(update.plan(self.repo, '0.9.10', self.plugin)['releases'], [])
