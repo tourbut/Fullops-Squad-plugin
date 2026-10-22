@@ -242,6 +242,44 @@ def main():
         git('checkout', '-q', roles['dev'])
         assert 'worker_done' in hook('start', session_id='wd', source='startup')['hookSpecificOutput']['additionalContext']
 
+        # Windows의 PowerShell 도구도 셸 hook을 거친다(빠지면 모든 셸 차단이 우회된다)
+        hooks = json.loads((SCRIPTS.parent / 'hooks/hooks.json').read_text(encoding='utf-8'))['hooks']
+        assert all('PowerShell' in group['matcher'].split('|') for event in ('PreToolUse', 'PostToolUse') for group in hooks[event])
+        # 검증 증거: 보고서가 링크하지 않은 qa-reports 캡처의 커밋과 같은 과제의 차수 폴더를 막는다
+        reports = repo / '.fullops-squad/docs/evaluations/qa-reports'
+        task = reports / 'K1-DEV-test'
+        (task / 'raw').mkdir(parents=True)
+        (task / 'report.md').write_text('# K1\n\n| 항목 | 근거 |\n|---|---|\n| 화면 | ![](shots/a.png) |\n', encoding='utf-8')
+        (task / 'shots').mkdir()
+        for name in ('shots/a.png', 'shots/b.png', 'shots/c.png', 'raw/d.png'):
+            (task / name).write_bytes(b'png')
+        git('add', str(task / 'report.md'), str(task / 'shots/a.png'), str(task / 'shots/b.png'))
+        commit = denied(hook('tool', session_id='ev', tool_name='Bash', tool_input={'command': 'git commit -m "K1 증거"'}))
+        assert 'shots/b.png' in commit and 'shots/a.png' not in commit and 'c.png' not in commit and 'raw/' in commit, commit
+        broad = denied(hook('tool', session_id='ev', tool_name='PowerShell', tool_input={'command': 'git add -A; git commit -m x'}))
+        assert 'c.png' in broad and 'd.png' not in broad, broad  # 같은 명령의 넓은 add도 본다. raw/는 gitignore
+        (task / 'report.md').write_text('# K1\n\n![](shots/a.png) ![](shots/b.png) ![](shots/c.png)\n', encoding='utf-8')
+        assert not denied(hook('tool', session_id='ev', tool_name='Bash', tool_input={'command': 'git add -A && git commit -m x'}))
+        assert not denied(hook('tool', session_id='ev', tool_name='Bash', tool_input={'command': 'git status'}))
+        round_path = str(reports / 'K1-DEV-FIX-test/report.md')
+        assert 'K1-DEV-test/report.md' in denied(hook('tool', session_id='ev', tool_name='Write', tool_input={
+            'file_path': round_path, 'content': '# K1 수정'}))
+        assert 'K1-DEV-test' in denied(hook('tool', session_id='ev', toolName='apply_patch', toolInput={
+            'command': f'*** Begin Patch\n*** Add File: {reports / "K1-DEV-R2-test/report.md"}\n+# K1\n*** End Patch'}))
+        for fine in ('K1-DEV-test/report.md', 'K2-FIX-test/report.md', 'K1-DEV-test/web-1/report.md'):
+            assert not denied(hook('tool', session_id='ev', tool_name='Write', tool_input={'file_path': str(reports / fine), 'content': '#'})), fine
+        git('reset', '-q')
+        # 테스트 레벨 lite: 지시서의 다중 폭·테마 캡처 요구와 긴 보고서는 쓴 직후 한 번 알린다(막지 않는다)
+        inbox = repo / '.fullops-squad/handovers/to_dev.md'
+        saved = inbox.read_bytes()
+        inbox.write_text('# K1 — 화면\n\n- KO/EN을 1440·390·320px, 라이트·다크로 캡처해 보고에 연결한다.\n', encoding='utf-8')
+        note = hook('post', session_id='ad', tool_name='Write', tool_input={'file_path': str(inbox)})
+        assert '1440·390·320 폭' in note['hookSpecificOutput']['additionalContext'] and '라이트·다크' in note['hookSpecificOutput']['additionalContext']
+        assert hook('post', session_id='ad', tool_name='Write', tool_input={'file_path': str(inbox)}) == {}  # 같은 지적은 한 번
+        (task / 'report.md').write_text('\n'.join(['| 검사 | 통과 |'] * 45), encoding='utf-8')
+        assert '45줄' in hook('post', session_id='ad', tool_name='Edit', tool_input={'file_path': str(task / 'report.md')})['hookSpecificOutput']['additionalContext']
+        inbox.write_bytes(saved)
+
         (repo / '.fullops-squad/fullops.json').write_text('{', encoding='utf-8')
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'orca terminal send handovers/'})['hookSpecificOutput']['permissionDecision'] == 'deny'
     print('PASS: flow-gate roles, inject/run/route denials, handover route check, designer code block, worker_done stop gate, grok input')

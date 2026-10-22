@@ -8,8 +8,8 @@ import subprocess
 LEVELS = ('minimal', 'lite', 'standard', 'full', 'exhaustive')
 SUBAGENT_LEVELS = ('off', 'lite', 'standard', 'full')
 TEST_BRIEF = {
-    'minimal': '기동과 변경 경로의 스모크 검사만 수행한다.',
-    'lite': '변경한 핵심 동작과 필요한 실패 경계만 짧게 검증한다. 사소한 문구 변경에는 새 테스트를 만들지 않는다.',
+    'minimal': '기동과 변경 경로의 스모크 검사만 수행한다. 별도 tester·designer 검수 차수를 만들지 않는다. 개발 과제는 lint와 변경 동작 테스트로 검증하고 보고용 캡처를 만들지 않는다.',
+    'lite': '변경한 핵심 동작과 필요한 실패 경계만 짧게 검증한다. 사소한 문구 변경에는 새 테스트를 만들지 않는다. 개발 과제는 lint와 변경 동작 테스트로 검증하고 보고용 캡처를 만들지 않는다. tester 독립 QA·designer 시각 검수는 새 화면·새 흐름·통합 후보에서만 배정한다.',
     'standard': '변경 동작·실패 경계와 영향을 받는 연동의 회귀를 검증한다.',
     'full': '안정된 통합 후보에서 전체 자동 회귀와 필요한 통합·수락 검사를 담당자별로 한 번 수행한다.',
     'exhaustive': 'full 범위에 프로젝트에 필요한 E2E·성능·장시간·환경 검수를 더해 안정된 후보에서 한 번 수행한다.',
@@ -89,7 +89,8 @@ def test_brief(level):
     if level not in LEVELS:
         raise PolicyError('알 수 없는 테스트 레벨')
     return (f'테스트 레벨 {level}: {TEST_BRIEF[level]} 보안·데이터 손실 방지와 프로젝트 필수 검사는 모든 레벨에서 유지한다. '
-            '검사가 통과하면 인계하고, 새 변경·실패·근거 결함이 있을 때만 재검증한다.')
+            '검사가 통과하면 인계하고, 새 변경·실패·근거 결함이 있을 때만 재검증한다. '
+            '같은 과제의 수정·재검증은 기존 qa-reports/<과제 폴더>/report.md에 절을 덧붙이고, 커밋하는 캡처는 report.md가 링크하는 것만이다(hook이 확인한다).')
 
 
 def command_selected(command, level):

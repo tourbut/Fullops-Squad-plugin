@@ -488,6 +488,16 @@ def tool_denial(root, event, state):
         denial = inbox_denial(root, name, content)
         if denial:
             return denial
+    import harness_gate
+    media = harness_gate.unlinked_media(root, shell_commands(command))
+    if media:
+        return (f"커밋할 qa-reports 캡처를 보고서가 링크하지 않습니다: {', '.join(media[:5])}"
+                + (f' 외 {len(media) - 5}개' if len(media) > 5 else '') + '. 판정에 쓴 캡처면 그 과제 폴더의 report.md 판정 항목에 링크하고, '
+                '아니면 `<과제 폴더>/raw/`(gitignore)로 옮기거나 지운 뒤 다시 커밋하세요(rules/common/testing.md `담당과 반복 범위`).')
+    rounds = harness_gate.round_folder(root, files)
+    if rounds:
+        return (f'{rounds[1]}가 이미 있습니다. 같은 과제의 수정·재검증·배포 확인은 새 보고서 폴더 `{rounds[0]}` 대신 '
+                f'`qa-reports/{rounds[1]}/report.md`에 절을 덧붙이세요. 별개 과제면 FIX·RECHECK·R2 같은 차수 접미사 없이 과제 키를 정하세요.')
     if lead:
         for check in operation_commands(command, 'check'):
             flags = []
@@ -690,6 +700,13 @@ def main(event=None):
         if delivered(event, state):
             state['settled'] = True
             state.pop('sending', None)
+        import harness_gate
+        _, files = targets(field(event, 'tool_input') or {})
+        notes = [n for n in harness_gate.advice(root, files, config['test_level'], HANDOVER)
+                 if hashlib.sha256(n.encode()).hexdigest()[:16] not in state.get('advised', [])]
+        if notes:  # 같은 지적은 세션에 한 번만 알린다
+            state['advised'] = state.get('advised', []) + [hashlib.sha256(n.encode()).hexdigest()[:16] for n in notes]
+            output = {'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
     if mode in ('tool', 'post', 'prompt'):
         import issue_mode
         issue_mode.heartbeat(root, field(event, 'session_id'))
