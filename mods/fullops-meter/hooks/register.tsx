@@ -1,11 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement, Timer } from 'claude-code'
 
-import type { Decision, HookRun, Meter, Review, Sample, Tab, Ttl } from '../types'
+import type { Decision, FlowTask, HookRun, Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
 import { HOOK_EVENTS, hookLines, hookOutcome, recordHookRun } from './hook-runs'
 import { MARKERS, branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
+import { flowRow, parseFlow, visibleFlow } from './flow'
 import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
 import { STAGES, asRecord, noticesOf, parseProgress, parseRows, parseRunId, parseTasks, reconcile, stageOf, stageOfRecords, text } from './workers'
@@ -29,6 +30,8 @@ const REVIEWS = '.fullops-squad/docs/evaluations/qa-reports'
 const KEEP_REVIEWS = 8
 /** Where decision.py keeps its records, under the git folder all checkouts share. */
 const DECISIONS = 'fullops-decisions'
+/** Where flow_state.py keeps each task's flow state, in the same shared git folder. */
+const FLOW = 'fullops-flow'
 /** Transcript rows read per active worker: enough to reach its last words past a run of tool calls. */
 const PROGRESS_ROWS = 30
 /** The dock width the pane asks for; the person can still drag it. */
@@ -36,6 +39,7 @@ const PANE_COLUMNS = 56
 const TABS: readonly { tab: Tab; label: string; hotkey: string }[] = [
   { tab: 'workers', label: 'Workers', hotkey: 'w' },
   { tab: 'reviews', label: 'Reviews', hotkey: 'r' },
+  { tab: 'flow', label: 'Flow', hotkey: 'f' },
 ]
 /** A prompt this small is not worth a notice when its cache lapses. */
 const NOTICE_MIN_TOKENS = 20_000
@@ -328,13 +332,22 @@ async function readDecisions($: EngineInterface): Promise<Decision[]> {
   return decisions.filter((one): one is Decision => one !== null).sort((a, b) => a.askedAt - b.askedAt || a.id.localeCompare(b.id))
 }
 
-/** The role, reviews and open decisions, read from the repository's own files. */
+/** Each task's flow state the coordinator hook keeps in the folder every checkout shares. */
+async function readFlow($: EngineInterface): Promise<FlowTask[]> {
+  const gitDir = await gitDirOf($, '.')
+  const folder = `${commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))}/${FLOW}`
+  const files = (await $.fs.list(folder).catch(() => [])).filter(entry => entry.kind === 'file' && entry.name.endsWith('.json'))
+  const tasks = await Promise.all(files.map(async file => parseFlow(await $.fs.read(`${folder}/${file.name}`).catch(() => ''))))
+  return tasks.filter((one): one is FlowTask => one !== null)
+}
+
+/** The role, reviews, open decisions and task flow, read from the repository's own files. */
 async function readFullOps($: EngineInterface): Promise<void> {
   const config = parseConfig(await $.fs.read(CONFIG).catch(() => ''))
   if (config === null) return
   const role = checkoutRole(config, await readBranch($))
-  const [reviews, decisions] = await Promise.all([readReviews($), readDecisions($)])
-  await update($, fullopsAtom, before => ({ role, reviews, decisions, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
+  const [reviews, decisions, flow] = await Promise.all([readReviews($), readDecisions($), readFlow($)])
+  await update($, fullopsAtom, before => ({ role, reviews, decisions, flow, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
 }
 
 /** Redraws the countdown and gives the "about to lapse" notice once per cache entry. */
@@ -412,7 +425,7 @@ export const register: Register = (on, options) => {
       .catch(() => undefined)
     if (shared.isFullOps) {
       await $.command
-        .register({ name: FULLOPS_COMMAND, description: 'Open the FullOps pane: workers or reviews above, decisions waiting for you below' })
+        .register({ name: FULLOPS_COMMAND, description: 'Open the FullOps pane: workers, reviews or task flow above, decisions waiting for you below' })
         .catch(() => undefined)
     }
 
@@ -486,7 +499,7 @@ export const register: Register = (on, options) => {
   on('command.run', { command: FULLOPS_COMMAND }, async $ => {
     await readFullOps($)
     await $.ui.open({ id: PANE, title: 'FullOps', columns: PANE_COLUMNS })
-    return { text: 'FullOps pane opened. w and r switch tabs while it has focus.' }
+    return { text: 'FullOps pane opened. w, r and f switch tabs while it has focus.' }
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -616,6 +629,38 @@ export const register: Register = (on, options) => {
                   <Text dimColor> · {line.when}</Text>
                 </Box>
                 {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
+              </Box>
+            )
+          })}
+        </Box>
+      )
+    }
+
+    if (fullops !== null && tab === 'flow') {
+      const tasks = visibleFlow(fullops.flow ?? [], now)
+      return halves(
+        <Box flexDirection="column">
+          {tabs}
+          <Text dimColor>Each task's stage, kept by the coordinator's hook. Under it, its worker.</Text>
+          {tasks.length === 0 && <Text>No task in the flow yet.</Text>}
+          {tasks.map(one => {
+            const row = flowRow(one, fullops.reviews, workers ?? [], now)
+            return (
+              <Box key={one.key} flexDirection="column" marginTop={1}>
+                <Box>
+                  <Text bold>{row.key} </Text>
+                  {row.rail.map((mark, at) => (
+                    <Text key={`n${at}`} color={mark === 'passed' ? 'success' : mark === 'current' ? 'claude' : 'inactive'} bold={mark === 'current'}>
+                      {mark === 'passed' ? '✔' : mark === 'current' ? '◉' : '○'}
+                    </Text>
+                  ))}
+                  <Text color="claude"> {row.label}</Text>
+                  <Text dimColor>{row.when === '' ? '' : ` · ${row.when}`}</Text>
+                </Box>
+                {row.flags.map((flag, n) => (
+                  <Text key={`f${n}`} color={flag.tone}>{`  ${flag.text}`}</Text>
+                ))}
+                {row.inner !== '' && <Text dimColor>{`  ${row.inner}`}</Text>}
               </Box>
             )
           })}

@@ -123,6 +123,22 @@ export type FullOps = {
   queued: string[]
   /** Open decisions, oldest first; state from an older load carries none. */
   decisions?: Decision[]
+  /** Each task's flow state; state from an older load carries none. */
+  flow?: FlowTask[]
+}
+
+/** One task's flow state, from `flow_state.py` in the git common folder (`fullops-flow/<key>.json`). */
+export type FlowTask = {
+  key: string
+  /** An index into NODES (intent, design, assign, build, report, review, merge, qa, done). */
+  node: number
+  /** Reopens plus distinct rounds so far, and the budget before the coordinator is told to ask the person. */
+  rounds: number
+  budget: number
+  /** The last reported SHA; empty before a worker reports. */
+  sha: string
+  /** When the coordinator hook last moved it, in milliseconds; 0 when the record has no readable time. */
+  updated: number
 }
 
 /** One run of a settings hook event FullOps Squad hooks, from the `classic.*` chain. */
@@ -138,7 +154,7 @@ export type HookRun = {
   detail: string
 }
 
-export type Tab = 'workers' | 'reviews'
+export type Tab = 'workers' | 'reviews' | 'flow'
 
 declare module 'claude-code' {
   interface PluginState {

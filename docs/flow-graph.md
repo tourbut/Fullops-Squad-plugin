@@ -51,8 +51,8 @@ flowchart LR
 
 ## 제어 상태
 
-과제마다 상태 파일 하나를 Git 공용 디렉터리 `fullops-flow/<과제 키>.json`에 둔다(`flow_state.py`, S5). 필드는 `node`(위 노드), `rounds`·`budget`(반복 횟수와 예산), `sha`(마지막 완료 보고 SHA), `gates`(지나온 게이트), `updated`(UTC)다. 차수 키는 원래 과제 키의 파일로 모인다.
+과제마다 상태 파일 하나를 Git 공용 디렉터리 `fullops-flow/<과제 키>.json`에 둔다(`flow_state.py`, S5). 필드는 `node`(위 노드 순서대로 `intent`·`design`·`assign`·`build`·`report`·`review`·`merge`·`qa`·`done`), `rounds`·`budget`(반복 횟수와 예산), `sha`(마지막 완료 보고 SHA), `gates`(지나온 게이트), `updated`(UTC)다. 차수 키는 원래 과제 키의 파일로 모인다.
 
-- 쓰기: coordinator 세션의 PostToolUse hook만 쓴다. `jev_route.py --key` → 설계, `worker-start` → 구현(Purpose: review면 리뷰), 새 완료 보고 기록 → worker_done, `review.py prepare|check --key` → 리뷰, 기본 브랜치에 들어간 SHA → 병합.
+- 쓰기: coordinator 세션의 PostToolUse hook만 쓴다. `jev_route.py --key` → design, `worker-start` → build(Purpose: review면 review), 새 완료 보고 기록 → report, `review.py prepare|check --key` → review, 기본 브랜치에 들어간 SHA → merge.
 - 읽기: 모든 워크트리에서 `flow_state.py --repo <경로>`나 파일을 직접 읽는다.
 - 의도·검수·완료 노드는 아직 자동으로 옮기지 않는다(E1·E2·E13).

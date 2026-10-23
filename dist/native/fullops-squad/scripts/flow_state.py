@@ -11,7 +11,9 @@ import harness_gate
 import integration
 from storage import write_json
 
-GATES = {'설계': 'route', '구현': 'dispatch', 'worker_done': 'worker_done', '리뷰': 'review', '병합': 'merge'}
+# 노드 ID(docs/flow-graph.md 노드: 의도·설계·배정·구현·worker_done·리뷰·병합·검수·완료)와 그 노드에 들어올 때 지난 게이트
+NODES = ('intent', 'design', 'assign', 'build', 'report', 'review', 'merge', 'qa', 'done')
+GATES = {'design': 'route', 'build': 'dispatch', 'report': 'worker_done', 'review': 'review', 'merge': 'merge'}
 
 
 def directory(root):
@@ -54,14 +56,14 @@ def observe(root, commands):
         names = [Path(w.strip('\'"')).name for w in words]
         key = words[words.index('--key') + 1].strip('\'"') if '--key' in words[:-1] else None
         if 'jev_route.py' in names and key and '--model-only' not in words:
-            update(root, key, '설계')
+            update(root, key, 'design')
         elif 'review.py' in names and key and {'prepare', 'check'} & set(words):
-            update(root, key, '리뷰')
+            update(root, key, 'review')
         elif 'worker-start' in words:
             text = ' '.join(words)
             key = integration.dispatch_key(text)
             if key:
-                update(root, key, '리뷰' if re.search(r'\bPurpose\s*[:=]\s*review\b', text, re.I) else '구현')
+                update(root, key, 'review' if re.search(r'\bPurpose\s*[:=]\s*review\b', text, re.I) else 'build')
     folder, marker = integration.directory(root), directory(root) / '.scanned'
     if marker.is_file():
         since = marker.stat().st_mtime
@@ -75,14 +77,14 @@ def observe(root, commands):
         except (OSError, ValueError):
             continue
         if item.get('key') and item.get('sha'):
-            update(root, item['key'], 'worker_done', item['sha'])
+            update(root, item['key'], 'report', item['sha'])
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
     settings = integration.config(root)
     base = integration.references(root, settings)[0]
     for state in read(root):
-        if state.get('node') in ('worker_done', '리뷰') and state.get('sha') and integration.ancestor(root, state['sha'], base):
-            update(root, state['key'], '병합')
+        if state.get('node') in ('report', 'review') and state.get('sha') and integration.ancestor(root, state['sha'], base):
+            update(root, state['key'], 'merge')
 
 
 def main():
