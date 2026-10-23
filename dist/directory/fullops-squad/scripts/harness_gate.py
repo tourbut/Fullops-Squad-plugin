@@ -32,17 +32,34 @@ def _folder(relative):
     return relative[len(REPORTS):].split('/', 1)[0] if relative.startswith(REPORTS) and '/' in relative[len(REPORTS):] else None
 
 
+# 같은 명령 안에서 다음 명령의 작업 위치를 바꾸는 셸 명령(bash·PowerShell)
+MOVES = ('cd', 'chdir', 'pushd', 'set-location', 'sl', 'push-location')
+
+
+def git_calls(root, commands):
+    """git 명령마다 (실행 위치, 인자). 같은 명령 안의 `cd`·`Set-Location`과 `git -C`를 따라간다"""
+    here = Path(root)
+    for words in commands:
+        first = words[0].strip('\'"') if words else ''
+        if Path(first).name.lower() in MOVES:
+            target = next((w.strip('\'"') for w in words[1:] if not w.startswith('-')), None)
+            if target:
+                here = Path(target) if Path(target).is_absolute() else here / target
+            continue
+        if Path(first).stem != 'git':
+            continue
+        args, where = [w.strip('\'"') for w in words[1:]], here
+        while args and args[0] in ('-C', '-c'):
+            if args[0] == '-C' and len(args) > 1:
+                where = Path(args[1]) if Path(args[1]).is_absolute() else where / args[1]
+            args = args[2:]
+        yield where, args
+
+
 def _commit_roots(root, commands):
     """`git ... commit`을 실행할 체크아웃과, 같은 명령의 `git add`가 넓게 담는지"""
     roots, broad = [], []
-    for words in commands:
-        if Path(words[0].strip('\'"')).stem != 'git':
-            continue
-        args, where = [w.strip('\'"') for w in words[1:]], root
-        while args and args[0] in ('-C', '-c'):
-            if args[0] == '-C' and len(args) > 1:
-                where = Path(args[1]) if Path(args[1]).is_absolute() else root / args[1]
-            args = args[2:]
+    for where, args in git_calls(root, commands):
         if args[:1] == ['add']:
             broad += [where / a for a in args[1:] if not a.startswith('-')] + ([where] if {'-A', '--all'} & set(args) else [])
         elif args[:1] == ['commit']:

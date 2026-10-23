@@ -182,14 +182,8 @@ def merge_drift(root, commands):
     settings = config(root)
     if settings is None:
         return None
-    for words in commands:
-        if Path(words[0].strip('\'"')).stem != 'git':
-            continue
-        args, where = [w.strip('\'"') for w in words[1:]], Path(root)
-        while args and args[0] in ('-C', '-c'):
-            if args[0] == '-C' and len(args) > 1:
-                where = Path(args[1]) if Path(args[1]).is_absolute() else Path(root) / args[1]
-            args = args[2:]
+    from harness_gate import git_calls
+    for where, args in git_calls(root, commands):
         if args[:1] != ['merge'] or '--abort' in args:
             continue
         try:
