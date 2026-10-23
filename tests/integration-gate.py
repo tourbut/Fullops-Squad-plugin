@@ -150,16 +150,16 @@ def main():
         assert hook('post', session_id='notes2', tool_input={'command': 'git status'}) == {}  # 한 번만 알린다
         (worker / 'c.py').write_text('c = 1\n')
         extra = commit(worker, 'c')
-        git('merge', '-q', '--no-ff', '-m', 'merge dev', 'fullops/dev')
+        git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'merge', '-q', '--no-ff', '-m', 'merge dev', 'fullops/dev')
         drift = hook('post', session_id='merge', tool_input={'command': 'git merge --no-ff fullops/dev'})
         drift = drift['hookSpecificOutput']['additionalContext']
         assert f'{extra[:12]}는 리뷰·완료 보고 SHA가 아닙니다' in drift and f'{reported[:12]} 뒤의 커밋 1개' in drift, drift
         git('reset', '-q', '--keep', 'HEAD~1')
-        git('merge', '-q', '--no-ff', '-m', 'merge dev', reported)
+        git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'merge', '-q', '--no-ff', '-m', 'merge dev', reported)
         assert hook('post', session_id='merge2', tool_input={'command': f'git merge --no-ff {reported}'}) == {}
         subprocess.run([*script, 'hold', '--message', 'msg_free', '--reason', '형식 확인', '--owner', 'dev',
                         '--resume', '재보고'], check=True, capture_output=True)
-        git('merge', '-q', '-m', 'sync', 'main', cwd=worker)
+        git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'merge', '-q', '-m', 'sync', 'main', cwd=worker)
         # 로컬 전용 setup도 지원한다. 기본 브랜치 이름을 main으로 가정하지 않는다.
         git('branch', '-m', 'main', 'trunk')
         data.pop('git')
