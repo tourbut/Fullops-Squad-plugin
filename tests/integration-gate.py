@@ -154,6 +154,14 @@ def main():
         drift = hook('post', session_id='merge', tool_input={'command': 'git merge --no-ff fullops/dev'})
         drift = drift['hookSpecificOutput']['additionalContext']
         assert f'{extra[:12]}는 리뷰·완료 보고 SHA가 아닙니다' in drift and f'{reported[:12]} 뒤의 커밋 1개' in drift, drift
+        # coordinator가 자기 워크트리에서 원본 체크아웃으로 옮겨(`cd`·Set-Location) 병합해도 같은 위치를 본다
+        coor = root / 'coor'
+        git('worktree', 'add', '-q', '-b', 'coor-session', str(coor))
+        for moved in (f'cd "{repo}" && git merge --no-ff fullops/dev', f'Set-Location -Path "{repo}"; git merge --no-ff fullops/dev'):
+            note = hook('post', cwd=str(coor), session_id=moved[:2], tool_input={'command': moved})
+            assert f'{reported[:12]} 뒤의 커밋 1개' in note['hookSpecificOutput']['additionalContext'], (moved, note)
+        assert hook('post', cwd=str(coor), session_id='stay', tool_input={'command': 'git merge --no-ff fullops/dev'}) == {}
+        git('worktree', 'remove', '--force', str(coor))
         git('reset', '-q', '--keep', 'HEAD~1')
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'merge', '-q', '--no-ff', '-m', 'merge dev', reported)
         assert hook('post', session_id='merge2', tool_input={'command': f'git merge --no-ff {reported}'}) == {}
