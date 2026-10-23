@@ -709,6 +709,11 @@ def main(event=None):
             notes += [n for n in [integration.merge_drift(root, shell_commands(command)),
                                   harness_gate.repeat_budget(root, shell_commands(command))] if n]
             notes += integration.take_notes(root)
+            try:  # 과제 상태 기록(S5). 실패해도 작업을 막지 않는다
+                import flow_state
+                flow_state.observe(root, shell_commands(command))
+            except Exception:  # noqa: BLE001
+                pass
         notes = [n for n in notes if hashlib.sha256(n.encode()).hexdigest()[:16] not in state.get('advised', [])]
         if notes:  # 같은 지적은 세션에 한 번만 알린다
             state['advised'] = state.get('advised', []) + [hashlib.sha256(n.encode()).hexdigest()[:16] for n in notes]
