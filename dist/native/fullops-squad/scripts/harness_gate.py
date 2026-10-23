@@ -138,29 +138,40 @@ def _repeat_key(words):
     return key if reopen or ROUND.search(key) else None
 
 
+def base_key(key):
+    """차수 키 `K-FIX-DEV`의 원래 과제 키 K"""
+    match = ROUND.search(key)
+    return key[:match.start()] if match and match.start() else key
+
+
+def rework(root, base):
+    """(반복 횟수, 예산, 재오픈 수, 차수 표기, 차수 키). 재오픈은 로그·인박스의 서로 다른 attempt − 1이다"""
+    handovers = root / '.fullops-squad/handovers'
+    attempts, budget = set(), BUDGET
+    for path in [*handovers.glob('logs/*.md'), *handovers.glob('to_*.md')]:
+        text = path.read_text(encoding='utf-8', errors='replace')
+        attempts |= {a for k, a in REPORTED.findall(text) if k == base}
+        if path.parent == handovers and re.search(rf'^# {re.escape(base)} — ', text, re.M):
+            current = re.search(r'^attempt:\s*(\S+)', text, re.M)
+            attempts |= {current.group(1)} if current else set()
+            own = re.search(r'반복 예산\s*[:：]\s*(\d+)', text)
+            budget = int(own.group(1)) if own else budget
+    jev = root / '.fullops-squad/docs/evaluations/jev'
+    rounds = sorted(p.name[:-len('-route.json')] for p in jev.glob(f'{base}-*-route.json')
+                    if (m := ROUND.search(p.name[:-len('-route.json')])) and m.start() == len(base))
+    ids = sorted({'-'.join(m.upper() for m in ROUND_ID.findall(r[len(base):])) for r in rounds})
+    reopens = max(0, len(attempts) - 1)
+    return reopens + len(ids), budget, reopens, ids, rounds
+
+
 def repeat_budget(root, commands):
     """같은 과제의 수정·재검증이 예산을 넘으면 사람에게 올리라는 문장(docs/flow-graph.md E15)"""
     for words in commands:
         key = _repeat_key(words)
         if not key:
             continue
-        match = ROUND.search(key)
-        base = key[:match.start()] if match and match.start() else key
-        handovers = root / '.fullops-squad/handovers'
-        attempts, budget = set(), BUDGET
-        for path in [*handovers.glob('logs/*.md'), *handovers.glob('to_*.md')]:
-            text = path.read_text(encoding='utf-8', errors='replace')
-            attempts |= {a for k, a in REPORTED.findall(text) if k == base}
-            if path.parent == handovers and re.search(rf'^# {re.escape(base)} — ', text, re.M):
-                current = re.search(r'^attempt:\s*(\S+)', text, re.M)
-                attempts |= {current.group(1)} if current else set()
-                own = re.search(r'반복 예산\s*[:：]\s*(\d+)', text)
-                budget = int(own.group(1)) if own else budget
-        jev = root / '.fullops-squad/docs/evaluations/jev'
-        rounds = sorted(p.name[:-len('-route.json')] for p in jev.glob(f'{base}-*-route.json')
-                        if (m := ROUND.search(p.name[:-len('-route.json')])) and m.start() == len(base))
-        ids = sorted({'-'.join(m.upper() for m in ROUND_ID.findall(r[len(base):])) for r in rounds})
-        count = max(0, len(attempts) - 1) + len(ids)
+        base = base_key(key)
+        count, budget, reopens, ids, rounds = rework(root, base)
         if count <= budget:
             continue
         flagged = {}
@@ -172,7 +183,7 @@ def repeat_budget(root, commands):
             for path in {f.get('path') for f in findings if isinstance(f, dict) and f.get('path')}:
                 flagged[path] = flagged.get(path, 0) + 1
         repeated = [f'{p}({n}회)' for p, n in sorted(flagged.items(), key=lambda i: -i[1]) if n > 1][:3]
-        return (f"{base}의 수정·재검증이 {count}회째로 예산 {budget}회를 넘었습니다(재오픈 {max(0, len(attempts) - 1)}회"
+        return (f"{base}의 수정·재검증이 {count}회째로 예산 {budget}회를 넘었습니다(재오픈 {reopens}회"
                 + (f", 차수 {', '.join(ids)}" if ids else '') + '). '
                 + (f"리뷰에서 반복 지적된 파일: {', '.join(repeated)}. " if repeated else '')
                 + '같은 방식으로 더 고치기 전에 사용자에게 올리세요. 범위·설계를 다시 정할지, 마지막으로 나아진 SHA를 남기고 '
