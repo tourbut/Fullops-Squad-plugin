@@ -130,6 +130,36 @@ def main():
         assert (worker / 'dirty.txt').read_text() == 'in progress\n'
         git('merge', '--ff-only', 'main', cwd=worker)
         assert hook('tool', session_id='dispatch', tool_input={'command': command}) == {}
+        # 경계 알림(docs/flow-graph.md E7·E11): 형식 누락, lint 통과 뒤 코드 변경, 보고 SHA 뒤 커밋까지 병합. 막지 않는다
+        (worker / 'a.py').write_text('a = 1\n')
+        linted = commit(worker, 'a')
+        gate = Path(git('rev-parse', '--absolute-git-dir', cwd=worker)) / 'fullops-gate'
+        gate.mkdir(exist_ok=True)
+        (gate / 'pass.json').write_text(json.dumps({'head': linted}))
+        (worker / 'b.py').write_text('b = 1\n')
+        reported = commit(worker, 'b')
+        fake.write_text('import json\nprint(' + repr(json.dumps({'ok': True, 'result': {'messages': [
+            {'id': 'msg_k3', 'type': 'worker_done', 'body': f'[완료] K3 | 브랜치 fullops/dev | SHA {reported}'},
+            {'id': 'msg_free', 'type': 'worker_done', 'body': 'K4 끝났습니다'}]}})) + ')\n', encoding='utf-8')
+        subprocess.run([sys.executable, str(SCRIPTS / 'orca_wait.py'), '--repo', str(repo), '--orca', str(cli),
+                        '--run', 'run_3'], check=True, capture_output=True)
+        note = hook('post', session_id='notes', tool_input={'command': 'orca orchestration check --run run_3'})
+        note = note['hookSpecificOutput']['additionalContext']
+        assert f'lint 통과 HEAD {linted[:12]}' in note and 'b.py' in note and '형식이 아닙니다' in note, note
+        assert 'K1' not in note  # 형식을 지킨 보고는 알리지 않는다
+        assert hook('post', session_id='notes2', tool_input={'command': 'git status'}) == {}  # 한 번만 알린다
+        (worker / 'c.py').write_text('c = 1\n')
+        extra = commit(worker, 'c')
+        git('merge', '-q', '--no-ff', '-m', 'merge dev', 'fullops/dev')
+        drift = hook('post', session_id='merge', tool_input={'command': 'git merge --no-ff fullops/dev'})
+        drift = drift['hookSpecificOutput']['additionalContext']
+        assert f'{extra[:12]}는 리뷰·완료 보고 SHA가 아닙니다' in drift and f'{reported[:12]} 뒤의 커밋 1개' in drift, drift
+        git('reset', '-q', '--keep', 'HEAD~1')
+        git('merge', '-q', '--no-ff', '-m', 'merge dev', reported)
+        assert hook('post', session_id='merge2', tool_input={'command': f'git merge --no-ff {reported}'}) == {}
+        subprocess.run([*script, 'hold', '--message', 'msg_free', '--reason', '형식 확인', '--owner', 'dev',
+                        '--resume', '재보고'], check=True, capture_output=True)
+        git('merge', '-q', '-m', 'sync', 'main', cwd=worker)
         # 로컬 전용 setup도 지원한다. 기본 브랜치 이름을 main으로 가정하지 않는다.
         git('branch', '-m', 'main', 'trunk')
         data.pop('git')

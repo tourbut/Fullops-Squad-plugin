@@ -703,9 +703,12 @@ def main(event=None):
             state['settled'] = True
             state.pop('sending', None)
         import harness_gate
-        _, files = targets(field(event, 'tool_input') or {})
-        notes = [n for n in harness_gate.advice(root, files, config['test_level'], HANDOVER)
-                 if hashlib.sha256(n.encode()).hexdigest()[:16] not in state.get('advised', [])]
+        command, files = targets(field(event, 'tool_input') or {})
+        notes = harness_gate.advice(root, files, config['test_level'], HANDOVER)
+        if primary(root, state):  # 흐름 그래프 경계 알림(docs/flow-graph.md E7·E11)
+            notes += [n for n in [integration.merge_drift(root, shell_commands(command))] if n]
+            notes += integration.take_notes(root)
+        notes = [n for n in notes if hashlib.sha256(n.encode()).hexdigest()[:16] not in state.get('advised', [])]
         if notes:  # 같은 지적은 세션에 한 번만 알린다
             state['advised'] = state.get('advised', []) + [hashlib.sha256(n.encode()).hexdigest()[:16] for n in notes]
             output = {'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
