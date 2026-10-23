@@ -102,6 +102,9 @@ def record(root, messages):
                 task_key = found[0]
         data = {'message': identifier, 'key': task_key,
                 'sha': sha}
+        notes = boundary_notes(root, body, key, sha)
+        if notes:
+            data['notes'] = notes
         try:
             with path.open('x', encoding='utf-8') as stream:
                 json.dump(data, stream, ensure_ascii=False)
@@ -114,6 +117,109 @@ def record(root, messages):
                     changed = True
             if changed:
                 write_json(path, saved)
+
+
+def boundary_notes(root, body, tag, sha):
+    """worker_done 경계 검사(docs/flow-graph.md E7). 알림만 하고 기록은 막지 않는다"""
+    notes = []
+    branch = re.search(r'(?:브랜치|branch)\s*[:=]?\s*([A-Za-z0-9][\w./-]*)', body, re.I)
+    if not tag:
+        notes.append('본문이 `[완료] <과제 키> | 브랜치 … | SHA …` 형식이 아닙니다')
+    elif tag.group(0).startswith('[완료') and not branch:
+        notes.append('브랜치가 없습니다')
+    if not sha:
+        notes.append('SHA가 없거나 여러 개입니다')
+    elif branch:
+        drift = lint_drift(root, branch.group(1), sha)
+        if drift:
+            notes.append(drift)
+    return notes
+
+
+def lint_drift(root, branch, sha):
+    """그 브랜치 워크트리의 lint 통과 HEAD와 보고 SHA 사이에 코드 변경이 있으면 알릴 문장"""
+    from done_gate import CODE
+    try:
+        for block in git(root, 'worktree', 'list', '--porcelain').split('\n\n'):
+            lines = block.splitlines()
+            if not lines or f'branch refs/heads/{branch}' not in lines:
+                continue
+            head = passed_head(lines[0].removeprefix('worktree '))
+            if not head or head.startswith(sha.lower()):
+                return None
+            code = [p for p in git(root, 'diff', '--name-only', head, sha).splitlines() if Path(p).suffix.lower() in CODE]
+            return (f'lint 통과 HEAD {head[:12]}와 보고 SHA {sha[:12]} 사이에 코드 변경이 있습니다({", ".join(code[:3])})'
+                    if code else None)
+    except (OSError, ValueError, AttributeError, subprocess.CalledProcessError):
+        return None
+    return None
+
+
+def passed_head(checkout):
+    """그 체크아웃의 done_gate lint 통과 기록 HEAD. 없으면 None"""
+    gate = Path(git(checkout, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate/pass.json'
+    return json.loads(gate.read_text(encoding='utf-8')).get('head') if gate.is_file() else None
+
+
+def take_notes(root):
+    """아직 알리지 않은 완료 보고 경계 알림. 한 번 알리면 기록에 표시한다"""
+    found = []
+    folder = directory(root)
+    for path in sorted(folder.glob('*.json')) if folder.is_dir() else []:
+        try:
+            item = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        if item.get('notes') and not item.get('notified'):
+            found.append(f"완료 보고 {item.get('key') or item.get('message')}: {'; '.join(item['notes'])}. "
+                         'fullops-orca의 worker_done 한 줄 형식과 lint 통과 SHA를 병합 전에 worker에게 확인하세요.')
+            write_json(path, {**item, 'notified': True})
+    return found
+
+
+def merge_drift(root, commands):
+    """기본 브랜치에 방금 병합한 tip이 리뷰·완료 보고 SHA가 아니고 보고 SHA 뒤 커밋을 더 담았으면 알릴 문장(E11)"""
+    settings = config(root)
+    if settings is None:
+        return None
+    for words in commands:
+        if Path(words[0].strip('\'"')).stem != 'git':
+            continue
+        args, where = [w.strip('\'"') for w in words[1:]], Path(root)
+        while args and args[0] in ('-C', '-c'):
+            if args[0] == '-C' and len(args) > 1:
+                where = Path(args[1]) if Path(args[1]).is_absolute() else Path(root) / args[1]
+            args = args[2:]
+        if args[:1] != ['merge'] or '--abort' in args:
+            continue
+        try:
+            if git(where, 'symbolic-ref', 'HEAD') != references(root, settings)[0]:
+                continue
+            if not git(where, 'reflog', '-1', '--format=%gs').startswith(('merge', 'commit (merge)')):
+                continue
+            before = git(where, 'rev-parse', 'HEAD@{1}')
+            parents = git(where, 'rev-list', '--parents', '-n1', 'HEAD').split()
+            tip = parents[2] if len(parents) > 2 else parents[0]
+            reported = [str(json.loads(p.read_text(encoding='utf-8')).get('head') or '').lower()
+                        for p in (where / '.fullops-squad/docs/evaluations/qa-reports').glob('*-review/result.json')]
+            reported += [str(json.loads(p.read_text(encoding='utf-8')).get('sha') or '').lower()
+                         for p in directory(root).glob('*.json')]
+            reported = [r for r in reported if len(r) >= 7]
+            if any(tip.startswith(r) for r in reported):
+                continue
+            if settings.get('mode') == 'dev' and passed_head(root) == tip:
+                continue  # 주 담당자의 직접 작업은 done_gate가 현재 HEAD lint와 독립 리뷰·면제를 확인한다
+            hit = next((c for c in git(where, 'rev-list', f'{before}..{tip}').splitlines()
+                        if any(c.startswith(r) for r in reported)), None)
+            if not hit:
+                continue
+            extra = git(where, 'rev-list', '--count', f'{hit}..{tip}')
+        except (OSError, ValueError, AttributeError, IndexError, subprocess.CalledProcessError):
+            continue
+        return (f'방금 병합한 {tip[:12]}는 리뷰·완료 보고 SHA가 아닙니다. 보고된 {hit[:12]} 뒤의 커밋 {extra}개가 함께 들어왔습니다. '
+                f'push 전에 추가 커밋을 확인하고, 미검토면 `git reset --keep {before[:12]}`로 되돌린 뒤 보고된 SHA만 병합하거나 '
+                '새 SHA를 리뷰하세요(fullops-orca merge 1번).')
+    return None
 
 
 def ancestor(root, source, target):
