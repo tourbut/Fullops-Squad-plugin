@@ -12,7 +12,7 @@ It works only in Claude Code. It is kept apart from the portable plugin in `plug
 
 In a FullOps repository:
 
-- **`/fullops` pane**, split in two halves. The top half has two tabs (`w` and `r` switch them while the pane has focus); the bottom half lists the decisions waiting for you:
+- **`/fullops` pane**, split in two halves. The top half has three tabs (`w`, `r` and `f` switch them while the pane has focus); the bottom half lists the decisions waiting for you:
   - **Workers**: what the coordinator's Orca run sent out, drawn as animated cards. A summary row counts running, done and failed workers. Each running worker is a card with:
     - a badge in its role's colour, its task key (cut to fit), how long it has been in its current stage (`build 12m`, drawn as a warning from 30 minutes) and a live clock
     - a flag when Orca says it waits on you (`⚠ needs you`), when its agent is gone, or when it has been silent for 5 minutes (`⏸ idle`). A waiting worker's last words show under the rail, so the question is read here.
@@ -25,6 +25,12 @@ In a FullOps repository:
     A finished worker shows one coloured line for 10 minutes. Surfaces that cannot run the card module (mobile) show the same as a text list.
   - **Reviews**: the independent reviews `review.py` runs before a merge, read from the newest `.fullops-squad/docs/evaluations/qa-reports/*-review/` folders. Each is a block: an icon in the state's colour, the task key, the state in words (`reviewing`, `2 open · high`, `3 resolved`, `no findings`, `waived`, `abandoned`, `superseded`) and how long ago it changed, then the first line of the reviewer's conclusion. Reviews with open findings come first, then the ones under way, then the newest.
   - The Workers tab ends with `queued: K8, K9` for tasks the coordinator has not sent out yet.
+  - **Flow**: each task's stage in the lifecycle of [docs/flow-graph.md](../../docs/flow-graph.md), one block per task, newest first. The coordinator's own hook keeps the records (`flow_state.py`, `fullops-flow/<key>.json` in the git folder every checkout shares), so the tab reads them and never guesses. Each block has:
+    - the task key (cut at 24 characters), a rail of nine marks for `intent → design → assign → build → report → review → merge → qa → done` (`✔` passed, `◉` current, `○` ahead), the current node's name and how long ago it moved
+    - what holds the task, in words and colour together: `⚠ rounds 3/2` when its reopens and rounds passed the budget, `✖ review blocked · high` while a critical or high finding is open, and `⚠ needs you` or `✖ agent gone` from its worker
+    - its worker's inner stages under it, such as `dev ✔ explore ◉ build ○ verify ○ report`, when a worker is out for it. A round key (`K1-FIX`) counts as its task (`K1`).
+
+    Merged tasks stay for 30 minutes. The intent, qa and done nodes are not recorded automatically yet.
   - **Decisions** (bottom half): the open decisions the coordinator asked you for, which `decision.py` records in the git folder every checkout shares (`fullops-decisions/`). Each shows its id, task key and age, the question, numbered choices and what waits on it. A decision leaves when the coordinator records your answer. A new coordinator session in any checkout of the repository sees the same list.
   - **Hooks** (under the decisions): the runs of the settings hook events FullOps Squad hooks (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`, `SessionEnd`), seen from the engine's own hook chain. A running one shows with its clock, the latest blocked or denied ones (up to five) with how long they took, when, and the reason's first line (`FullOps dev: ...`), and the passed ones as one count per event over the last 30 runs. Another plugin's block on the same event shows here too, as the chain folds every settings hook into one verdict.
 - **Footer label**: `fullops coor`, `fullops dev` and so on. The role comes from the checkout's branch and the `roles` in `fullops.json`.

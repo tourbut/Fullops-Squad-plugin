@@ -43,28 +43,28 @@ def main():
         git('worktree', 'add', '-q', '-b', 'fullops/dev', str(worker))
 
         post('python3 jev_route.py --repo . --key K1 --text "add feature"')
-        assert state('K1')['node'] == '설계' and state('K1')['gates'] == ['route'], state('K1')
+        assert state('K1')['node'] == 'design' and state('K1')['gates'] == ['route'], state('K1')
         post('orca orchestration worker-start --run run_1 --worktree "w" --spec "Task key: K1; Purpose: implementation"')
-        assert state('K1')['node'] == '구현'
+        assert state('K1')['node'] == 'build'
         (worker / 'f.py').write_text('f = 1\n')
         sha = commit(worker, 'feature')
         time.sleep(0.05)  # 완료 보고 기록이 마지막 확인 시각보다 나중이어야 한다
         integration.record(repo, [{'id': 'm1', 'type': 'worker_done', 'body': f'[완료] K1 | 브랜치 fullops/dev | SHA {sha}'}])
         post('orca orchestration check --run run_1')
-        assert state('K1')['node'] == 'worker_done' and state('K1')['sha'] == sha
+        assert state('K1')['node'] == 'report' and state('K1')['sha'] == sha
         post(f'python3 review.py check --repo . --key K1 --from main --to {sha}')
-        assert state('K1')['node'] == '리뷰'
+        assert state('K1')['node'] == 'review'
         git('merge', '-q', '--ff-only', sha)
         post(f'git merge --ff-only {sha}')
         final = state('K1')
-        assert final['node'] == '병합' and final['gates'] == ['route', 'dispatch', 'worker_done', 'review', 'merge'], final
+        assert final['node'] == 'merge' and final['gates'] == ['route', 'dispatch', 'worker_done', 'review', 'merge'], final
         assert final['rounds'] == 0 and final['budget'] == 2 and final['updated']
         # 차수 키는 원래 과제의 상태로 모이고 반복 횟수를 센다
         route = repo / '.fullops-squad/docs/evaluations/jev/K1-FIX-route.json'
         route.parent.mkdir(parents=True, exist_ok=True)
         route.write_text(json.dumps({'task_key': 'K1-FIX', 'route': 'simple', 'role': 'dev'}))
         post('python3 jev_route.py --repo . --key K1-FIX --text fix')
-        assert state('K1')['node'] == '설계' and state('K1')['rounds'] == 1 and state('K1-FIX') is None
+        assert state('K1')['node'] == 'design' and state('K1')['rounds'] == 1 and state('K1-FIX') is None
         # worker 세션은 쓰지 않고, 모든 워크트리가 같은 상태를 읽는다
         git('merge', '-q', '--ff-only', 'main', cwd=worker)
         post('python3 jev_route.py --repo . --key K2 --text other', cwd=worker)
