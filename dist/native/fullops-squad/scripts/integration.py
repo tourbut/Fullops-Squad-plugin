@@ -144,8 +144,7 @@ def lint_drift(root, branch, sha):
             lines = block.splitlines()
             if not lines or f'branch refs/heads/{branch}' not in lines:
                 continue
-            gate = Path(git(lines[0].removeprefix('worktree '), 'rev-parse', '--absolute-git-dir')) / 'fullops-gate/pass.json'
-            head = json.loads(gate.read_text(encoding='utf-8')).get('head') if gate.is_file() else None
+            head = passed_head(lines[0].removeprefix('worktree '))
             if not head or head.startswith(sha.lower()):
                 return None
             code = [p for p in git(root, 'diff', '--name-only', head, sha).splitlines() if Path(p).suffix.lower() in CODE]
@@ -154,6 +153,12 @@ def lint_drift(root, branch, sha):
     except (OSError, ValueError, AttributeError, subprocess.CalledProcessError):
         return None
     return None
+
+
+def passed_head(checkout):
+    """그 체크아웃의 done_gate lint 통과 기록 HEAD. 없으면 None"""
+    gate = Path(git(checkout, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate/pass.json'
+    return json.loads(gate.read_text(encoding='utf-8')).get('head') if gate.is_file() else None
 
 
 def take_notes(root):
@@ -202,6 +207,8 @@ def merge_drift(root, commands):
             reported = [r for r in reported if len(r) >= 7]
             if any(tip.startswith(r) for r in reported):
                 continue
+            if settings.get('mode') == 'dev' and passed_head(root) == tip:
+                continue  # 주 담당자의 직접 작업은 done_gate가 현재 HEAD lint와 독립 리뷰·면제를 확인한다
             hit = next((c for c in git(where, 'rev-list', f'{before}..{tip}').splitlines()
                         if any(c.startswith(r) for r in reported)), None)
             if not hit:

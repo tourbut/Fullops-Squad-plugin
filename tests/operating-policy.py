@@ -194,6 +194,28 @@ class OperatingPolicy(unittest.TestCase):
             raise RuntimeError('no network required')
         jev_route.classify(self.repo, 'K', 'implement existing requirement', classify)
 
+    def test_dev_merge_advice_skips_primary_lint_passed_tip(self):
+        self.apply(local_only=True, mode='dev')
+        self.commit()
+        self.git('checkout', '-qb', 'fullops/tester')
+        (self.repo / 't.py').write_text('t = 1\n', encoding='utf-8')
+        tester = self.commit()
+        storage.write_json(integration.directory(self.repo) / 't.json', {'message': 't', 'key': 'K', 'sha': tester})
+        self.git('checkout', '-q', 'main')
+        self.git('checkout', '-qb', 'fullops/dev')
+        self.git('merge', '-q', tester)
+        (self.repo / 'd.py').write_text('d = 1\n', encoding='utf-8')
+        own = self.commit()
+        self.git('checkout', '-q', 'main')
+        self.git('-c', 'user.name=test', '-c', 'user.email=test@example.test', 'merge', '-q', '--no-ff', '-m', 'm', 'fullops/dev')
+        commands = [['git', 'merge', '--no-ff', 'fullops/dev']]
+        self.assertIn('뒤의 커밋 1개', integration.merge_drift(self.repo, commands))
+        # 주 담당자가 lint를 통과시킨 자기 HEAD는 done_gate 직접 작업 검사가 맡는다
+        storage.write_json(Path(self.git('rev-parse', '--absolute-git-dir')) / 'fullops-gate/pass.json', {'head': own})
+        self.assertIsNone(integration.merge_drift(self.repo, commands))
+        self.config(mode='coor')  # coor의 worker lint 기록은 리뷰·보고를 대신하지 않는다
+        self.assertIn('뒤의 커밋 1개', integration.merge_drift(self.repo, commands))
+
     def test_levels_run_required_and_reject_branch_weakening(self):
         self.assertEqual(policy.LEVELS, ('minimal', 'lite', 'standard', 'full', 'exhaustive'))
         commands = [{'name': level, 'kind': 'test', 'level': level, 'run': [sys.executable, '-c', 'print("ok")']}
