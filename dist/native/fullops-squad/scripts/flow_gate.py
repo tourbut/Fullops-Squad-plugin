@@ -705,8 +705,9 @@ def main(event=None):
         import harness_gate
         command, files = targets(field(event, 'tool_input') or {})
         notes = harness_gate.advice(root, files, config['test_level'], HANDOVER)
-        if primary(root, state):  # 흐름 그래프 경계 알림(docs/flow-graph.md E7·E11)
-            notes += [n for n in [integration.merge_drift(root, shell_commands(command))] if n]
+        if primary(root, state):  # 흐름 그래프 경계 알림(docs/flow-graph.md E7·E11·E15)
+            notes += [n for n in [integration.merge_drift(root, shell_commands(command)),
+                                  harness_gate.repeat_budget(root, shell_commands(command))] if n]
             notes += integration.take_notes(root)
         notes = [n for n in notes if hashlib.sha256(n.encode()).hexdigest()[:16] not in state.get('advised', [])]
         if notes:  # 같은 지적은 세션에 한 번만 알린다

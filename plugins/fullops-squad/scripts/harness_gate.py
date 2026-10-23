@@ -3,6 +3,7 @@
 막는 것은 객관적으로 확인되는 두 가지뿐이다: 보고서가 링크하지 않은 qa-reports 캡처의 커밋, 같은 과제의 차수 폴더 생성.
 나머지는 쓴 직후에 알린다(PostToolUse additionalContext). 어떤 오류도 작업을 막지 않는다.
 """
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -119,3 +120,61 @@ def advice(root, files, level, handover_pattern):
                 notes.append(f'보고서 {relative}가 {lines}줄입니다. 테스트 레벨 {level}의 보고서는 판정 항목과 결과 표, 실패·미실행·한계만 적고 '
                              '30줄 안팎으로 둡니다. 통과한 검사는 명령·SHA·종료코드 한 줄이면 됩니다.')
     return notes
+
+
+BUDGET = 2  # intents/FLOW-GRAPH-001 Q3: 수정 1회와 재검증 1회까지는 정상 흐름이다
+REPORTED = re.compile(r'<!-- fullops-attempt: (\S+) (\S+) -->')
+# 차수 표기. `-FIX-DEV`·`-FIX-TESTER`처럼 역할로 나눈 키는 같은 차수 FIX다
+ROUND_ID = re.compile(r'-((?:FIX|RECHECK|RETEST|LOWS|R\d+)(?:-\d+)?)(?=-|$)', re.I)
+
+
+def _repeat_key(words):
+    """`work.py reopen --key K`나 차수 키 `jev_route.py --key K-FIX`면 K"""
+    names = [Path(w.strip('\'"')).name for w in words]
+    reopen = 'work.py' in names and 'reopen' in words
+    if not (reopen or 'jev_route.py' in names) or '--key' not in words[:-1]:
+        return None
+    key = words[words.index('--key') + 1].strip('\'"')
+    return key if reopen or ROUND.search(key) else None
+
+
+def repeat_budget(root, commands):
+    """같은 과제의 수정·재검증이 예산을 넘으면 사람에게 올리라는 문장(docs/flow-graph.md E15)"""
+    for words in commands:
+        key = _repeat_key(words)
+        if not key:
+            continue
+        match = ROUND.search(key)
+        base = key[:match.start()] if match and match.start() else key
+        handovers = root / '.fullops-squad/handovers'
+        attempts, budget = set(), BUDGET
+        for path in [*handovers.glob('logs/*.md'), *handovers.glob('to_*.md')]:
+            text = path.read_text(encoding='utf-8', errors='replace')
+            attempts |= {a for k, a in REPORTED.findall(text) if k == base}
+            if path.parent == handovers and re.search(rf'^# {re.escape(base)} — ', text, re.M):
+                current = re.search(r'^attempt:\s*(\S+)', text, re.M)
+                attempts |= {current.group(1)} if current else set()
+                own = re.search(r'반복 예산\s*[:：]\s*(\d+)', text)
+                budget = int(own.group(1)) if own else budget
+        jev = root / '.fullops-squad/docs/evaluations/jev'
+        rounds = sorted(p.name[:-len('-route.json')] for p in jev.glob(f'{base}-*-route.json')
+                        if (m := ROUND.search(p.name[:-len('-route.json')])) and m.start() == len(base))
+        ids = sorted({'-'.join(m.upper() for m in ROUND_ID.findall(r[len(base):])) for r in rounds})
+        count = max(0, len(attempts) - 1) + len(ids)
+        if count <= budget:
+            continue
+        flagged = {}
+        for review in [base, *rounds]:
+            try:
+                findings = json.loads((root / REPORTS / f'{review}-review/result.json').read_text(encoding='utf-8'))['findings']
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            for path in {f.get('path') for f in findings if isinstance(f, dict) and f.get('path')}:
+                flagged[path] = flagged.get(path, 0) + 1
+        repeated = [f'{p}({n}회)' for p, n in sorted(flagged.items(), key=lambda i: -i[1]) if n > 1][:3]
+        return (f"{base}의 수정·재검증이 {count}회째로 예산 {budget}회를 넘었습니다(재오픈 {max(0, len(attempts) - 1)}회"
+                + (f", 차수 {', '.join(ids)}" if ids else '') + '). '
+                + (f"리뷰에서 반복 지적된 파일: {', '.join(repeated)}. " if repeated else '')
+                + '같은 방식으로 더 고치기 전에 사용자에게 올리세요. 범위·설계를 다시 정할지, 마지막으로 나아진 SHA를 남기고 '
+                '이후 시도는 버린 뒤 남은 문제를 PLANS.md에 넘길지 정합니다. 지시서에 `반복 예산: N`을 적으면 그 값을 씁니다.')
+    return None
