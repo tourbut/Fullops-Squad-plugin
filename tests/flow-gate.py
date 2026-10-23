@@ -279,6 +279,30 @@ def main():
         (task / 'report.md').write_text('\n'.join(['| 검사 | 통과 |'] * 45), encoding='utf-8')
         assert '45줄' in hook('post', session_id='ad', tool_name='Edit', tool_input={'file_path': str(task / 'report.md')})['hookSpecificOutput']['additionalContext']
         inbox.write_bytes(saved)
+        # 반복 예산(docs/flow-graph.md E15): 같은 과제의 재오픈·차수 키가 2회를 넘으면 coordinator에게 한 번 알린다
+        git('checkout', '-q', 'main')
+        logs = repo / '.fullops-squad/handovers/logs/2026-10-01_to_dev.md'
+        logs.parent.mkdir(parents=True, exist_ok=True)
+        logs.write_text('## K9 — 2026-10-01\n<!-- fullops-attempt: K9 a1 -->\n\n## K9 — 2026-10-02\n<!-- fullops-attempt: K9 a2 -->\n'
+                        '## K10 — 2026-10-02\n<!-- fullops-attempt: K10 b1 -->\n', encoding='utf-8')
+        inbox.write_text('---\nattempt: a3\n---\n# K9 — 수정\n', encoding='utf-8')
+        reopen = {'command': 'python3 work.py reopen --repo . --role dev --key K9 --goal fix'}
+        assert hook('post', session_id='rb', tool_name='Bash', tool_input=reopen) == {}  # 재오픈 2회는 예산 안
+        for name in ('K9', 'K9-FIX'):
+            review = reports / f'{name}-review'
+            review.mkdir(parents=True, exist_ok=True)
+            (review / 'result.json').write_text(json.dumps({'findings': [{'path': 'src/x.py', 'severity': 'high'}]}), encoding='utf-8')
+        route('K9-FIX', 'simple', 'dev')
+        route('K9-FIX-TESTER', 'simple', 'dev')  # 같은 차수를 역할로 나눈 키는 한 번만 센다
+        routed = {'command': 'python3 jev_route.py --repo . --key K9-FIX --text fix'}
+        note = hook('post', session_id='rb', tool_name='Bash', tool_input=routed)['hookSpecificOutput']['additionalContext']
+        assert 'K9의 수정·재검증이 3회째' in note and '차수 FIX)' in note and 'src/x.py(2회)' in note, note
+        assert hook('post', session_id='rb', tool_name='Bash', tool_input=routed) == {}  # 같은 권고는 한 번
+        inbox.write_text('---\nattempt: a3\n---\n# K9 — 수정\n\n- 반복 예산: 3\n', encoding='utf-8')
+        assert hook('post', session_id='rb2', tool_name='Bash', tool_input=routed) == {}  # 지시서 예산이 우선
+        assert hook('post', session_id='rb3', tool_name='Bash', tool_input={'command': 'python3 jev_route.py --key K11'}) == {}
+        inbox.write_bytes(saved)
+        git('checkout', '-q', roles['dev'])
 
         (repo / '.fullops-squad/fullops.json').write_text('{', encoding='utf-8')
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'orca terminal send handovers/'})['hookSpecificOutput']['permissionDecision'] == 'deny'
