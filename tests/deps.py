@@ -94,7 +94,20 @@ def main():
         brief = json.loads(start.stdout).get('hookSpecificOutput', {}).get('additionalContext', '')
         assert 'deps.py' in brief and '필수 CLI가 없다' in brief, (brief, start.stderr)
         assert 'python3=' in brief and sys.executable.split(os.sep)[-1] in brief  # 셸 PATH가 달라도 쓸 전체 경로
-    print('PASS: deps plan excludes fullops itself, skips registered marketplaces, --check, dry-run, SessionStart hint')
+    # 같은 실행에서 이미 갱신한 공용 의존성(전역 npm·사용자 스킬)은 다음 CLI에서 빠졌을 때만 다시 설치한다
+    with tempfile.TemporaryDirectory() as tmp:
+        ran, missing = [], []
+        plan = [['npm', 'install', '--global', 'tool'],
+                ['npx', '--yes', 'skills@latest', 'add', 'o/s', '--skill', 'a', '--global', '--agent', 'codex', '--yes']]
+        with patch.object(deps, 'receipt_path', return_value=Path(tmp) / 'deps.json'),              patch.object(deps, 'tool_problems', side_effect=lambda: list(missing)), patch.object(deps, 'plugin_problems', return_value=[]),              patch.object(deps, 'skill_files', return_value=([], [])), patch.object(deps, 'command_skill_problems', return_value=[]),              patch.object(deps, 'backup_skills'), patch.object(deps.hook_runtime, 'install'),              patch.object(deps, 'run', side_effect=lambda commands, dry: ran.extend(commands)):
+            deps.install_host('codex', plan)
+            deps.install_host('codex', plan, refresh_shared=False)
+            assert ran == plan, ran
+            missing.append('tool missing')
+            with patch.object(deps, 'tool_problems', side_effect=[['tool missing'], [], []]):
+                deps.install_host('codex', plan, refresh_shared=False)
+            assert ran == plan + plan[:1], ran
+    print('PASS: deps plan excludes fullops itself, skips registered marketplaces, --check, dry-run, SessionStart hint, shared refresh once')
 
 
 if __name__ == '__main__':

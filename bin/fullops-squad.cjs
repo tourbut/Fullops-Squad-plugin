@@ -141,6 +141,13 @@ function expectedVersion(target, execute = run) {
   const rows = target.host === 'codex' ? data.marketplaces : data;
   const row = rows.find(m => m.name === 'fullops-squad');
   const root = row?.root || row?.installLocation || row?.path;
+  if (!root && target.host === 'grok') {
+    // grok's marketplace list names no cache folder; an installed plugin's `source` is that cache.
+    const installed = JSON.parse(execute(target.cli, ['plugin', 'list', '--json'], target.env, true));
+    const source = Array.isArray(installed) ? installed.find(p => p.name === 'fullops-squad' && p.marketplace === 'fullops-squad')?.source : null;
+    const manifest = source && path.join(source, 'plugin.json');
+    return manifest && fs.existsSync(manifest) ? JSON.parse(fs.readFileSync(manifest, 'utf8')).version : null;
+  }
   if (!root) return null;
   for (const relative of ['.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json', 'marketplace.json']) {
     const catalog = path.join(root, relative);
@@ -202,6 +209,8 @@ function main(argv = process.argv.slice(2), execute = run) {
       results.push({ label: target.label, error: `preflight: ${error.message}` });
     }
   }
+  // Global npm tools and user skills are shared by every CLI: refresh them once per run.
+  let sharedRefreshed = false;
   for (const { target, known, registered } of plans) {
     const completed = [];
     try {
@@ -226,6 +235,8 @@ function main(argv = process.argv.slice(2), execute = run) {
         completed.push(args.join(' '));
         if (args[1] === 'marketplace' && ['upgrade', 'update'].includes(args[2])) {
           const expected = expectedVersion(target, execute);
+          // A fresh grok install has no plugin row to read the cache from yet; the check after install covers it.
+          if (!expected && target.host === 'grok' && !before) continue;
           if (!expected) throw new Error('목표 버전 확인 불가: marketplace manifest를 확인한 뒤 재시도하세요');
           compareVersion(expected, expected);
           if (before && expected && compareVersion(expected, before.version) < 0) throw new Error('marketplace 대상 downgrade를 거부합니다');
@@ -238,7 +249,9 @@ function main(argv = process.argv.slice(2), execute = run) {
       if (after.version !== expected) throw new Error(`목표 ${expected}에 도달하지 못했습니다: 설치 ${after.version}`);
       if (before && compareVersion(after.version, before.version) < 0) throw new Error('설치 버전 downgrade를 거부합니다');
       const depsScript = path.join(after.root, 'scripts/deps.py');
-      execute(python, [depsScript, '--host', target.host], target.env);
+      const once = sharedRefreshed && fs.readFileSync(depsScript, 'utf8').includes('--no-refresh') ? ['--no-refresh'] : [];
+      execute(python, [depsScript, '--host', target.host, ...once], target.env);
+      sharedRefreshed = true;
       execute(python, [depsScript, '--check', '--host', target.host], target.env);
       completed.push('host dependencies verified');
       if (options.repo) execute(python, [path.join(after.root, 'scripts/update.py'), '--repo', options.repo,
@@ -254,7 +267,7 @@ function main(argv = process.argv.slice(2), execute = run) {
   return results.some(r => r.error) ? 1 : 0;
 }
 
-module.exports = { parseArgs, invocation, targets, normalizeSource, registration, pluginInfo, operations, main };
+module.exports = { parseArgs, invocation, targets, normalizeSource, registration, pluginInfo, expectedVersion, operations, main };
 if (require.main === module) {
   try { process.exitCode = main(); } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

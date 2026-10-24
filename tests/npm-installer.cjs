@@ -151,6 +151,35 @@ test('a failed Claude update does not prevent the Grok update', t => {
   assert.ok(grok.calls.some(c => c.args.includes('--check')));
 });
 
+test('shared dependencies refresh once per run; later CLIs only repair', t => {
+  const grok = flow(t);
+  fs.writeFileSync(path.join(grok.root, 'scripts/deps.py'), '# accepts --no-refresh');
+  const claude = fixture(t, 'claude-code');
+  const execute = (command, args, env, capture) => {
+    if (command !== 'claude') return grok.execute(command, args, env, capture);
+    if (args[0] === '--version') return 'ok';
+    if (args[1] === 'marketplace' && args[2] === 'list') return JSON.stringify([
+      { name: 'ponytail', repo: 'DietrichGebert/ponytail' },
+      { name: 'claude-plugins-official', repo: 'anthropics/claude-plugins-official' },
+      { name: 'fullops-squad', repo: 'tourbut/Fullops-Squad-plugin', installLocation: claude.root },
+    ]);
+    if (args[1] === 'list') return JSON.stringify(claude.rows('0.9.10'));
+    return '';
+  };
+  assert.equal(installer.main(['update', '--hosts', 'claude,grok'], execute), 0);
+  const installs = grok.calls.filter(c => c.args[0].endsWith('deps.py') && !c.args.includes('--check'));
+  assert.deepEqual(installs.map(c => c.args.slice(1)), [['--host', 'claude-code'], ['--host', 'grok', '--no-refresh']]);
+});
+
+test('grok reads the target version from the installed plugin when its marketplace list names no folder', t => {
+  const { root } = fixture(t);
+  const target = { host: 'grok', cli: 'grok', label: 'grok', env: {} };
+  const execute = (cli, args) => args[1] === 'marketplace'
+    ? JSON.stringify([{ name: 'fullops-squad', kind: 'git', source: { url: 'https://github.com/tourbut/Fullops-Squad-plugin.git' } }])
+    : JSON.stringify([{ name: 'fullops-squad', marketplace: 'fullops-squad', version: '0.9.9', path: '/installed', source: root }]);
+  assert.equal(installer.expectedVersion(target, execute), '0.9.10');
+});
+
 test('Windows launcher preserves shell metacharacters as data', { skip: process.platform !== 'win32' }, t => {
   const { root } = fixture(t);
   const echo = path.join(root, 'echo args.cjs');

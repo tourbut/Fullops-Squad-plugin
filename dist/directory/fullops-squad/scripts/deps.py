@@ -176,8 +176,18 @@ def command_skill_problems(host, command):
     return [p for agent, item in command_skills(host, command) for p in skill_files(agent, [item])[1]]
 
 
+def folder_digest(folder):
+    """폴더 내용의 해시. 링크는 가리키는 경로로 센다"""
+    digest = hashlib.sha256()
+    for path in sorted(folder.rglob('*')):
+        if path.is_symlink() or path.is_file():
+            digest.update(path.relative_to(folder).as_posix().encode() + b'\0')
+            digest.update(os.readlink(path).encode() if path.is_symlink() else path.read_bytes())
+    return digest.hexdigest()
+
+
 def backup_skills(host, command):
-    """스킬을 교체하기 전에 기존 내용·사용자 수정을 로컬에 보존한다."""
+    """스킬을 교체하기 전에 기존 내용·사용자 수정을 로컬에 보존한다. 이미 백업한 내용은 다시 복사하지 않는다."""
     saved = set()
     for agent, item in command_skills(host, command):
         for root in skill_roots(agent):
@@ -189,10 +199,16 @@ def backup_skills(host, command):
                 folder = path.parent.resolve()
                 if folder in saved:
                     continue
-                target = receipt_path(agent).parent / 'fullops-skill-backups' / str(time.time_ns()) / folder.name
+                backups = receipt_path(agent).parent / 'fullops-skill-backups'
+                target = backups / str(time.time_ns()) / folder.name
                 if target.resolve().is_relative_to(folder):
                     raise ValueError('스킬 백업 경로는 원본 폴더 밖이어야 합니다')
+                digest = folder_digest(folder)
+                if any(mark.read_text() == digest for mark in backups.glob(f'*/{folder.name}.sha256')):
+                    saved.add(folder)
+                    continue
                 shutil.copytree(folder, target, symlinks=True)
+                target.with_name(folder.name + '.sha256').write_text(digest)
                 saved.add(folder)
                 print(f'기존 스킬 보존: {target}', flush=True)
 
@@ -280,7 +296,8 @@ def check_host(host):
     return absent
 
 
-def install_host(host, plan, plugin=None):
+def install_host(host, plan, plugin=None, refresh_shared=True):
+    """refresh_shared가 False면 같은 실행에서 이미 갱신한 공용 의존성(전역 npm 도구·사용자 스킬)은 빠지거나 깨졌을 때만 다시 설치한다"""
     absent = python_problem()
     if absent:
         raise ValueError('; '.join(absent))
@@ -296,7 +313,7 @@ def install_host(host, plan, plugin=None):
     write_json(path, receipt)
     for command in plan:
         token = hashlib.sha256(json.dumps(command).encode()).hexdigest()
-        refresh = command[:3] == ['npm', 'install', '--global'] or command[0] == 'npx' or (
+        refresh = refresh_shared and (command[:3] == ['npm', 'install', '--global'] or command[0] == 'npx') or (
             command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and command[3] in dependency_plugins(host))
         valid = not tool_problems() if command[:3] == ['npm', 'install', '--global'] else \
             not command_skill_problems(host, command) \
@@ -329,8 +346,17 @@ def run(plan, dry_run):
             raise SystemExit("먼저 설치할 실행 파일: " + ", ".join(absent))
     for cmd in plan:
         print(shlex.join(cmd), flush=True)
-        if not dry_run:
+        if dry_run:
+            continue
+        if cmd[0] != 'npx':
             subprocess.run([shutil.which(cmd[0]) or cmd[0], *cmd[1:]], check=True)  # Windows의 .cmd
+            continue
+        # skills CLI는 스킬마다 배너·표를 수십 줄 찍는다. 성공하면 한 줄만 남기고 실패하면 전부 보인다.
+        done = subprocess.run([shutil.which(cmd[0]) or cmd[0], *cmd[1:]], capture_output=True, text=True, errors='replace')
+        if done.returncode:
+            print(done.stdout + done.stderr, flush=True)
+            raise subprocess.CalledProcessError(done.returncode, cmd)
+        print('  설치됨', flush=True)
 
 
 def main():
@@ -339,6 +365,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="실행할 명령만 출력한다")
     parser.add_argument("--runtime-only", action="store_true", help="외부 의존성 설치 없이 고정 hook 실행 경로만 갱신")
     parser.add_argument("--check", action="store_true", help="--host와 함께 전체 구성·설치 완료를 검사. 단독 사용은 CLI 존재만 확인")
+    parser.add_argument("--no-refresh", action="store_true", help="공용 의존성(전역 npm 도구·사용자 스킬)은 빠졌을 때만 설치한다. 같은 실행에서 이미 갱신했을 때 쓴다")
     args = parser.parse_args()
     if args.runtime_only:
         if args.check or args.dry_run or args.host:
@@ -358,8 +385,8 @@ def main():
         if args.dry_run:
             run(commands(args.host, registered), True)
         else:
-            for host in {'all': HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host]):
-                install_host(host, list(commands(host, registered)))
+            for n, host in enumerate({'all': HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host])):
+                install_host(host, list(commands(host, registered)), refresh_shared=not args.no_refresh and n == 0)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"의존성 설치 실패: {error}\n")
     print("의존성 확인 완료" if args.dry_run else "의존성 설치 완료. 새 에이전트 세션을 여세요.")
