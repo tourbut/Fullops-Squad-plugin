@@ -211,7 +211,11 @@ async function record(
 
 /** The workers the coordinator's Orca run has: Orca's own listing, nothing is sent anywhere. */
 async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
-  const run = await $.process.run(['orca', 'orchestration', 'run-current', '--json'], { timeoutMs: 15_000 }).catch(() => undefined)
+  // A mod's child process may not carry Orca's launch token, and without it Orca cannot tell which terminal asks:
+  // name this session's terminal outright (Orca still checks it against the token when one is there).
+  const handle = await $.env.get('ORCA_TERMINAL_HANDLE')
+  const from = handle === undefined || handle === '' ? [] : ['--from', handle]
+  const run = await $.process.run(['orca', 'orchestration', 'run-current', ...from, '--json'], { timeoutMs: 15_000 }).catch(() => undefined)
   const runId = run === undefined || run.exitCode !== 0 ? null : parseRunId(run.stdout)
   if (runId === null) {
     await commit($, shared, meter => ({ ...meter, workers: null }))
