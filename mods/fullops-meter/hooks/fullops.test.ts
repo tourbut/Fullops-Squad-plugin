@@ -35,9 +35,11 @@ describe('reviews', () => {
   })
 
   test('a recorded review names its worst open finding', () => {
-    const review = summarizeReview('K1', result, null, 0)
+    const review = summarizeReview('K1', result, null, 60_000)
     expect(review).toMatchObject({ state: 'recorded', findings: 3, unresolved: 2, worst: 'high' })
-    expect(reviewLine(review, 5 * 60_000)).toEqual({ icon: '✖', tone: 'error', state: '2 open · high', when: '5m ago', detail: 'Merge after the fix.' })
+    expect(reviewLine(review, 6 * 60_000)).toEqual({ icon: '✖', tone: 'error', state: '2 open · high', when: '5m ago', detail: 'Merge after the fix.' })
+    // A folder time the host did not give is no age at all, not one counted from 1970.
+    expect(reviewLine(summarizeReview('K1', result, null, 0), 6 * 60_000).when).toBe('')
   })
 
   test('a receipt outranks the record, and a folder with neither is open', () => {
