@@ -3,3 +3,5 @@
 tools/frontend/
 # 판정에 쓰지 않은 캡처·첫 실행 실패본·스냅샷·중간 SHA gate 로그 (rules/common/testing.md)
 docs/evaluations/qa-reports/**/raw/
+# 레포 작업용 도구·로그·임시 산출물 (rules/common/README.md `작업 파일 위치`)
+local/

@@ -289,8 +289,11 @@ def lint(repo, base_ref):
     (gate / 'lint-result.json').unlink(missing_ok=True)
     attempt = uuid.uuid4().hex
     write_json(gate / 'lint-attempt.json', {'attempt': attempt})
-    if git(repo, 'status', '--porcelain'):
-        raise ValueError('작업 트리가 깨끗하지 않습니다. 커밋 후 실행하세요')
+    dirty = git(repo, 'status', '--porcelain')
+    if dirty:
+        files = ', '.join(line.split(maxsplit=1)[-1] for line in dirty.splitlines()[:3])
+        raise ValueError(f'작업 트리가 깨끗하지 않습니다({files}). 커밋 후 실행하세요. 순서: 구현 커밋 → lint → 완료 보고 → '
+                         'work.py finish → 커밋. 통과 뒤 완료 기록·검증 보고만 바꾼 커밋은 lint를 다시 돌리지 않아도 됩니다')
     head = git(repo, 'rev-parse', 'HEAD')
     base = git(repo, 'rev-parse', '--verify', base_ref + '^{commit}')
     merge_base = git(repo, 'merge-base', base, head)
