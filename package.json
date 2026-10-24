@@ -1,5 +1,6 @@
 {
   "name": "fullops-squad",
+  "private": true,
   "version": "1.0.2",
   "description": "Install and update FullOps Squad across Codex, Claude Code and Grok",
   "bin": {
