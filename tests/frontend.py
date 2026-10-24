@@ -185,7 +185,7 @@ class Frontend(unittest.TestCase):
                          patch.object(deps, 'manifest', return_value=data):
                         deps.backup_skills(host, deps.skill_command(selected, [host]))
                 backups = list((deps.receipt_path(host).parent / 'fullops-skill-backups').glob('*/research/local.txt'))
-                self.assertEqual(len(backups), 4)
+                self.assertEqual(len(backups), 2)  # 같은 내용은 두 번째 호출에서 다시 복사하지 않는다
                 self.assertEqual({p.read_text() for p in backups}, {'canonical edit', host.split('-')[0] + ' edit'})
 
     def test_skill_backup_rejects_destination_inside_source(self):
