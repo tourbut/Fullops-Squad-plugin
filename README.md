@@ -155,20 +155,20 @@ Anthropic 플러그인 디렉터리판(`dist/directory/fullops-squad`)은 다른
 통합 설치기는 Codex·Claude Code·grok의 설치 명령을 실행합니다. PATH에 있는 CLI를 자동으로 선택합니다.
 플러그인은 각 CLI의 GitHub 마켓플레이스에서 설치합니다. 외부 의존성도 설치하고 검사합니다.
 
-터미널에서 다음 명령을 실행합니다. `@latest`는 최신 설치기를 선택합니다.
+터미널에서 다음 명령을 실행합니다. 설치기는 이 GitHub 레포의 main에서 바로 받아 실행하므로 늘 최신입니다(npm 게시 없음).
 
 ```bash
-npx --yes fullops-squad@latest install
-npx --yes fullops-squad@latest update
-npx --yes fullops-squad@latest check
+npx --yes github:tourbut/Fullops-Squad-plugin install
+npx --yes github:tourbut/Fullops-Squad-plugin update
+npx --yes github:tourbut/Fullops-Squad-plugin check
 ```
 
 기본 대상은 사용 가능한 세 CLI 전체입니다. `--hosts codex,grok`처럼 일부 CLI만 지정할 수 있습니다.
 `--dry-run`으로 변경 전에 실행 계획을 확인합니다.
 
 ```bash
-npx --yes fullops-squad@latest update --dry-run
-npx --yes fullops-squad@latest install --hosts codex,grok
+npx --yes github:tourbut/Fullops-Squad-plugin update --dry-run
+npx --yes github:tourbut/Fullops-Squad-plugin install --hosts codex,grok
 ```
 
 Codex는 현재 `CODEX_HOME`, 기본 사용자 홈, 기존 Windows Orca 홈을 처리합니다. 다른 홈은 `--codex-home PATH`로 추가합니다.
@@ -185,12 +185,11 @@ Codex는 현재 `CODEX_HOME`, 기본 사용자 홈, 기존 Windows Orca 홈을 �
 에이전트에게 해당 레포의 FullOps update를 요청하면 적용 작업을 진행합니다.
 
 ```bash
-npx --yes fullops-squad@latest update --repo "D:/workspace/my-service"
+npx --yes github:tourbut/Fullops-Squad-plugin update --repo "D:/workspace/my-service"
 ```
 
 설치기는 서비스 레포를 직접 변경하지 않습니다. 레포 적용은 에이전트가 릴리스 내용을 읽고 수행합니다.
-설치기를 전역에 설치하려면 `npm install --global fullops-squad@latest`를 실행합니다.
-이후 `fullops-squad install|update|check` 명령을 사용할 수 있습니다. 설치기 자체 갱신은 같은 npm 설치 명령으로 수행합니다.
+예전 안내의 `npx --yes fullops-squad@latest …`(npm 패키지 1.0.1)는 더 갱신하지 않습니다. 동작은 하지만 1.8.7의 반복 설치 제거와 grok 복구가 빠져 있으니 위 명령으로 바꿉니다.
 아래 CLI별 명령으로 직접 설치할 수도 있습니다.
 
 ### Claude Code
