@@ -98,6 +98,21 @@ def main():
                                    capture_output=True, text=True)
         assert recovered.returncode == 0 and hook('stop') == {}
 
+        # 통과 뒤 완료 기록·검증 보고만 바꾼 커밋은 lint를 다시 돌리지 않는다(#94). 다른 문서는 다시 돌린다.
+        report = repo / '.fullops-squad/docs/evaluations/qa-reports/K1-test/report.md'
+        report.parent.mkdir(parents=True)
+        report.write_text('---\ntitle: K1 QA\nstatus: draft\nupdated: 2026-10-24\nowner: dev\nsummary: K1 검증\n---\n\n# K1 QA\n', encoding='utf-8')
+        commit('qa report')
+        assert hook('stop') == {}, '기록만 바뀐 커밋에 lint 재실행을 요구함'
+        report.write_text('# K1 QA\n', encoding='utf-8')
+        commit('report without front matter')
+        assert hook('stop')['decision'] == 'block', '형식이 깨진 기록은 lint로 돌려보내야 함'
+        git('reset', '-q', '--hard', 'HEAD~1')
+        (repo / 'notes.md').write_text('설계 메모\n', encoding='utf-8')
+        commit('notes')
+        assert hook('stop')['decision'] == 'block'
+        git('reset', '-q', '--hard', 'HEAD~1')
+
         # 다른 체크아웃에서 만든 커밋을 fast-forward로 받는 것은 이 세션의 코드 변경이 아니다.
         worker = repo.parent / f'{repo.name}-worker'
         git('worktree', 'add', '-q', '-b', 'fullops/dev-work', str(worker))

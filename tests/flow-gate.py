@@ -278,6 +278,10 @@ def main():
         assert hook('post', session_id='ad', tool_name='Write', tool_input={'file_path': str(inbox)}) == {}  # 같은 지적은 한 번
         (task / 'report.md').write_text('\n'.join(['| 검사 | 통과 |'] * 45), encoding='utf-8')
         assert '45줄' in hook('post', session_id='ad', tool_name='Edit', tool_input={'file_path': str(task / 'report.md')})['hookSpecificOutput']['additionalContext']
+        # 커밋하지 않는 raw/를 링크한 보고서는 레벨과 무관하게 쓴 직후 알린다(#94)
+        (task / 'report.md').write_text('# K1\n\n![](shots/a.png) [로그](raw/d.png) [외부](https://x.test/raw/y)\n', encoding='utf-8')
+        raw = hook('post', session_id='raw', tool_name='Write', tool_input={'file_path': str(task / 'report.md')})['hookSpecificOutput']['additionalContext']
+        assert 'raw/d.png' in raw and 'shots/a.png' not in raw and 'x.test' not in raw, raw
         inbox.write_bytes(saved)
         # 반복 예산(docs/flow-graph.md E15): 같은 과제의 재오픈·차수 키가 2회를 넘으면 coordinator에게 한 번 알린다
         git('checkout', '-q', 'main')

@@ -264,8 +264,13 @@ def check(repo, role, key, completion=False, required=False, head=None, text=Non
         result = json.loads(read(relative))
         meta = front_matter(text) or {}
         sha = instruction_digest(text)
-        if result.get('task_key') != key or result.get('role') != role or not meta.get('attempt') or result.get('attempt') != meta['attempt'] or result.get('instruction_sha256') != sha:
-            raise ValueError('packet task/role/attempt/instruction identity differs')
+        differs = [name for name, same in (('task', result.get('task_key') == key), ('role', result.get('role') == role),
+                                           ('attempt', bool(meta.get('attempt')) and result.get('attempt') == meta['attempt']),
+                                           ('instruction', result.get('instruction_sha256') == sha)) if not same]
+        if differs:
+            raise ValueError(f"packet {'/'.join(differs)} identity differs" + (
+                '; 패킷을 만든 뒤 지시서가 바뀌었습니다. front matter(status 등)나 본문을 고쳤으면 되돌리고, '
+                '지시가 바뀌었으면 패킷을 다시 만드세요' if 'instruction' in differs else ''))
         current_head = head or git(repo, 'rev-parse', 'HEAD')
         if completion:
             subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', result['head'], current_head], check=True, capture_output=True, env=git_env())

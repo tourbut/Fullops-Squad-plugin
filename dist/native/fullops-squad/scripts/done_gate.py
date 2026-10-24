@@ -13,7 +13,7 @@ import re
 import subprocess
 import sys
 
-from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY
+from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY, blob, deliverable_violations
 import deliverables
 import policy
 from storage import write_json
@@ -128,6 +128,23 @@ def code_changes(root, state, all_files=False):
     return sorted(filter(code, committed)), sorted(filter(code, dirty))
 
 
+RECORDS = ('.fullops-squad/handovers/', '.fullops-squad/docs/evaluations/')
+
+
+def records_only(root, passed, head):
+    """lint 통과 HEAD 뒤 커밋이 완료 기록·검증 보고만 바꿨는지. 그러면 명령 검사를 다시 돌리지 않고 문서 형식만 본다(#94)"""
+    try:
+        subprocess.run(['git', '-C', str(root), 'merge-base', '--is-ancestor', passed, head], check=True, capture_output=True)
+        changed = git(root, 'diff', '--name-only', passed, head).splitlines()
+        if not changed or not all(p.startswith(RECORDS) for p in changed):
+            return False
+        index = deliverables.index_rows(blob(root, head, '.fullops-squad/' + deliverables.INDEX) or '')
+        kept = git(root, 'diff', '--name-only', '--diff-filter=d', passed, head).splitlines()
+        return not any(deliverable_violations(p, blob(root, head, p) or '', index) for p in kept)
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return False
+
+
 def expected_base(root, state):
     roles = json.loads((root / '.fullops-squad/fullops.json').read_text()).get('roles', {})
     branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD')
@@ -197,7 +214,8 @@ def main(event=None):
     write_json(session, state)  # 성공 Stop 뒤 finish가 인박스를 비워도 기준을 보존한다.
     try:
         record = json.loads((gate / 'pass.json').read_text())
-        passed = record.get('head') == head and (not expected or record.get('base') == expected)
+        passed = (not expected or record.get('base') == expected) and bool(record.get('head')) and (
+            record['head'] == head or records_only(root, record['head'], head))
     except (OSError, ValueError, AttributeError):
         passed = False
     if passed and not dirty:

@@ -341,7 +341,8 @@ def main():
         git('reset', '-q', '--hard', base)
 
         (repo / 'dirty.py').write_text('d = 1\n')
-        assert lint().returncode == 2  # 커밋 전 실행 거부
+        refused = lint()
+        assert refused.returncode == 2 and 'dirty.py' in refused.stdout + refused.stderr and 'finish' in refused.stdout + refused.stderr  # 커밋 전 실행 거부
         (repo / 'dirty.py').unlink()
 
         # review.py check의 lint 게이트 (OCR 없이 리뷰 기록을 구성한다)

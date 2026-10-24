@@ -83,6 +83,14 @@ def main():
         else:
             raise AssertionError('전달 항목 누락을 통과시킴')
         outcomes.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+        edited = text.replace('status: draft', 'status: done', 1)
+        assert edited != text
+        try:  # 어느 값이 다른지 말한다(#94)
+            jev_packet.check(repo, 'dev', KEY, completion=True, text=edited)
+        except ValueError as error:
+            assert 'packet instruction identity differs' in str(error) and 'status' in str(error), error
+        else:
+            raise AssertionError('지시서 변경을 통과시킴')
 
         # finish는 완료 보고의 `남은 일`에서 다른 역할 요청을 PLANS.md에 등재한다.
         inbox.write_text(text.partition('## 완료 보고\n')[0] + '## 완료 보고\n브랜치 fullops/dev / SHA ' + result['head'][:12]

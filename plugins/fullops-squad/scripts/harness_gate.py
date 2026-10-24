@@ -135,7 +135,28 @@ def advice(root, files, level, handover_pattern):
             lines = len(text.splitlines())
             if lines > REPORT_LINES:
                 notes.append(f'보고서 {relative}가 {lines}줄입니다. 테스트 레벨 {level}의 보고서는 판정 항목과 결과 표, 실패·미실행·한계만 적고 '
-                             '30줄 안팎으로 둡니다. 통과한 검사는 명령·SHA·종료코드 한 줄이면 됩니다.')
+                             '30줄 안팎으로 둡니다. 통과한 검사는 명령·SHA·종료코드 한 줄이면 됩니다. 승인된 수락 기준이나 지시서가 요구한 판정 때문에 길어졌으면 그대로 둡니다.')
+    return notes
+
+
+RAW_LINK = re.compile(r'\]\(\s*<?([^)\s>]+)')
+
+
+def raw_links(root, files):
+    """방금 쓴 qa-reports 보고서가 Git이 제외하는 `raw/`를 링크하면 알릴 문장(#94)"""
+    notes = []
+    for name, _ in files:
+        relative = _relative(root, name)
+        if not _folder(relative) or not relative.endswith('.md') or '/raw/' in relative:
+            continue
+        try:
+            text = (root / relative).read_text(encoding='utf-8')
+        except (OSError, UnicodeDecodeError):
+            continue
+        links = sorted({link for link in RAW_LINK.findall(text) if '://' not in link and re.search(r'(^|/)raw/', link)})
+        if links:
+            notes.append(f"보고서 {relative}가 커밋하지 않는 `raw/`를 링크합니다({', '.join(links[:3])}). 판정 근거면 파일을 보고서 폴더로 옮기고, "
+                         '아니면 링크를 빼세요. 다른 체크아웃에서는 열리지 않습니다(rules/common/testing.md).')
     return notes
 
 
