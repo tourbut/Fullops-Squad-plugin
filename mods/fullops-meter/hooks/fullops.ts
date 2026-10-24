@@ -167,7 +167,8 @@ export type ReviewLine = {
 
 /** One review as the pane draws it: an icon in the state's colour, the state in words, and the conclusion under it. */
 export const reviewLine = (review: Review, now: number): ReviewLine => {
-  const when = `${ago(now - review.at)} ago`
+  // A review whose folder time is unknown gets no age rather than one counted from 1970.
+  const when = review.at === 0 ? '' : `${ago(now - review.at)} ago`
   if (review.state === 'open') return { icon: '…', tone: 'claude', state: 'reviewing', when, detail: '' }
   if (review.state !== 'recorded') return { icon: '–', tone: 'inactive', state: review.state, when, detail: '' }
   const isClean = review.unresolved === 0

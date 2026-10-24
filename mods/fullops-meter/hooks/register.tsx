@@ -303,10 +303,13 @@ async function readRecordStage($: EngineInterface, workspace: string, role: stri
 /** The newest review folders, each with what its files say. */
 async function readReviews($: EngineInterface): Promise<Review[]> {
   const entries = await $.fs.list(REVIEWS).catch(() => [])
-  const folders = entries
-    .filter(entry => entry.kind === 'dir' && entry.name.endsWith('-review'))
-    .sort((a, b) => b.mtimeMs - a.mtimeMs)
-    .slice(0, KEEP_REVIEWS)
+  // A listing gives a folder no time (mtimeMs 0), so each review folder is looked up on its own.
+  const dated = await Promise.all(
+    entries
+      .filter(entry => entry.kind === 'dir' && entry.name.endsWith('-review'))
+      .map(async entry => ({ name: entry.name, mtimeMs: (await $.fs.stat(`${REVIEWS}/${entry.name}`).catch(() => null))?.mtimeMs ?? 0 })),
+  )
+  const folders = dated.sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, KEEP_REVIEWS)
   return Promise.all(
     folders.map(async folder => {
       const dir = `${REVIEWS}/${folder.name}`
@@ -512,8 +515,9 @@ export const register: Register = (on, options) => {
     const tab = await read($, tabAtom)
     const now = (await read($, nowAtom)) || (await $.clock.now())
     const workers = meter?.workers ?? null
+    // The top half clips what does not fit; the tab row must never be the part squeezed away.
     const tabs = (
-      <Box>
+      <Box flexShrink={0}>
         {TABS.map(item => (
           <Button
             key={item.tab}
@@ -619,14 +623,14 @@ export const register: Register = (on, options) => {
           {reviews.map(review => {
             const line = reviewLine(review, now)
             return (
-              <Box key={review.key} flexDirection="column" marginTop={1}>
+              <Box key={review.key} flexDirection="column" marginTop={1} flexShrink={0}>
                 <Box>
                   <Text color={line.tone} bold>
                     {line.icon}{' '}
                   </Text>
                   <Text bold>{review.key}</Text>
                   <Text color={line.tone}> {line.state}</Text>
-                  <Text dimColor> · {line.when}</Text>
+                  <Text dimColor>{line.when === '' ? '' : ` · ${line.when}`}</Text>
                 </Box>
                 {line.detail !== '' && <Text dimColor>{`  ${line.detail}`}</Text>}
               </Box>
@@ -646,7 +650,7 @@ export const register: Register = (on, options) => {
           {tasks.map(one => {
             const row = flowRow(one, fullops.reviews, workers ?? [], now)
             return (
-              <Box key={one.key} flexDirection="column" marginTop={1}>
+              <Box key={one.key} flexDirection="column" marginTop={1} flexShrink={0}>
                 <Box>
                   <Text bold>{row.key} </Text>
                   {row.rail.map((mark, at) => (
