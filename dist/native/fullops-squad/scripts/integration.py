@@ -71,7 +71,7 @@ def record(root, messages):
         final = re.findall(r'(?:최종(?:\s+로컬)?|final(?:\s+local)?|local)\s+' + label, body, re.I)
         candidates = re.findall(r'(?<![A-Za-z])' + label, body, re.I)
         hashes = set(final or candidates)
-        sha = next(iter(hashes)) if len(hashes) == 1 else None
+        sha = next(iter(hashes)) if len(hashes) == 1 else tip(root, hashes)
         key = re.search(r'\[(?:완료|설계)\]\s*([A-Za-z0-9][A-Za-z0-9._-]*)', body)
         payload = message.get('payload') or {}
         if isinstance(payload, str):
@@ -117,6 +117,16 @@ def record(root, messages):
                     changed = True
             if changed:
                 write_json(path, saved)
+
+
+def tip(root, hashes):
+    """구현·기록 커밋처럼 여러 SHA를 적었으면 나머지를 모두 포함하는 끝 커밋. 갈라졌거나 없으면 None"""
+    for candidate in hashes:
+        if all(other == candidate or subprocess.run(
+                ['git', '-C', str(root), 'merge-base', '--is-ancestor', other, candidate],
+                capture_output=True).returncode == 0 for other in hashes):
+            return candidate
+    return None
 
 
 def boundary_notes(root, body, tag, sha):

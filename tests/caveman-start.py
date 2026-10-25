@@ -27,7 +27,8 @@ for host in ('codex', 'claude'):
     manifest = json.loads((PACKAGE / f'.{host}-plugin/plugin.json').read_text())
     # Claude Code는 hooks/hooks.json을 자동으로 읽으므로 manifest에 중복 선언하지 않는다.
     config = json.loads((PACKAGE / manifest.get('hooks', './hooks/hooks.json')).read_text())
-    assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'}
+    assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'} | (
+        {'PostToolUseFailure'} if host == 'claude' else set())  # 종료코드가 0이 아닌 배정 명령도 기록한다
     group, gate, flow = config['hooks']['SessionStart']
     assert group['matcher'] == 'startup|clear'  # Resume/compact must preserve an opt-out.
     hook, = group['hooks']

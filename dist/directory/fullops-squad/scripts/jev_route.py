@@ -337,7 +337,10 @@ def main():
             output = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{args.key}-route.json')
             result = json.loads(output.read_text())
             identity = input_identity(repo, args.role, args.key, {'policy': 'route-v4'})
-            if result.get('task_key') != args.key or result.get('role') != args.role or result.get('head') != identity['head']:
+            # coordinator 워크트리에서 분류한 route도 지금 HEAD가 그 분류 시점을 포함하면 연결한다
+            later = result.get('head') and subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', result['head'], identity['head']],
+                                                          capture_output=True).returncode == 0
+            if result.get('task_key') != args.key or result.get('role') != args.role or not later:
                 raise ValueError('route의 과제/역할/SHA가 다릅니다. 먼저 재분류하세요')
             if result.get('attempt') and any(result.get(k) != identity[k] for k in ('attempt', 'instruction_sha256')):
                 raise ValueError('이미 다른 시도/지시에 연결된 route입니다. --force로 재분류하세요')

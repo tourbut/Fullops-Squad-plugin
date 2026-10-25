@@ -5,6 +5,7 @@ Orca 설정 스크립트는 워크트리를 만드는 방식에 따라 실행되
 워크트리에서 시작하는 모든 세션마다 이 연결을 확인한다. 링크를 만들 수 없으면(Windows 개발자 모드 꺼짐) 복사한다.
 """
 import argparse
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -48,6 +49,26 @@ def link(worktree):
     return done
 
 
+LOCKS = {'package-lock.json': 'npm ci', 'pnpm-lock.yaml': 'pnpm install --frozen-lockfile', 'yarn.lock': 'yarn install --frozen-lockfile'}
+
+
+def advice(worktree, windows=os.name == 'nt'):
+    """bootstrap 점검 알림. 새 PC에서 시험이 줄바꿈·긴 경로·미설치 의존성으로 실패하기 전에 알린다. 설정은 바꾸지 않는다"""
+    top = Path(git(worktree, 'rev-parse', '--show-toplevel') or worktree)
+    notes = []
+    if windows:
+        if git(top, 'config', '--bool', 'core.autocrlf') == 'true' and not (top / '.gitattributes').is_file():
+            notes.append('core.autocrlf=true이고 .gitattributes가 없어 체크아웃이 CRLF가 됩니다. 바이트 비교 시험이 있으면 '
+                         '`git config core.autocrlf false` 후 워크트리를 다시 체크아웃하세요')
+        if git(top, 'config', '--bool', 'core.longpaths') != 'true':
+            notes.append('core.longpaths가 꺼져 있어 리뷰 snapshot 같은 긴 경로가 실패할 수 있습니다. `git config core.longpaths true`')
+    for name in git(top, 'ls-files', '--', *[f'*{lock}' for lock in LOCKS]).splitlines():
+        folder = (top / name).parent
+        if Path(name).name in LOCKS and not (folder / 'node_modules').is_dir():
+            notes.append(f'{folder}: node_modules가 없습니다. `{LOCKS[Path(name).name]}`로 의존성을 설치하세요')
+    return notes
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--worktree', action='append', help='연결할 워크트리 경로. 여러 번 줄 수 있다')
@@ -59,9 +80,13 @@ def main():
                     if line.startswith('worktree ')]
     if not targets:
         parser.error('--worktree 또는 --all이 필요합니다')
+    notes = []
     for path in targets:
         result = link(path)
         print(f"{path}: {', '.join(f'{name}({how})' for name, how in result) or '변경 없음'}")
+        notes += [note for note in advice(path) if note not in notes]
+    for note in notes:
+        print('점검: ' + note)
 
 
 if __name__ == '__main__':

@@ -47,13 +47,16 @@ def main():
         post('orca orchestration worker-start --run run_1 --worktree "w" --spec "Task key: K1; Purpose: implementation"')
         assert state('K1')['node'] == 'build'
         (worker / 'f.py').write_text('f = 1\n')
-        sha = commit(worker, 'feature')
+        first = commit(worker, 'feature')
+        (worker / 'g.py').write_text('g = 1\n')
+        sha = commit(worker, 'record')
         time.sleep(0.05)  # 완료 보고 기록이 마지막 확인 시각보다 나중이어야 한다
-        integration.record(repo, [{'id': 'm1', 'type': 'worker_done', 'body': f'[완료] K1 | 브랜치 fullops/dev | SHA {sha}'}])
+        # 구현·기록 SHA를 둘 다 적으면 나머지를 포함하는 끝 커밋을 쓴다
+        integration.record(repo, [{'id': 'm1', 'type': 'worker_done', 'body': f'[완료] K1 | 브랜치 fullops/dev | 구현 SHA {first}, 기록 SHA {sha}'}])
         post('orca orchestration check --run run_1')
         assert state('K1')['node'] == 'report' and state('K1')['sha'] == sha
-        post(f'python3 review.py check --repo . --key K1 --from main --to {sha}')
-        assert state('K1')['node'] == 'review'
+        post(f'python3 review.py check --repo . --key K1-DEV-REVIEW-R2 --from main --to {sha}')
+        assert state('K1')['node'] == 'review' and state('K1-DEV-REVIEW-R2') is None  # 리뷰 키는 과제에 묶인다
         git('merge', '-q', '--ff-only', sha)
         post(f'git merge --ff-only {sha}')
         final = state('K1')

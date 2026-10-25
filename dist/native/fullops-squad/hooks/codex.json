@@ -1,0 +1,101 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" caveman_start",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" done_gate start",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" done_gate stop",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate stop",
+            "timeout": 40
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate prompt",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Write|Edit|MultiEdit|apply_patch|shell|exec_command|local_shell|run_terminal_command|search_replace|Agent|Task|spawn_agent|followup_task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate tool",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" issue_mode session-end",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell|shell|exec_command|local_shell|run_terminal_command|Write|Edit|MultiEdit|apply_patch|search_replace",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate post",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

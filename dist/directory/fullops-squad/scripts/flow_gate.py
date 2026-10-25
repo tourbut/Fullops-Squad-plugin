@@ -82,7 +82,22 @@ def targets(tool):
             files.append(((moved.group(1) if moved else name).strip(),
                           '\n'.join(added) if added else None))
         command = ''
-    return command, files
+    return expand(command), files
+
+
+ASSIGN = re.compile(r"""(?:^|(?<=[\s;&(]))(?:export\s+|\$)?([A-Za-z_]\w*)\s*=\s*(?:'([\w.-]+)'|"([\w.-]+)"|([\w.-]+)(?=[\s;&)]|$))""", re.M)
+
+
+def expand(command):
+    """같은 명령에서 한 번만 대입한 셸 변수(`K=X`, `$K = 'X'`)를 펼쳐 `--key $K`도 문자 그대로처럼 검사한다"""
+    values = {}
+    for match in ASSIGN.finditer(command):
+        values.setdefault(match.group(1), set()).add(next(v for v in match.groups()[1:] if v))
+    for name, found in values.items():
+        if len(found) == 1:
+            value = next(iter(found))
+            command = re.sub(r'\$(?:\{' + name + r'\}|' + name + r'\b)(?!\s*=)', lambda _: value, command)
+    return command
 
 
 def key_in(root, text, path=None):
@@ -134,6 +149,8 @@ def handover_denial(root, designer, role, key):
         return None
     if not key:
         return '지시서 본문 첫 줄을 `# <과제 키> — <목표>`로 쓰세요.'
+    if key.startswith('$'):
+        return f'과제 키 {key}를 읽지 못했습니다. 셸 변수 대신 키를 문자 그대로 적거나 같은 명령에서 한 번만 대입하세요.'
     route = route_of(root, key)
     if not route:
         return f'{key}의 route 기록이 없습니다. 먼저 `jev_route.py --key {key}`를 실행하세요.'
@@ -717,7 +734,7 @@ def main(event=None):
         notes = [n for n in notes if hashlib.sha256(n.encode()).hexdigest()[:16] not in state.get('advised', [])]
         if notes:  # 같은 지적은 세션에 한 번만 알린다
             state['advised'] = state.get('advised', []) + [hashlib.sha256(n.encode()).hexdigest()[:16] for n in notes]
-            output = {'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
+            output = {'hookSpecificOutput': {'hookEventName': field(event, 'hook_event_name') or 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
     if mode in ('tool', 'post', 'prompt'):
         import issue_mode
         issue_mode.heartbeat(root, field(event, 'session_id'))

@@ -351,7 +351,7 @@ class Stabilization(unittest.TestCase):
                                             {'archived': True, 'status': {'worker': 'succeeded', 'liveness': 'exited'},
                                              'projection': {'workspace': {'id': 'repo::' + workspace}, 'resource': {'state': 'released'}}})
         with patch.object(integration, 'orca', side_effect=orca([{'handle': 'term_live'}])), patch.object(review.time, 'sleep'):
-            with self.assertRaisesRegex(ValueError, 'release'):
+            with self.assertRaisesRegex(ValueError, 'term_live.*--all'):
                 review.cleanup(self.repo, 'R1', 'd1', True)
         with patch.object(integration, 'orca', side_effect=orca([], str(self.repo))):
             with self.assertRaisesRegex(ValueError, 'reviewer가 아닙니다'):
@@ -368,6 +368,10 @@ class Stabilization(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, '고유 파일'):
                 review.cleanup(self.repo, 'R1', 'd1', True)
             ignored.unlink()
+            # env_link.py가 snapshot에 둔 원본 .env 사본은 cleanup이 지운다
+            exclude.write_text(exclude.read_text() + '\n.env*\n')
+            (self.repo / '.fullops-squad/.env').write_text('TOKEN=x\n')
+            (path / '.fullops-squad/.env').write_text('TOKEN=x\n')
             review.cleanup(self.repo, 'R1', 'd1', True)
         self.assertFalse(path.exists())
         review.cleanup(self.repo, 'R1', 'd1', True)
@@ -767,6 +771,15 @@ class Stabilization(unittest.TestCase):
         inbox, content = work.instruction(self.repo, 'dev', 'K1')
         inbox.write_text(content.replace('rename fetch_user API', 'different instruction'))
         self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+        # 다른 워크트리에서 분류한 route: 분류 시점이 지금 HEAD의 조상이면 연결하고, 갈라진 커밋이면 거부한다
+        storage.write_json(path, {'task_key': 'K1', 'head': self.git('rev-parse', 'HEAD'), 'role': 'dev', 'route': 'simple'})
+        self.git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '--allow-empty', '-m', 'later')
+        bound = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(bound.returncode, 0, bound.stderr)
+        empty = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'  # git의 빈 tree
+        stray = self.git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit-tree', empty, '-m', 'stray')
+        storage.write_json(path, {'task_key': 'K1', 'head': stray, 'role': 'dev', 'route': 'simple'})
+        self.assertIn('SHA', subprocess.run(command, capture_output=True, text=True).stderr)
         original = '# K1 — task\n- [ ] read source\n\n## 완료 보고\n미작성.\n'
         completed = original.replace('[ ]', '[x]').replace('미작성.', '보고와 검증 기록.')
         self.assertEqual(work.instruction_digest(original), work.instruction_digest(completed))
