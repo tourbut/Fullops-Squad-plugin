@@ -100,6 +100,9 @@ def main():
         assert work.FOLLOWUPS in plans and f'- [ ] {KEY} → tester: tester 독립 QA(시나리오 S1) (완료 보고 자동 등재' in plans, plans
         assert '문서 정리' not in plans and plans.count(KEY) == 1
         work.queue_followups(repo, work.followups(repo, 'dev', KEY, '남은 일: tester 독립 QA(시나리오 S1)'))
+        guide = work.TEMPLATE.read_text(encoding='utf-8').partition('## 완료 보고\n')[2]
+        assert work.followups(repo, 'dev', KEY, guide) == [], '남겨 둔 템플릿 안내 문장은 후속 요청이 아니다'
+        assert len(work.followups(repo, 'dev', KEY, guide + '\n- **남은 일**: tester 회귀 확인\n')) == 1
         assert (repo / '.fullops-squad/PLANS.md').read_text(encoding='utf-8').count('시나리오 S1') == 1, '같은 요청은 한 번만 등재한다'
     print('PASS: delivered subset, noise filters, recover, completion contract, followup queue')
 

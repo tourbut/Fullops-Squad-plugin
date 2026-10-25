@@ -123,6 +123,8 @@ def main():
         assert write('.fullops-squad/handovers/to_architecture.md', '# K3 — 저장 형식\n') == {}
         assert '설계 역할' in denied(bash('python3 work.py new --repo . --role dev --key K3 --goal x'))
         assert bash('python3 work.py new --repo . --role dev --key K1 --goal x') == {}
+        assert bash('K=K1; python3 work.py new --repo . --role dev --key $K --goal x') == {}  # 같은 명령에서 대입한 셸 변수
+        assert '문자 그대로' in denied(bash('python3 work.py new --repo . --role dev --key $K --goal x'))
         grok = hook('tool', sessionId='c', toolName='search_replace',  # grok camelCase 입력
                     toolInput={'file_path': '.fullops-squad/handovers/to_dev.md', 'content': '# K3 — 저장 형식\n'})
         assert '설계 역할' in denied(grok)
@@ -244,7 +246,7 @@ def main():
 
         # Windows의 PowerShell 도구도 셸 hook을 거친다(빠지면 모든 셸 차단이 우회된다)
         hooks = json.loads((SCRIPTS.parent / 'hooks/hooks.json').read_text(encoding='utf-8'))['hooks']
-        assert all('PowerShell' in group['matcher'].split('|') for event in ('PreToolUse', 'PostToolUse') for group in hooks[event])
+        assert all('PowerShell' in group['matcher'].split('|') for event in ('PreToolUse', 'PostToolUse', 'PostToolUseFailure') for group in hooks[event])
         # 검증 증거: 보고서가 링크하지 않은 qa-reports 캡처의 커밋과 같은 과제의 차수 폴더를 막는다
         reports = repo / '.fullops-squad/docs/evaluations/qa-reports'
         task = reports / 'K1-DEV-test'

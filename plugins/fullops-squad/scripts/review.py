@@ -272,7 +272,10 @@ def released(repo, path, dispatch):
         if attempt < 4:
             time.sleep(2)
     else:
-        raise ValueError('Orca에서 snapshot terminal 종료를 확인하지 못했습니다. reviewer를 release(worker-release)한 뒤 재시도하세요')
+        # release 뒤에도 terminal이 남을 수 있다. 닫을지는 사용자·coordinator가 정한다
+        handles = [str(t.get('handle') or t.get('id')) for t in (listed or {}).get('terminals') or [] if isinstance(t, dict)]
+        hint = f" 남은 terminal: {', '.join(handles)}. 작업이 끝났으면 `orca terminal close --worktree path:{path} --all`로 닫은 뒤 재시도하세요" if handles else ''
+        raise ValueError('Orca에서 snapshot terminal 종료를 확인하지 못했습니다. reviewer를 release(worker-release)한 뒤 재시도하세요.' + hint)
     observation = {'terminals': 0}
     if dispatch:
         # release 뒤 terminal 출력은 지워지므로 auto source로 projection만 읽는다. worker 상태 이름은 판정에 쓰지 않는다.
@@ -293,6 +296,16 @@ def owned(repo, key, data, path):
 
 
 def remove_snapshot(repo, path):
+    import env_link
+    main = env_link.main_checkout(path)
+    for target in (path / '.fullops-squad').glob('.env*') if main else []:
+        source = main / '.fullops-squad' / target.name
+        # env_link.py가 원본 .env를 연결·복사한 것만 지운다. 내용이 다른 파일은 아래에서 보존 대상으로 멈춘다
+        if source.is_file() and ((target.is_symlink() and target.resolve() == source.resolve())
+                                 or (not target.is_symlink() and target.is_file() and target.read_bytes() == source.read_bytes())):
+            if not subprocess.run(['git', '-C', str(path), 'ls-files', '--error-unmatch', '--', f'.fullops-squad/{target.name}'],
+                                  capture_output=True).returncode == 0:
+                target.unlink()
     if subprocess.check_output(['git', '-C', str(path), 'status', '--porcelain', '--ignored', '--untracked-files=all']).strip():
         raise ValueError('snapshot의 미커밋·미추적·ignored 고유 파일을 보존하세요')
     subprocess.check_call(['git', '-C', str(repo), 'worktree', 'remove', str(path)])  # --force 사용 금지

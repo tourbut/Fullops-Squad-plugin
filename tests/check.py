@@ -71,7 +71,7 @@ def main():
         assert (directory / 'CREDENTIALS.md').is_file() and (native / 'CREDENTIALS.md').is_file()
         hooks = loads((directory / 'hooks/hooks.json').read_text(encoding='utf-8'))
         commands = [h['command'] for groups in hooks['hooks'].values() for group in groups for h in group['hooks']]
-        assert len(commands) == 9 and all(c.startswith('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ') for c in commands)
+        assert len(commands) == 10 and all(c.startswith('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ') for c in commands)
         assert all(f'{name}.py' in {p.name for p in (directory / 'scripts').iterdir()} for name in
                    {c.split('" ', 1)[1].split()[0] for c in commands})
         readme = __import__('re').sub(r'```.*?```', '', (directory / 'README.md').read_text(encoding='utf-8'), flags=__import__('re').S)

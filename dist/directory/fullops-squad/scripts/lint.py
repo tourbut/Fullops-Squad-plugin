@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import time
 import tokenize
 import uuid
 
@@ -362,6 +363,26 @@ def stamp(repo, result):
         pass  # 기록 실패는 lint 결과를 바꾸지 않는다
 
 
+def stale(lock):
+    """강제 종료된 lint가 남긴 lock. PID가 없으면(이전 버전·쓰기 전 종료) 2시간이 지난 것만 본다"""
+    try:
+        text, age = lock.read_text().strip(), time.time() - lock.stat().st_mtime
+    except OSError:
+        return False
+    if not text.isdigit():
+        return age > 7200
+    if os.name == 'nt':  # Windows의 os.kill(pid, 0)은 프로세스를 끝낸다
+        listed = subprocess.run(['tasklist', '/FI', f'PID eq {text}', '/NH', '/FO', 'CSV'], capture_output=True, text=True, errors='replace')
+        return listed.returncode == 0 and f'"{text}"' not in listed.stdout
+    try:
+        os.kill(int(text), 0)
+    except ProcessLookupError:
+        return True
+    except OSError:
+        pass
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', required=True, help='검사할 체크아웃 루트 (worker 워크트리)')
@@ -372,11 +393,14 @@ def main():
     try:
         repo = active_repo(args.repo)
         lock = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-lint.lock'
+        if stale(lock):  # shortcut: 두 lint가 같은 오래된 lock을 동시에 회수하면 한쪽 lock을 지울 수 있다. 드물어 두고, 생기면 rename 기반으로 바꾼다
+            lock.unlink(missing_ok=True)
         try:
             fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:
             lock = None
             raise ValueError('이 체크아웃의 lint가 실행 중입니다. 종료 후 재시도하세요')
+        os.write(fd, str(os.getpid()).encode())
         os.close(fd)
         result = lint(repo, args.base)
         write_json(lock.parent / 'fullops-gate/lint-result.json', result)

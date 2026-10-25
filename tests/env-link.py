@@ -58,6 +58,19 @@ def main():
         out = subprocess.run([sys.executable, str(SCRIPTS / 'env_link.py'), '--all', str(repo)], capture_output=True,
                              text=True, encoding='utf-8')
         assert out.returncode == 0 and (wt1 / '.fullops-squad/.env').is_file() and '변경 없음' in out.stdout, out.stdout
+
+        # bootstrap 점검: Windows 줄바꿈·긴 경로 설정과 설치되지 않은 의존성을 알린다
+        git('config', 'core.autocrlf', 'true')
+        git('config', 'core.longpaths', 'false')
+        (wt1 / 'web').mkdir()
+        (wt1 / 'web/package-lock.json').write_text('{}', encoding='utf-8')
+        git('add', 'web/package-lock.json', cwd=wt1)
+        notes = env_link.advice(wt1, windows=True)
+        assert len(notes) == 3 and 'npm ci' in notes[2] and 'autocrlf' in notes[0] and 'longpaths' in notes[1], notes
+        (wt1 / 'web/node_modules').mkdir()
+        git('config', 'core.longpaths', 'true')
+        (wt1 / '.gitattributes').write_text('* text=auto eol=lf\n', encoding='utf-8')
+        assert env_link.advice(wt1, windows=True) == [] and env_link.advice(repo, windows=False) == []
     print('PASS: env link into worktrees, keeps tracked/existing files, skips main checkout, SessionStart auto-link, --all CLI')
 
 

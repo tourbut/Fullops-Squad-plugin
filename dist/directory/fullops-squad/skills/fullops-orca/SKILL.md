@@ -25,7 +25,7 @@ flow-gate hook이 route 기록, `worker-start --run`, 설계 역할의 코드 �
 
 ## bootstrap
 
-앱·런타임 도달 여부와 현재 레포 등록 상태를 확인한다. `fullops.json`의 등록 역할·원격·브랜치를 읽고 미정 CLI 배정을 해결한다. 기존 워크트리·브랜치를 조회한 뒤 필요한 역할의 상설 워크트리를 해당 원격 역할 브랜치에서 생성하고 추적 관계를 확인한다. 로컬 전용 setup이면 역할 브랜치를 합의된 기준에서 만든다. coordinator 체크아웃은 중복 생성하지 않는다. setup 이후 추가한 하네스 파일은 worker 브랜치에 자동 포함되지 않으므로 dispatch 전에 준비 커밋을 반영한다. grok을 배정한 역할이 있으면 이 스킬 기준 `../../scripts/grok_trust.py`로 `python3 <grok_trust.py> --repo <레포 루트> --check`를 실행한다. grok은 워크트리에서도 원본 레포 경로의 폴더 신뢰를 요구해, 신뢰되지 않으면 worker가 착수 전에 확인 화면에서 멈춘다. 신뢰되지 않았으면 사용자에게 한 번 확인받은 뒤 `--add`로 추가한다. 승인 없이 추가하지 않는다. 워크트리를 만든 뒤 이 스킬 기준 `../../scripts/env_link.py`로 `python3 <env_link.py> --all <레포 루트>`를 실행해 원본 체크아웃의 `.fullops-squad/.env*`(git 미추적)를 각 워크트리에 링크한다. 워크트리에서 시작하는 세션마다 flow-gate SessionStart hook도 빠진 파일을 연결한다. 각 터미널 출력을 읽어 실제 CLI 프롬프트와 작업 경로를 확인한다.
+앱·런타임 도달 여부와 현재 레포 등록 상태를 확인한다. `fullops.json`의 등록 역할·원격·브랜치를 읽고 미정 CLI 배정을 해결한다. 기존 워크트리·브랜치를 조회한 뒤 필요한 역할의 상설 워크트리를 해당 원격 역할 브랜치에서 생성하고 추적 관계를 확인한다. 로컬 전용 setup이면 역할 브랜치를 합의된 기준에서 만든다. coordinator 체크아웃은 중복 생성하지 않는다. setup 이후 추가한 하네스 파일은 worker 브랜치에 자동 포함되지 않으므로 dispatch 전에 준비 커밋을 반영한다. grok을 배정한 역할이 있으면 이 스킬 기준 `../../scripts/grok_trust.py`로 `python3 <grok_trust.py> --repo <레포 루트> --check`를 실행한다. grok은 워크트리에서도 원본 레포 경로의 폴더 신뢰를 요구해, 신뢰되지 않으면 worker가 착수 전에 확인 화면에서 멈춘다. 신뢰되지 않았으면 사용자에게 한 번 확인받은 뒤 `--add`로 추가한다. 승인 없이 추가하지 않는다. 워크트리를 만든 뒤 이 스킬 기준 `../../scripts/env_link.py`로 `python3 <env_link.py> --all <레포 루트>`를 실행해 원본 체크아웃의 `.fullops-squad/.env*`(git 미추적)를 각 워크트리에 링크한다. 출력의 `점검:` 줄(Windows 줄바꿈·긴 경로 설정, 설치되지 않은 의존성)은 사용자에게 알리고 승인받은 뒤 조치한다. 워크트리에서 시작하는 세션마다 flow-gate SessionStart hook도 빠진 파일을 연결한다. 각 터미널 출력을 읽어 실제 CLI 프롬프트와 작업 경로를 확인한다.
 
 ## 제품 기획 → 담당 worker 기술 계획 구조
 

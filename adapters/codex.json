@@ -1,6 +1,6 @@
 {
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./hooks/codex.json",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "FullOps Squad",

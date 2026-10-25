@@ -404,8 +404,21 @@ def main():
     print('PASS: changed-only scope, size growth, suppressions, eval, secrets, custom rules, commands, review lint gate')
 
 
+def stale_lock():
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-lock-') as tmp:
+        lock = Path(tmp) / 'fullops-lint.lock'
+        lock.write_text('')
+        assert not checks.stale(lock)  # PID 없는 새 lock은 실행 중으로 본다
+        lock.write_text(str(__import__('os').getpid()))
+        assert not checks.stale(lock)
+        done = subprocess.run([PY, '-c', 'import os; print(os.getpid())'], capture_output=True, text=True)
+        lock.write_text(done.stdout.strip())
+        assert checks.stale(lock), '끝난 PID의 lock은 회수한다'
+
+
 if __name__ == '__main__':
     command_cwd_aliases()
+    stale_lock()
     main()
     anti_slop()
     design_slop()

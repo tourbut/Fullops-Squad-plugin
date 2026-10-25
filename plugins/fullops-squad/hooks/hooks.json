@@ -96,6 +96,18 @@
           }
         ]
       }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate post",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

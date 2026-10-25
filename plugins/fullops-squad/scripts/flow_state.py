@@ -13,6 +13,7 @@ from storage import write_json
 
 # 노드 ID(docs/flow-graph.md 노드: 의도·설계·배정·구현·worker_done·리뷰·병합·검수·완료)와 그 노드에 들어올 때 지난 게이트
 NODES = ('intent', 'design', 'assign', 'build', 'report', 'review', 'merge', 'qa', 'done')
+REVIEW = re.compile(r'-REVIEW(?:-R\d+)?$', re.I)
 GATES = {'design': 'route', 'build': 'dispatch', 'report': 'worker_done', 'review': 'review', 'merge': 'merge'}
 
 
@@ -31,8 +32,22 @@ def read(root):
     return states
 
 
+def task_of(root, key):
+    """리뷰 키 `K-DEV-REVIEW-R2`는 과제 K의 리뷰다. 차수(rework)로 세지 않고 같은 과제 기록에 묶는다"""
+    match = REVIEW.search(key)
+    if not match or not match.start():
+        return key
+    key = key[:match.start()]
+    try:
+        roles = json.loads((Path(root) / '.fullops-squad/fullops.json').read_text(encoding='utf-8')).get('roles', {})
+    except (OSError, ValueError):
+        roles = {}
+    role = next((r for r in roles if key.upper().endswith('-' + r.upper()) and len(key) > len(r) + 1), None)
+    return key[:-len(role) - 1] if role else key
+
+
 def update(root, key, node, sha=None):
-    base = harness_gate.base_key(key)
+    base = harness_gate.base_key(task_of(root, key))
     path = directory(root) / f'{base}.json'
     try:
         state = json.loads(path.read_text(encoding='utf-8'))

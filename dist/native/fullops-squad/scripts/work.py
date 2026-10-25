@@ -135,10 +135,11 @@ FOLLOWUPS = '## 완료 보고 후속 요청'
 def followups(repo, role, key, report):
     """완료 보고 `남은 일`에서 다른 역할에게 넘기는 항목을 뽑는다. coordinator가 잊지 않도록 PLANS.md 대기 목록에 올린다."""
     roles = [r for r in json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text()).get('roles', {}) if r != role]
-    _, found, rest = report.partition('남은 일')
+    # 줄 첫머리의 `남은 일` 항목만 읽는다. 남겨 둔 템플릿 안내 문장('브랜치 / … / 남은 일.')은 보고가 아니다
+    found = re.search(r'^[ \t|>*#-]*\**남은 일\**(.*)', report, re.M | re.S)
     if not found:
         return []
-    rest = rest.split('\n## ')[0].split('\n\n')[0]  # 한 줄 항목이나 다음 빈 줄까지의 목록
+    rest = found.group(1).split('\n## ')[0].split('\n\n')[0]  # 한 줄 항목이나 다음 빈 줄까지의 목록
     lines = []
     for part in re.split(r'[,;·\n]', rest):
         part = part.strip(' :：-*\t.')
