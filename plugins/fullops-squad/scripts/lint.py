@@ -75,6 +75,9 @@ def load_config(repo, ref):
         run = command.get('run')
         if not command.get('name') or not isinstance(run, list) or not run or not all(isinstance(a, str) for a in run):
             raise ValueError('lint 명령은 name과 문자열 배열 run이 필요합니다')
+        paths = command.get('paths')
+        if paths is not None and (not isinstance(paths, list) or not paths or not all(isinstance(p, str) and p for p in paths)):
+            raise ValueError(f'lint 명령 paths는 비어 있지 않은 glob 문자열 배열입니다: {command["name"]}')
         cwd = (repo / command.get('cwd', '.')).resolve()
         if cwd != repo and repo not in cwd.parents:
             raise ValueError(f'레포 밖 cwd: {command["name"]}')
@@ -267,25 +270,53 @@ def skips_tests(command, code):
     return command.get('kind') == 'test' and not command.get('required') and not code
 
 
-def run_command(repo, command, timeout):
+PATHS = '바뀐 파일이 명령의 paths와 맞지 않음'
+SLOW_SECONDS = 120
+
+
+def matches(path, patterns):
+    return any(fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in patterns)
+
+
+def skips_paths(command, paths):
+    """`paths`를 둔 명령은 바뀐 파일(이름 변경 전후 포함)이 하나라도 맞을 때만 실행한다. required보다 우선한다"""
+    return 'paths' in command and not any(matches(p, command['paths']) for p in paths)
+
+
+def changed_paths(repo, base, head):
+    return sorted({p for pair in changed(repo, base, head) for p in pair if p})
+
+
+def run_command(repo, command, timeout, logs=None):
+    """logs 폴더가 있으면 전체 출력을 `<이름>.log`로 남긴다. 결과에는 마지막 40줄과 그 경로만 둔다"""
     entry = {'name': command['name'], 'kind': command.get('kind', 'lint'),
              'run': command['run'], 'cwd': command.get('cwd', '.'), 'reason': ''}
+    started = time.monotonic()
     try:
         run = [shutil.which(command['run'][0]) or command['run'][0], *command['run'][1:]]  # Windows의 npx.cmd 등
         done = subprocess.run(run, cwd=repo / entry['cwd'], capture_output=True, text=True,
                               timeout=timeout, errors='replace')
+        status, code, output = 'passed' if done.returncode == 0 else 'failed', done.returncode, done.stdout + done.stderr
     except FileNotFoundError:
-        return {**entry, 'status': 'unavailable', 'exit_code': None, 'output_tail': ''}
-    except subprocess.TimeoutExpired:
-        return {**entry, 'status': 'timeout', 'exit_code': None, 'output_tail': ''}
-    tail = '\n'.join((done.stdout + done.stderr).splitlines()[-40:])
-    return {**entry, 'status': 'passed' if done.returncode == 0 else 'failed',
-            'exit_code': done.returncode, 'output_tail': tail}
+        status, code, output = 'unavailable', None, ''
+    except subprocess.TimeoutExpired as error:
+        status, code, output = 'timeout', None, ''.join(
+            part.decode(errors='replace') if isinstance(part, bytes) else part or '' for part in (error.stdout, error.stderr))
+    entry.update(status=status, exit_code=code, seconds=round(time.monotonic() - started, 1),
+                 output_tail='\n'.join(output.splitlines()[-40:]))
+    if logs is not None and output:
+        log = Path(logs) / (re.sub(r'[^\w.-]+', '_', command['name']) + '.log')
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_text(output, encoding='utf-8', errors='replace')
+        entry['log'] = str(log)
+    return entry
 
 
-def lint(repo, base_ref):
+def lint(repo, base_ref, raise_level=None):
+    """raise_level은 기준 test_level을 올리기만 한다(통합 후보에서 `--level full`). 낮추는 값은 무시한다"""
     gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
     gate.mkdir(exist_ok=True)
+    shutil.rmtree(gate / 'logs', ignore_errors=True)
     (gate / 'pass.json').unlink(missing_ok=True)
     (gate / 'lint-result.json').unlink(missing_ok=True)
     attempt = uuid.uuid4().hex
@@ -333,12 +364,21 @@ def lint(repo, base_ref):
         violations.append({'code': 'SIZE-002', 'severity': 'WARNING', 'line': None, 'path': '',
                            'message': f'변경 추가 {additions}줄 > 상한 {limit}줄. 지시서의 예상 변경 규모와 차이·분할하지 않은 이유를 검토하세요'})
     level, policy_digest = policy.at_ref(repo, merge_base)
+    if raise_level in policy.LEVELS and policy.LEVELS.index(raise_level) > policy.LEVELS.index(level):
+        level = raise_level
     code = code_changes(repo, merge_base, head, config)
+    paths = changed_paths(repo, merge_base, head)
     commands = [{**c, 'status': 'skipped', 'reason': f'기준 설정 test_level={level}, 명령 최소 level={c["level"]}'}
                 if not policy.command_selected(c, level) else
+                {**c, 'status': 'skipped', 'reason': PATHS} if skips_paths(c, paths) else
                 {**c, 'status': 'skipped', 'reason': NO_CODE} if skips_tests(c, code) else
-                run_command(repo, c, config['timeout_seconds'])
+                run_command(repo, c, config['timeout_seconds'], gate / 'logs')
                 for c in config['commands']]
+    for c, done in zip(config['commands'], commands):
+        if c.get('required') and c.get('kind') == 'test' and 'seconds' in done and done['seconds'] > SLOW_SECONDS:
+            violations.append({'code': 'LINT-002', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
+                               'message': f'required 시험 명령 {c["name"]}이 {done["seconds"]:.0f}초 걸렸습니다. required는 레벨·문서 변경과 '
+                                          '관계없이 매번 돈다. 개발 중 필요 없으면 level이나 paths로 범위를 좁히세요'})
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '프로젝트 lint 명령이 등록되지 않았습니다. setup에서 기존 도구를 연결하세요'})
@@ -388,6 +428,7 @@ def main():
     parser.add_argument('--repo', required=True, help='검사할 체크아웃 루트 (worker 워크트리)')
     parser.add_argument('--from', required=True, dest='base', help='기준 ref. merge-base 이후 변경만 검사')
     parser.add_argument('--out', help='결과 JSON 경로 (리뷰 디렉터리의 lint.json)')
+    parser.add_argument('--level', choices=policy.LEVELS, help='기준 test_level보다 높일 때만 쓴다(예: 통합 후보 full 회귀)')
     args = parser.parse_args()
     lock = None
     try:
@@ -402,7 +443,7 @@ def main():
             raise ValueError('이 체크아웃의 lint가 실행 중입니다. 종료 후 재시도하세요')
         os.write(fd, str(os.getpid()).encode())
         os.close(fd)
-        result = lint(repo, args.base)
+        result = lint(repo, args.base, args.level)
         write_json(lock.parent / 'fullops-gate/lint-result.json', result)
         if args.out:
             write_json(Path(args.out), result)
@@ -414,9 +455,9 @@ def main():
         if lock is not None:
             lock.unlink(missing_ok=True)
     for c in result['commands']:
-        print(f"[{c['status']}] {c['name']}: {' '.join(c['run'])}")
-        if c['status'] == 'failed':
-            print(c['output_tail'])
+        print(f"[{c['status']}] {c['name']}: {' '.join(c['run'])}" + (f" ({c['seconds']}초)" if 'seconds' in c else ''))
+        if c['status'] in ('failed', 'timeout'):
+            print(c['output_tail'] + (f"\n전체 출력: {c['log']}" if c.get('log') else ''))
     for v in result['violations']:
         print(f"{v['severity']} {v['code']} {v['path']}{':' + str(v['line']) if v['line'] else ''} {v['message']}")
     s = result['summary']

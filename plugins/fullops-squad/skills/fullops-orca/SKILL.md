@@ -78,7 +78,7 @@ worker는 리뷰·병합이 끝날 때까지 retain한다. 병합 후 다음 과
 
 ## dispatch
 
-검증 배정은 `.fullops-squad/rules/common/testing.md`의 `담당과 반복 범위`를 따른다. DEV 완료와 제품 최종 수락을 분리하고, 전체 QA·ART 검수는 안정된 통합 후보에서 지정 담당자가 수행하도록 인계한다. 외부 응답·자료 대기는 담당과 재개 조건으로 관리한다. 같은 완료 검사를 새 과제로 복제하지 않는다.
+검증 배정은 `.fullops-squad/rules/common/testing.md`의 `담당과 반복 범위`를 따른다. DEV 완료와 제품 최종 수락을 분리하고, 전체 QA·ART 검수는 안정된 통합 후보에서 지정 담당자가 수행하도록 인계한다. `level: full`로 내린 lint 시험은 통합 후보에서 담당자가 `lint.py --level full`로 한 번 돌리고 결과 경로를 PLANS.md에 적는다. 외부 응답·자료 대기는 담당과 재개 조건으로 관리한다. 같은 완료 검사를 새 과제로 복제하지 않는다.
 
 1. `fullops-work`의 `역할 인박스 규칙`대로 현재 인박스의 과제 키·내용·권한·선행 조건을 확인한다. spec에는 역할 인박스의 실제 경로를 넣고, 과제명 파일·pending·logs만으로 착수시키지 않는다. `python3 <orca_wait.py> --repo <레포 루트> --settings`로 비밀값 없이 운영 설정 세 개를 조회한다. `ready_timeout_seconds`를 1000배 한 값을 `worker-start --timeout-ms`에 넣고, 로그 조회의 `--limit`은 `log_limit` 이하로 지정한다(명령별 메시지/줄 단위).
 2. coordinator와 worker의 실제 repo id·워크트리·터미널 핸들을 조회해 지시서에 넣는다. 과거 핸들을 재사용하지 않는다.
