@@ -15,7 +15,7 @@ from fnmatch import fnmatch
 
 import jev_find
 import deliverables
-from lint import code_changes, load_config, skips_tests, NO_CODE
+from lint import changed_paths, code_changes, load_config, skips_paths, skips_tests, NO_CODE, PATHS
 from jev_route import product_roles
 from work import active_repo, safe_file, KEY
 from storage import write_json, atomic_write
@@ -435,9 +435,12 @@ def check_lint(repo, result, lint):
     code = code_changes(repo, merge_base, result['head'], settings)
     import policy
     level, policy_digest = policy.at_ref(repo, merge_base)
+    if lint.get('test_level') in policy.LEVELS and policy.LEVELS.index(lint['test_level']) > policy.LEVELS.index(level):
+        level = lint['test_level']  # `lint.py --level`로 올려 돌린 결과는 그 레벨로 확인한다
     if any(c.get('level') is not None for c in settings['commands']) and (
             lint.get('test_level') != level or lint.get('policy_sha256') != policy_digest):
         raise ValueError('테스트 레벨이 기준 설정과 다릅니다. lint.py를 다시 실행하세요')
+    paths = changed_paths(repo, merge_base, result['head'])
     for command in settings['commands']:
         records = [c for c in lint['commands'] if c.get('kind', 'lint') == command.get('kind', 'lint') and c['name'] == command['name']
                    and c.get('run') == command['run'] and c.get('cwd', '.') == command.get('cwd', '.')]
@@ -447,6 +450,8 @@ def check_lint(repo, result, lint):
             if records[0]['status'] != 'skipped' or not records[0].get('reason', '').strip():
                 raise ValueError('레벨 범위 밖 테스트는 skipped와 사유를 기록하세요')
             continue
+        if skips_paths(command, paths) and records[0]['status'] == 'skipped' and records[0].get('reason') == PATHS:
+            continue  # paths와 맞는 변경이 없는 명령은 실행하지 않는다.
         if skips_tests(command, code) and records[0]['status'] == 'skipped' and records[0].get('reason') == NO_CODE:
             continue  # 문서·설정만 바뀐 변경은 test 명령을 실행하지 않는다.
         if records[0]['status'] == 'passed' and records[0].get('exit_code') != 0:

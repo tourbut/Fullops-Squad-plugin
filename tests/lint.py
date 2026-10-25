@@ -404,6 +404,54 @@ def main():
     print('PASS: changed-only scope, size growth, suppressions, eval, secrets, custom rules, commands, review lint gate')
 
 
+def command_scope():
+    """paths로 명령 범위를 좁히고, 명령별 시간·전체 출력 로그·느린 required 경고·--level 올림을 남긴다"""
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-scope-') as tmp:
+        repo = Path(tmp)
+
+        def git(*args):
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+
+        def commit():
+            git('add', '-A')
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-q', '-m', 'test')
+            return git('rev-parse', 'HEAD')
+
+        git('init', '-q', '-b', 'main')
+        subprocess.run([PY, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'dev', '--local-only'],
+                       check=True, capture_output=True)
+        config_path = repo / '.fullops-squad/lint/lint.json'
+        noisy = 'import sys; sys.stdout.write("line\\n" * 100); sys.exit(1)'
+        config_path.write_text(json.dumps({**json.loads(config_path.read_text()), 'commands': [
+            {'name': 'server test', 'kind': 'test', 'required': True, 'paths': ['server/**'], 'run': [PY, '-c', 'pass']},
+            {'name': 'web', 'kind': 'test', 'required': True, 'paths': ['web/**'], 'run': [PY, '-c', noisy]},
+            {'name': 'regression', 'kind': 'test', 'level': 'full', 'run': [PY, '-c', 'pass']}]}))
+        base = commit()
+        (repo / 'web').mkdir()
+        (repo / 'web/app.py').write_text('value = 1\n')
+        commit()
+        with patch.object(checks, 'SLOW_SECONDS', -1):
+            result = checks.lint(repo, base)
+        server, web, regression = result['commands']
+        assert server['status'] == 'skipped' and server['reason'] == checks.PATHS, server
+        assert web['status'] == 'failed' and web['seconds'] >= 0 and len(web['output_tail'].splitlines()) == 40, web
+        assert Path(web['log']).read_text(encoding='utf-8').count('line') == 100, '전체 출력은 로그 파일에 남는다'
+        assert regression['status'] == 'skipped' and result['test_level'] != 'full'
+        assert [v['path'] for v in result['violations'] if v['code'] == 'LINT-002'] == [checks.CONFIG]
+        raised = checks.lint(repo, base, 'full')
+        assert raised['test_level'] == 'full' and raised['commands'][2]['status'] == 'passed'
+        assert checks.lint(repo, base, 'minimal')['test_level'] == result['test_level'], '--level은 낮추지 못한다'
+        try:
+            config_path.write_text(json.dumps({**json.loads(config_path.read_text()), 'commands': [
+                {'name': 'bad', 'paths': [], 'run': [PY, '-V']}]}))
+            commit()
+            checks.load_config(repo, 'HEAD')
+        except ValueError as error:
+            assert 'paths' in str(error)
+        else:
+            raise AssertionError('빈 paths를 받아들임')
+
+
 def stale_lock():
     with tempfile.TemporaryDirectory(prefix='fullops-lint-lock-') as tmp:
         lock = Path(tmp) / 'fullops-lint.lock'
@@ -419,6 +467,7 @@ def stale_lock():
 if __name__ == '__main__':
     command_cwd_aliases()
     stale_lock()
+    command_scope()
     main()
     anti_slop()
     design_slop()
