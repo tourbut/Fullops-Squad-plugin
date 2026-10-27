@@ -1,0 +1,67 @@
+{
+  "version": "jev-route-v3",
+  "task_key": "GH-1369701248-109-A2",
+  "requested_model": "~typesafe/jev-latest",
+  "route": "simple",
+  "role": "dev",
+  "deliverables": [
+    "D11"
+  ],
+  "thresholds": {
+    "simple": 0.8,
+    "role": 0.6,
+    "deliverable": 0.5
+  },
+  "answers": {
+    "scope": {
+      "choice": "simple",
+      "probabilities": {
+        "simple": 1,
+        "design": 0
+      },
+      "confidence": 1
+    },
+    "role": {
+      "choice": "dev",
+      "probabilities": {
+        "dev": 1
+      },
+      "confidence": 1
+    },
+    "docs": {
+      "D01": 0.06,
+      "D02": 0.08,
+      "D03": 0.04,
+      "D04": 0.05,
+      "D05": 0.05,
+      "D06": 0.04,
+      "D07": 0.03,
+      "D08": 0.04,
+      "D09": 0.04,
+      "D10": 0.06,
+      "D11": 0.69,
+      "D12": 0.13,
+      "D13": 0.06
+    }
+  },
+  "usage": {
+    "input_tokens": 2030,
+    "output_tokens": 300,
+    "cost": 8.526e-05
+  },
+  "error": null,
+  "docs_status": "complete",
+  "unresolved_deliverables": [],
+  "additional_deliverables": [],
+  "latency_seconds": 0.755,
+  "response_model": "typesafe/jev-1.14-20261014",
+  "model": {
+    "agent": "claude",
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "source": "user"
+  },
+  "head": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "requires_packet": true
+}
