@@ -185,6 +185,9 @@ def main():
         fails(lambda: mode.checkpoint(store, api, token, 101, 'reviewing', receipt=received), '실행')
         mode.checkpoint(store, api, token, 101, 'running', received=True)  # receipt 파일 없이 lease로 수신 기록
         assert store.read()['jobs']['101']['receipt'] == received
+        from flow_gate import shell_commands
+        assert shell_commands('git push origin HEAD:refs/heads/x 2>&1 | tail -3') == [
+            ['git', 'push', 'origin', 'HEAD:refs/heads/x'], ['tail', '-3']]  # fd 복제가 push 인자를 바꾸지 않는다
         # 처리한 orchestration delivery는 다음 wait의 --ack로 넘겨 Orca에 직접 ack하지 않아도 된다.
         acks = []
         def check(args, ack):
