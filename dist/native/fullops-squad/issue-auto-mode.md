@@ -31,6 +31,17 @@ credential 문자열이 포함된 API 페이지는 ETag 캐시를 저장하지 �
 
 Claude의 Bash 허용 규칙과 리다이렉트 대상 파일 권한은 별도다. i-Docs Claude 2.1.294에서 정확한 enable 명령을 허용해도 작업 공간 밖 `/tmp` 출력은 자동 심사에 거부됐고, 명령 인자·규칙을 유지한 채 작업 공간 안의 Git 제외 0600 출력 파일로 바꾸자 활성화됐다. [Claude 리다이렉트 권한](https://code.claude.com/docs/en/permissions#redirections)을 확인한다. 호스트가 명령을 거부하면 해당 명령/경로와 사용자 승인 범위를 확인하고 정상 승인 경로로 처리한다. 전역 정책이나 우회 모드를 변경하지 않는다.
 
+## 실사용에서 막힌 지점과 수정 (1.11.0)
+
+KnowsLink(10/12)와 erden-godot(10/09)에서 자동 모드가 첫 이슈에서 멈췄다. 원인은 coor 명령을 거르는 hook의 과차단이었다.
+
+- pause·lease 만료 뒤 coor의 모든 명령(`disable`·파일 읽기 포함)이 막혀 세션이 갇혔다. 이제 lease가 유효하지 않으면 coor는 제한을 받지 않는다.
+- 보류·시간 한도 초과에서 조회까지 막혔다. 이제 배정·push·GitHub 변경만 막는다. 시간 한도는 새 coor가 인계받을 때 다시 센다.
+- 플러그인 캐시(`~/.codex`·`~/.claude`) 읽기, 설정 저장소의 `gh --repo` 조회, `git -C <체크아웃>` 조회, `--help`가 막혔다. 이제 허용한다.
+- 수신 receipt 파일 경로가 정해지지 않아 `.env*`에 쓰다 막혔다. `checkpoint --received`로 파일 없이 기록한다.
+- 토큰 사용량을 측정하지 못하면 보류하던 규칙을 없앴다.
+- `blocked` 이벤트에 사유를 함께 남긴다.
+
 ## 실행한 검증
 
 - `python3 tests/issue-mode.py`: 격리 Git 저장소, 결정적 GitHub/Orca 대역. 기본 OFF와 범위 선택, 60초 경계, remote/push 권한, stable ID, PR/과거/close 제외, FIFO/동시 claim, 네트워크 실패 cursor 보존, 질문 응답 유실 조정, 같은 계정의 질문 제외, 타인/중복 답변 제외, 충분성 판단과 새 attempt, 댓글 삭제/본문 변경 보류, native session 종료, 새 owner fencing/인계, scope/review 실패, 304 Link/외부 redirect 차단.
