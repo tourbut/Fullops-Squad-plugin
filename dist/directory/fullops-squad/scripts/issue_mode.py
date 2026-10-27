@@ -433,7 +433,7 @@ def claim(store, github, token):
 
 
 def checkpoint(store, github, token, identifier, phase, *, reason='', resume='', dependencies=None,
-               tokens=0, receipt=None):
+               tokens=0, receipt=None, received=False):
     saved = store.read()
     guard(saved, token)
     previous = saved['jobs'][str(identifier)]
@@ -445,6 +445,9 @@ def checkpoint(store, github, token, identifier, phase, *, reason='', resume='',
             raise ValueError('이전 coor의 attempt입니다. 먼저 정본 receipt를 reconcile하세요')
         if job['task_key'] != previous['task_key'] or job['digest'] != previous['digest']:
             raise ValueError('작성자 검사 중 attempt/snapshot이 바뀌었습니다')
+        if received and receipt is None:
+            # lease token이 현재 coor를 증명한다. 수신 사실만 남기려고 별도 파일을 쓰게 하지 않는다.
+            receipt = {'task_key': job['task_key'], 'session': owner['session'], 'received': True}
         if type(tokens) is not int or tokens < 0:
             raise ValueError('실제 확인한 모델 사용량만 양의 정수/0으로 기록하세요')
         job['tokens'] += tokens
@@ -702,7 +705,7 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
                 raise ValueError('dispatch 또는 인계 상태가 바뀌었습니다; 다시 확인하세요')
             current['history'].append({'phase': 'reconciled_not_dispatched', 'reason': reason,
                                        'run': run, 'tasks': task_listing, 'workers': workers, 'receipt': current.get('receipt')})
-            current.update(status='claimed', epoch=owner['epoch'], run=owner['run'], receipt=None,
+            current.update(status='claimed', epoch=owner['epoch'], run=owner['run'], receipt=None, started=time.time(),
                            reason=reason, resume='현재 coor의 새 수신 receipt로 running checkpoint')
         return
     relevant = [t for t in tasks if integration.key_present(job['task_key'], str(t.get('spec') or ''))]
@@ -763,7 +766,7 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
             raise ValueError('worker 조회 중 하위 배정/attempt가 바뀌었습니다; 다시 sync하세요')
         job = current
         job.update(status=('held' if failed else job['status']) if syncing else ('running' if live else 'held'), epoch=owner['epoch'],
-                   settled=bool(not live and exited),
+                   settled=bool(not live and exited), **({} if syncing else {'started': time.time()}),
                    reason=('기존 task 실패/취소: ' if failed else '') + reason, resume='기존 worker 완료 후 검증; 같은 task를 재배정하지 않음')
         job['history'].append(json.loads(redact(json.dumps({'phase': 'reconciled', 'reason': reason, 'tasks': relevant,
                                                           'workers': workers, 'child_runs': child_receipts}))))
@@ -893,6 +896,33 @@ def dispatch_run(store, state, session, context, job, words):
     return run, binding
 
 
+GIT_READ = {'status', 'log', 'diff', 'show', 'rev-parse', 'merge-base', 'ls-files', 'cat-file', 'rev-list', 'describe', 'blame', 'grep'}
+GH_READ = ('view', 'list', 'status', 'diff', 'checks')
+# 플러그인 캐시의 스킬·스크립트는 읽어야 하지만 host 설정·hook 변경은 막는다.
+HOST_READERS = {'rg', 'grep', 'findstr', 'cat', 'type', 'head', 'tail', 'wc', 'ls', 'dir', 'get-content', 'gc',
+                'select-string', 'get-childitem', 'gci', 'test-path'}
+
+
+def git_read(words):
+    """`git -C <경로>`처럼 다른 체크아웃을 가리키는 명령은 조회 subcommand만 허용한다."""
+    index = 1
+    while index < len(words) and words[index].startswith('-'):
+        index += 2 if words[index] in ('-C', '--git-dir', '--work-tree') else 1
+    sub = words[index] if index < len(words) else ''
+    if sub == 'branch':
+        return all(w in ('--show-current', '--list', '-a', '-r', '-v', '-vv') for w in words[index + 1:])
+    return sub in GIT_READ
+
+
+def outward(words):
+    """배정·push·GitHub 변경처럼 작업 공간 밖에 효과를 내는 명령."""
+    if not words or '--help' in words:
+        return False
+    executable = Path(words[0]).name.lower().removesuffix('.exe')
+    return ('worker-start' in words or (executable == 'git' and 'push' in words) or
+            (executable == 'gh' and not any(w in words for w in GH_READ)))
+
+
 def boundary(repo, session, command, files, commands, context=None):
     """기존 flow-gate의 해석 가능한 명령/파일에 자동 작업의 추가 범위 검사를 적용한다."""
     if not session:
@@ -922,21 +952,11 @@ def boundary(repo, session, command, files, commands, context=None):
     jobs = [j for j in state['jobs'].values() if j['status'] not in FINAL and j.get('epoch') == owner['epoch']]
     if not jobs and job is None:
         return None
-    if coordinator and len(commands) == 1 and not files:
-        words = commands[0]
-        if len(words) > 2 and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name.lower()) and (
-                Path(words[1].strip('\'"')).resolve() == Path(__file__).resolve()):
-            index = 2
-            while index + 1 < len(words) and words[index] in ('--repo', '--orca'):
-                if words[index] == '--repo' and Path(words[index + 1].strip('\'"')).resolve() != Path(repo).resolve():
-                    break
-                index += 2
-            if words[index:] in (['status'], ['disable', '--session', owner['session']]):
-                return None  # 만료 후에도 현재 소유자가 상태를 확인하고 안전하게 중지할 수 있어야 한다.
     try:
         guard(state, owner['token'])
     except ValueError as error:
-        return str(error)
+        # OFF·만료·종료된 lease의 coor는 자동 실행이 아니라 사용자가 직접 운영한다. 이전 worker만 fencing한다.
+        return None if coordinator else str(error)
     job = job or next((j for j in jobs if j['status'] in ACTIVE), jobs[-1])
     control = any('issue_mode.py' in ' '.join(w) and any(c in w for c in
                   ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))
@@ -945,23 +965,33 @@ def boundary(repo, session, command, files, commands, context=None):
         return None
     if control and not coordinator:
         return '자동 worker는 coor의 이슈 설정/상태를 변경할 수 없습니다'
+    hold = None
     if owner['paused'] or job['status'] not in ACTIVE or job['status'] == 'reconciling':
-        return '자동 작업이 보류/정책 변경/인계 확인 중입니다. 증거를 보존하고 checkpoint를 처리하세요'
-    if str(job['snapshot']['user']['id']) not in state['config']['allowed']:
-        return '자동 작업 작성자의 allowlist가 철회됐습니다'
-    if time.time() - job.get('started', time.time()) > state['config']['max_seconds'] or job['tokens'] > state['config']['max_tokens']:
-        return '자동 이슈 실행 시간/보고된 모델 사용량 한도를 초과했습니다'
+        hold = '자동 작업이 보류/정책 변경/인계 확인 중입니다. 증거를 보존하고 checkpoint를 처리하세요'
+    elif str(job['snapshot']['user']['id']) not in state['config']['allowed']:
+        hold = '자동 작업 작성자의 allowlist가 철회됐습니다'
+    elif time.time() - job.get('started', time.time()) > state['config']['max_seconds'] or job['tokens'] > state['config']['max_tokens']:
+        hold = '자동 이슈 실행 시간/보고된 모델 사용량 한도를 초과했습니다. checkpoint --phase held로 보류하세요'
+    # coor는 보류 중에도 상태 확인·기록을 계속해야 한다. 배정·push·GitHub 변경만 막는다.
+    if hold and (not coordinator or any(outward(w) for w in commands)):
+        return hold
     for words in commands:
-        if not words:
+        if not words or '--help' in words:
             continue
         executable = Path(words[0]).name.lower().removesuffix('.exe')
-        if any(re.search(r'(?:^|[/\\])(?:\.env[^/\\]*|auth\.json|credentials\.json|\.codex|\.claude)(?:$|[/\\])', w, re.I) for w in words):
-            return '자동 이슈에서 비밀정보/host 권한 파일을 읽거나 변경할 수 없습니다'
+        if any(re.search(r'(?:^|[/\\])(?:\.env[^/\\]*|auth\.json|credentials\.json)$', w.strip('\'"'), re.I) for w in words):
+            return '자동 이슈에서 비밀정보 파일을 읽거나 변경할 수 없습니다'
+        if executable not in HOST_READERS and any(
+                re.search(r'(?:^|[/\\])\.(?:codex|claude)(?:$|[/\\])', w, re.I) for w in words):
+            return '자동 이슈에서 host 권한 파일은 읽기만 할 수 있습니다'
         if 'issue_mode.py' in ' '.join(words) and 'configure' in words:
             return 'GitHub 이슈/댓글로 자동 작업 설정과 allowlist를 변경할 수 없습니다'
         if executable == 'git':
-            if any(w in words for w in ('-C', '-c', '--git-dir', '--work-tree', '--force', '-f', '--force-with-lease')) or any(
-                    w.startswith(('--config-env', '--git-dir=', '--work-tree=', '--exec-path', '-c', '-C')) for w in words[1:]):
+            located = any(w in words for w in ('-C', '--git-dir', '--work-tree')) or any(
+                w.startswith(('--git-dir=', '--work-tree=')) for w in words[1:])
+            if any(w in words for w in ('--force', '-f', '--force-with-lease')) or any(
+                    w.startswith(('--config-env', '--exec-path', '-c')) for w in words[1:]) or (
+                    located and not git_read(words)):
                 return '자동 작업의 Git 저장소/강제 변경 범위를 확인할 수 없습니다'
             if any(w in words for w in ('clean', 'reset')) or ('merge' in words and integration.git(repo, 'branch', '--show-current') == integration.config(repo)['git']['base']):
                 return '자동 작업의 main 병합/파괴적 Git 명령은 사전 범위 밖입니다'
@@ -987,11 +1017,14 @@ def boundary(repo, session, command, files, commands, context=None):
         if executable == 'gh':
             if any(w in words for w in ('merge', 'close', '--ready', 'api', 'auth', 'repo', 'release', 'workflow', 'run', 'secret', 'variable', 'extension')):
                 return '자동 모드의 병합/종료/배포/credential/임의 API 조작은 허용하지 않습니다'
-            if '--repo' in words or '-R' in words or any(w.startswith(('--repo=', '-R=')) for w in words):
+            target = next((w.split('=', 1)[1] for w in words if w.startswith(('--repo=', '-R='))), None) or next(
+                (words[i + 1] for i, w in enumerate(words[:-1]) if w in ('--repo', '-R')), None)
+            if (target or any(w in ('--repo', '-R') for w in words)) and (
+                    str(target).lower() != state['config']['repository'].lower()):
                 return '자동 모드에서 GitHub 저장소를 임의 변경할 수 없습니다'
             if 'create' in words and ('pr' not in words or '--draft' not in words):
                 return '자동 모드의 생성은 같은 저장소 draft PR만 허용합니다'
-            if not any(w in words for w in ('view', 'list', 'status', 'diff', 'checks', 'create')):
+            if not any(w in words for w in (*GH_READ, 'create')):
                 return 'GitHub 변경은 draft PR 생성과 durable outbox 질문만 허용합니다'
             if 'create' in words:
                 expected = state['config']['branch_prefix'] + f"{job['snapshot']['number']}-a{job['attempt']}"
@@ -1178,6 +1211,7 @@ def main():
             p.add_argument('--resume', default='')
             p.add_argument('--dependencies', help='검토한 issue ID JSON 배열. 독립이면 []')
             p.add_argument('--receipt', help='실제 coor 수신/task/worker 증거 JSON 파일')
+            p.add_argument('--received', action='store_true', help='현재 lease coor가 반환된 task를 수신했음을 기록한다(receipt 파일 불필요)')
             p.add_argument('--tokens', type=int, default=0)
         elif name == 'question':
             p.add_argument('--body-file', required=True)
@@ -1249,7 +1283,8 @@ def main():
         elif args.command == 'checkpoint':
             result = checkpoint(store, github, args.token, args.issue_id, args.phase, reason=args.reason,
                                 resume=args.resume, dependencies=json.loads(args.dependencies) if args.dependencies else None,
-                                tokens=args.tokens, receipt=json.loads(local_file(store, args.receipt).read_text()) if args.receipt else None)
+                                tokens=args.tokens, receipt=json.loads(local_file(store, args.receipt).read_text()) if args.receipt else None,
+                                received=args.received)
         elif args.command == 'question':
             result = question(store, github, args.token, args.issue_id, local_file(store, args.body_file).read_text(encoding='utf-8'))
         elif args.command == 'answers':
@@ -1269,7 +1304,8 @@ def main():
             return 0  # 종료 hook은 제품 작업을 막지 않는다. lease도 별도로 만료된다.
         if 'store' in locals() and not isinstance(error, sqlite3.Error):
             with store.edit() as state:
-                record(state, 'blocked', operation=args.command, error_type=type(error).__name__)
+                record(state, 'blocked', operation=args.command, error_type=type(error).__name__,
+                       reason=str(error)[:300] if isinstance(error, (ValueError, APIError)) else '')
         print(json.dumps({'status': 'blocked', 'reason': str(error) if isinstance(error, (ValueError, APIError)) else type(error).__name__}, ensure_ascii=False))
         return 2
 

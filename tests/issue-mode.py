@@ -181,8 +181,27 @@ def main():
         received = {'task_key': job['task_key'], 'session': 'coor', 'received': True}
         fails(lambda: mode.checkpoint(store, api, token, 101, 'running'), 'receipt')
         fails(lambda: mode.checkpoint(store, api, token, 101, 'reviewing', receipt=received), '실행')
-        mode.checkpoint(store, api, token, 101, 'running', receipt=received)
+        mode.checkpoint(store, api, token, 101, 'running', received=True)  # receipt 파일 없이 lease로 수신 기록
+        assert store.read()['jobs']['101']['receipt'] == received
         assert mode.claim(store, api, token) is None  # busy: enqueue만, 다른 issue dispatch 없음
+        # 실사용에서 coor를 멈춘 조회 명령은 통과하고, 비밀정보·다른 저장소·다른 체크아웃 변경은 막는다.
+        for words in (['rg', 'def', str(Path.home() / '.codex/plugins/cache/fullops-squad/scripts/issue_mode.py')],
+                      ['git', '-C', '../dev', 'status', '--short'], ['git', '-C', '../dev', 'branch', '--show-current'],
+                      ['gh', 'issue', 'view', '1', '--repo', 'owner/service'],
+                      ['orca', 'orchestration', 'worker-start', '--help']):
+            assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None, words
+        for words in (['Get-Content', '.fullops-squad/.env'], ['git', '-C', '../dev', 'commit', '-m', 'x'],
+                      ['git', '-C', '../dev', 'branch', '-D', 'x'], ['gh', 'issue', 'view', '1', '--repo', 'other/repo'],
+                      ['git', '-c', 'core.sshCommand=x', 'status'],
+                      ['Set-Content', str(Path.home() / '.codex/config.toml'), 'x']):
+            assert mode.boundary(root, 'provider', ' '.join(words), [], [words]), words
+        with store.edit() as state:
+            state['jobs']['101']['started'] -= state['config']['max_seconds'] + 1
+        assert mode.boundary(root, 'provider', 'orca terminal list', [], [['orca', 'terminal', 'list']]) is None
+        start = ['orca', 'orchestration', 'worker-start', '--run', 'run', '--spec', job['task_key']]
+        assert '한도' in mode.boundary(root, 'provider', ' '.join(start), [], [start])
+        with store.edit() as state:
+            state['jobs']['101']['started'] = time.time()
 
         # POST는 성공했지만 응답이 유실된다. outbox 재조정은 기존 comment를 채택한다.
         api.issues[0]['user']['login'] = 'renamed'
@@ -440,7 +459,12 @@ def main():
         with store.edit() as state:
             allowed = state['config']['allowed']
             state['config']['allowed'] = {}
-        assert mode.boundary(root, 'provider', 'python3 build.py', [], [['python3', 'build.py']])
+        # 보류 사유가 있어도 coor의 조회·기록은 계속되고, 배정·push·GitHub 변경만 막힌다.
+        assert mode.boundary(root, 'provider', 'python3 build.py', [], [['python3', 'build.py']]) is None
+        dispatch = ['orca', 'orchestration', 'worker-start', '--run', 'run']
+        assert '철회' in mode.boundary(root, 'provider', ' '.join(dispatch), [], [dispatch])
+        assert '철회' in mode.boundary(root, 'provider', 'gh issue comment 1', [], [['gh', 'issue', 'comment', '1']])
+        assert mode.boundary(root, 'provider', 'gh issue view 1', [], [['gh', 'issue', 'view', '1']]) is None
         with store.edit() as state:
             state['config']['allowed'] = allowed
         for words in (['gh', 'pr', 'merge', '1'], ['gh', 'issue', 'close', '1'], ['curl', 'https://evil'],
@@ -453,7 +477,8 @@ def main():
         api.issues[0]['body'] = 'edited externally'
         mode.poll(store, api, token)
         assert store.read()['jobs']['101']['status'] == 'changed'
-        assert mode.boundary(root, 'provider', 'python3 build.py', [], [['python3', 'build.py']])
+        assert mode.boundary(root, 'provider', 'python3 build.py', [], [['python3', 'build.py']]) is None
+        assert '보류' in mode.boundary(root, 'provider', ' '.join(dispatch), [], [dispatch])
         api.issues[0]['body'] = 'requirement'
         # 사용한 댓글 편집은 snapshot을 교체하지 않고 changed로 보존한다.
         old_digest = store.read()['comments']['1001']['digest']
@@ -487,11 +512,10 @@ def main():
         for words in (['python3', script, '--repo', str(root), '--orca', 'orca', 'status'],
                       ['python3', script, 'disable', '--session', 'new-coor']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None
-        for words in (['python3', 'build.py', script, 'status'], ['python3', '-c', 'product_change()', script, 'status'],
-                      ['python3', script, '--repo', str(root / 'foreign'), 'status'],
-                      ['python3', script, 'disable', '--session', 'foreign']):
-            assert mode.boundary(root, 'provider', ' '.join(words), [], [words])
-        assert mode.boundary(root, 'provider', 'python3 build.py', [], [['python3', 'build.py']])
+        # 만료된 lease의 coor는 자동 실행 중이 아니므로 사용자가 직접 운영한다(PowerShell `&` 호출 포함).
+        for words in (['&', 'python3.exe', script, '--repo', '.', 'disable', '--session', 'new-coor'],
+                      ['python3', 'build.py'], ['gh', 'issue', 'list']):
+            assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None
 
         # 실제 review gate가 실패하면 completed가 되지 않는다.
         with store.edit() as state:
@@ -611,8 +635,11 @@ def main():
             state['jobs']['122'].pop('child_runs')
         with patch.object(empty_run, 'call', return_value={'tasks': [], 'count': 0, 'workers': []}):
             fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), 'dispatch')
+        with nstore.edit() as state:
+            state['jobs']['122']['started'] = 0  # 이전 coor 기간은 새 coor의 실행 시간 한도에 넣지 않는다.
         mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manually verified owner stopped before dispatch', not_dispatched=True)
         resumed = nstore.read()['jobs']['122']
+        assert time.time() - resumed['started'] < 60
         assert resumed['status'] == 'claimed' and resumed['epoch'] == next_owner['epoch']
         assert resumed['attempt'] == 1 and resumed['task_key'] == pending['task_key'] and resumed['receipt'] is None
         mode.checkpoint(nstore, napi, next_owner['token'], 122, 'running',
