@@ -1,0 +1,175 @@
+{
+ "packet_input_sha256": "cb398bf128ad0117c2c527d8011fbbc5e82e2a85b8c229c5f963b1ab2b2fd01e",
+ "attempt": "de6ced4a05bd49ba9aba29b492ee92b6",
+ "items": [
+  {
+   "path": ".fullops-squad/FULLOPS.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/project.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/README.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/coding-style.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/security.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/testing.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".github/workflows/ci.yml",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "scripts/build.py",
+   "category": "impact_check",
+   "status": "completed",
+   "reason": "build.py 실행해 dist 사본 생성"
+  },
+  {
+   "path": "adapters/claude-directory/README.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "bin/fullops-squad.cjs",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+   "category": "document_update",
+   "status": "completed",
+   "reason": "build.py로 재빌드해 커밋"
+  },
+  {
+   "path": "dist/native/fullops-squad/issue-auto-mode.md",
+   "category": "document_update",
+   "status": "completed",
+   "reason": "build.py로 재빌드해 커밋"
+  },
+  {
+   "path": "docs/development.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/diagnostics/search-eval-issue-18.json",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-linux-2026-10-13/baseline-npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-linux-2026-10-13/latest-npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-2026-10-13/final-checks/npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-2026-10-13/final-source-checks/npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-completion-2026-10-13/issue-closure-spec-audit-r01.json",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/issue-auto-mode.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "mods/fullops-meter/hooks/meter.ts",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "mods/fullops-meter/hooks/worker-cards.tsx",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "mods/fullops-meter/hooks/workers.ts",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/scripts/deliverables.py",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/skills/fullops-issues/SKILL.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/skills/fullops-orca/SKILL.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "tests/integration-gate.py",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  }
+ ],
+ "uncertainty_review": "partial 패킷. 대상은 dist 사본 2개이고 영향 경로(build.py, CI dist 검사)만 수동 확인했다."
+}
