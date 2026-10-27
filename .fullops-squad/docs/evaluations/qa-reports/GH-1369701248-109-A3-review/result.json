@@ -1,0 +1,152 @@
+{
+  "base": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "head": "ede068c8b81e7f900bca7cf638907d4cd21e30c0",
+  "rule_sha256": "34c8f6e8fc6b3173858399ed6415b38056c60c83f5aa93bb908b54ab6c588657",
+  "ocr_version": "open-code-review v1.13.3 (375f64c) windows/amd64\nbuilt at: 2026-10-22T04:24:34Z\nhttps://github.com/alibaba/open-code-review",
+  "prepared_at": "2026-10-27T15:25:49+00:00",
+  "reviewer": "coordinator session 51d1afee-8a9f-4cd7-bbcb-1e8090f7b4ba (claude-opus-5-5 high, 구현자 A2 b3603ce8/A3 fb10c64c와 다른 세션)",
+  "conclusion": "수락. 제품 변경은 원본 문서 6줄과 동일 blob 생성 사본 2개뿐이며 작성자 답변 2건과 일치한다. lint ERROR 0. critical/high 없음.",
+  "files": [
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A2-test/report.md",
+      "status": "added",
+      "insertions": 14,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "전문 확인. front matter 있음, lint 결과와 dist 재빌드 필요 판단 기록이 실제(ci.yml:46)와 일치."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A3-test/report.md",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "전문 확인. 재빌드 결과와 되돌린 파일 없음 기록. blob 동일성으로 교차 확인."
+    },
+    {
+      "path": "docs/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "diff 6줄 직접 확인. 1.11.0 절의 checkpoint --received 항목 아래에 들여쓴 코드 블록 1개(답변 6445215456의 B 최소 형태, --dependencies 없음)와 조건 한 줄. 목록 들여쓰기 유지, 명령 인자는 issue_mode.py checkpoint 인자와 일치(--token-file/--issue-id/--phase/--received)."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A1-route.json",
+      "status": "added",
+      "insertions": 67,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A2-packet-outcomes.json",
+      "status": "added",
+      "insertions": 181,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A2-packet.json",
+      "status": "added",
+      "insertions": 9148,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A2-route.json",
+      "status": "added",
+      "insertions": 76,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A3-packet-outcomes.json",
+      "status": "added",
+      "insertions": 175,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A3-packet.json",
+      "status": "added",
+      "insertions": 7026,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A3-route.json",
+      "status": "added",
+      "insertions": 74,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/history/GH-1369701248-109-A2-route-afd293d5f96a46d18d1b1d7f1a954097.json",
+      "status": "added",
+      "insertions": 67,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/history/GH-1369701248-109-A3-route-bcde6f5104b34ad0a7a71d3d267c242b.json",
+      "status": "added",
+      "insertions": 65,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": ".fullops-squad/handovers/logs/2026-10-28_to_dev.md",
+      "status": "added",
+      "insertions": 282,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 존재와 무결성을 확인한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "reviewed",
+      "reason": "scripts/build.py:47 생성 사본. blob 93f55b56이 원본과 동일(git rev-parse). 답변 6445744477의 A(사본 포함)와 일치, CI ci.yml:46 dist diff 검사 통과 조건 충족."
+    },
+    {
+      "path": "dist/native/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "reviewed",
+      "reason": "scripts/build.py:47 생성 사본. blob 93f55b56이 원본과 동일(git rev-parse). 답변 6445744477의 A와 일치."
+    }
+  ],
+  "findings": [],
+  "review_schema_version": 2,
+  "independence": {
+    "implementer_session": "fb10c64c-d881-4466-8c84-7d0999a0affc",
+    "reviewer_session": "51d1afee-8a9f-4cd7-bbcb-1e8090f7b4ba",
+    "snapshot_path": "D:\\workspace\\.fullops-review-5be09f1cdd4c462abb3b3d5bef04a64f",
+    "snapshot_head": "ede068c8b81e7f900bca7cf638907d4cd21e30c0",
+    "read_only": true
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": "D:/workspace/Fullops-Squad-plugin",
+  "from": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "to": "ede068c8b81e7f900bca7cf638907d4cd21e30c0",
+  "merge_base": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "total_files": 15,
+  "reviewable_count": 3,
+  "excluded_count": 12,
+  "total_insertions": 17206,
+  "total_deletions": 0,
+  "reviewable_files": [
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A2-test/report.md",
+      "status": "added",
+      "insertions": 14,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A3-test/report.md",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0
+    },
+    {
+      "path": "docs/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A1-route.json",
+      "status": "added",
+      "insertions": 67,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A2-packet-outcomes.json",
+      "status": "added",
+      "insertions": 181,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A2-packet.json",
+      "status": "added",
+      "insertions": 9148,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A2-route.json",
+      "status": "added",
+      "insertions": 76,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A3-packet-outcomes.json",
+      "status": "added",
+      "insertions": 175,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A3-packet.json",
+      "status": "added",
+      "insertions": 7026,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/GH-1369701248-109-A3-route.json",
+      "status": "added",
+      "insertions": 74,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/history/GH-1369701248-109-A2-route-afd293d5f96a46d18d1b1d7f1a954097.json",
+      "status": "added",
+      "insertions": 67,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/history/GH-1369701248-109-A3-route-bcde6f5104b34ad0a7a71d3d267c242b.json",
+      "status": "added",
+      "insertions": 65,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/handovers/logs/2026-10-28_to_dev.md",
+      "status": "added",
+      "insertions": 282,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    }
+  ],
+  "fullops_review_schema_version": 2
+}

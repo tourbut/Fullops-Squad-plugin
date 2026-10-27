@@ -1,0 +1,24 @@
+{
+  "base": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "head": "ede068c8b81e7f900bca7cf638907d4cd21e30c0",
+  "independence": {
+    "implementer_session": "fb10c64c-d881-4466-8c84-7d0999a0affc",
+    "reviewer_session": "51d1afee-8a9f-4cd7-bbcb-1e8090f7b4ba",
+    "snapshot_path": "D:\\workspace\\.fullops-review-5be09f1cdd4c462abb3b3d5bef04a64f",
+    "snapshot_head": "ede068c8b81e7f900bca7cf638907d4cd21e30c0",
+    "read_only": true
+  },
+  "live_check": "passed",
+  "evidence_sha256": {
+    "lint.json": "774e9f0f25bf672b221f43c07e7df67c50114f61cd4101a3037494cf56693557",
+    "preview.json": "5e4fcc828a5cb9f4874e4f5acad0a6a30b0efc2b45f16ab52ed9a4cf1bcf649c",
+    "report.md": "a002e2af41d222238a85ded23949f84deafe98926a09366f14c36719ce108387",
+    "result.json": "0a94eb6bf73072a9e5a9527e165e590c1c5e790aa0fbe0b99db11555771fc996",
+    "rules.json": "1b4120a7c6e06c59a9bf1bffc0d9568639da0f98fd5b32b3a397d0ba5179178e"
+  },
+  "released_dispatch": null,
+  "release_observation": {
+    "terminals": 0
+  },
+  "state": "removed"
+}

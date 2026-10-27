@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "groups": [
+    {
+      "group_id": 1,
+      "source": "custom",
+      "pattern": "**/*.md",
+      "files": [
+        ".fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A2-test/report.md",
+        ".fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A3-test/report.md",
+        "docs/issue-auto-mode.md"
+      ],
+      "rule": "Check changed instructions and documents against actual behavior, requirements and linked sources. Identify contradictions, missing required artifacts and broken references. Preserve the project's document templates and tone; report only concrete defects."
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "attempt": "45d60e8e0d004feab2624c7d5bb4eb7a",
+  "base": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "merge_base": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "head": "ede068c8b81e7f900bca7cf638907d4cd21e30c0",
+  "config_sha256": "a105150a2e1f24634e1860497bf58c4f5e8862884a114539861e35f522bc7151",
+  "test_level": "lite",
+  "policy_sha256": "e7f9c430a0308a7e68296ca8b92e3781af289287d0327f1e1b94083578792b99",
+  "commands": [
+    {
+      "name": "issue-mode",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/issue-mode.py"
+      ],
+      "paths": [
+        "plugins/fullops-squad/scripts/issue_mode.py",
+        "plugins/fullops-squad/scripts/issue_github.py",
+        "plugins/fullops-squad/scripts/flow_gate.py",
+        "tests/issue-mode.py"
+      ],
+      "status": "skipped",
+      "reason": "바뀐 파일이 명령의 paths와 맞지 않음"
+    },
+    {
+      "name": "jev-route",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/jev-route.py"
+      ],
+      "paths": [
+        "plugins/fullops-squad/scripts/jev_route.py",
+        "tests/jev-route.py"
+      ],
+      "status": "skipped",
+      "reason": "바뀐 파일이 명령의 paths와 맞지 않음"
+    },
+    {
+      "name": "flow-gate",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/flow-gate.py"
+      ],
+      "paths": [
+        "plugins/fullops-squad/scripts/flow_gate.py",
+        "plugins/fullops-squad/scripts/hook_runtime.py",
+        "tests/flow-gate.py"
+      ],
+      "status": "skipped",
+      "reason": "바뀐 파일이 명령의 paths와 맞지 않음"
+    },
+    {
+      "name": "lint-gate",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/lint.py"
+      ],
+      "paths": [
+        "plugins/fullops-squad/scripts/lint.py",
+        "tests/lint.py"
+      ],
+      "status": "skipped",
+      "reason": "바뀐 파일이 명령의 paths와 맞지 않음"
+    },
+    {
+      "name": "packaging",
+      "kind": "test",
+      "run": [
+        "node",
+        "tests/standard.cjs"
+      ],
+      "paths": [
+        "plugins/**",
+        "adapters/**",
+        "dist/**",
+        "scripts/build.py"
+      ],
+      "status": "skipped",
+      "reason": "코드 파일 변경 없음(문서·설정만 변경). required가 아닌 test 명령은 실행하지 않는다"
+    },
+    {
+      "name": "full",
+      "kind": "test",
+      "level": "full",
+      "run": [
+        "npm",
+        "test"
+      ],
+      "status": "skipped",
+      "reason": "기준 설정 test_level=lite, 명령 최소 level=full"
+    }
+  ],
+  "violations": [],
+  "summary": {
+    "files": 1,
+    "added_lines": 6,
+    "errors": 0,
+    "warnings": 0,
+    "unavailable": 0
+  }
+}
