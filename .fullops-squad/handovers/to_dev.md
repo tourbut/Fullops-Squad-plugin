@@ -127,5 +127,13 @@ worker는 이 조건을 모두 채울 때까지 중간 확인 없이 진행한�
 
 브랜치 / SHA / 변경 이유 / 검토 필요 / 검증한 것과 못 한 것 / 산출물·로그 링크 / 남은 일.
 항목당 1~2줄로 쓰고 상세는 `qa-reports/<과제 키>-test/report.md`(역할별로 나눈 키는 `<키>-DEV` 그대로) 링크로 대신한다. 브랜치와 완료 SHA는 여기에 적는다. worker_done 메시지에만 적지 않는다. worker_done 본문 첫 줄은 `[완료] <과제 키> | 브랜치 <이름> | SHA <브랜치 HEAD>` 한 줄로 쓰고 SHA는 하나만 적는다. `남은 일`에 다른 역할의 후속(예: tester 독립 QA)을 쓰면 `work.py finish`가 PLANS.md `## 완료 보고 후속 요청`에 등재한다.
+
+- 브랜치 / SHA: `fullops/issue-109-a2` / 변경 커밋 c5dc2b1 (최종 SHA는 worker_done 첫 줄)
+- 변경 이유: 이슈 #109 답변 B. `checkpoint --received` 최소 예시 코드 블록과 `--dependencies` 조건 한 줄을 1.11.0 절에 추가했다.
+- 검토 필요: `python3 scripts/build.py` 종료코드 0 뒤 dist 사본 2개(directory·native `issue-auto-mode.md`) 각 +6줄 차이. CI `git diff --exit-code -- dist` 실패가 예상된다. dist는 되돌렸고 커밋하지 않았다. 포함 여부는 coordinator가 이슈 #109에 묻는다.
+- 검증: lint ERROR 0. 새 테스트 없음(lite). 상세 `.fullops-squad/docs/evaluations/qa-reports/GH-1369701248-109-A2-test/report.md`.
+- 남은 일: dist 재빌드 포함 여부 결정(다음 attempt).
+- DEP-001: 의존성 변경 없음(문서만 수정).
+
 lint DEP-001이 있으면 파일별 의존성 변경 여부·필요성·표준 라이브러리 대안을 적는다. 의존성 변경이 없으면 그 근거를 적는다.
 처리는 `fullops-work`, 회신은 `fullops-orca` 스킬을 따른다.
