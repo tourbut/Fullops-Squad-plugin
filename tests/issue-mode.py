@@ -140,7 +140,7 @@ def main():
                 patch.object(mode, 'Orca', return_value=Orca()), \
                 patch.object(mode, 'wait', return_value={'status': 'test_wait'}) as waiting, redirect_stdout(output):
             assert mode.main() == 0
-            assert waiting.call_args.args[-1] == token
+            assert waiting.call_args.args[-2:] == (token, None)
         assert token not in output.getvalue()
         public = root / 'public-token.json'
         public.write_text(json.dumps(owner))
@@ -183,6 +183,14 @@ def main():
         fails(lambda: mode.checkpoint(store, api, token, 101, 'reviewing', receipt=received), '실행')
         mode.checkpoint(store, api, token, 101, 'running', received=True)  # receipt 파일 없이 lease로 수신 기록
         assert store.read()['jobs']['101']['receipt'] == received
+        # 처리한 orchestration delivery는 다음 wait의 --ack로 넘겨 Orca에 직접 ack하지 않아도 된다.
+        acks = []
+        def check(args, ack):
+            acks.append(ack)
+            return {'deliveryId': 'd2', 'messages': [{'type': 'question', 'id': 'm1'}]}
+        with patch.object(mode, 'renew'), patch.object(mode.orca_wait, 'check', side_effect=check),                 patch.object(mode.integration, 'record'):
+            assert mode.wait(store, api, None, token, 'd1')['deliveryId'] == 'd2'
+        assert acks == ['d1']
         assert mode.claim(store, api, token) is None  # busy: enqueue만, 다른 issue dispatch 없음
         # 실사용에서 coor를 멈춘 조회 명령은 통과하고, 비밀정보·다른 저장소·다른 체크아웃 변경은 막는다.
         for words in (['rg', 'def', str(Path.home() / '.codex/plugins/cache/fullops-squad/scripts/issue_mode.py')],

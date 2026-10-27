@@ -1165,9 +1165,9 @@ def start_watch(store, executable, token):
         record(state, 'poll_started', pid=child.pid)
 
 
-def wait(store, github, orca, token):
+def wait(store, github, orca, token, ack=None):
     """별도 세션/PTY 입력 없이 현재 coor의 진행 중 tool call로 반환한다. 조용한 주기에는 출력 0회."""
-    next_auth, ack = 0, None
+    next_auth = 0  # ack: 처리를 마친 이전 orchestration delivery. 다음 확인에서 함께 보낸다.
     while True:
         state = store.read()
         owner = guard(state, token)
@@ -1214,6 +1214,7 @@ def main():
         sub.add_parser(name).add_argument('--session', required=True)
     for name in ('poll', 'wait', 'claim'):
         token_options(sub.add_parser(name))
+    sub.choices['wait'].add_argument('--ack', help='처리를 마친 이전 orchestration_actionable의 deliveryId')
     sub.add_parser('watch')  # lease capability는 argv/log 대신 stdin으로 전달한다.
     for name in ('checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'):
         p = sub.add_parser(name)
@@ -1291,7 +1292,7 @@ def main():
                         state['owner'].update(paused=True, blocked='poller 중단: 상태/lease/API를 확인하고 명시적으로 재활성화')
             return 0
         elif args.command == 'wait':
-            result = wait(store, github, Orca(args.orca), args.token)
+            result = wait(store, github, Orca(args.orca), args.token, args.ack)
         elif args.command == 'claim':
             result = claim(store, github, args.token)
         elif args.command == 'checkpoint':
