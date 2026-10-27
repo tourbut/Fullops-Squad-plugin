@@ -29,6 +29,7 @@ def main():
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'setup')
         (secret_dir / '.env').write_text('KEY=1\n', encoding='utf-8')
         (secret_dir / '.env.local').write_text('LOCAL=1\n', encoding='utf-8')
+        (secret_dir / '.env.issue-mode-lease.json').write_text(json.dumps({'token': 'x', 'incarnation': 'i'}), encoding='utf-8')
         (repo / '.env').write_text('OLD=1\n', encoding='utf-8')
         git('worktree', 'add', '-q', '-b', 'fullops/dev', str(wt1))
         git('worktree', 'add', '-q', '-b', 'fullops/art', str(wt2))
@@ -52,6 +53,7 @@ def main():
         brief = json.loads(done.stdout)['hookSpecificOutput']['additionalContext']
         assert '.env, .env.local' in brief
         assert (wt2 / '.fullops-squad/.env').is_file() and (wt2 / '.fullops-squad/.env.local').is_file()
+        assert not (wt2 / '.fullops-squad/.env.issue-mode-lease.json').exists()  # coor lease는 넘기지 않는다
 
         # CLI --all은 모든 워크트리를 처리한다
         (wt1 / '.fullops-squad/.env').unlink()
