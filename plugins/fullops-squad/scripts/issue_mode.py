@@ -647,7 +647,10 @@ def resolve_answers(store, github, token, identifier, decision, reason):
     with store.edit() as state:
         guard(state, token)
         job = state['jobs'][str(identifier)]
-        if job['status'] != 'claimed' or job.get('epoch') != state['owner']['epoch'] or not job['answers']:
+        if job['status'] != 'claimed':
+            raise ValueError(f"답변 판단은 wait가 답변을 전달한 claimed 상태에서 먼저 기록합니다(현재 {job['status']}). "
+                             'sync·checkpoint보다 answers를 먼저 실행하세요')
+        if job.get('epoch') != state['owner']['epoch'] or not job['answers']:
             raise ValueError('현재 coor가 수신한 답변만 처리할 수 있습니다')
         if fresh(state, github, job):
             raise ValueError('현재 작성자/본문을 확인하세요')
@@ -669,11 +672,14 @@ def resolve_answers(store, github, token, identifier, decision, reason):
             state['comments'][str(answer['comment_id'])]['processed'] = True
         job['history'].append({'phase': 'answer_decision', 'decision': decision, 'reason': reason,
                                'answers': [a['url'] for a in candidates]})
-        job.update(status=('held' if job.get('dispatch_intents') and not job.get('settled') else 'queued')
-                   if decision == 'sufficient' else 'awaiting_author', reason=reason,
-                   resume='기존 worker 확정 종료를 sync로 확인한 뒤 queued checkpoint' if decision == 'sufficient' else '작성자의 충분한 새 답변')
+        status = ('held' if job.get('dispatch_intents') and not job.get('settled') else 'queued') if decision == 'sufficient' else 'awaiting_author'
+        job.update(status=status, reason=reason, resume={
+            'held': '기존 worker 확정 종료를 sync로 확인한 뒤 queued checkpoint',
+            'queued': '다음 wait가 새 attempt로 다시 전달한다',
+            'awaiting_author': '작성자의 충분한 새 답변'}[status])
         job['digest'] = digest([job['snapshot'], [a for a in job['answers'] if a['decided']]])
         # 다음 claim이 새 attempt를 발행한다. 기존 검색/지시/packet은 같은 시도로 재사용하지 않는다.
+        return status
 
 
 def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatched=False):
@@ -903,11 +909,17 @@ HOST_READERS = {'rg', 'grep', 'findstr', 'cat', 'type', 'head', 'tail', 'wc', 'l
                 'select-string', 'get-childitem', 'gci', 'test-path'}
 
 
-def git_read(words):
-    """`git -C <경로>`처럼 다른 체크아웃을 가리키는 명령은 조회 subcommand만 허용한다."""
+def git_split(words):
+    """(subcommand 앞 전역 옵션, subcommand 위치). `git -c x switch -c y`의 두 -c를 구분한다."""
     index = 1
     while index < len(words) and words[index].startswith('-'):
-        index += 2 if words[index] in ('-C', '--git-dir', '--work-tree') else 1
+        index += 2 if words[index] in ('-C', '-c', '--git-dir', '--work-tree') else 1
+    return words[1:index], index
+
+
+def git_read(words):
+    """`git -C <경로>`처럼 다른 체크아웃을 가리키는 명령은 조회 subcommand만 허용한다."""
+    index = git_split(words)[1]
     sub = words[index] if index < len(words) else ''
     if sub == 'branch':
         return all(w in ('--show-current', '--list', '-a', '-r', '-v', '-vv') for w in words[index + 1:])
@@ -958,9 +970,9 @@ def boundary(repo, session, command, files, commands, context=None):
         # OFF·만료·종료된 lease의 coor는 자동 실행이 아니라 사용자가 직접 운영한다. 이전 worker만 fencing한다.
         return None if coordinator else str(error)
     job = job or next((j for j in jobs if j['status'] in ACTIVE), jobs[-1])
-    control = any('issue_mode.py' in ' '.join(w) and any(c in w for c in
-                  ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))
-                  for w in commands)
+    controls = [w for w in commands if 'issue_mode.py' in ' '.join(w) and any(c in w for c in
+                ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))]
+    control = bool(controls)
     if coordinator and control and len(commands) == 1 and not files:
         return None
     if control and not coordinator:
@@ -976,21 +988,26 @@ def boundary(repo, session, command, files, commands, context=None):
     if hold and (not coordinator or any(outward(w) for w in commands)):
         return hold
     for words in commands:
-        if not words or '--help' in words:
-            continue
+        if not words or '--help' in words or (coordinator and words in controls):
+            continue  # coor의 제어 명령은 lease 파일을 --token-file로 받는다. 같은 줄의 다른 명령만 검사한다.
         executable = Path(words[0]).name.lower().removesuffix('.exe')
         if any(re.search(r'(?:^|[/\\])(?:\.env[^/\\]*|auth\.json|credentials\.json)$', w.strip('\'"'), re.I) for w in words):
             return '자동 이슈에서 비밀정보 파일을 읽거나 변경할 수 없습니다'
+        # 설치된 플러그인 스크립트를 인터프리터로 실행하는 것은 정상 경로다. 그 밖의 host 경로는 읽기만 허용한다.
+        plugin_script = (re.fullmatch(r'python(?:3(?:\.\d+)?)?|py|node', executable) and len(words) > 1 and
+                         re.search(r'[/\\]plugins[/\\]cache[/\\].+\.(?:py|cjs|mjs|js)$', words[1].strip('\'"'), re.I))
         if executable not in HOST_READERS and any(
-                re.search(r'(?:^|[/\\])\.(?:codex|claude)(?:$|[/\\])', w, re.I) for w in words):
+                re.search(r'(?:^|[/\\])\.(?:codex|claude)(?:$|[/\\])', w, re.I)
+                for w in (words[2:] if plugin_script else words)):
             return '자동 이슈에서 host 권한 파일은 읽기만 할 수 있습니다'
         if 'issue_mode.py' in ' '.join(words) and 'configure' in words:
             return 'GitHub 이슈/댓글로 자동 작업 설정과 allowlist를 변경할 수 없습니다'
         if executable == 'git':
-            located = any(w in words for w in ('-C', '--git-dir', '--work-tree')) or any(
-                w.startswith(('--git-dir=', '--work-tree=')) for w in words[1:])
+            options = git_split(words)[0]
+            located = any(w in options for w in ('-C', '--git-dir', '--work-tree')) or any(
+                w.startswith(('--git-dir=', '--work-tree=')) for w in options)
             if any(w in words for w in ('--force', '-f', '--force-with-lease')) or any(
-                    w.startswith(('--config-env', '--exec-path', '-c')) for w in words[1:]) or (
+                    w.startswith(('--config-env', '--exec-path', '-c')) for w in options) or (
                     located and not git_read(words)):
                 return '자동 작업의 Git 저장소/강제 변경 범위를 확인할 수 없습니다'
             if any(w in words for w in ('clean', 'reset')) or ('merge' in words and integration.git(repo, 'branch', '--show-current') == integration.config(repo)['git']['base']):
@@ -1151,9 +1168,9 @@ def start_watch(store, executable, token):
         record(state, 'poll_started', pid=child.pid)
 
 
-def wait(store, github, orca, token):
+def wait(store, github, orca, token, ack=None):
     """별도 세션/PTY 입력 없이 현재 coor의 진행 중 tool call로 반환한다. 조용한 주기에는 출력 0회."""
-    next_auth, ack = 0, None
+    next_auth = 0  # ack: 처리를 마친 이전 orchestration delivery. 다음 확인에서 함께 보낸다.
     while True:
         state = store.read()
         owner = guard(state, token)
@@ -1200,6 +1217,7 @@ def main():
         sub.add_parser(name).add_argument('--session', required=True)
     for name in ('poll', 'wait', 'claim'):
         token_options(sub.add_parser(name))
+    sub.choices['wait'].add_argument('--ack', help='처리를 마친 이전 orchestration_actionable의 deliveryId')
     sub.add_parser('watch')  # lease capability는 argv/log 대신 stdin으로 전달한다.
     for name in ('checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'):
         p = sub.add_parser(name)
@@ -1277,7 +1295,7 @@ def main():
                         state['owner'].update(paused=True, blocked='poller 중단: 상태/lease/API를 확인하고 명시적으로 재활성화')
             return 0
         elif args.command == 'wait':
-            result = wait(store, github, Orca(args.orca), args.token)
+            result = wait(store, github, Orca(args.orca), args.token, args.ack)
         elif args.command == 'claim':
             result = claim(store, github, args.token)
         elif args.command == 'checkpoint':

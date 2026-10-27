@@ -62,3 +62,17 @@ KnowsLink(10/12)와 erden-godot(10/09)에서 자동 모드가 첫 이슈에서 �
 5. main 병합/이슈 종료/배포/외부 전송을 하지 않고 호스트 승인 정책/사용량 측정 실패를 보류하는지 확인한다.
 
 공식 API 참고: [Issues](https://docs.github.com/en/rest/issues/issues), [comments](https://docs.github.com/en/rest/issues/comments), [조건부 요청·rate limit](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api).
+
+### 수용 검증 결과 (2026-10-28, 이 레포 #109)
+
+FullOps 1.11.0, dev 모드 coor(Claude Opus 5.5)와 worker(Claude Sonnet 5.5)로 수행했다. 질문 두 번, 답변 두 번, 시도 세 번 끝에 draft PR #110을 만들고 `completed`가 됐다. main 병합·이슈 종료는 하지 않았다.
+
+| # | 결과 | 비고 |
+|---|---|---|
+| 1 | 통과 | 같은 coor의 foreground wait로 수신, 시도마다 수신 기록과 worker-start 기록 연결 |
+| 2 | 일부 | 자기 질문 댓글은 답변 후보에서 빠짐. busy 중 새 이슈·비허용 작성자·중복 댓글은 미시험 |
+| 3 | 미시험 | 세션 종료·lease 만료·새 coor 인계 |
+| 4 | 통과(편차) | 두 번째 답변 판단이 `answers` 대신 queued checkpoint 사유에 남음(sync를 먼저 실행한 순서 오류) |
+| 5 | 통과 | GitHub 쓰기는 질문 2건과 draft PR 1건뿐 |
+
+이 실행에서 막힌 6건은 1.11.1에서 고쳤다(`docs/releases/1.11.1.md`).

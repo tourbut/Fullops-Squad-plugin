@@ -61,6 +61,8 @@ class API:
 
 
 class Orca:
+    executable = 'orca'
+
     def identity(self, *args):
         return 'incarnation'
 
@@ -140,7 +142,7 @@ def main():
                 patch.object(mode, 'Orca', return_value=Orca()), \
                 patch.object(mode, 'wait', return_value={'status': 'test_wait'}) as waiting, redirect_stdout(output):
             assert mode.main() == 0
-            assert waiting.call_args.args[-1] == token
+            assert waiting.call_args.args[-2:] == (token, None)
         assert token not in output.getvalue()
         public = root / 'public-token.json'
         public.write_text(json.dumps(owner))
@@ -183,18 +185,37 @@ def main():
         fails(lambda: mode.checkpoint(store, api, token, 101, 'reviewing', receipt=received), '실행')
         mode.checkpoint(store, api, token, 101, 'running', received=True)  # receipt 파일 없이 lease로 수신 기록
         assert store.read()['jobs']['101']['receipt'] == received
+        from flow_gate import shell_commands
+        assert shell_commands('git push origin HEAD:refs/heads/x 2>&1 | tail -3') == [
+            ['git', 'push', 'origin', 'HEAD:refs/heads/x'], ['tail', '-3']]  # fd 복제가 push 인자를 바꾸지 않는다
+        # 처리한 orchestration delivery는 다음 wait의 --ack로 넘겨 Orca에 직접 ack하지 않아도 된다.
+        acks = []
+        def check(args, ack):
+            acks.append(ack)
+            return {'deliveryId': 'd2', 'messages': [{'type': 'question', 'id': 'm1'}]}
+        with patch.object(mode, 'renew'), patch.object(mode.orca_wait, 'check', side_effect=check),                 patch.object(mode.integration, 'record'):
+            assert mode.wait(store, api, Orca(), token, 'd1')['deliveryId'] == 'd2'
+        assert acks == ['d1']
         assert mode.claim(store, api, token) is None  # busy: enqueue만, 다른 issue dispatch 없음
         # 실사용에서 coor를 멈춘 조회 명령은 통과하고, 비밀정보·다른 저장소·다른 체크아웃 변경은 막는다.
         for words in (['rg', 'def', str(Path.home() / '.codex/plugins/cache/fullops-squad/scripts/issue_mode.py')],
                       ['git', '-C', '../dev', 'status', '--short'], ['git', '-C', '../dev', 'branch', '--show-current'],
                       ['gh', 'issue', 'view', '1', '--repo', 'owner/service'],
-                      ['orca', 'orchestration', 'worker-start', '--help']):
+                      ['orca', 'orchestration', 'worker-start', '--help'], ['git', 'switch', '-c', 'fullops/issue-1-a1', 'abc123'],
+                      ['python3', str(Path.home() / '.claude/plugins/cache/fullops-squad/1.11.0/scripts/work.py'), 'new']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None, words
         for words in (['Get-Content', '.fullops-squad/.env'], ['git', '-C', '../dev', 'commit', '-m', 'x'],
                       ['git', '-C', '../dev', 'branch', '-D', 'x'], ['gh', 'issue', 'view', '1', '--repo', 'other/repo'],
                       ['git', '-c', 'core.sshCommand=x', 'status'],
-                      ['Set-Content', str(Path.home() / '.codex/config.toml'), 'x']):
+                      ['Set-Content', str(Path.home() / '.codex/config.toml'), 'x'],
+                      ['python3', str(Path.home() / '.claude/plugins/cache/x/run.py'), str(Path.home() / '.claude/settings.json')],
+                      ['Set-Content', str(Path.home() / '.claude/plugins/cache/fullops-squad/1.11.0/scripts/work.py'), 'x']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]), words
+        # PowerShell처럼 변수 대입과 함께 쓴 제어 명령도 lease 파일 경로로 막지 않는다. 같은 줄의 다른 명령은 검사한다.
+        lease = '.fullops-squad/.env.issue-mode-lease.json'
+        line = [['$s=x'], ['python3', 'issue_mode.py', 'checkpoint', '--token-file', lease, '--received'], ['echo', 'done']]
+        assert mode.boundary(root, 'provider', '', [], line) is None
+        assert mode.boundary(root, 'provider', '', [], line[:2] + [['Get-Content', lease]])
         with store.edit() as state:
             state['jobs']['101']['started'] -= state['config']['max_seconds'] + 1
         assert mode.boundary(root, 'provider', 'orca terminal list', [], [['orca', 'terminal', 'list']]) is None
@@ -230,12 +251,12 @@ def main():
         delivered = mode.answer_delivery(store, token)
         assert len(delivered['answer_candidates']) == 1 and delivered['issue_id'] == '101'
         assert mode.answer_delivery(store, token) is None
-        mode.resolve_answers(store, api, token, 101, 'insufficient', '질문 ID는 맞지만 단위/높이가 빠짐')
+        assert mode.resolve_answers(store, api, token, 101, 'insufficient', '질문 ID는 맞지만 단위/높이가 빠짐') == 'awaiting_author'
         mode.question(store, api, token, 101, '높이도 알려주세요. 재개 조건: 너비/높이 확정')
         api.comments.append({**answer, 'id': 1002, 'body': '128px x 64px'})
         mode.poll_answers(store, api, token)
         assert len(mode.answer_delivery(store, token)['answer_candidates']) == 1
-        mode.resolve_answers(store, api, token, 101, 'sufficient', '질문 연결 및 규격 확정, 권한 확대 없음')
+        assert mode.resolve_answers(store, api, token, 101, 'sufficient', '질문 연결 및 규격 확정, 권한 확대 없음') == 'queued'
         resumed = mode.claim(store, api, token)
         assert resumed['attempt'] == 2 and resumed['digest'] != job['digest']
         resumed_receipt = {'task_key': resumed['task_key'], 'session': 'coor', 'received': True}

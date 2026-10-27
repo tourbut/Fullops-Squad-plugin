@@ -7,6 +7,7 @@ Orca 설정 스크립트는 워크트리를 만드는 방식에 따라 실행되
 import argparse
 import os
 from pathlib import Path
+import json
 import shutil
 import subprocess
 
@@ -26,6 +27,15 @@ def main_checkout(worktree):
     return root if root != Path(top).resolve() and (root / '.git').exists() else None
 
 
+def lease(path):
+    """이슈 자동 모드 coor의 lease(fencing token)는 worker 워크트리에 넘기지 않는다."""
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return False
+    return isinstance(data, dict) and 'token' in data and 'incarnation' in data
+
+
 def link(worktree):
     """[(파일 이름, 'link' 또는 'copy')]. 원본 체크아웃이 아니면 빈 목록."""
     worktree = Path(worktree).resolve()
@@ -38,7 +48,7 @@ def link(worktree):
         target = top / '.fullops-squad' / source.name
         if not source.is_file() or target.exists() or target.is_symlink():
             continue
-        if git(root, 'ls-files', '--', f'.fullops-squad/{source.name}'):
+        if git(root, 'ls-files', '--', f'.fullops-squad/{source.name}') or lease(source):
             continue
         try:
             target.symlink_to(source)

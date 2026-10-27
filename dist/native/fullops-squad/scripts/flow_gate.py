@@ -194,7 +194,8 @@ def shell_commands(command):
                 if heredoc:
                     delimiter = heredoc.group(1)
                     break
-    command = ''.join(visible)
+    # `2>&1`·`>&2`의 &를 명령 구분자로 자르지 않는다. fd 복제는 파일을 쓰지 않으므로 인자에서 뺀다.
+    command = re.sub(r'(?<![\w&])\d*[<>]&(?:\d+|-)(?![\w])', ' ', ''.join(visible)).replace('&>', '>')
     lexer = shlex.shlex(command, posix=False, punctuation_chars=';&|\n')
     lexer.whitespace = ' \t\r'
     lexer.whitespace_split = True
