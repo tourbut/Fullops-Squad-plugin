@@ -990,8 +990,12 @@ def boundary(repo, session, command, files, commands, context=None):
         executable = Path(words[0]).name.lower().removesuffix('.exe')
         if any(re.search(r'(?:^|[/\\])(?:\.env[^/\\]*|auth\.json|credentials\.json)$', w.strip('\'"'), re.I) for w in words):
             return '자동 이슈에서 비밀정보 파일을 읽거나 변경할 수 없습니다'
+        # 설치된 플러그인 스크립트를 인터프리터로 실행하는 것은 정상 경로다. 그 밖의 host 경로는 읽기만 허용한다.
+        plugin_script = (re.fullmatch(r'python(?:3(?:\.\d+)?)?|py|node', executable) and len(words) > 1 and
+                         re.search(r'[/\\]plugins[/\\]cache[/\\].+\.(?:py|cjs|mjs|js)$', words[1].strip('\'"'), re.I))
         if executable not in HOST_READERS and any(
-                re.search(r'(?:^|[/\\])\.(?:codex|claude)(?:$|[/\\])', w, re.I) for w in words):
+                re.search(r'(?:^|[/\\])\.(?:codex|claude)(?:$|[/\\])', w, re.I)
+                for w in (words[2:] if plugin_script else words)):
             return '자동 이슈에서 host 권한 파일은 읽기만 할 수 있습니다'
         if 'issue_mode.py' in ' '.join(words) and 'configure' in words:
             return 'GitHub 이슈/댓글로 자동 작업 설정과 allowlist를 변경할 수 없습니다'

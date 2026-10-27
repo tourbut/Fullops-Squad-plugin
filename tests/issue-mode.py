@@ -188,12 +188,15 @@ def main():
         for words in (['rg', 'def', str(Path.home() / '.codex/plugins/cache/fullops-squad/scripts/issue_mode.py')],
                       ['git', '-C', '../dev', 'status', '--short'], ['git', '-C', '../dev', 'branch', '--show-current'],
                       ['gh', 'issue', 'view', '1', '--repo', 'owner/service'],
-                      ['orca', 'orchestration', 'worker-start', '--help'], ['git', 'switch', '-c', 'fullops/issue-1-a1', 'abc123']):
+                      ['orca', 'orchestration', 'worker-start', '--help'], ['git', 'switch', '-c', 'fullops/issue-1-a1', 'abc123'],
+                      ['python3', str(Path.home() / '.claude/plugins/cache/fullops-squad/1.11.0/scripts/work.py'), 'new']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None, words
         for words in (['Get-Content', '.fullops-squad/.env'], ['git', '-C', '../dev', 'commit', '-m', 'x'],
                       ['git', '-C', '../dev', 'branch', '-D', 'x'], ['gh', 'issue', 'view', '1', '--repo', 'other/repo'],
                       ['git', '-c', 'core.sshCommand=x', 'status'],
-                      ['Set-Content', str(Path.home() / '.codex/config.toml'), 'x']):
+                      ['Set-Content', str(Path.home() / '.codex/config.toml'), 'x'],
+                      ['python3', str(Path.home() / '.claude/plugins/cache/x/run.py'), str(Path.home() / '.claude/settings.json')],
+                      ['Set-Content', str(Path.home() / '.claude/plugins/cache/fullops-squad/1.11.0/scripts/work.py'), 'x']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]), words
         # PowerShell처럼 변수 대입과 함께 쓴 제어 명령도 lease 파일 경로로 막지 않는다. 같은 줄의 다른 명령은 검사한다.
         lease = '.fullops-squad/.env.issue-mode-lease.json'
