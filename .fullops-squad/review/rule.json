@@ -1,0 +1,40 @@
+{
+  "include": [
+    "**/*.md",
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.spec.{js,jsx,ts,tsx}",
+    "**/*_test.{py,go,rs}",
+    "**/__tests__/**",
+    "plugins/**/*.py",
+    "plugins/**/*.json",
+    "adapters/**",
+    "scripts/**/*.py",
+    "tests/**/*.py",
+    "tests/**/*.cjs",
+    "bin/**",
+    "mods/**/*.ts",
+    "mods/**/*.tsx"
+  ],
+  "exclude": [
+    ".fullops-squad/docs/evaluations/qa-reports/**/*.{png,jpg,jpeg,gif,webp,mp4,mov}",
+    ".fullops-squad/docs/evaluations/qa-reports/**/*.log",
+    ".fullops-squad/docs/evaluations/qa-reports/*-test/*/play/state-*.json",
+    ".fullops-squad/docs/evaluations/qa-reports/*-test/*/play/action-*.json",
+    "**/*.bak",
+    ".fullops-squad/docs/evaluations/jev/**",
+    ".fullops-squad/handovers/logs/**",
+    "dist/**",
+    "docs/evidence/**",
+    "node_modules/**"
+  ],
+  "rules": [
+    {
+      "path": "**/*.md",
+      "rule": "Check changed instructions and documents against actual behavior, requirements and linked sources. Identify contradictions, missing required artifacts and broken references. Preserve the project's document templates and tone; report only concrete defects."
+    },
+    {
+      "path": "plugins/**/*.py",
+      "rule": "Check hook and gate scripts for false blocks of read-only commands and for paths that let unattended agents change credentials, host config or other repositories. Confirm every changed behavior has a regression test in tests/."
+    }
+  ]
+}

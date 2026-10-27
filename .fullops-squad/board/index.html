@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FullOps 작업 현황판</title>
+<!-- FullOps 플러그인이 제공하는 고정 양식이다. 직접 고치지 않는다. 값은 board.json과 scripts/board.py가 만든 board-data.js에서 온다. -->
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#f5f5f5; --card:#ffffff; --ink:#2d3142; --muted:#4f5d75; --soft:#5f6880;
+    --rule:rgba(45,49,66,0.12); --rule-strong:rgba(45,49,66,0.22); --accent:#eb6c36; --link:#2e5aa8;
+    /* --accent is for dots and borders; text in the accent hue uses --accent-ink to keep 4.5:1. Blocked and failed use --danger. */
+    --accent-ink:#c2410c; --danger:#b42318;
+    --sans:'Geist','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    --serif:'Instrument Serif','Noto Serif KR','Times New Roman',serif;
+    --mono:'Geist Mono',ui-monospace,'Cascadia Mono',Menlo,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --paper:#2d3142; --card:#343949; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#9aa3b5;
+      --rule:rgba(245,245,245,0.12); --rule-strong:rgba(245,245,245,0.24); --accent:#f08a59; --link:#86aae6; --accent-ink:#f08a59; --danger:#ff8a80; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --paper:#2d3142; --card:#343949; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#9aa3b5;
+      --rule:rgba(245,245,245,0.12); --rule-strong:rgba(245,245,245,0.24); --accent:#f08a59; --link:#86aae6; --accent-ink:#f08a59; --danger:#ff8a80; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:14px/1.55 var(--sans); }
+  .wrap { max-width:1120px; margin:0 auto; padding-inline:20px; padding-block:48px 40px; }
+  .eyebrow { font:500 11px var(--mono); letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); margin:0 0 12px; }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px 40px; padding-bottom:28px; border-bottom:1px solid var(--rule); }
+  h1 { font:400 clamp(30px,4vw,42px)/1.1 var(--serif); letter-spacing:-0.01em; margin:0 0 8px; text-wrap:balance; }
+  .summary { margin:0; color:var(--muted); max-width:62ch; }
+  .meta { font:400 12px/1.7 var(--mono); color:var(--soft); text-align:right; font-variant-numeric:tabular-nums; }
+  section { padding-block:32px; border-bottom:1px solid var(--rule); }
+  .head { display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:20px; }
+  h2 { font:400 24px/1.2 var(--serif); margin:0; }
+  .count { font:400 12px var(--mono); color:var(--soft); }
+  .cols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 48px; }  /* stretch: both halves end on one rule */
+  .cols > section { min-width:0; }
+  @media (max-width:880px) { .cols { grid-template-columns:1fr; } }
+  .mono { font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .soft { color:var(--soft); }
+  .empty { color:var(--soft); margin:0; }
+  table.fixed { table-layout:fixed; }
+  .key { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .clip { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .alert { margin:24px 0 0; padding:10px 16px; border:1px solid var(--danger); border-radius:6px; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; }
+  .notice { margin:24px 0 0; padding:12px 16px; border:1px dashed var(--accent); border-radius:6px; color:var(--ink); }
+
+  /* status: dot + label */
+  .st { display:inline-flex; align-items:center; gap:6px; font:500 11px var(--mono); letter-spacing:0.04em; color:var(--muted); white-space:nowrap; }
+  .dot { width:7px; height:7px; border-radius:50%; flex:none; border:1.5px solid var(--soft); }
+  .is-done .dot { background:var(--ink); border-color:var(--ink); }
+  .is-active .dot { background:var(--accent); border-color:var(--accent); }
+  .is-active { color:var(--accent-ink); }
+  .is-blocked .dot { border-color:var(--danger); }
+  .is-blocked { color:var(--danger); }
+  .is-review .dot { background:var(--link); border-color:var(--link); }
+
+  /* phases */
+  .progress { font:400 12px var(--mono); color:var(--soft); }
+  .phases { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
+  .phase { width:100%; height:132px; display:flex; flex-direction:column; gap:6px; padding:14px 16px; text-align:left; cursor:pointer;
+    font:inherit; color:inherit; background:var(--card); border:1px solid var(--rule); border-radius:6px; }
+  .phase:hover { border-color:var(--rule-strong); }
+  .phase:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .phase.is-active { border-color:var(--accent); }
+  .phase.is-blocked, .role.stuck { border-color:var(--danger); }
+  .phase.is-done { background:color-mix(in srgb, var(--card) 92%, var(--ink)); }
+  .phase .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .phase .idx { font:400 11px var(--mono); color:var(--soft); }
+  .phase .name { font-weight:600; line-height:1.4; }
+  .phase.is-active .name { color:var(--accent-ink); }
+  .phase .foot { margin-top:auto; display:flex; justify-content:space-between; gap:8px; font:400 11px var(--mono); color:var(--soft); }
+  .phase .long { color:var(--accent-ink); }
+  .refs { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:8px; }
+  .ref { display:inline-flex; align-items:center; gap:4px; font:400 11px var(--mono); color:var(--muted); }
+  .ref .dot { width:6px; height:6px; }
+
+  /* roles */
+  .roles { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:12px; }
+  .role { background:var(--card); border:1px solid var(--rule); border-radius:6px; padding:16px; display:grid; gap:6px; align-content:start; }
+  .role.is-active { border-color:var(--accent); }
+  .role .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .role .name { font-weight:600; }
+  .role .goal { margin:4px 0 0; }
+  .role .idle { color:var(--soft); margin:4px 0 0; }
+
+  /* tables */
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); padding:0 12px 8px 0; border-bottom:1px solid var(--rule-strong); }
+  td { padding:10px 12px 10px 0; border-bottom:1px solid var(--rule); vertical-align:top; overflow-wrap:anywhere; }
+  tr:last-child td { border-bottom:0; }
+  td.num { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .bad { color:var(--danger); font-weight:600; }
+  .notes { list-style:none; margin:0 0 20px; padding:0 0 0 14px; border-left:2px solid var(--accent); display:grid; gap:6px; }
+  .notes li { color:var(--muted); font-size:13px; }
+  .more { font:500 11px var(--mono); letter-spacing:0.06em; color:var(--link); background:none; border:0; padding:0; cursor:pointer; margin:-12px 0 20px; }
+  .more:hover { text-decoration:underline; }
+  .notes li:first-child { color:var(--ink); }
+  .cap { max-height:440px; overflow:auto; }
+  .issues a { color:var(--link); text-decoration:none; overflow-wrap:anywhere; }
+  .issues a:hover { text-decoration:underline; }
+  .issues a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .issue-list { list-style:none; padding:0; margin:16px 0 0; }
+  .issue-list a { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:12px 4px; border-bottom:1px solid var(--rule); }
+  .issue-list .issue-title { min-width:0; }
+  tr.grp td { padding-top:18px; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--soft); border-bottom:1px solid var(--rule-strong); }
+  .is-skip { color:var(--soft); }
+  .is-skip .dot { border-style:dashed; }
+  .d.is-skip .name { color:var(--soft); text-decoration:line-through; text-decoration-color:var(--rule-strong); }
+
+  /* deliverables */
+  .deliv { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); border-top:1px solid var(--rule); border-left:1px solid var(--rule); }
+  .d { padding:12px 14px; border:0; border-right:1px solid var(--rule); border-bottom:1px solid var(--rule); display:grid; gap:4px; align-content:start;
+    font:inherit; color:inherit; text-align:left; background:transparent; cursor:pointer; }
+  .d:hover { background:var(--card); }
+  .d:focus-visible, .doc-file:focus-visible, .detail button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .d .id { font:500 11px var(--mono); color:var(--soft); letter-spacing:0.06em; }
+  .d .name { font-weight:500; }
+  .d .src { font:400 11px var(--mono); color:var(--soft); }
+
+  .tools { display:flex; justify-content:flex-end; margin-bottom:8px; }
+  .theme { font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); background:transparent;
+    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; min-height:32px; cursor:pointer; }
+  .theme:hover { border-color:var(--ink); }
+  .theme:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  dialog.detail { width:min(640px, calc(100% - 32px)); max-height:80vh; padding:28px; background:var(--card); color:var(--ink);
+    border:1px solid var(--rule-strong); border-radius:8px; }
+  dialog.detail::backdrop { background:rgba(20,22,30,0.45); }
+  .detail h3 { font:400 24px/1.25 var(--serif); margin:4px 0 12px; }
+  .detail .body { white-space:pre-wrap; color:var(--ink); margin:16px 0 0; }
+  .detail ul { margin:16px 0 0; padding-left:18px; display:grid; gap:6px; }
+  .detail .close { float:right; font:500 11px var(--mono); letter-spacing:0.12em; text-transform:uppercase; color:var(--ink); background:transparent;
+    border:1px solid var(--rule-strong); border-radius:4px; padding:5px 10px; min-height:32px; cursor:pointer; }
+  dialog.detail.document { width:min(940px, calc(100% - 32px)); }
+  .doc-files { padding:0; list-style:none; }
+  .doc-file, .back { font:inherit; color:var(--link); background:none; border:1px solid var(--rule); border-radius:4px; padding:8px 12px; text-align:left; cursor:pointer; }
+  .doc-file { width:100%; }
+  .doc-file:disabled { color:var(--soft); cursor:default; }
+  .doc-file .mono { display:block; overflow-wrap:anywhere; }
+  .doc-body { line-height:1.75; overflow-wrap:anywhere; }
+  .doc-body h1, .doc-body h2, .doc-body h3 { font-family:var(--sans); font-weight:600; margin:24px 0 12px; }
+  .doc-body h1 { font-size:28px; } .doc-body h2 { font-size:23px; } .doc-body h3 { font-size:19px; }
+  .doc-body pre { white-space:pre; overflow:auto; background:var(--paper); padding:16px; border-radius:4px; }
+  .doc-body code { font:12px/1.6 var(--mono); background:var(--paper); }
+  .doc-body ul, .doc-body ol { display:block; margin:12px 0; padding-left:24px; }
+  .doc-body blockquote { border-left:3px solid var(--rule-strong); padding-left:16px; margin-left:0; color:var(--muted); }
+  .doc-body a { color:var(--link); }
+  @media (max-width:560px) {
+    .meta { text-align:left; } .tools { justify-content:flex-start; }
+    .phases { grid-template-columns:repeat(2, minmax(0,1fr)); } .phase { height:auto; min-height:104px; }
+    table.fixed { min-width:560px; }  /* the .scroll wrapper scrolls it sideways instead of breaking words */
+  }
+  footer { padding-top:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font:400 11px var(--mono); letter-spacing:0.06em; color:var(--soft); }
+</style>
+<script>try { var t = localStorage.getItem('fullops-board-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<script src="board-data.js"></script>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+(function () {
+  var app = document.getElementById('app');
+  var B = window.FULLOPS_BOARD;
+  setInterval(function () { var detail = document.getElementById('detail'); if (!detail || !detail.open) location.reload(); }, 60000);
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function st(cls, label) { return '<span class="st ' + cls + '"><span class="dot"></span>' + esc(label) + '</span>'; }
+  var PHASE = { done:['is-done','완료'], active:['is-active','진행 중'], blocked:['is-blocked','막힘'], todo:['is-todo','예정'] };
+  var TASK = { ready:['is-todo','준비'], running:['is-active','진행 중'], blocked:['is-blocked','막힘'] };
+  function delivClass(s) {
+    s = String(s || '');
+    if (/범위 밖|해당 없음|제외|n\/a/i.test(s)) return 'is-skip';
+    if (/approved|승인|완료/.test(s)) return 'is-done';
+    if (/review|검토/.test(s)) return 'is-review';
+    if (/draft|초안|작성 중/.test(s)) return 'is-active';
+    return 'is-todo';
+  }
+  if (!B) {
+    app.innerHTML = '<p class="eyebrow">FullOps · 작업 현황판</p><h1>데이터가 아직 없습니다</h1>' +
+      '<p class="summary">레포 루트에서 <span class="mono">python3 &lt;플러그인&gt;/scripts/board.py --repo .</span>를 실행하세요. coordinator 세션이 끝날 때마다 자동으로 만들어집니다.</p>';
+    return;
+  }
+  var byId = {};
+  (B.deliverables || []).forEach(function (d) { byId[d.id] = d; });
+  var phases = B.phases || [];
+  var done = phases.filter(function (p) { return p.status === 'done'; }).length;
+  var h = [];
+
+  h.push('<header><div><p class="eyebrow">FullOps · 작업 현황판</p><h1>' + esc(B.title) + '</h1>' +
+         (B.summary ? '<p class="summary">' + esc(B.summary) + '</p>' : '') + '</div>' +
+         '<div class="meta"><div class="tools"><button type="button" class="theme" id="theme"></button></div>' + esc(B.repo) + '<br>' + esc(B.branch) + ' @ ' + esc(B.head) + '<br>마지막 변경 ' + esc((B.updated_at || '').replace('T', ' ').slice(0, 16)) + '</div></header>');
+  var attention = [['막힌 단계', phases.filter(function (p) { return p.status === 'blocked'; }).length],
+    ['막힌 과제', (B.roles || []).filter(function (r) { return r.task && r.task.status === 'blocked'; }).length],
+    ['실패한 테스트', (B.tests || []).filter(function (t) { return !t.passed; }).length],
+    ['차단 지적이 있는 리뷰', (B.reviews || []).filter(function (r) { return r.blocking; }).length]].filter(function (a) { return a[1]; });
+  if (attention.length) h.push('<p class="alert">' + st('is-blocked', '확인 필요') + attention.map(function (a) { return '<span>' + a[0] + ' ' + a[1] + '</span>'; }).join('') + '</p>');
+  if (B.board_error) h.push('<p class="notice">' + esc(B.board_error) + '. coordinator가 board.json을 고치면 단계가 다시 보입니다.</p>');
+
+  h.push('<section><div class="head"><h2>프로젝트 단계</h2>' + (phases.length ? '<span class="progress">' + done + ' / ' + phases.length + ' 완료</span>' : '') + '</div>');
+  if (phases.length) {
+    h.push('<ol class="phases">');
+    phases.forEach(function (p, i) {
+      var s = PHASE[p.status] || PHASE.todo;
+      var refs = (p.deliverables || []).length;
+      h.push('<li><button type="button" class="phase ' + s[0] + '" data-phase="' + i + '" title="' + esc(p.note || p.name) + '">' +
+             '<span class="top"><span class="idx">' + String(i + 1).padStart(2, '0') + '</span>' + st(s[0], s[1]) + '</span>' +
+             '<span class="name clip">' + esc(p.name) + '</span>' +
+             '<span class="foot"><span>' + (refs ? '산출물 ' + refs : '') + '</span>' +
+             (p.note_long ? '<span class="long">설명이 김</span>' : (p.note ? '<span>상세 보기</span>' : '')) + '</span></button></li>');
+    });
+    h.push('</ol>');
+  } else h.push('<p class="empty">board.json에 단계가 없습니다. coordinator가 프로젝트 단계를 추가하면 여기에 표시됩니다.</p>');
+  h.push('</section>');
+
+  var roles = B.roles || [];
+  var busy = roles.filter(function (r) { return r.task; }).length;
+  h.push('<section><div class="head"><h2>역할별 현재 과제</h2><span class="count">' + busy + ' / ' + roles.length + ' 작업 중</span></div><div class="roles">');
+  roles.forEach(function (r) {
+    var t = r.task, s = t ? (TASK[t.status] || TASK.ready) : null, route = t && (B.routes || {})[t.key];
+    var model = t && ((B.models || {})[t.key + '|' + r.role] || (route && route.role === r.role ? route.model : null));
+    h.push('<div class="role' + (t && t.status === 'running' ? ' is-active' : t && t.status === 'blocked' ? ' stuck' : '') + '"><div class="top"><span class="name">' + esc(r.role) + '</span>' +
+           (t ? st(s[0], s[1]) : st('is-todo', '대기')) + '</div><span class="mono soft">' + esc(r.branch) + '</span>' +
+           (t ? '<div class="goal"><span class="mono">' + esc(t.key) + '</span><br>' + esc(t.goal) + '</div>' + (model ? '<span class="mono soft">model · ' + esc(model.agent + ' ' + model.model + ' ' + model.effort) + '</span>' : '') +
+              (route ? '<span class="mono soft">route · ' + esc(route.route) + ((route.deliverables || []).length ? ' · 산출물 ' + esc(route.deliverables.join(' ')) : '') + '</span>' : '')
+              : '<p class="idle">진행 중인 과제 없음</p>') + '</div>');
+  });
+  h.push('</div></section>');
+
+  var issues = B.issues || {}, repository = issues.repository || '';
+  var issueUrl = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) ? 'https://github.com/' + repository + '/issues' : '';
+  h.push('<section class="issues" aria-labelledby="issues-title"><div class="head"><h2 id="issues-title">저장소 이슈</h2>' +
+         (issueUrl ? '<a href="' + esc(issueUrl) + '" target="_blank" rel="noopener noreferrer">GitHub에서 전체 보기</a>' : '') + '</div>');
+  if (repository) h.push('<p class="mono">' + esc(repository) + '</p>');
+  if (issues.error || !B.issues) {
+    h.push('<p class="empty">' + esc(issues.error || '이슈 정보가 없습니다. 보드 데이터를 갱신하세요.') + '</p>');
+  } else {
+    h.push('<p class="mono soft">열림·닫힘 포함 · 최근 업데이트 순 최대 ' + esc(issues.limit) + '건 · 조회 ' +
+           esc((issues.checked_at || '').replace('T', ' ').slice(0, 16)) + '</p>');
+    if ((issues.items || []).length && issueUrl) {
+      h.push('<ul class="issue-list cap">');
+      issues.items.forEach(function (issue) {
+        if (!Number.isSafeInteger(issue.number) || issue.number <= 0) return;
+        h.push('<li><a href="' + esc(issueUrl + '/' + issue.number) + '" target="_blank" rel="noopener noreferrer">' +
+               '<span class="issue-title"><span class="mono">#' + issue.number + '</span> ' + esc(issue.title) + '</span>' +
+               st(issue.state === 'OPEN' ? 'is-active' : 'is-done', issue.state === 'OPEN' ? '열림' : '닫힘') + '</a></li>');
+      });
+      h.push('</ul>');
+    } else h.push('<p class="empty">등록된 이슈가 없습니다.</p>');
+  }
+  h.push('</section>');
+
+  var plans = B.plans || [], reviews = B.reviews || [], notes = B.notes || [];
+  h.push('<div class="cols"><section><div class="head"><h2>현재 작업</h2><span class="count">PLANS.md</span></div>');
+  if (notes.length) h.push('<ul class="notes">' + notes.slice(0, 3).map(function (n) { return '<li class="clip">' + esc(n) + '</li>'; }).join('') + '</ul>' +
+                           '<button type="button" class="more" data-notes="1">요약 전체 보기 (' + notes.length + ')</button>');
+  if (plans.length) {
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:50%"><col style="width:18%"><col style="width:32%"></colgroup>' +
+           '<thead><tr><th>과제 · 목표</th><th>담당</th><th>상태</th></tr></thead><tbody>');
+    var group = null;
+    plans.forEach(function (p) {
+      if (p.group && p.group !== group) { group = p.group; h.push('<tr class="grp"><td colspan="3">' + esc(group) + '</td></tr>'); }
+      h.push('<tr><td><span class="key" title="' + esc(p.key) + '">' + esc(p.key) + '</span>' + (p.goal ? '<span class="clip" title="' + esc(p.goal) + '">' + esc(p.goal) + '</span>' : '') + '</td><td>' + esc(p.owner) + '</td>' +
+             '<td class="soft"><span class="clip" title="' + esc(p.status) + '">' + esc(p.status) + '</span></td></tr>');
+    });
+    h.push('</tbody></table></div>');
+  } else if (!notes.length) h.push('<p class="empty">PLANS.md에 등록된 과제가 없습니다.</p>');
+  h.push('</section><section><div class="head"><h2>리뷰 결과</h2><span class="count">최근 ' + reviews.length + '건</span></div>');
+  if (reviews.length) {
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:30%"><col style="width:44%"><col style="width:10%"><col style="width:16%"></colgroup>' +
+           '<thead><tr><th>날짜 · 과제</th><th>결론</th><th>차단</th><th>lint E/W</th></tr></thead><tbody>');
+    reviews.forEach(function (r) {
+      var lint = r.lint_errors == null ? '<span class="soft">-</span>' : '<span class="' + (r.lint_errors ? 'bad' : '') + '">' + r.lint_errors + '</span><span class="soft"> / ' + (r.lint_warnings == null ? '-' : r.lint_warnings) + '</span>';
+      h.push('<tr><td><span class="mono soft">' + esc(r.date || '') + '</span><span class="key" title="' + esc(r.key) + '">' + esc(r.key) + '</span></td><td><span class="clip" title="' + esc(r.conclusion) + '">' + esc(r.conclusion || '작성 전') + '</span></td>' +
+             '<td class="num' + (r.blocking ? ' bad' : '') + '">' + r.blocking + '</td><td class="num">' + lint + '</td></tr>');
+    });
+    h.push('</tbody></table></div>');
+  } else h.push('<p class="empty">아직 리뷰 기록이 없습니다.</p>');
+  h.push('</section></div>');
+
+  var tests = B.tests || [];
+  if (tests.length) {
+    var failed = tests.filter(function (t) { return !t.passed; }).length;
+    h.push('<section><div class="head"><h2>테스트 결과</h2><span class="count">시나리오 ' + tests.length + '개' + (failed ? ' · 실패 ' + failed : '') + '</span></div>');
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:24%"><col style="width:20%"><col style="width:14%"><col style="width:12%"><col style="width:30%"></colgroup>' +
+           '<thead><tr><th>날짜 · 과제</th><th>시나리오</th><th>결과</th><th>스텝 · 비용</th><th>covers</th></tr></thead><tbody>');
+    tests.forEach(function (t) {
+      var name = (t.scenario || '').split('/').pop() || '-';
+      h.push('<tr><td><span class="mono soft">' + esc(t.date) + '</span><span class="key" title="' + esc(t.key) + '">' + esc(t.key) + '</span></td>' +
+             '<td><span class="mono soft">' + esc(t.kind) + '</span> ' + esc(name) + (t.runs > 1 ? '<span class="soft"> · ' + t.runs + '회</span>' : '') + '</td>' +
+             '<td class="' + (t.passed ? '' : 'bad') + '">' + (t.passed ? '통과' : '실패 · ' + esc(t.result)) + '</td>' +
+             '<td class="num">' + esc(t.steps == null ? '-' : t.steps) + '<span class="soft"> · $' + esc(t.cost == null ? '-' : t.cost) + '</span></td>' +
+             '<td class="soft"><span class="clip" title="' + esc((t.covers || []).join(', ')) + '">' + esc((t.covers || []).join(', ')) + '</span></td></tr>');
+    });
+    h.push('</tbody></table></div></section>');
+  }
+
+  var hist = B.history || [], deliv = B.deliverables || [];
+  var approved = deliv.filter(function (d) { return delivClass(d.status) === 'is-done'; }).length;
+  var inScope = deliv.filter(function (d) { return delivClass(d.status) !== 'is-skip'; }).length;
+  h.push('<div class="cols"><section><div class="head"><h2>최근 완료</h2><span class="count">' + hist.length + '건</span></div>');
+  if (hist.length) {
+    h.push('<div class="scroll cap"><table class="fixed"><colgroup><col style="width:22%"><col style="width:34%"><col style="width:12%"><col style="width:32%"></colgroup>' +
+           '<thead><tr><th>날짜</th><th>과제</th><th>역할</th><th>목표</th></tr></thead><tbody>');
+    hist.forEach(function (e) { h.push('<tr><td class="num soft">' + esc(e.date) + '</td><td><span class="key" title="' + esc(e.key) + '">' + esc(e.key) + '</span></td><td>' + esc(e.role) + '</td><td><span class="clip" title="' + esc(e.goal) + '">' + esc(e.goal) + '</span></td></tr>'); });
+    h.push('</tbody></table></div>');
+  } else h.push('<p class="empty">완료된 과제가 없습니다.</p>');
+  h.push('</section><section><div class="head"><h2>산출물</h2><span class="count">' + approved + ' / ' + inScope + ' 승인' + (inScope < deliv.length ? ' · 범위 밖 ' + (deliv.length - inScope) : '') + '</span></div>');
+  if (deliv.length) {
+    h.push('<div class="deliv">');
+    deliv.forEach(function (d) {
+      var meta = d.has_meta ? [d.updated, d.owner].filter(Boolean).join(' · ') : (d.source_exists ? '원천 있음 · 메타정보 없음' : '');
+      h.push('<button type="button" class="d ' + delivClass(d.status) + '" data-deliverable="' + esc(d.id) + '" title="' + esc([d.summary].concat(d.source || []).filter(Boolean).join('\n')) + '"><span class="id">' + esc(d.id) + ' · ' + esc(d.stage) + '</span>' +
+             '<span class="name">' + esc(d.name) + '</span>' + st(delivClass(d.status), d.status) +
+             (meta ? '<span class="src">' + esc(meta) + '</span>' : '') + '</button>');
+    });
+    h.push('</div>');
+  } else h.push('<p class="empty">docs/deliverables/README.md에서 산출물 표를 찾지 못했습니다.</p>');
+  h.push('</section></div>');
+
+  h.push('<footer><span>FullOps Squad · 60초마다 새로고침</span><span>board.json · board-data.js</span></footer>');
+  h.push('<dialog class="detail" id="detail" aria-labelledby="detail-title"><button type="button" class="close" id="close">닫기</button><div id="detail-body"></div></dialog>');
+  app.innerHTML = h.join('');
+
+  var dialog = document.getElementById('detail'), body = document.getElementById('detail-body');
+  var originPhase = null;
+  var DOC_STATE = { missing:'파일 없음', unwritten:'미작성', unreadable:'열람 불가', blocked:'허용되지 않는 경로' };
+  function open(html, documentView) {
+    dialog.classList.toggle('document', !!documentView);
+    body.innerHTML = html;
+    if (!dialog.open) { if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', ''); }
+    dialog.scrollTop = 0;
+    document.getElementById('close').focus();
+  }
+  function back() {
+    return originPhase == null ? '' : '<p><button type="button" class="back" data-back-phase="' + originPhase + '">단계로 돌아가기</button></p>';
+  }
+  function showDeliverable(id, fileIndex) {
+    var d = byId[id];
+    if (!d) return;
+    var files = d.documents || [], selected = files[fileIndex];
+    var list = files.map(function (file, i) {
+      return '<li><button type="button" class="doc-file" data-document="' + esc(id) + '" data-file="' + i + '"' + (file.state === 'available' ? '' : ' disabled') + '>' +
+             esc(file.title) + '<span class="mono">' + esc(file.path) + (file.state === 'available' ? '' : ' · ' + esc(DOC_STATE[file.state] || '열람 불가')) + '</span></button></li>';
+    }).join('');
+    open('<p class="eyebrow">' + esc(d.id) + ' · ' + esc(d.stage) + '</p><h3 id="detail-title">' + esc(selected ? selected.title : d.name) + '</h3>' +
+         st(delivClass(d.status), d.status) + back() + (list ? '<ul class="doc-files">' + list + '</ul>' : '<p class="empty">열람할 원천 문서가 없습니다. 보드 데이터를 갱신하세요.</p>') +
+         (selected && selected.state === 'available' ? '<p class="mono">' + esc(selected.path) + '</p><article class="doc-body">' + selected.html + '</article>' : ''), true);
+  }
+  function showPhase(i) {
+    var p = phases[i], s = PHASE[p.status] || PHASE.todo;
+    var refs = (p.deliverables || []).map(function (id) {
+      var d = byId[id];
+      return '<li>' + (d ? '<button type="button" class="doc-file" data-deliverable="' + esc(id) + '"><span class="mono">' + esc(id) + '</span> ' + esc(d.name) + ' ' + st(delivClass(d.status), d.status) + '</button>' : '<span class="mono">' + esc(id) + '</span> 산출물 표에 없음') + '</li>';
+    }).join('');
+    open('<p class="eyebrow">단계 ' + String(i + 1).padStart(2, '0') + '</p><h3 id="detail-title">' + esc(p.name) + '</h3>' + st(s[0], s[1]) +
+         (p.note ? '<p class="body">' + esc(p.note) + '</p>' : '<p class="body soft">설명이 없습니다.</p>') +
+         (p.note_long ? '<p class="notice">설명이 80자를 넘습니다. board.json의 note는 지금 상태 한 줄로 두고 경위는 PLANS.md에 적습니다.</p>' : '') +
+         (refs ? '<ul>' + refs + '</ul>' : ''));
+  }
+  document.getElementById('close').addEventListener('click', function () { dialog.close(); });
+  dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });  // 바깥을 누르면 닫는다
+  app.addEventListener('click', function (e) {
+    var card = e.target.closest('[data-phase]'), more = e.target.closest('[data-notes]');
+    var deliverable = e.target.closest('[data-deliverable]'), file = e.target.closest('[data-document]'), previous = e.target.closest('[data-back-phase]');
+    if (card) {
+      originPhase = Number(card.dataset.phase);
+      showPhase(originPhase);
+    } else if (deliverable) {
+      if (!dialog.open) originPhase = null;
+      var d = byId[deliverable.dataset.deliverable];
+      var first = (d.documents || []).findIndex(function (doc) { return doc.state === 'available'; });
+      showDeliverable(d.id, first);
+    } else if (file) {
+      showDeliverable(file.dataset.document, Number(file.dataset.file));
+    } else if (previous) {
+      showPhase(Number(previous.dataset.backPhase));
+    } else if (more) {
+      originPhase = null;
+      open('<p class="eyebrow">PLANS.md</p><h3 id="detail-title">현재 작업 요약</h3><ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>');
+    }
+  });
+
+  var root = document.documentElement, button = document.getElementById('theme');
+  function current() { return root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+  function label() { var dark = current() === 'dark'; button.textContent = dark ? '화이트 테마' : '블랙 테마'; button.setAttribute('aria-pressed', String(dark)); }
+  button.addEventListener('click', function () {
+    root.dataset.theme = current() === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('fullops-board-theme', root.dataset.theme); } catch (e) {}
+    label();
+  });
+  label();
+})();
+</script>
+</body>
+</html>

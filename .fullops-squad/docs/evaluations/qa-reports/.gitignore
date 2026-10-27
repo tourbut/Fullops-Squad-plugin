@@ -1,0 +1,2 @@
+# jev_test_unity.py의 Unity 플레이어 전체 로그. 크고 매번 바뀌므로 커밋하지 않는다. 실패한 실행은 player-tail.log가 남는다.
+*-test/*/play/player.log
