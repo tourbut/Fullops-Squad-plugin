@@ -22,6 +22,8 @@ setup에서 레포에 필요한 역할만 생성한다. 역할 추가 시 setup�
 | 역할 | 책임 | 워크트리 / 브랜치 | 모델 | 기동 방식 |
 |---|---|---|---|---|
 | coordinator / 병합 책임자 | 요청 라우팅·Run 감독·질문 전달·병합 | 기존 체크아웃 / 기본 브랜치 | 현재 세션 | 기존 세션 |
+| `dev` (주 담당) | 기술 계획·구현·테스트·dist 빌드·릴리스. 직접 작업은 main 체크아웃, 배정 시 Orca 워크트리 | main 체크아웃 · 배정 시 `fullops/dev` | 모델 후보 | 직접 세션 · `worker-start` |
+| `architecture` | 여러 스킬·스크립트에 걸친 설계, 공유 계약(hook·상태 파일·CLI 인자) 변경 설계와 지시서. 코드는 고치지 않음 | Orca 워크트리 / `fullops/architecture` | 모델 후보 | `worker-start` |
 
 각 등록 역할의 책임·워크트리·기동 방식을 위 표에 추가한다. 기존 고정 모델·effort와 사용자의 과제별 지정은 보존한다. 사용자 선택 없이 후보형으로 바꾸지 않는다.
 `## 모델 후보`에 후보가 있는 역할은 모델 칸에 "모델 후보"라고 적는다. 배정할 때마다 coordinator가 지시서를 보고 후보 중 하나를 고른다.
@@ -40,10 +42,12 @@ coordinator는 비용이 낮은 모델로 계속 띄워 두고, 설계 역할은
 
 ```text
 - `dev` `codex` `gpt-6-sol` `low`: 문구·수치 변경 같은 단순 수정
-- `dev` `claude` `claude-sonnet-5` `medium`: 기존 패턴을 따르는 일반 구현과 버그 수정
-- `dev` `claude` `claude-opus-5-5` `high`: 설계 판단이 섞이거나 여러 모듈에 걸친 구현
-- `reviewer` `claude` `claude-opus-5-5` `high`: 병합 전 고정 SHA 독립 코드 리뷰
 ```
+
+- `dev` `claude` `claude-sonnet-5-5` `medium`: 문서·문구 수정, 기존 패턴을 따르는 스크립트 수정과 테스트 추가
+- `dev` `claude` `claude-opus-5-5` `high`: hook·gate·상태 파일처럼 여러 스크립트에 걸치거나 보안 경계를 바꾸는 구현
+- `architecture` `claude` `claude-opus-5-5` `high`: 설계 문서와 역할별 지시서
+- `reviewer` `claude` `claude-opus-5-5` `high`: 병합 전 고정 SHA 독립 코드 리뷰
 
 ## 라우팅 기준
 
@@ -54,9 +58,7 @@ coordinator를 기본 브랜치 체크아웃이 아닌 역할 워크트리에서
 동작 검증을 전담할 역할을 두면 `- tester 역할: `<역할>`` 줄을 더한다. 그 역할의 세션은 시작할 때 `fullops-test` 검증 도구와 규칙(제품 코드는 고치지 않음)을 받는다. 다른 역할도 `fullops-test` 도구를 쓸 수 있다.
 
 - 설계 역할: `architecture`
-- `dev`: 게임플레이·서버·도구 코드 구현과 테스트
-- `art`: 아트 에셋·셰이더·UI 리소스 제작과 임포트 설정
-- `ops`: 빌드·배포·CI·인프라 설정
+- `dev`: 플러그인 스크립트(Python)·스킬 문서·adapters·테스트·설치기 구현, dist 빌드와 릴리스
 
 simple은 파일 소유권·완료 기준·검증 명령이 요청만으로 분명하고 한 역할 안에서 끝나는 작업이다.
 예: 버그 한 건 수정, 문구·수치 변경, 기존 패턴을 따르는 기능 추가, 에셋 교체.
