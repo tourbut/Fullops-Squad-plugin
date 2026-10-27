@@ -35,7 +35,7 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 기존 설정 누락은 테스트 `standard` / 하위 에이전트 `off`를 유지합니다. 필수 검사·보안·데이터 손실 방지·독립 리뷰·최종 수락 조건은 모든 레벨에서 유지합니다. `setup.py --repo <레포> --test-level lite --subagent-level lite`로 선택하며 [setup 안내](plugins/fullops-squad/skills/setup-fullops/SKILL.md)를 따릅니다.
 
 1. coordinator가 요청과 과제 키를 받습니다. 운영 작업은 직접 처리합니다.
-2. 코드·산출물 작업은 Jev가 `simple` 또는 `design`으로 분류합니다. 담당 역할, 모델·effort, 갱신할 산출물도 추천합니다.
+2. 코드·산출물 작업은 Jev가 `simple` 또는 `design`으로 분류합니다. 담당 역할과 갱신할 산출물도 추천합니다. 모델·effort는 coordinator가 지시서를 보고 `## 모델 후보`에서 골라 기록합니다.
 3. `simple`은 coordinator가 지시서를 씁니다. `design`은 설계 역할이 문서와 역할별 지시서를 씁니다.
 4. worker는 자기 워크트리에서 구현·검증합니다. 질문은 coordinator에게 보내고 완료는 `worker_done`으로 보고합니다.
 5. 병합 책임자는 고정 SHA의 lint·테스트·delegate 리뷰를 확인한 뒤 허가된 병합을 수행합니다.
@@ -51,7 +51,7 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 | 검증 역할 (`tester`, 선택) | 테스트와 증거 작성. 제품 코드는 수정하지 않음 |
 
 역할·브랜치는 `fullops.json`, 책임·CLI·모델 후보는 `orca-agents.md`에 등록합니다.
-모델 후보는 약한 것부터 강한 순서로 적습니다. Jev는 등록된 후보에서 선택합니다.
+모델 후보는 약한 것부터 강한 순서로 적습니다. coordinator가 과제마다 지시서를 보고 이 후보에서 고릅니다.
 설계·coordinator·tester 역할은 라우팅 기준의 해당 줄로 지정합니다. 기본 coordinator는 기본 브랜치 체크아웃입니다.
 역할 워크트리에서 coordinator를 운영하면 `- coordinator 역할: <역할 ID>`를 등록합니다.
 
@@ -70,7 +70,7 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 기술 난도가 높은 작업도 확정된 제품 요구 안에 있으면 `implementation`으로 담당 worker에 배정합니다.
 제품 규칙 결정·범위 확대·불명확한 공유 제품 기준은 `product`로 기획자에게 배정합니다.
 호출 실패·낮은 확신은 `unresolved`로 보류합니다. 담당 책임을 확인한 뒤 `--override-role`과 `--reason`으로 근거를 남깁니다.
-기존 기록의 재선정은 `--force`로 원본을 보존합니다. 위 두 marker가 없으면 기존 `simple/design` 구조를 유지합니다.
+기존 기록의 재분류는 `--force`로 원본을 보존합니다. 위 두 marker가 없으면 기존 `simple/design` 구조를 유지합니다.
 
 역할을 바꿀 때 기존 `fullops/*` 브랜치를 재사용할 수 있습니다. 역할별 브랜치는 고유해야 합니다.
 독립 리뷰는 별도 세션과 고정 SHA의 깨끗한 detached snapshot에서 진행합니다.
@@ -345,7 +345,7 @@ FullOps 활성 저장소에서 `이슈 자동 작업 모드를 설정하고 현�
 
 | 용도 | 실패·키 없음 처리 |
 |---|---|
-| 요청·역할·모델·산출물 라우팅 | 기존 구조는 설계 역할로 폴백. 제품/기술 분리 구조는 unresolved로 보류. 모델 폴백은 stderr 경고 확인 |
+| 요청·역할·산출물 라우팅 | 기존 구조는 설계 역할로 폴백. 제품/기술 분리 구조는 unresolved로 보류. 모델은 Jev가 고르지 않음 |
 | 코드·문서 위치 탐색 | 검색으로 후보 보완 |
 | 문서 관련성 분류 | 후보 유지 |
 | 웹·Unity 조작 테스트 | 실패 근거 확인. 성공으로 처리하지 않음 |
