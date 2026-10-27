@@ -61,6 +61,8 @@ class API:
 
 
 class Orca:
+    executable = 'orca'
+
     def identity(self, *args):
         return 'incarnation'
 
@@ -189,7 +191,7 @@ def main():
             acks.append(ack)
             return {'deliveryId': 'd2', 'messages': [{'type': 'question', 'id': 'm1'}]}
         with patch.object(mode, 'renew'), patch.object(mode.orca_wait, 'check', side_effect=check),                 patch.object(mode.integration, 'record'):
-            assert mode.wait(store, api, None, token, 'd1')['deliveryId'] == 'd2'
+            assert mode.wait(store, api, Orca(), token, 'd1')['deliveryId'] == 'd2'
         assert acks == ['d1']
         assert mode.claim(store, api, token) is None  # busy: enqueue만, 다른 issue dispatch 없음
         # 실사용에서 coor를 멈춘 조회 명령은 통과하고, 비밀정보·다른 저장소·다른 체크아웃 변경은 막는다.
