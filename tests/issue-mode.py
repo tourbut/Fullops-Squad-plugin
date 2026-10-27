@@ -235,12 +235,12 @@ def main():
         delivered = mode.answer_delivery(store, token)
         assert len(delivered['answer_candidates']) == 1 and delivered['issue_id'] == '101'
         assert mode.answer_delivery(store, token) is None
-        mode.resolve_answers(store, api, token, 101, 'insufficient', '질문 ID는 맞지만 단위/높이가 빠짐')
+        assert mode.resolve_answers(store, api, token, 101, 'insufficient', '질문 ID는 맞지만 단위/높이가 빠짐') == 'awaiting_author'
         mode.question(store, api, token, 101, '높이도 알려주세요. 재개 조건: 너비/높이 확정')
         api.comments.append({**answer, 'id': 1002, 'body': '128px x 64px'})
         mode.poll_answers(store, api, token)
         assert len(mode.answer_delivery(store, token)['answer_candidates']) == 1
-        mode.resolve_answers(store, api, token, 101, 'sufficient', '질문 연결 및 규격 확정, 권한 확대 없음')
+        assert mode.resolve_answers(store, api, token, 101, 'sufficient', '질문 연결 및 규격 확정, 권한 확대 없음') == 'queued'
         resumed = mode.claim(store, api, token)
         assert resumed['attempt'] == 2 and resumed['digest'] != job['digest']
         resumed_receipt = {'task_key': resumed['task_key'], 'session': 'coor', 'received': True}

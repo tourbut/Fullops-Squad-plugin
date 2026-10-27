@@ -669,11 +669,14 @@ def resolve_answers(store, github, token, identifier, decision, reason):
             state['comments'][str(answer['comment_id'])]['processed'] = True
         job['history'].append({'phase': 'answer_decision', 'decision': decision, 'reason': reason,
                                'answers': [a['url'] for a in candidates]})
-        job.update(status=('held' if job.get('dispatch_intents') and not job.get('settled') else 'queued')
-                   if decision == 'sufficient' else 'awaiting_author', reason=reason,
-                   resume='기존 worker 확정 종료를 sync로 확인한 뒤 queued checkpoint' if decision == 'sufficient' else '작성자의 충분한 새 답변')
+        status = ('held' if job.get('dispatch_intents') and not job.get('settled') else 'queued') if decision == 'sufficient' else 'awaiting_author'
+        job.update(status=status, reason=reason, resume={
+            'held': '기존 worker 확정 종료를 sync로 확인한 뒤 queued checkpoint',
+            'queued': '다음 wait가 새 attempt로 다시 전달한다',
+            'awaiting_author': '작성자의 충분한 새 답변'}[status])
         job['digest'] = digest([job['snapshot'], [a for a in job['answers'] if a['decided']]])
         # 다음 claim이 새 attempt를 발행한다. 기존 검색/지시/packet은 같은 시도로 재사용하지 않는다.
+        return status
 
 
 def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatched=False):
