@@ -188,7 +188,7 @@ def main():
         for words in (['rg', 'def', str(Path.home() / '.codex/plugins/cache/fullops-squad/scripts/issue_mode.py')],
                       ['git', '-C', '../dev', 'status', '--short'], ['git', '-C', '../dev', 'branch', '--show-current'],
                       ['gh', 'issue', 'view', '1', '--repo', 'owner/service'],
-                      ['orca', 'orchestration', 'worker-start', '--help']):
+                      ['orca', 'orchestration', 'worker-start', '--help'], ['git', 'switch', '-c', 'fullops/issue-1-a1', 'abc123']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]) is None, words
         for words in (['Get-Content', '.fullops-squad/.env'], ['git', '-C', '../dev', 'commit', '-m', 'x'],
                       ['git', '-C', '../dev', 'branch', '-D', 'x'], ['gh', 'issue', 'view', '1', '--repo', 'other/repo'],

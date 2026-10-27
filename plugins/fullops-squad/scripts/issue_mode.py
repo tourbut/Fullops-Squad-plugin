@@ -906,11 +906,17 @@ HOST_READERS = {'rg', 'grep', 'findstr', 'cat', 'type', 'head', 'tail', 'wc', 'l
                 'select-string', 'get-childitem', 'gci', 'test-path'}
 
 
-def git_read(words):
-    """`git -C <경로>`처럼 다른 체크아웃을 가리키는 명령은 조회 subcommand만 허용한다."""
+def git_split(words):
+    """(subcommand 앞 전역 옵션, subcommand 위치). `git -c x switch -c y`의 두 -c를 구분한다."""
     index = 1
     while index < len(words) and words[index].startswith('-'):
-        index += 2 if words[index] in ('-C', '--git-dir', '--work-tree') else 1
+        index += 2 if words[index] in ('-C', '-c', '--git-dir', '--work-tree') else 1
+    return words[1:index], index
+
+
+def git_read(words):
+    """`git -C <경로>`처럼 다른 체크아웃을 가리키는 명령은 조회 subcommand만 허용한다."""
+    index = git_split(words)[1]
     sub = words[index] if index < len(words) else ''
     if sub == 'branch':
         return all(w in ('--show-current', '--list', '-a', '-r', '-v', '-vv') for w in words[index + 1:])
@@ -990,10 +996,11 @@ def boundary(repo, session, command, files, commands, context=None):
         if 'issue_mode.py' in ' '.join(words) and 'configure' in words:
             return 'GitHub 이슈/댓글로 자동 작업 설정과 allowlist를 변경할 수 없습니다'
         if executable == 'git':
-            located = any(w in words for w in ('-C', '--git-dir', '--work-tree')) or any(
-                w.startswith(('--git-dir=', '--work-tree=')) for w in words[1:])
+            options = git_split(words)[0]
+            located = any(w in options for w in ('-C', '--git-dir', '--work-tree')) or any(
+                w.startswith(('--git-dir=', '--work-tree=')) for w in options)
             if any(w in words for w in ('--force', '-f', '--force-with-lease')) or any(
-                    w.startswith(('--config-env', '--exec-path', '-c')) for w in words[1:]) or (
+                    w.startswith(('--config-env', '--exec-path', '-c')) for w in options) or (
                     located and not git_read(words)):
                 return '자동 작업의 Git 저장소/강제 변경 범위를 확인할 수 없습니다'
             if any(w in words for w in ('clean', 'reset')) or ('merge' in words and integration.git(repo, 'branch', '--show-current') == integration.config(repo)['git']['base']):
