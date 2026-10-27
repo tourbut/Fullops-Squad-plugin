@@ -195,6 +195,11 @@ def main():
                       ['git', '-c', 'core.sshCommand=x', 'status'],
                       ['Set-Content', str(Path.home() / '.codex/config.toml'), 'x']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]), words
+        # PowerShell처럼 변수 대입과 함께 쓴 제어 명령도 lease 파일 경로로 막지 않는다. 같은 줄의 다른 명령은 검사한다.
+        lease = '.fullops-squad/.env.issue-mode-lease.json'
+        line = [['$s=x'], ['python3', 'issue_mode.py', 'checkpoint', '--token-file', lease, '--received'], ['echo', 'done']]
+        assert mode.boundary(root, 'provider', '', [], line) is None
+        assert mode.boundary(root, 'provider', '', [], line[:2] + [['Get-Content', lease]])
         with store.edit() as state:
             state['jobs']['101']['started'] -= state['config']['max_seconds'] + 1
         assert mode.boundary(root, 'provider', 'orca terminal list', [], [['orca', 'terminal', 'list']]) is None

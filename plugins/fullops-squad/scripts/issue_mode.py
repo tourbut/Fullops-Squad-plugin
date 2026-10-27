@@ -958,9 +958,9 @@ def boundary(repo, session, command, files, commands, context=None):
         # OFF·만료·종료된 lease의 coor는 자동 실행이 아니라 사용자가 직접 운영한다. 이전 worker만 fencing한다.
         return None if coordinator else str(error)
     job = job or next((j for j in jobs if j['status'] in ACTIVE), jobs[-1])
-    control = any('issue_mode.py' in ' '.join(w) and any(c in w for c in
-                  ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))
-                  for w in commands)
+    controls = [w for w in commands if 'issue_mode.py' in ' '.join(w) and any(c in w for c in
+                ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))]
+    control = bool(controls)
     if coordinator and control and len(commands) == 1 and not files:
         return None
     if control and not coordinator:
@@ -976,8 +976,8 @@ def boundary(repo, session, command, files, commands, context=None):
     if hold and (not coordinator or any(outward(w) for w in commands)):
         return hold
     for words in commands:
-        if not words or '--help' in words:
-            continue
+        if not words or '--help' in words or (coordinator and words in controls):
+            continue  # coor의 제어 명령은 lease 파일을 --token-file로 받는다. 같은 줄의 다른 명령만 검사한다.
         executable = Path(words[0]).name.lower().removesuffix('.exe')
         if any(re.search(r'(?:^|[/\\])(?:\.env[^/\\]*|auth\.json|credentials\.json)$', w.strip('\'"'), re.I) for w in words):
             return '자동 이슈에서 비밀정보 파일을 읽거나 변경할 수 없습니다'
