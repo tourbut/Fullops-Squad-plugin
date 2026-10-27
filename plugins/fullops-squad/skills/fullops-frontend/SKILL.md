@@ -31,7 +31,7 @@ description: FullOps 활성 레포에서 UI/UX 설계·화면 구현·디자인 
 
 [지시서와 QA 계약](delivery.md)의 입력을 현재 `fullops-work` 인박스에 채운다. 선택한 외부 스킬의 원문과 해당 참조를 읽고 프로젝트 요구·정본에 맞춰 수행한다. 외부 스킬이 새 역할·subagent·hook·유료 서비스·외부 업로드를 요구하면 기존 FullOps 권한과 하위 위임 정책 범위에서만 실행한다.
 
-coordinator가 배정하는 경우 `jev_route.py --model-only --role <역할> --key <키> --repo <루트> --agent <codex|claude|grok> --model <고정 모델> --effort <고정 effort>`로 tuple을 기록한다. 이 경로는 Jev 모델 선택을 호출하지 않는다. 기존 역할 분류·패킷·dispatch·독립 리뷰 게이트는 그대로 따른다. 호스트 전환 시 인박스·정본·토큰·코드 SHA·기존 QA 증거를 같은 버전으로 전달한다. 같은 과제의 하위 작업도 고정 tuple과 위임 제약을 전달받는다.
+coordinator가 배정하는 경우 `jev_route.py --model-only --role <역할> --key <키> --repo <루트> --agent <codex|claude|grok> --model <고정 모델> --effort <고정 effort>`로 tuple을 기록한다. 기존 역할 분류·패킷·dispatch·독립 리뷰 게이트는 그대로 따른다. 호스트 전환 시 인박스·정본·토큰·코드 SHA·기존 QA 증거를 같은 버전으로 전달한다. 같은 과제의 하위 작업도 고정 tuple과 위임 제약을 전달받는다.
 
 완료 조건: 구현 전 유지/변경할 디자인, 기능 상태와 수락 기준이 기록됐고 담당자가 같은 정본·SHA를 읽을 수 있다.
 

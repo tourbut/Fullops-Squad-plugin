@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""레포의 라우팅 기준으로 담당 역할·산출물·모델을 고른다.
+"""레포의 라우팅 기준으로 담당 역할·산출물을 고르고, coordinator가 고른 모델 tuple을 함께 기록한다.
 
 기존 구조는 simple/design을 사용하고 불확실한 요청을 설계 역할로 보낸다.
 제품 기획/기술 계획 역할을 명시한 레포는 implementation/product를 사용한다.
 이 구조에서 호출 실패나 낮은 확신은 unresolved로 보류한다.
-산출물 front matter의 title·summary와 역할별 모델 후보를 판단에 사용한다.
+산출물 front matter의 title·summary를 판단에 사용한다. 모델은 Jev가 고르지 않는다.
 """
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -24,13 +23,8 @@ from work import KEY, active_repo, safe_file, input_identity, save_result
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
 # 산출물마다 독립된 예/아니오로 묻는다. Choice는 여러 문서가 해당하면 확률을 나눠 가져 문서마다 낮아진다
 DOC, DOC_MAX = 0.5, 3  # 산출물: 확률 하한, 최대 개수
-CANDIDATE = re.compile(r'^- `([a-z][a-z0-9_-]*)` `([A-Za-z0-9._-]+)` `([A-Za-z0-9._:/-]+)` `([A-Za-z0-9_-]+)`\s*:\s*(.+?)\s*$', re.M)
-MODEL_TIE = 0.05  # 1등과 이만큼 이내인 후보가 있으면 품질 쪽(더 높은 레벨)을 쓴다
-REVIEWER = 'reviewer'  # 고정 SHA 독립 리뷰 전용 후보 키. fullops.json 역할이 아니라 지시서가 없다
+REVIEWER = 'reviewer'  # 고정 SHA 독립 리뷰 세션의 키. fullops.json 역할이 아니라 지시서가 없다
 PROVIDER = {'claude': 'anthropic', 'codex': 'openai', 'grok': 'xai', 'agy': 'google'}  # 에이전트 CLI → 모델 제공사
-MODEL_HINT = ('Candidates are ordered by level: level 1 is the cheapest and weakest, the highest level is the strongest '
-              'and most expensive, across providers. Pick the lowest level that can still do `request` well for this role. Choose a higher '
-              'level only when the work needs design judgment, touches many files or modules, or is risky.')
 SCOPE = {'simple': 'Files, acceptance and checks are clear from the request and it stays inside one role.',
          'design': 'Needs design decisions, changes a shared contract, spans several roles, or is ambiguous.'}
 PRODUCT_SCOPE = {'implementation': 'Implement, analyze or fix within agreed product requirements. The worker owns technical planning, API/structure choices and tests, even across many modules.',
@@ -85,27 +79,6 @@ def product_roles(repo):
     return planner, developer
 
 
-def model_candidates(repo):
-    """`## 모델 후보`의 "- `역할` `에이전트` `모델` `effort`: 언제 쓰는지" 줄. {역할: [후보]}, 약한 것부터 강한 순이다."""
-    try:
-        text = safe_file(repo, '.fullops-squad/orca-agents.md').read_text(encoding='utf-8')
-    except OSError:
-        return {}
-    section = re.search(r'^## 모델 후보\n(.*?)(?=^## |\Z)', text, re.M | re.S)
-    result = {}
-    body = re.sub(r'^```.*?^```', '', section.group(1), flags=re.M | re.S) if section else ''  # 코드 블록 예시는 읽지 않는다
-    for role, agent, model, effort, note in CANDIDATE.findall(body):
-        items = result.setdefault(role, [])
-        items.append({'id': f'm{len(items) + 1}', 'agent': agent, 'provider': PROVIDER.get(agent, 'unknown'),
-                      'model': model, 'effort': effort, 'note': note})
-    return result
-
-
-def candidate_hash(repo, role):
-    candidates = model_candidates(repo).get(role or '', [])
-    return hashlib.sha256(json.dumps(candidates, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest()
-
-
 def checked_request(text):
     """라우팅 입력 오류를 호출 실패와 구분하고 비밀값 자체는 출력하지 않는다."""
     if len(text) > 4000:
@@ -121,44 +94,13 @@ def checked_request(text):
 
 
 def fixed_model(agent=None, model=None, effort=None):
-    """사용자가 고정한 tuple은 후보·Jev보다 우선한다. 일부만 주면 임의로 채우지 않는다."""
+    """coordinator가 `## 모델 후보`에서 고른(또는 사용자가 고정한) tuple. 일부만 주면 임의로 채우지 않는다."""
     if all(v is None for v in (agent, model, effort)):
         return None
     agent = 'claude' if agent == 'claude-code' else agent
     if agent not in PROVIDER or not isinstance(model, str) or not re.fullmatch(r'[A-Za-z0-9._:/-]+', model) or not isinstance(effort, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', effort):
-        raise ValueError('고정 배정에는 --agent <CLI> --model <모델> --effort <effort> 전체를 지정하세요')
+        raise ValueError('모델 기록에는 --agent <CLI> --model <모델> --effort <effort> 전체를 지정하세요')
     return {'agent': agent, 'provider': PROVIDER[agent], 'model': model, 'effort': effort, 'source': 'user'}
-
-
-def pick_model(repo, role, text, call):
-    """역할의 후보 중 작업에 맞는 것을 고른다. 후보가 없으면 None, 하나면 그것, Jev가 실패하면 품질 쪽인 마지막(가장 강한) 후보."""
-    candidates = model_candidates(repo).get(role or '', [])
-    if not candidates:
-        return None
-    strongest = {k: candidates[-1][k] for k in ('agent', 'provider', 'model', 'effort')}
-    if len(candidates) == 1:
-        return {**strongest, 'source': 'only'}
-    criteria = {}
-    for level, c in enumerate(candidates, 1):
-        label = f"level {level}/{len(candidates)}: {c['provider']} {c['model']} via {c['agent']} effort={c['effort']}"
-        try:
-            criteria[c['id']] = safe_text(f"{label}: {c['note']}", 300)
-        except ValueError:
-            criteria[c['id']] = label
-    question = {'model': {'type': 'choice', 'criteria': criteria, 'instructions': MODEL_HINT}}
-    try:
-        require_online()
-        values, usage, elapsed, model = validated(call({'model': MODEL, 'state': {'role': role, 'request': safe_text(text)}, 'questions': question}), question)
-        answer = checked_answer(values['model'], criteria)
-    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as error:
-        return {**strongest, 'source': 'fallback', 'error': f'Jev 생략: {error}'}
-    top = answer['probabilities'][answer['choice']]
-    close = [c for c in candidates if answer['probabilities'][c['id']] >= top - MODEL_TIE]
-    chosen = close[-1]  # 후보는 약한 것부터 적으므로 마지막이 가장 강하다
-    return {**{k: chosen[k] for k in ('agent', 'provider', 'model', 'effort')}, 'source': 'jev',
-            **({'tie_break': answer['choice']} if chosen['id'] != answer['choice'] else {}),
-            'probabilities': {f"{c['agent']} {c['model']} {c['effort']}": answer['probabilities'][c['id']] for c in candidates},
-            'usage': usage}
 
 
 def document_options(repo):
@@ -190,7 +132,7 @@ def picked(probabilities):
 
 
 def route(repo, key, text, call, override_role=None, reason=None, agent=None, model=None, effort=None):
-    """역할·산출물을 분류하고, 배정할 역할의 모델 후보가 있으면 모델도 고른다."""
+    """역할·산출물을 분류한다. 모델은 coordinator가 넘긴 tuple만 기록한다."""
     chosen = fixed_model(agent, model, effort)
     result = classify(repo, key, text, call)
     if override_role:
@@ -210,8 +152,7 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
             result['original_route'] = result['route']
             result['route'] = 'product' if override_role == split[0] else 'implementation'
         result['override_reason'] = reason
-    result['model'] = (chosen or pick_model(repo, result['role'], text, call)) if result.get('role') else None
-    result['candidate_hash'] = candidate_hash(repo, result['role'])
+    result['model'] = chosen if result.get('role') else None
     head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True, env=git_env())
     result['head'] = head.stdout.strip() if head.returncode == 0 else None
     result['requires_packet'] = True
@@ -223,23 +164,15 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
     return result
 
 
-def model_only(repo, key, role, call, text=None, agent=None, model=None, effort=None):
-    """설계를 거친 worker용. 요청 원문 대신 그 역할의 지시서(없으면 --request)로 모델을 고른다."""
-    if role == REVIEWER:
-        body = text or ''
-        if not body.strip():
-            raise ValueError('reviewer는 지시서가 없습니다. --request에 need 판정 사유(파일 수·줄 수·always 경로)를 주세요')
-    else:
+def model_only(repo, key, role, agent=None, model=None, effort=None):
+    """설계를 거친 worker·리뷰어 배정 때 coordinator가 고른 tuple을 과제·역할별로 기록한다."""
+    if role != REVIEWER:
         from work import validate_role
         validate_role(repo, role)
-        handover = safe_file(repo, f'.fullops-squad/handovers/to_{role}.md')
-        body = text or (handover.read_text(encoding='utf-8')[:3500] if handover.is_file() else '')
-        if not body.strip():
-            raise ValueError(f'{role} 지시서가 비어 있습니다. 지시서를 먼저 쓰거나 --request를 주세요')
     chosen = fixed_model(agent, model, effort)
-    checked_request(body)
-    return {'version': 'jev-model-v1', 'task_key': key, 'role': role, 'model': chosen or pick_model(repo, role, body, call),
-            'candidate_hash': candidate_hash(repo, role)}
+    if not chosen:
+        raise ValueError('--model-only에는 --agent --model --effort가 필요합니다')
+    return {'version': 'model-v2', 'task_key': key, 'role': role, 'model': chosen}
 
 
 def classify(repo, key, text, call):
@@ -313,12 +246,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--repo', required=True)
     parser.add_argument('--key', required=True)
-    parser.add_argument('--request', help='사용자 요청 원문 (4000자 이하, 비밀값 금지). --model-only면 생략 시 지시서를 읽는다')
-    parser.add_argument('--model-only', action='store_true', help='분류 없이 --role의 모델만 고른다(설계 뒤 worker 배정용)')
-    parser.add_argument('--role', help='--model-only 대상 역할. `reviewer`는 고정 SHA 독립 리뷰 세션용 후보 키다')
-    parser.add_argument('--agent', choices=[*PROVIDER, 'claude-code'], help='사용자 고정 CLI. --model·--effort와 함께 지정')
-    parser.add_argument('--model', help='사용자 고정 모델 (후보·Jev보다 우선)')
-    parser.add_argument('--effort', help='사용자 고정 effort')
+    parser.add_argument('--request', help='사용자 요청 원문 (4000자 이하, 비밀값 금지)')
+    parser.add_argument('--model-only', action='store_true', help='분류 없이 --role에 배정할 tuple만 기록한다(설계 뒤 worker·리뷰어 배정용, API 호출 없음)')
+    parser.add_argument('--role', help='--model-only 대상 역할. `reviewer`는 고정 SHA 독립 리뷰 세션 키다')
+    parser.add_argument('--agent', choices=[*PROVIDER, 'claude-code'], help='배정할 CLI. --model·--effort와 함께 지정')
+    parser.add_argument('--model', help='배정할 모델 (coordinator가 orca-agents.md `## 모델 후보`에서 고른다)')
+    parser.add_argument('--effort', help='배정할 effort')
     parser.add_argument('--bind-inbox', action='store_true', help='API 호출 없이 기존 route를 현재 역할 지시서와 연결한다')
     parser.add_argument('--override-role', help='담당 역할 변경(사유 기록; 제품/기술 책임 분리 레포에서는 unresolved도 명시 배정)')
     parser.add_argument('--reason', help='--override-role의 근거(500자 이하)')
@@ -347,8 +280,8 @@ def main():
             save_result(output, {**result, **identity, 'requires_packet': True})
             print(output.relative_to(repo))
             return
-        if args.model_only and not args.role:
-            raise ValueError('--model-only에는 --role이 필요합니다')
+        if args.model_only and (not args.role or not args.agent or args.request):
+            raise ValueError('--model-only에는 --role과 --agent --model --effort만 지정하세요')
         if not args.model_only and not args.request:
             raise ValueError('--request가 필요합니다')
         if args.override_role and (args.model_only or not args.reason or len(args.reason) > 500):
@@ -362,33 +295,19 @@ def main():
         name = f'{args.key}-model-{args.role}.json' if args.model_only else f'{args.key}-route.json'
         output = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{name}')
         if output.exists() and not args.force:
-            warning = ''
-            try:
-                previous = json.loads(output.read_text(encoding='utf-8'))
-                role = args.role if args.model_only else previous.get('role')
-                old_hash = previous.get('candidate_hash')
-                if old_hash and old_hash != candidate_hash(repo, role):
-                    warning = ' 모델 후보가 변경됐습니다.'
-                elif not old_hash and previous.get('model'):
-                    model = previous['model']
-                    if not any(all(c.get(k) == model.get(k) for k in ('agent', 'model', 'effort'))
-                               for c in model_candidates(repo).get(role or '', [])):
-                        warning = ' 기록된 모델이 현재 후보에 없습니다.'
-            except (OSError, ValueError, TypeError, AttributeError):
-                pass
             parser.exit(1, f'이미 결과가 있어 호출하지 않았습니다: {output.relative_to(repo)}. '
-                           f'기존 결과는 보존합니다.{warning} 다시 고르려면 --force를 사용하세요\n')
+                           '기존 결과는 보존합니다. 다시 기록하려면 --force를 사용하세요\n')
     except (OSError, ValueError) as error:
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
 
     def call(payload):
         return request(payload, api_key(args.env_file, repo))
     try:
-        result = (model_only(repo, args.key, args.role, call, args.request, args.agent, args.model, args.effort) if args.model_only else
+        result = (model_only(repo, args.key, args.role, args.agent, args.model, args.effort) if args.model_only else
                   route(repo, args.key, args.request, call, args.override_role, args.reason, args.agent, args.model, args.effort))
     except (OSError, ValueError) as error:
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
-    errors = [error for error in (result.get('error'), (result.get('model') or {}).get('error')) if error]
+    errors = [result['error']] if result.get('error') else []
     if result.get('docs_status') == 'partial':
         errors.append('산출물 일부 미확인: ' + ', '.join(result.get('unresolved_deliverables') or []))
     if args.strict and errors:
@@ -404,7 +323,7 @@ def main():
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     model = result.get('model')
     model_line = (f"모델: {model.get('provider')} {model['model']} via {model['agent']} effort={model['effort']} ({model['source']})" if model
-                  else '모델: 후보 없음 (orca-agents.md ## 모델 후보)')
+                  else '모델: 미기록 (coordinator가 orca-agents.md `## 모델 후보`에서 골라 --agent --model --effort로 기록)')
     if args.model_only:
         print(model_line)
         print(output.relative_to(repo))

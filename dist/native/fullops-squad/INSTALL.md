@@ -51,7 +51,7 @@ Orca IDE에서 Claude Code·Codex·grok·agy를 역할별 worker로 운영하는
 | 검증 역할 (`tester`, 선택) | 테스트와 증거 작성. 제품 코드는 수정하지 않음 |
 
 역할·브랜치는 `fullops.json`, 책임·CLI·모델 후보는 `orca-agents.md`에 등록합니다.
-모델 후보는 약한 것부터 강한 순서로 적습니다. Jev는 등록된 후보에서 선택합니다.
+모델 후보는 약한 것부터 강한 순서로 적습니다. coordinator가 과제마다 지시서를 보고 이 후보에서 고릅니다.
 설계·coordinator·tester 역할은 라우팅 기준의 해당 줄로 지정합니다. 기본 coordinator는 기본 브랜치 체크아웃입니다.
 역할 워크트리에서 coordinator를 운영하면 `- coordinator 역할: <역할 ID>`를 등록합니다.
 

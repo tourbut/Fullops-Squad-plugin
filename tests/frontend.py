@@ -200,18 +200,13 @@ class Frontend(unittest.TestCase):
                 deps.backup_skills('codex', [])
         self.assertFalse((folder / 'fullops-skill-backups').exists())
 
-    def test_fixed_tuple_is_offline_and_does_not_call_model_picker(self):
-        agents = self.repo / '.fullops-squad/orca-agents.md'
-        agents.write_text(agents.read_text(encoding='utf-8').replace('## 모델 후보\n',
-                          '## 모델 후보\n- `dev` `claude` `other-model` `high`: strongest\n'), encoding='utf-8')
+    def test_fixed_tuple_is_recorded_offline(self):
         for host in deps.COMMON_HOSTS:
-            with patch.object(jev_route, 'pick_model', side_effect=AssertionError('fixed tuple overridden')):
-                result = jev_route.model_only(self.repo, 'UI', 'dev', lambda _: self.fail('API used'), 'UI task',
-                                              host, 'user-model', 'low')
+            result = jev_route.model_only(self.repo, 'UI', 'dev', host, 'user-model', 'low')
             self.assertEqual(result['model']['model'], 'user-model')
             self.assertEqual(result['model']['source'], 'user')
         args = [sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', str(self.repo), '--key', 'UI',
-                '--model-only', '--role', 'dev', '--request', 'UI task', '--agent', 'grok',
+                '--model-only', '--role', 'dev', '--agent', 'grok',
                 '--model', 'user-model', '--effort', 'high', '--strict']
         done = subprocess.run(args, capture_output=True, text=True, encoding='utf-8',
                               env={**os.environ, 'FULLOPS_OFFLINE': '1', 'OPENROUTER_API_KEY': '', 'TYPESAFE_API_KEY': ''})
@@ -219,8 +214,7 @@ class Frontend(unittest.TestCase):
         with self.assertRaises(ValueError):
             jev_route.fixed_model('grok', 'm', None)
         with self.assertRaises(ValueError):
-            jev_route.model_only(self.repo, 'UI', '../secret', None, 'UI task', 'grok', 'm', 'high')
-
+            jev_route.model_only(self.repo, 'UI', '../secret', 'grok', 'm', 'high')
 
 if __name__ == '__main__':
     unittest.main()

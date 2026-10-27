@@ -78,52 +78,27 @@ def main():
         assert (result['route'], result['deliverables']) == ('simple', []), result
         result = jev.route(repo, 'T-9', '전체 개편', stub([], 0.9, 'dev', docs={'D02': 0.95, 'D03': 0.9, 'D04': 0.85, 'D05': 0.8}))
         assert result['deliverables'] == ['D02', 'D03', 'D04'], result  # 최대 3개
-        assert result['model'] is None  # 모델 후보가 없으면 고르지 않는다
+        assert result['model'] is None  # tuple을 넘기지 않으면 모델을 기록하지 않는다
 
-        # 모델 후보: 역할마다 사용자가 정한 후보 중 작업 난이도에 맞는 것을 고른다
+        # 모델: Jev는 고르지 않는다. coordinator가 `## 모델 후보`에서 고른 tuple을 넘기면 그대로 기록한다
         guide_path = repo / '.fullops-squad/orca-agents.md'
         guide_path.write_text(guide_path.read_text(encoding='utf-8').replace('## 모델 후보\n', '## 모델 후보\n\n'
             '- `dev` `codex` `gpt-6-sol` `low`: 문구·수치 같은 단순 수정\n'
-            '- `dev` `claude` `claude-opus-5-5` `high`: 여러 모듈에 걸친 구현\n'
-            '- `art` `codex` `gpt-6-sol` `medium`: 에셋 교체\n'
-            '- `reviewer` `claude` `claude-opus-5-5` `high`: 고정 SHA 독립 코드 리뷰\n', 1), encoding='utf-8')
-        candidates = jev.model_candidates(repo)
-        assert [c['model'] for c in candidates['dev']][:2] == ['gpt-6-sol', 'claude-opus-5-5'], candidates
+            '- `dev` `claude` `claude-opus-5-5` `high`: 여러 모듈에 걸친 구현\n', 1), encoding='utf-8')
         seen = []
-
-        def two_calls(route_stub, prefer):
+        def watch(route_stub):
             def call(payload):
-                if 'model' in payload['questions']:
-                    seen.append(payload)
-                    labels = list(payload['questions']['model']['criteria'])
-                    probabilities = {l: (0.8 if l == prefer else 0.2 / (len(labels) - 1)) for l in labels}
-                    return {'model': 'jev-test', 'answers': {'model': {'type': 'choice', 'choice': prefer, 'confidence': 0.9,
-                                                                        'probabilities': probabilities}}, 'model': 'typesafe/jev-test', 'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.1
+                seen.append(payload)
                 return route_stub(payload)
             return call
-
-        simple_fix = jev.route(repo, 'M-1', '점프 수치를 1.5로', two_calls(stub([], 0.95, 'dev'), 'm1'))
-        assert (simple_fix['role'], simple_fix['model']['model'], simple_fix['model']['effort']) == ('dev', 'gpt-6-sol', 'low'), simple_fix
-        criteria = seen[-1]['questions']['model']['criteria']
-        assert criteria['m1'].startswith('level 1/2: openai gpt-6-sol via codex') and criteria['m2'].startswith('level 2/2: anthropic')
-        assert simple_fix['model']['provider'] == 'openai' and '단순 수정' in criteria['m1'] and seen[-1]['state']['role'] == 'dev'
-        def close_call(route_stub):
-            def call(payload):
-                if 'model' in payload['questions']:
-                    return {'model': 'jev-test', 'answers': {'model': {'type': 'choice', 'choice': 'm1', 'confidence': 0.5,
-                            'probabilities': {'m1': 0.52, 'm2': 0.48}}}, 'model': 'typesafe/jev-test', 'usage': {'cost': 0.0001, 'input_tokens': 1, 'output_tokens': 1}}, 0.1
-                return route_stub(payload)
-            return call
-        tie = jev.route(repo, 'M-1b', '점프 수치를 1.5로', close_call(stub([], 0.95, 'dev')))
-        assert tie['model']['model'] == 'claude-opus-5-5' and tie['model']['tie_break'] == 'm1', tie['model']  # 접전이면 강한 쪽
-        seen.clear()
-        broken = jev.route(repo, 'M-2', '점프 수치', two_calls(stub([], 0.95, 'dev'), 'mX'))  # 잘못된 답
-        assert broken['model']['source'] == 'fallback' and broken['model']['model'] == 'claude-opus-5-5'  # 가장 강한 후보
-        override = jev.route(repo, 'M-2b', '프런트 재빌드', two_calls(stub([], 0.95, 'dev'), 'm1'),
+        plain = jev.route(repo, 'M-1', '점프 수치를 1.5로', watch(stub([], 0.95, 'dev')))
+        assert plain['model'] is None and all('model' not in s['questions'] for s in seen), plain  # 후보가 있어도 묻지 않는다
+        given = jev.route(repo, 'M-1b', '점프 수치를 1.5로', stub([], 0.95, 'dev'), agent='codex', model='gpt-6-sol', effort='low')
+        assert given['model'] == {'agent': 'codex', 'provider': 'openai', 'model': 'gpt-6-sol', 'effort': 'low', 'source': 'user'}, given
+        override = jev.route(repo, 'M-2b', '프런트 재빌드', stub([], 0.95, 'dev'),
                              override_role='art', reason='요청의 실제 소유자는 아트 역할')
         assert override['role'] == 'art' and override['original_role'] == 'dev'
         assert override['override_reason'] == '요청의 실제 소유자는 아트 역할'
-        assert override['model']['model'] == 'gpt-6-sol'
         override_file = repo / '.fullops-squad/docs/evaluations/jev/M-2b-route.json'
         override_file.parent.mkdir(parents=True, exist_ok=True)
         override_file.write_text(json.dumps(override), encoding='utf-8')
@@ -135,51 +110,31 @@ def main():
             raise AssertionError('design 분류를 임의 역할로 변경')
         except ValueError as error:
             assert 'simple' in str(error)
-        seen.clear()
-        only = jev.route(repo, 'M-3', '캐릭터 스프라이트 교체', two_calls(stub([], 0.95, 'art'), 'm1'))
-        assert only['model'] == {'agent': 'codex', 'provider': 'openai', 'model': 'gpt-6-sol', 'effort': 'medium', 'source': 'only'} and not seen
-        design = jev.route(repo, 'M-4', '저장 구조 개편', two_calls(stub([], 0.2, 'dev'), 'm1'))
-        assert design['role'] == 'architecture' and design['model'] is None  # 설계 역할은 후보가 없다
-        (repo / '.fullops-squad/handovers/to_dev.md').write_text('# M-4-DEV — 저장 구조 개편 구현\n여러 모듈 변경\n', encoding='utf-8')
-        picked_after = jev.model_only(repo, 'M-4-DEV', 'dev', two_calls(None, 'm2'))
-        assert picked_after['model']['model'] == 'claude-opus-5-5' and 'M-4-DEV' in seen[-1]['state']['request']
+        # --model-only: 설계 뒤 worker·리뷰어 배정 tuple 기록. API를 부르지 않고 tuple 없이는 거부한다
+        recorded = jev.model_only(repo, 'M-4-DEV', 'dev', 'claude', 'claude-opus-5-5', 'high')
+        assert recorded['model']['model'] == 'claude-opus-5-5' and recorded['version'] == 'model-v2', recorded
+        reviewer = jev.model_only(repo, 'M-4-REVIEW', 'reviewer', 'claude', 'claude-opus-5-5', 'high')
+        assert reviewer['role'] == 'reviewer' and reviewer['model']['source'] == 'user', reviewer
+        for bad in ((repo, 'M-5', 'dev'), (repo, 'M-5', '../secret', 'grok', 'm', 'high')):
+            try:
+                jev.model_only(*bad)
+                raise AssertionError(f'잘못된 --model-only 허용: {bad[1:]}')
+            except ValueError:
+                pass
+        offline = {**os.environ, 'FULLOPS_OFFLINE': '1', 'OPENROUTER_API_KEY': '', 'TYPESAFE_API_KEY': ''}
         art_cmd = [sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'M-4-ART',
-                   '--model-only', '--role', 'art', '--request', '아트 에셋 교체']
-        assert subprocess.run(art_cmd, capture_output=True, text=True).returncode == 0
+                   '--model-only', '--role', 'art', '--agent', 'codex', '--model', 'gpt-6-sol', '--effort', 'medium', '--strict']
+        first = subprocess.run(art_cmd, capture_output=True, text=True, env=offline)
+        assert first.returncode == 0 and '(user)' in first.stdout, first.stderr
         saved_model = repo / '.fullops-squad/docs/evaluations/jev/M-4-ART-model-art.json'
-        first_hash = json.loads(saved_model.read_text(encoding='utf-8'))['candidate_hash']
-        guide_path.write_text(guide_path.read_text(encoding='utf-8').replace('에셋 교체', '캐릭터 에셋 교체'), encoding='utf-8')
-        stale = subprocess.run(art_cmd, capture_output=True, text=True)
-        assert stale.returncode == 1 and '모델 후보가 변경' in stale.stderr
-        refreshed = subprocess.run([*art_cmd, '--force'], capture_output=True, text=True)
+        assert subprocess.run(art_cmd, capture_output=True, text=True, env=offline).returncode == 1  # 기존 기록 보존
+        refreshed = subprocess.run([*art_cmd, '--force'], capture_output=True, text=True, env=offline)
         assert refreshed.returncode == 0 and '이전 결과 보존' in refreshed.stderr
-        assert json.loads(saved_model.read_text(encoding='utf-8'))['candidate_hash'] != first_hash
-        archived = list(saved_model.parent.glob('M-4-ART-model-art.prior-*.json'))
-        assert len(archived) == 1 and json.loads(archived[0].read_text(encoding='utf-8'))['candidate_hash'] == first_hash
-        fallback_env = {**os.environ, 'OPENROUTER_API_KEY': '', 'FULLOPS_JEV_CACHE': str(repo / 'empty-cache')}
-        fallback_cmd = [sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'M-4-FALLBACK',
-                        '--model-only', '--role', 'dev', '--request', '복잡한 저장소 변경']
-        fallback_cli = subprocess.run(fallback_cmd, capture_output=True, text=True, env=fallback_env)
-        assert fallback_cli.returncode == 0 and 'Jev 생략' in fallback_cli.stderr and '(fallback)' in fallback_cli.stdout
-        strict_cmd = [*fallback_cmd, '--strict']
-        strict_cmd[5] = 'M-4-STRICT'
-        strict_cli = subprocess.run(strict_cmd, capture_output=True, text=True, env=fallback_env)
-        assert strict_cli.returncode == 2 and 'Jev 생략' in strict_cli.stderr
-        # reviewer는 fullops.json 역할이 아니다. 지시서 없이 --request만으로 고르고, 후보가 하나면 Jev를 부르지 않는다.
-        before = len(seen)
-        reviewer = jev.model_only(repo, 'M-4-REVIEW', 'reviewer', two_calls(None, 'm1'), '코드 18파일 520줄')
-        assert reviewer['model'] == {'agent': 'claude', 'provider': 'anthropic', 'model': 'claude-opus-5-5', 'effort': 'high', 'source': 'only'} and len(seen) == before, reviewer
-        try:
-            jev.model_only(repo, 'M-4-REVIEW', 'reviewer', two_calls(None, 'm1'))
-            raise AssertionError('reviewer에 --request 없이 허용')
-        except ValueError:
-            pass
-        (repo / '.fullops-squad/handovers/to_dev.md').write_text('', encoding='utf-8')
-        try:
-            jev.model_only(repo, 'M-5', 'dev', two_calls(None, 'm1'))
-            raise AssertionError('빈 지시서 허용')
-        except ValueError:
-            pass
+        assert len(list(saved_model.parent.glob('M-4-ART-model-art.prior-*.json'))) == 1
+        for extra in ([], ['--request', '아트 에셋 교체']):  # tuple 없음, --request 동반
+            cmd = [sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'M-4-BAD', '--model-only', '--role', 'art',
+                   *(['--agent', 'codex', '--model', 'gpt-6-sol', '--effort', 'low'] if extra else []), *extra]
+            assert subprocess.run(cmd, capture_output=True, text=True, env=offline).returncode == 1, extra
 
         for simple, role_p in ((0.6, 0.9), (0.95, 0.4)):  # scope나 role 확신이 낮으면 설계로
             result = jev.route(repo, 'T-2', '저장 형식을 바꿔줘', stub([], simple, 'dev', role_p))
