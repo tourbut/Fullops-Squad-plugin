@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "roles": {
+    "dev": "fullops/dev"
+  },
+  "mode": "dev",
+  "test_level": "lite",
+  "subagent_level": "off",
+  "primary_role": "dev",
+  "primary_branch": "main",
+  "plugin_version": "1.11.0"
+}

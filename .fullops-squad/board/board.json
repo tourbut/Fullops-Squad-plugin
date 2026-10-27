@@ -1,0 +1,24 @@
+{
+  "title": "FullOps Squad 플러그인",
+  "summary": "v1.11.0 운영 중. 이 레포에 FullOps를 적용해 개발하며 이슈 자동 모드를 실사용 검증한다.",
+  "phases": [
+    {
+      "name": "구현",
+      "status": "doing",
+      "deliverables": [],
+      "note": "릴리스 단위로 기능 개선 (docs/releases/)"
+    },
+    {
+      "name": "QA",
+      "status": "doing",
+      "deliverables": [],
+      "note": "이슈 자동 모드 실사용 검증 진행"
+    },
+    {
+      "name": "이행",
+      "status": "doing",
+      "deliverables": [],
+      "note": "GitHub 릴리스와 마켓플레이스 dist 배포"
+    }
+  ]
+}

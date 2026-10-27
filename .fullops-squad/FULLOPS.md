@@ -1,0 +1,52 @@
+---
+title: FullOps Squad — 하네스 지도
+status: draft
+updated: 2026-10-27
+owner: dev
+summary: FullOps Squad — 하네스 지도
+---
+<!-- fullops-mode:start -->
+## 운영 모드와 작업 범위
+
+`fullops.json`의 mode·primary_role·primary_branch·test_level·subagent_level이 정본이다. mode 누락은 coor, 테스트 레벨 누락은 standard, 하위 위임 레벨 누락은 off다.
+coor에서는 기존 조율·배정 책임을 유지한다. dev에서는 주 담당자가 직접 기술 계획·구현·검증을 수행하고 필요한 전문가를 배정·통합한다.
+dev 주 담당자는 제품 범위 판단을 사용자/기획 담당과 확인하고, 작성자와 다른 세션의 고정 SHA 리뷰를 받는다. 부모 dispatch나 가짜 worker_done은 만들지 않는다.
+아래 coor 전용 배정/직접 설계 제한은 dev 주 담당자의 직접 개발에 적용하지 않는다. 라우팅·인박스·독립 리뷰·통합·산출물 보존은 두 모드에서 유지한다.
+테스트 범위는 rules/common/testing.md, 선택형 하위 위임은 rules/delegation.md의 레벨을 따른다. 두 레벨은 독립적이다. 모드 전환 뒤에는 새 세션을 시작한다. 기존 worker 공간과 기록은 보존하며 다음 배정 전에 동기화한다.
+<!-- fullops-mode:end -->
+
+
+# FullOps Squad — 하네스 지도
+
+현재 레포 루트의 `.fullops-squad/fullops.json`이 있을 때만 이 규약을 적용한다.
+규약은 한국어로 관리하고 식별자·코드베이스의 기존 언어 규칙은 유지한다.
+문서를 새로 쓰거나 수정할 때는 [문서 작성 규칙](docs/agents/document-writing.md)을 읽고 front matter와 한국어 STE 작성 원칙을 적용한다. 검토자는 같은 규칙으로 문서를 확인한다.
+
+| 작업 | 먼저 읽을 문서 (`.fullops-squad/` 기준) |
+|---|---|
+| 공통 코딩·테스트·보안 기준과 우선순위 | [rules/common/README.md](rules/common/README.md) 및 연결된 세 규칙 |
+| 기술 기준·검증 명령·문서 정본 | `project.md` |
+| 역할·워크트리·에이전트 배정 | `orca-agents.md` |
+| 선택형 하위 에이전트 활용·결과 취합 | [rules/delegation.md](rules/delegation.md) |
+| FullOps update 요청과 릴리스별 레포 적용 | `update-fullops` 스킬 |
+| 현재 할 일·우선순위 | `PLANS.md` |
+| 프로젝트 단계·진행 현황판 | `board/board.json` (coordinator가 관리) · `board/index.html` |
+| 역할별 작업 명세와 완료 처리 | `handovers/_TEMPLATE.md` · `fullops-work` 스킬 |
+| Orca 착수 확인·회신·검토 | `orca-agents.md` · `fullops-orca` 스킬 |
+| 코드 변경의 lint 게이트 | `lint/README.md` · `lint/lint.json` |
+| 병합 전 delegate 코드·문서 검토 | `review/rule.json` · `fullops-review` 스킬 |
+| 과거 결정·교훈 | `contexts/<role>.md` |
+| 산출물과 원천 매핑 | `docs/deliverables/README.md` |
+| 외부 스킬 설정 | `docs/agents/{issue-tracker,triage-labels,domain}.md` |
+
+작업의 흐름은 요구사항 → 설계 → 역할별 핸드오버 → worker 구현·검증 → 직접 회신 → 검토·기본 브랜치 병합 → 원격 push → 하위 워크트리 동기화다.
+완료 보고마다 coordinator가 `fullops-orca`의 merge 절차를 즉시 수행한다. 역할 브랜치만 갱신하거나 완료 결과를 모아 두지 않는다. 사용자 제한·검수 대기·실패는 사유·담당·재개 조건으로 명시적 보류를 기록한다.
+문서에 적힌 코드·API·브랜치·도구의 존재는 작업 전에 직접 확인한다.
+코드 탐색은 지시서의 `먼저 읽을 문서`에서 시작하고, 필요한 범위만 검색해 읽는다. 레포 전체를 훑어 읽지 않는다.
+라이브러리·SDK·프레임워크의 API나 설정을 확인할 때는 프로젝트 버전을 기준으로 Context7의 `resolve-library-id` → `query-docs`를 사용한다. 확인한 library ID·버전·출처·필요한 API 근거를 지시서에 남기고 같은 근거는 재사용한다. 버전 변경·근거 부족 시 다시 조회하며, 미지원·연결 실패 시 공식 문서로 확인한다. 비공개 코드·비밀값을 조회문에 포함하지 않는다.
+실질적 개발 작업은 역할별 `handovers/to_<역할>.md`에 과제 키·목적·범위·완료 기준·산출물·복귀 주소를 남긴다. 다음 과제의 대기와 완료 로그 보존은 `fullops-work`의 `역할 인박스 규칙`을 따른다. 과제명 파일은 현재 dispatch 지시서로 사용하지 않는다.
+이미 허가된 작업은 다시 승인받지 않는다. 미승인 외부 발송·배포 등은 실행 직전에 별도로 확인한다.
+작업자와 검토자는 `rules/common/README.md` 및 연결된 세 규칙을 읽고 `project.md`의 정본과 함께 적용한다. 지시서에 규칙 식별자·프로젝트 문서 경로·기준 커밋 또는 스냅샷·예외를 기록하고 worker와 검토자가 같은 버전을 읽는지 확인한다.
+프로젝트 보안·아키텍처·테스트 기준이 외부 스킬보다 우선하며, 충돌은 지시서에 기록한다. 공통 기본값으로 기존 기준을 낮추지 않고 보안·권한·미해결 critical/high 차단을 임의 완화하지 않는다.
+ponytail full을 적용하되 검증·산출물·핸드오버 기록은 생략하지 않는다.
+하네스 플러그인 캐시는 읽기 전용 자원으로 취급한다. 개발 산출물은 이 레포에 Git으로 관리한다.
