@@ -647,7 +647,10 @@ def resolve_answers(store, github, token, identifier, decision, reason):
     with store.edit() as state:
         guard(state, token)
         job = state['jobs'][str(identifier)]
-        if job['status'] != 'claimed' or job.get('epoch') != state['owner']['epoch'] or not job['answers']:
+        if job['status'] != 'claimed':
+            raise ValueError(f"답변 판단은 wait가 답변을 전달한 claimed 상태에서 먼저 기록합니다(현재 {job['status']}). "
+                             'sync·checkpoint보다 answers를 먼저 실행하세요')
+        if job.get('epoch') != state['owner']['epoch'] or not job['answers']:
             raise ValueError('현재 coor가 수신한 답변만 처리할 수 있습니다')
         if fresh(state, github, job):
             raise ValueError('현재 작성자/본문을 확인하세요')
