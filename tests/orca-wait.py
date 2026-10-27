@@ -36,8 +36,10 @@ def run(tmp, responses, *extra):
     (Path(tmp) / 'responses.json').write_text(json.dumps(responses))
     env = dict(os.environ, FAKE_STATE=str(state), FAKE_RESPONSES=str(Path(tmp) / 'responses.json'))
     orca = Path(tmp) / ('orca.cmd' if os.name == 'nt' else 'orca')
-    done = subprocess.run([sys.executable, str(SCRIPT), '--orca', str(orca), '--run', 'run_1', *extra],
+    # 테스트를 실행한 레포의 FullOps 설정·통합 기록을 건드리지 않도록 임시 폴더를 레포로 쓴다.
+    done = subprocess.run([sys.executable, str(SCRIPT), '--repo', str(tmp), '--orca', str(orca), '--run', 'run_1', *extra],
                           capture_output=True, text=True, env=env)
+    assert done.stdout, done.stderr[-800:]
     return done.returncode, json.loads(done.stdout), json.loads(state.read_text())
 
 
@@ -124,6 +126,7 @@ def main():
         code, out, calls = run(tmp, [empty], '--repo', tmp, '--max-minutes', '0')
         assert out['status'] == 'idle_timeout' and len(calls) == 1 and '--ack' not in calls[0]
         assert out['check_minutes'] == 0  # 명령행이 잘못된 레포 설정보다 우선한다.
+        settings.unlink()
 
         # quiet 타입은 바꿀 수 있다: status를 빼면 status가 곧바로 반환된다.
         code, out, _ = run(tmp, [batch('d1', 'status')], '--quiet-types', 'heartbeat')
