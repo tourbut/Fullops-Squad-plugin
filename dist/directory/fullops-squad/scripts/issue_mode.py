@@ -138,17 +138,18 @@ class Store:
 
 def publish(path, state):
     """fullops-meter 사이드바가 읽는 ON/OFF 요약. token·본문·댓글은 넣지 않는다. 표시용이라 실패해도 상태 변경을 막지 않는다."""
-    owner, config = state.get('owner') or {}, state.get('config') or {}
-    jobs = [j for j in state['jobs'].values() if j['status'] not in FINAL] or list(state['jobs'].values())[-1:]
     try:
         from storage import write_json
+        owner, config = state.get('owner') or {}, state.get('config') or {}
+        jobs = list((state.get('jobs') or {}).values())
+        job = next((j for j in jobs if j.get('status') not in FINAL), jobs[-1] if jobs else None)
         write_json(path, {
             'repository': config.get('repository'), 'enabled': bool(owner.get('enabled')),
             'paused': bool(owner.get('paused')), 'expires': owner.get('expires', 0),
-            'job': {'number': jobs[0]['snapshot']['number'], 'status': jobs[0]['status'],
-                    'task_key': jobs[0].get('task_key')} if jobs else None,
+            'job': {'number': (job.get('snapshot') or {}).get('number'), 'status': job.get('status'),
+                    'task_key': job.get('task_key')} if job else None,
             'updated_at': iso(time.time())})
-    except OSError:
+    except Exception:  # 표시용 요약이다. 이미 커밋한 상태 변경의 호출자에게 실패를 넘기지 않는다.
         pass
 
 
