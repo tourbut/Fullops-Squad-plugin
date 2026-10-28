@@ -12,4 +12,4 @@ summary: 현재 작업
 
 | 과제 키 | 목표 | 담당 | 상태 | 지시서·원천 링크 |
 |---|---|---|---|---|
-| ISSUE-SLASH-SIDEBAR | 이슈 자동 모드 슬래시 명령 인자, fullops-meter footer·pane에 ON/OFF 표시 | dev(직접) | 구현·lint 완료, PR 대기. 기준 7187d08 | `feat/issue-mode-sidebar` |
+| ISSUE-SLASH-SIDEBAR | 이슈 자동 모드 슬래시 명령 인자, fullops-meter footer·pane에 ON/OFF 표시 | dev(직접) | 구현·lint 완료, 1.12.0(fullops-meter 0.11.0)으로 릴리스. 기준 7187d08 | `feat/issue-mode-sidebar` |
