@@ -1,6 +1,7 @@
 ---
 name: fullops-issues
 description: FullOps 활성 저장소에서 사용자가 GitHub 이슈 자동 작업 모드의 설정·활성화·대기·중지 또는 작성자 답변 재개를 요청할 때 사용한다.
+argument-hint: "[on <owner/repo> <login>[,<login>] [초] [backlog] | on | off | pause | resume | status]"
 ---
 
 # 선택형 이슈 작업
@@ -10,6 +11,18 @@ description: FullOps 활성 저장소에서 사용자가 GitHub 이슈 자동 �
 사용자의 모드 활성화 요청 때만 실행한다. 이 기능 구현, 플러그인 설치·갱신, setup, 저장된 설정은 활성화 요청이 아니다. 기본 OFF이며 다른 coor를 생성하거나 선택하지 않는다. `.fullops-squad/fullops.json`이 없으면 해당 서비스 저장소의 setup을 안내한다.
 
 이 스킬 기준 `../../scripts/issue_mode.py`를 사용한다. 먼저 `fullops-orca`와 선택한 Orca 실행 파일의 실제 `skills get orchestration` 가이드를 읽는다. 기존 route → 역할 인박스 → 탐색 packet → `worker-start --run` → `worker_done` → lint/독립 리뷰 절차를 그대로 사용한다. **이 모드에서는 fullops-orca의 자동 main 병합 절을 실행하지 않는다.**
+
+## 슬래시 명령 인자
+
+사용자가 `/fullops-squad:fullops-issues <인자>`(충돌이 없으면 `/fullops-issues`)로 호출하면 그 호출이 활성화 요청이다. 인자를 다음처럼 해석한다.
+
+- `on <owner/repo> <login>[,<login>...] [<초>] [backlog]`: 1번 질문을 생략한다. 주기는 기본 300초(최소 60), backlog는 단어가 있을 때만 포함한다. 2번 기본 자동 범위와 기본 한도(`--max-attempts 3 --max-seconds 3600 --max-tokens 100000`)를 사용자가 승인한 것으로 보고 3–5번을 진행한 뒤 바로 foreground `wait`에 들어간다. 저장된 설정이 같으면 configure를 생략한다. 다르면 `disable` 뒤 configure한다.
+- `on`: 저장된 설정으로 4–5번만 진행하고 `wait`한다. 저장된 설정이 없으면 1번 질문부터 한다.
+- `off`·`pause`·`resume`: enable에 쓴 session으로 같은 이름의 명령을 실행하고 `status`로 결과를 보고한다.
+- `status`: `status` 요약(설정·소유자·이슈 상태)을 보고한다. 이 인자만으로 활성화하지 않는다.
+- 인자가 없거나 해석할 수 없으면 1번 질문부터 한다.
+
+`fullops-meter` mod를 쓰는 Claude Code에서는 footer에 `issues on|paused|off`가, `/fullops` pane 아래쪽에 상태·저장소·현재 이슈가 보인다. `issue_mode.py`가 상태를 바꿀 때마다 Git 공용 디렉터리의 `fullops-issues/status.json`(token·본문 없음)을 갱신하고, mod는 lease 만료도 off로 표시한다.
 
 ## 설정과 활성화
 

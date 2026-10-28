@@ -1,4 +1,4 @@
-import type { Decision, Review, Worker } from '../types'
+import type { Decision, IssueMode, Review, Worker } from '../types'
 import { ago } from './meter'
 import { asRecord, declaredKey, text } from './workers'
 
@@ -209,6 +209,39 @@ export const parseDecision = (source: string): Decision | null => {
     blocks: text(record.blocks),
     askedAt: Number.isNaN(askedAt) ? 0 : askedAt,
   }
+}
+
+/** The issue auto mode summary, or null when it is not a readable record. */
+export const parseIssueMode = (source: string): IssueMode | null => {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(source)
+  } catch {
+    return null
+  }
+  const record = asRecord(parsed)
+  const repository = text(record.repository)
+  if (repository === '') return null
+  const job = asRecord(record.job)
+  return {
+    repository,
+    enabled: record.enabled === true,
+    paused: record.paused === true,
+    expiresAt: typeof record.expires === 'number' ? record.expires * 1000 : 0,
+    job: typeof job.number === 'number' ? { number: job.number, status: text(job.status), taskKey: text(job.task_key) } : null,
+  }
+}
+
+/** The mode as the footer and pane show it. A lapsed lease reads as off: no coordinator takes issues then. */
+export const issueModeState = (mode: IssueMode, now: number): 'on' | 'paused' | 'off' =>
+  !mode.enabled || mode.expiresAt <= now ? 'off' : mode.paused ? 'paused' : 'on'
+
+/** The pane's issue mode line: state, repository and the issue in hand. */
+export const issueModeLine = (mode: IssueMode, now: number): string => {
+  const state = issueModeState(mode, now)
+  const lapsed = state === 'off' && mode.enabled ? ' (lease lapsed)' : ''
+  const job = mode.job === null ? '' : ` · #${mode.job.number} ${mode.job.status}`
+  return `Issues ${state}${lapsed} · ${mode.repository}${job}`
 }
 
 /** One decision as the pane draws it: the head line, then the question and what it waits on. */

@@ -1,11 +1,11 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement, Timer } from 'claude-code'
 
-import type { Decision, FlowTask, HookRun, Meter, Review, Sample, Tab, Ttl } from '../types'
+import type { Decision, FlowTask, HookRun, IssueMode, Meter, Review, Sample, Tab, Ttl } from '../types'
 import { accountOf, adviseCache, decideTtl, keepSamples, observeTtl, promptTokens } from './cache'
 import type { Account, Policy, TtlInputs } from './cache'
 import { HOOK_EVENTS, hookLines, hookOutcome, recordHookRun } from './hook-runs'
-import { MARKERS, branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
+import { MARKERS, branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, issueModeLine, issueModeState, parseConfig, parseDecision, parseIssueMode, reviewLine, sortReviews, spinnerText, summarizeReview } from './fullops'
 import { flowRow, parseFlow, visibleFlow } from './flow'
 import { bandLine, contextText, historyText, modelName, queuedText, statusLine, workerBlock, workerLine } from './meter'
 import type { CardsProps } from './worker-cards'
@@ -30,6 +30,8 @@ const REVIEWS = '.fullops-squad/docs/evaluations/qa-reports'
 const KEEP_REVIEWS = 8
 /** Where decision.py keeps its records, under the git folder all checkouts share. */
 const DECISIONS = 'fullops-decisions'
+/** The issue auto mode summary issue_mode.py writes, under the same folder. */
+const ISSUES = 'fullops-issues/status.json'
 /** Where flow_state.py keeps each task's flow state, in the same shared git folder. */
 const FLOW = 'fullops-flow'
 /** Transcript rows read per active worker: enough to reach its last words past a run of tool calls. */
@@ -348,13 +350,20 @@ async function readFlow($: EngineInterface): Promise<FlowTask[]> {
   return tasks.filter((one): one is FlowTask => one !== null)
 }
 
-/** The role, reviews, open decisions and task flow, read from the repository's own files. */
+/** The issue auto mode summary `issue_mode.py` keeps beside its state, in the folder every checkout shares. */
+async function readIssueMode($: EngineInterface): Promise<IssueMode | null> {
+  const gitDir = await gitDirOf($, '.')
+  const folder = commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))
+  return parseIssueMode(await $.fs.read(`${folder}/${ISSUES}`).catch(() => ''))
+}
+
+/** The role, reviews, open decisions, task flow and issue mode, read from the repository's own files. */
 async function readFullOps($: EngineInterface): Promise<void> {
   const config = parseConfig(await $.fs.read(CONFIG).catch(() => ''))
   if (config === null) return
   const role = checkoutRole(config, await readBranch($))
-  const [reviews, decisions, flow] = await Promise.all([readReviews($), readDecisions($), readFlow($)])
-  await update($, fullopsAtom, before => ({ role, reviews, decisions, flow, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
+  const [reviews, decisions, flow, issues] = await Promise.all([readReviews($), readDecisions($), readFlow($), readIssueMode($)])
+  await update($, fullopsAtom, before => ({ role, reviews, decisions, flow, issues, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
 }
 
 /** Redraws the countdown and gives the "about to lapse" notice once per cache entry. */
@@ -540,8 +549,18 @@ export const register: Register = (on, options) => {
     // The pane is tall: workers or reviews take the top half, the decisions waiting on the person the bottom.
     const decisions = fullops?.decisions ?? []
     const hooks = fullops === null ? [] : hookLines(await read($, hooksAtom), now)
+    const issues = fullops?.issues ?? null
+    const issueState = issues === null ? null : issueModeState(issues, now)
     const lower = (
       <Box flexDirection="column">
+        {issues !== null && (
+          <Box marginBottom={1}>
+            <Text color={issueState === 'on' ? 'success' : issueState === 'paused' ? 'warning' : undefined} dimColor={issueState === 'off'}>
+              {issueState === 'on' ? '● ' : '○ '}
+              {issueModeLine(issues, now)}
+            </Text>
+          </Box>
+        )}
         <Text bold>{decisions.length === 0 ? 'Decisions' : `Decisions waiting for you (${decisions.length})`}</Text>
         {decisions.length === 0 && <Text dimColor>{fullops === null ? '' : 'No decisions waiting.'}</Text>}
         {decisions.map(decision => {
@@ -705,7 +724,8 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const fullops = await read($, fullopsAtom)
     if (fullops === null) return next(e)
-    return next({ ...e, props: { ...e.props, modes: [...e.props.modes, `fullops ${fullops.role}`] } })
+    const issues = fullops.issues ? [`issues ${issueModeState(fullops.issues, await $.clock.now())}`] : []
+    return next({ ...e, props: { ...e.props, modes: [...e.props.modes, `fullops ${fullops.role}`, ...issues] } })
   })
 
   // The engine folds read-only calls into one count line (`Ran 1 shell command`), which never reaches the

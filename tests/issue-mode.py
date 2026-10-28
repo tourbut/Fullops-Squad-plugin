@@ -586,6 +586,12 @@ def main():
             mode.poll(bstore, bapi, bowner['token'])
             assert 'since=' in pages.call_args_list[1].args[0], 'subsequent polls must preserve incremental intake'
         assert bstore.read()['jobs']['120']['status'] == 'queued'
+        # 사이드바 요약은 ON과 현재 이슈를 보이고 lease token은 싣지 않는다.
+        summary_path = bstore.path.parent / 'status.json'
+        summary = json.loads(summary_path.read_text(encoding='utf-8'))
+        assert summary['enabled'] and summary['repository'] == 'owner/service', summary
+        assert summary['job'] == {'number': 20, 'status': 'queued', 'task_key': None}, summary
+        assert bowner['token'] not in summary_path.read_text(encoding='utf-8')
         clock, deadlines = [time.time()], []
         def tick(_):
             deadlines.append(bstore.read()['owner']['expires'])
@@ -596,6 +602,7 @@ def main():
             mode.watch(bstore, bapi, Orca(), bowner['token'])
         assert max(deadlines) > bowner['expires'] + 60, 'busy coor must retain its lease without a foreground wait'
         assert bstore.read()['jobs']['120']['attempt'] == 0 and bapi.posts == 0
+        assert not json.loads(summary_path.read_text(encoding='utf-8'))['enabled'], 'stop must show OFF in the sidebar'
         # 최초 backlog 수집 전에 신규 이슈 전용으로 바꾸면 과거 이슈를 실행하지 않는다.
         new_only = root / 'new-only'
         new_only.mkdir()
