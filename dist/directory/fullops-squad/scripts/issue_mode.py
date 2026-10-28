@@ -129,10 +129,28 @@ class Store:
             db.commit()
         finally:
             db.close()  # 예외면 rollback. cursor, enqueue, claim, outbox는 같은 transaction이다.
+        publish(self.path.parent / 'status.json', state)
 
     def read(self):
         with closing(self.connect()) as db:
             return json.loads(db.execute('SELECT data FROM state WHERE id=1').fetchone()[0])
+
+
+def publish(path, state):
+    """fullops-meter 사이드바가 읽는 ON/OFF 요약. token·본문·댓글은 넣지 않는다. 표시용이라 실패해도 상태 변경을 막지 않는다."""
+    try:
+        from storage import write_json
+        owner, config = state.get('owner') or {}, state.get('config') or {}
+        jobs = list((state.get('jobs') or {}).values())
+        job = next((j for j in jobs if j.get('status') not in FINAL), jobs[-1] if jobs else None)
+        write_json(path, {
+            'repository': config.get('repository'), 'enabled': bool(owner.get('enabled')),
+            'paused': bool(owner.get('paused')), 'expires': owner.get('expires', 0),
+            'job': {'number': (job.get('snapshot') or {}).get('number'), 'status': job.get('status'),
+                    'task_key': job.get('task_key')} if job else None,
+            'updated_at': iso(time.time())})
+    except Exception:  # 표시용 요약이다. 이미 커밋한 상태 변경의 호출자에게 실패를 넘기지 않는다.
+        pass
 
 
 def record(state, kind, **data):

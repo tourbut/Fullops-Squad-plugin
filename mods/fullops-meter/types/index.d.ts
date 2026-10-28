@@ -112,6 +112,17 @@ export type Decision = {
   askedAt: number
 }
 
+/** The GitHub issue auto mode summary `issue_mode.py` writes to `fullops-issues/status.json` in the git common folder. */
+export type IssueMode = {
+  repository: string
+  enabled: boolean
+  paused: boolean
+  /** When the coordinator's lease lapses, in milliseconds; past it the mode is off whatever `enabled` says. */
+  expiresAt: number
+  /** The issue being worked, or the last one; null when none was taken yet. */
+  job: { number: number; status: string; taskKey: string } | null
+}
+
 /** What the FullOps pane and labels read from the repository. */
 export type FullOps = {
   /** The role this checkout plays (`coor`, `dev`, ...). */
@@ -125,6 +136,8 @@ export type FullOps = {
   decisions?: Decision[]
   /** Each task's flow state; state from an older load carries none. */
   flow?: FlowTask[]
+  /** The issue auto mode; null when it was never configured here. */
+  issues?: IssueMode | null
 }
 
 /** One task's flow state, from `flow_state.py` in the git common folder (`fullops-flow/<key>.json`). */

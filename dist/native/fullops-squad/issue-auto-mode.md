@@ -15,6 +15,8 @@
        → insufficient/conflicting → 추가 정보 대기
 ```
 
+슬래시 명령 `/fullops-squad:fullops-issues on <owner/repo> <login> [초] [backlog]`는 기본 범위·한도를 승인한 활성화 요청이다. `on`·`off`·`pause`·`resume`·`status` 인자도 받는다. 상태가 바뀔 때마다 Git 공용 디렉터리의 `fullops-issues/status.json`(저장소·ON/OFF·lease 만료·현재 이슈, token·본문 없음)을 갱신한다. Claude Code의 `fullops-meter`가 이 파일로 footer `issues on|paused|off`와 `/fullops` pane의 상태 줄을 그린다.
+
 `status`는 설정·소유자·큐 상태·최근 event를 반환하고 lease capability/원문 본문을 출력하지 않는다. 호스트 종료는 provider session ID로 추적한다. Orca structured session은 host가 확인한 Orca session ID를 사용하며, Orca TUI terminal agent는 native SessionStart가 기록한 provider session/terminal binding을 사용한다. 최신 binding이 이전 host 세션을 대체하며, 양쪽 모두 같은 Run과 terminal incarnation을 확인한다. 체크포인트는 snapshot과 allowlist를 다시 확인한다. pause는 새 수집/claim 중지, disable/종료/lease 만료는 신규 실행 차단이다. 미커밋 파일·기존 worker·질문·큐를 삭제하지 않는다.
 
 동시 실행은 issue 하나이며 worker 병렬 wave는 기존 방식이다. 보류 이슈와의 독립성을 검토하지 않은 다음 이슈는 claim 후 실행을 보류한다. 이미 dispatch intent가 있는 과제의 답변 재개/재시도는 기존 Run의 task/worker 확정 종료를 `sync`로 확인한 뒤 queued checkpoint를 남긴다. 부재/unverifiable를 종료로 바꾸지 않는다. 새 coor의 `reconcile`도 같은 정본 조회로 인계하고 자동 재배정하지 않는다. draft PR 이후 worker의 integration receipt는 사용자 병합 판단/PR 링크로 hold한다.

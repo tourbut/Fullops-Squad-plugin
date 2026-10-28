@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Worker } from '../types'
-import { branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, parseConfig, parseDecision, reviewLine, sortReviews, spinnerText, summarizeReview, words } from './fullops'
+import { branchOf, cardOf, checkoutRole, commonDirOf, decisionLines, issueModeLine, issueModeState, parseConfig, parseDecision, parseIssueMode, reviewLine, sortReviews, spinnerText, summarizeReview, words } from './fullops'
 
 const config = parseConfig(JSON.stringify({ mode: 'coor', primary_role: 'coor', roles: { coor: 'fullops/coor', dev: 'fullops/dev' } }))
 
@@ -133,5 +133,31 @@ describe('decisions waiting for the person', () => {
       lines: ['Switch to Postgres?', '1) yes  2) no', 'blocks dev K9 question m-7'],
     })
     expect(decisionLines({ ...decision, key: '', options: [], blocks: '', askedAt: 0 }, 0)).toEqual({ head: 'D002', lines: ['Switch to Postgres?'] })
+  })
+})
+
+describe('issue auto mode in the footer and pane', () => {
+  const summary = (fields: Record<string, unknown>) =>
+    JSON.stringify({ repository: 'owner/service', enabled: true, paused: false, expires: 1_000, job: { number: 109, status: 'running', task_key: 'GH-1-109-A2' }, ...fields })
+
+  test('an enabled mode with a live lease is on; paused, disabled or lapsed are not', () => {
+    const mode = parseIssueMode(summary({}))!
+    expect(mode.job).toEqual({ number: 109, status: 'running', taskKey: 'GH-1-109-A2' })
+    expect(issueModeState(mode, 999_000)).toBe('on')
+    expect(issueModeState(parseIssueMode(summary({ paused: true }))!, 999_000)).toBe('paused')
+    expect(issueModeState(parseIssueMode(summary({ enabled: false, expires: 0 }))!, 999_000)).toBe('off')
+    expect(issueModeState(mode, 1_000_000)).toBe('off')
+  })
+
+  test('the pane line names the state, repository and the issue in hand', () => {
+    const mode = parseIssueMode(summary({}))!
+    expect(issueModeLine(mode, 999_000)).toBe('Issues on · owner/service · #109 running')
+    expect(issueModeLine(mode, 1_000_000)).toBe('Issues off (lease lapsed) · owner/service · #109 running')
+    expect(issueModeLine(parseIssueMode(summary({ enabled: false, job: null }))!, 0)).toBe('Issues off · owner/service')
+  })
+
+  test('records without a repository or not JSON are ignored', () => {
+    expect(parseIssueMode(summary({ repository: null }))).toBeNull()
+    expect(parseIssueMode('not json')).toBeNull()
   })
 })
