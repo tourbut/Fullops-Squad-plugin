@@ -13,9 +13,10 @@
   → 질문 outbox → awaiting_author → 원 작성자 댓글 → coor 판단
        → sufficient → 새 attempt/digest/packet
        → insufficient/conflicting → 추가 정보 대기
+  → 사용자 결정·조치가 필요한 held → 같은 질문 outbox → awaiting_author
 ```
 
-슬래시 명령 `/fullops-squad:fullops-issues on <owner/repo> <login> [초] [backlog]`는 기본 범위·한도를 승인한 활성화 요청이다. `on`·`off`·`pause`·`resume`·`status` 인자도 받는다. 상태가 바뀔 때마다 Git 공용 디렉터리의 `fullops-issues/status.json`(저장소·ON/OFF·lease 만료·현재 이슈, token·본문 없음)을 갱신한다. Claude Code의 `fullops-meter`가 이 파일로 footer `issues on|paused|off`와 `/fullops` pane의 상태 줄을 그린다.
+슬래시 명령 `/fullops-squad:fullops-issues on <owner/repo> <login> [초] [backlog]`는 기본 범위·한도를 승인한 활성화 요청이다. `on`·`off`·`pause`·`resume`·`status` 인자도 받는다. 상태가 바뀔 때마다 Git 공용 디렉터리의 `fullops-issues/status.json`(저장소·ON/OFF·lease 만료·현재 이슈, token·본문 없음)을 갱신한다. Claude Code의 `fullops-meter`가 이 파일로 footer `issues on|paused|off`와 `/fullops` pane의 상태 줄을 그린다. 현재 이슈는 진행 중 → 답변 대기 → 그 밖의 미완료 → 종료 순으로 고르고, 같은 순위면 최근 수집한 이슈다.
 
 `status`는 설정·소유자·큐 상태·최근 event를 반환하고 lease capability/원문 본문을 출력하지 않는다. 호스트 종료는 provider session ID로 추적한다. Orca structured session은 host가 확인한 Orca session ID를 사용하며, Orca TUI terminal agent는 native SessionStart가 기록한 provider session/terminal binding을 사용한다. 최신 binding이 이전 host 세션을 대체하며, 양쪽 모두 같은 Run과 terminal incarnation을 확인한다. 체크포인트는 snapshot과 allowlist를 다시 확인한다. pause는 새 수집/claim 중지, disable/종료/lease 만료는 신규 실행 차단이다. 미커밋 파일·기존 worker·질문·큐를 삭제하지 않는다.
 
