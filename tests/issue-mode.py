@@ -244,7 +244,14 @@ def main():
         fails(lambda: mode.checkpoint(store, api, token, 102, 'running', dependencies=['101'], receipt=second_receipt), '의존')
         mode.checkpoint(store, api, token, 102, 'running', dependencies=[], receipt=second_receipt)
         mode.checkpoint(store, api, token, 102, 'held', reason='test failed', resume='owner:coor; 독립 수정 후 검증')
-        answer = {'id': 1001, 'body': q['question_id'] + ' 128px', 'user': {'id': 42, 'login': 'renamed'},
+        # 사이드바는 오래된 보류보다 답변 대기 이슈를 보인다.
+        assert json.loads((store.path.parent / 'status.json').read_text(encoding='utf-8'))['job']['number'] == 1
+        # 사용자 결정이 필요한 보류도 원래 이슈에 질문해 답변 대기로 옮긴다.
+        mode.question(store, api, token, 102, '결정: 실패 테스트를 고칠 방향은? 재개: 방향 확정')
+        assert store.read()['jobs']['102']['status'] == 'awaiting_author' and api.posts == 2
+        with store.edit() as state:
+            state['jobs']['102'].update(status='held', questions=[])
+        answer ={'id': 1001, 'body': q['question_id'] + ' 128px', 'user': {'id': 42, 'login': 'renamed'},
                   'created_at': iso(time.time()), 'updated_at': iso(time.time()), 'html_url': 'https://github.com/answer'}
         api.comments.extend([{**answer, 'id': 1000, 'user': {'id': 99, 'login': 'author'}}, answer])
         mode.poll_answers(store, api, token)
@@ -681,7 +688,7 @@ def main():
             state['jobs']['101'].update(status='running', attempt=1, epoch=state['owner']['epoch'])
         api.comments = []
         fails(lambda: mode.question(store, api, newer['token'], 101, '정보: 규격이 필요합니다. 질문: 크기는? 재개: 규격 확정'), '중복')
-        assert api.posts == 2  # 앞서 서로 다른 질문 두 개만 게시했다.
+        assert api.posts == 3  # 앞서 서로 다른 질문 세 개만 게시했다.
         class SettledOrca:
             def call(self, *args):
                 key = store.read()['jobs']['101']['task_key']

@@ -141,8 +141,9 @@ def publish(path, state):
     try:
         from storage import write_json
         owner, config = state.get('owner') or {}, state.get('config') or {}
-        jobs = list((state.get('jobs') or {}).values())
-        job = next((j for j in jobs if j.get('status') not in FINAL), jobs[-1] if jobs else None)
+        # 진행 중 → 답변 대기 → 그 밖의 미완료 → 종료 순으로, 같은 순위면 최근 수집한 이슈를 보인다.
+        rank = lambda j: 0 if j.get('status') in ACTIVE else 1 if j.get('status') == 'awaiting_author' else 3 if j.get('status') in FINAL else 2
+        job = min(reversed(list((state.get('jobs') or {}).values())), key=rank, default=None)
         write_json(path, {
             'repository': config.get('repository'), 'enabled': bool(owner.get('enabled')),
             'paused': bool(owner.get('paused')), 'expires': owner.get('expires', 0),
@@ -526,8 +527,9 @@ def question(store, github, token, identifier, text):
         job = state['jobs'][identifier]
         question_id = digest([identifier, job['attempt'], text])[:24]
         recovery = state['outbox'].get(question_id)
-        if (job['status'] not in ACTIVE | {'awaiting_author'} and not recovery) or job.get('epoch') != state['owner']['epoch']:
-            raise ValueError('현재 claim한 이슈에서만 질문할 수 있습니다')
+        # held는 사용자 결정·조치 대기를 이슈 댓글로 옮기는 경로다. 답변이 충분해도 미종료 worker가 있으면 resolve_answers가 다시 held로 둔다.
+        if (job['status'] not in ACTIVE | {'awaiting_author', 'held'} and not recovery) or job.get('epoch') != state['owner']['epoch']:
+            raise ValueError('현재 claim했거나 보류한 이슈에서만 질문할 수 있습니다')
         if job['digest'] != saved['jobs'][identifier]['digest'] or str(job['snapshot']['user']['id']) not in state['config']['allowed']:
             raise ValueError('질문 준비 중 snapshot/작성자 정책이 바뀌었습니다')
         marker = '<!-- fullops-question:' + question_id + ' -->'
