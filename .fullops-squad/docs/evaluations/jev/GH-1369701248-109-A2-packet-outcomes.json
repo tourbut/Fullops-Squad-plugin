@@ -1,0 +1,181 @@
+{
+ "packet_input_sha256": "fc3aa9c4d7cbbb2e957243c8997f39eb8d658da942c52b223eb8d56cb1c83c57",
+ "attempt": "52d20fdad90842c1954e055cfe21eab0",
+ "items": [
+  {
+   "path": ".fullops-squad/FULLOPS.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/project.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/README.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/coding-style.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/security.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/rules/common/testing.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/issue-auto-mode.md",
+   "category": "document_update",
+   "status": "completed",
+   "reason": "1.11.0 절에 예시와 조건 줄 추가"
+  },
+  {
+   "path": "docs/issue-auto-mode.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "scripts/build.py",
+   "category": "impact_check",
+   "status": "completed",
+   "reason": "build.py 실행해 dist 사본 불일치 확인"
+  },
+  {
+   "path": ".fullops-squad/docs/operations/transition.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/docs/operations/user-guide.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": ".fullops-squad/docs/planning/business-plan.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "README.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "adapters/claude-directory/README.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-linux-2026-10-13/baseline-npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-linux-2026-10-13/latest-npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-2026-10-13/final-checks/npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-2026-10-13/final-source-checks/npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-2026-10-13/system-git-checks/npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-2026-10-13/verified-checks/npm-test.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-completion-2026-10-13/npm-test-r03.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-completion-2026-10-13/npm-test-r06.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/evidence/issue22-23-macos-completion-2026-10-13/npm-test-r07.log",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "docs/releases/1.1.0.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/scripts/flow_gate.py",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/scripts/setup.py",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "plugins/fullops-squad/skills/fullops-issues/SKILL.md",
+   "category": "document_read",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  },
+  {
+   "path": "tests/operating-policy.py",
+   "category": "impact_check",
+   "status": "no_change",
+   "reason": "읽고 확인했다. 이 과제 변경이 영향 없음"
+  }
+ ],
+ "uncertainty_review": "partial 패킷. 대상은 문서 한 곳이고 dist 복사 경로(build.py)만 영향이라 수동 확인했다."
+}

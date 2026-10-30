@@ -42,6 +42,12 @@ KnowsLink(10/12)와 erden-godot(10/09)에서 자동 모드가 첫 이슈에서 �
 - 보류·시간 한도 초과에서 조회까지 막혔다. 이제 배정·push·GitHub 변경만 막는다. 시간 한도는 새 coor가 인계받을 때 다시 센다.
 - 플러그인 캐시(`~/.codex`·`~/.claude`) 읽기, 설정 저장소의 `gh --repo` 조회, `git -C <체크아웃>` 조회, `--help`가 막혔다. 이제 허용한다.
 - 수신 receipt 파일 경로가 정해지지 않아 `.env*`에 쓰다 막혔다. `checkpoint --received`로 파일 없이 기록한다.
+
+  ```sh
+  python3 <issue_mode.py> --repo <root> --orca <orca> checkpoint --token-file <lease JSON 경로> --issue-id <id> --phase running --received
+  ```
+
+  `--dependencies '<issue ID JSON 배열>'`은 보류 이슈가 있을 때만 붙인다.
 - 토큰 사용량을 측정하지 못하면 보류하던 규칙을 없앴다.
 - `blocked` 이벤트에 사유를 함께 남긴다.
 
