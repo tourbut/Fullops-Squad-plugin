@@ -316,7 +316,9 @@ class OperatingPolicy(unittest.TestCase):
                 (self.repo / name).write_text(content)
                 self.assertEqual(hook('stop')['decision'], 'block')
         head = self.commit()
-        self.assertEqual(hook('stop')['decision'], 'block')
+        blocked = hook('stop')
+        self.assertEqual(blocked['decision'], 'block')
+        self.assertIn(f'--from {base}', blocked['reason'])  # 받아들이는 기준 SHA를 그대로 알려 준다.
         self.assertEqual(hook('stop', stopHookActive=True)['decision'], 'block')
         gate = Path(self.git('rev-parse', '--absolute-git-dir')) / 'fullops-gate'
         storage.write_json(gate / 'pass.json', {'head': head, 'base': base})
@@ -340,6 +342,29 @@ class OperatingPolicy(unittest.TestCase):
         with patch.object(review, 'direct_check') as check:
             self.assertEqual(hook('stop'), {})
             check.assert_not_called()
+
+    def test_direct_stop_checks_only_commits_not_on_the_remote_default_branch(self):
+        self.apply(local_only=True, mode='dev')
+        self.config(git={'remote': 'origin', 'base': 'main'})
+        self.commit()
+        event = {'cwd': str(self.repo), 'sessionId': 'author'}
+        def hook(mode):
+            with patch.object(sys, 'argv', ['done_gate.py', mode]), patch.object(sys, 'stdin', io.StringIO(json.dumps(event))):
+                return done_gate.main()
+        hook('start')
+        (self.repo / 'one.py').write_text('a = 1\n')
+        landed = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/main', landed)
+        self.assertEqual(hook('stop'), {}, '원격 기본 브랜치에 올라간 커밋을 다시 검사함')
+        (self.repo / 'two.py').write_text('b = 2\n')
+        head = self.commit()
+        self.assertIn(f'--from {landed}', hook('stop')['reason'])
+        gate = Path(self.git('rev-parse', '--absolute-git-dir')) / 'fullops-gate'
+        storage.write_json(gate / 'pass.json', {'head': head, 'base': landed})
+        with patch.object(review, 'direct_check'):
+            self.assertEqual(hook('stop'), {})
+            storage.write_json(gate / 'pass.json', {'head': head, 'base': self.base})  # 더 넓은 범위의 통과도 인정한다.
+            self.assertEqual(hook('stop'), {})
 
     def test_review_need_uses_base_policy_size_and_always_paths(self):
         (self.repo / 'notes.md').write_text('docs\n')

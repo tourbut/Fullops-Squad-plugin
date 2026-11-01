@@ -14,6 +14,8 @@
        → sufficient → 새 attempt/digest/packet
        → insufficient/conflicting → 추가 정보 대기
   → 사용자 결정·조치가 필요한 held → 같은 질문 outbox → awaiting_author
+completed → draft PR 실패 check·허용 작성자 수정 요청 리뷰 → queued(새 attempt, pr_feedback)
+사용자 병합 후 `prune [--apply]` → 병합된 이슈 브랜치·깨끗한 워크트리 정리
 ```
 
 슬래시 명령 `/fullops-squad:fullops-issues on <owner/repo> <login> [초] [backlog]`는 기본 범위·한도를 승인한 활성화 요청이다. `on`·`off`·`pause`·`resume`·`status` 인자도 받는다. 상태가 바뀔 때마다 Git 공용 디렉터리의 `fullops-issues/status.json`(저장소·ON/OFF·lease 만료·현재 이슈, token·본문 없음)을 갱신한다. Claude Code의 `fullops-meter`가 이 파일로 footer `issues on|paused|off`와 `/fullops` pane의 상태 줄을 그린다. 현재 이슈는 진행 중 → 답변 대기 → 그 밖의 미완료 → 종료 순으로 고르고, 같은 순위면 최근 수집한 이슈다.
