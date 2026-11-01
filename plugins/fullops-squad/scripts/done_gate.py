@@ -128,15 +128,22 @@ def code_changes(root, state, all_files=False):
     return sorted(filter(code, committed)), sorted(filter(code, dirty))
 
 
-RECORDS = ('.fullops-squad/handovers/', '.fullops-squad/docs/evaluations/')
+RECORDS = ('.fullops-squad/handovers/', '.fullops-squad/docs/evaluations/', '.fullops-squad/PLANS.md',
+           '.fullops-squad/board/board.json')
+
+
+def ancestor(root, older, newer):
+    return subprocess.run(['git', '-C', str(root), 'merge-base', '--is-ancestor', older, newer], capture_output=True).returncode == 0
 
 
 def records_only(root, passed, head):
-    """lint 통과 HEAD 뒤 커밋이 완료 기록·검증 보고만 바꿨는지. 그러면 명령 검사를 다시 돌리지 않고 문서 형식만 본다(#94)"""
+    """lint 통과 HEAD 뒤 커밋이 완료 기록·검증 보고·계획·현황판만 바꿨는지. 트리가 같은 병합 커밋도 포함한다.
+    그러면 명령 검사를 다시 돌리지 않고 문서 형식만 본다(#94)"""
     try:
-        subprocess.run(['git', '-C', str(root), 'merge-base', '--is-ancestor', passed, head], check=True, capture_output=True)
+        if not ancestor(root, passed, head):
+            return False
         changed = git(root, 'diff', '--name-only', passed, head).splitlines()
-        if not changed or not all(p.startswith(RECORDS) for p in changed):
+        if not all(p.startswith(RECORDS) for p in changed):
             return False
         index = deliverables.index_rows(blob(root, head, '.fullops-squad/' + deliverables.INDEX) or '')
         kept = git(root, 'diff', '--name-only', '--diff-filter=d', passed, head).splitlines()
@@ -155,6 +162,19 @@ def expected_base(root, state):
     if base:
         state['base'] = git(root, 'rev-parse', '--verify', base + '^{commit}')
     return state.get('base')
+
+
+def landed_base(root, base):
+    """원격 기본 브랜치에 이미 올라간 커밋은 다시 검사하지 않는다. 그 merge-base가 base보다 새로울 때만 옮긴다.
+    로컬 전용 setup은 기본 브랜치 커밋도 이 세션이 검사해야 하므로 base를 그대로 쓴다."""
+    connection = json.loads((root / '.fullops-squad/fullops.json').read_text()).get('git') or {}
+    if not connection.get('remote'):
+        return base
+    try:
+        landed = git(root, 'merge-base', 'HEAD', f"{connection['remote']}/{connection.get('base') or 'main'}")
+    except subprocess.CalledProcessError:
+        return base  # 원격 추적 ref가 없다. hook에서는 fetch하지 않는다.
+    return landed if not base or ancestor(root, base, landed) else base
 
 
 def main(event=None):
@@ -210,12 +230,16 @@ def main(event=None):
     if not committed and not dirty:
         return {}
     head = git(root, 'rev-parse', 'HEAD')
-    expected = state.get('base') if direct else expected_base(root, state)
+    expected = landed_base(root, state.get('base')) if direct else expected_base(root, state)
     write_json(session, state)  # 성공 Stop 뒤 finish가 인박스를 비워도 기준을 보존한다.
+    if direct and expected == head and not dirty:
+        return {}  # 이 세션의 커밋이 모두 원격 기본 브랜치에 올라갔다.
     try:
         record = json.loads((gate / 'pass.json').read_text())
-        passed = (not expected or record.get('base') == expected) and bool(record.get('head')) and (
-            record['head'] == head or records_only(root, record['head'], head))
+        linted = record.get('base')
+        # 더 오래된 기준의 통과 기록은 요구 범위를 포함한다.
+        passed = (not expected or linted == expected or bool(linted) and ancestor(root, linted, expected)) and bool(
+            record.get('head')) and (record['head'] == head or records_only(root, record['head'], head))
     except (OSError, ValueError, AttributeError):
         passed = False
     if passed and not dirty:
@@ -228,8 +252,11 @@ def main(event=None):
                 return {'decision': 'block', 'reason': 'FullOps: ' + str(error)}
         return {}
     marker = [head, [[p, (root / p).stat().st_mtime_ns if (root / p).exists() else None] for p in dirty]]
+    start = expected or landed_base(root, None)
+    command = f"`python3 {LINT} --repo {root} --from {start or '<지시서의 기준 ref>'}`"
     if direct:
         return {'decision': 'block', 'reason': 'FullOps dev: 현재 HEAD의 lint 통과와 깨끗한 작업 경계가 필요합니다. '
+                f"{'변경을 커밋하고 ' if dirty else ''}{command}를 실행하세요. "
                 '직접 구현은 반복 Stop으로 검사를 생략할 수 없습니다.'}
     if field(event, 'stop_hook_active') and state.get('blocked') == marker:
         return {'systemMessage': 'FullOps: lint.py 통과 기록 없이 세션을 끝냈습니다. 완료 보고의 검증 항목을 확인하세요.'}
@@ -238,7 +265,7 @@ def main(event=None):
     action = '변경을 커밋하고 ' if dirty else ''
     return {'decision': 'block',
             'reason': f"FullOps: 코드 파일({', '.join(files)})이 바뀌었지만 HEAD {head[:12]}의 lint.py 통과 기록이 없습니다. "
-                      f'{action}`python3 {LINT} --repo {root} --from <지시서의 기준 ref>`를 실행해 ERROR를 고친 뒤 끝내세요. '
+                      f'{action}{command}를 실행해 ERROR를 고친 뒤 끝내세요. '
                       '적용할 검사가 없거나 실행할 수 없으면 이유를 말하고 다시 끝내면 됩니다.'}
 
 

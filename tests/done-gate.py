@@ -104,6 +104,15 @@ def main():
         report.write_text('---\ntitle: K1 QA\nstatus: draft\nupdated: 2026-10-24\nowner: dev\nsummary: K1 검증\n---\n\n# K1 QA\n', encoding='utf-8')
         commit('qa report')
         assert hook('stop') == {}, '기록만 바뀐 커밋에 lint 재실행을 요구함'
+        # 트리가 같은 병합 커밋과 계획·현황판만 바꾼 coordinator 기록 커밋도 다시 돌리지 않는다.
+        git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '--allow-empty', '-m', 'merge-like')
+        assert hook('stop') == {}, '트리가 같은 커밋에 lint 재실행을 요구함'
+        plans = repo / '.fullops-squad/PLANS.md'
+        plans.write_text(plans.read_text(encoding='utf-8') + '| K1 | 기록 | dev | 완료 | - |\n', encoding='utf-8')
+        board = repo / '.fullops-squad/board/board.json'
+        board.write_text(json.dumps({'title': 't', 'phases': []}), encoding='utf-8')
+        commit('plans and board')
+        assert hook('stop') == {}, '계획·현황판 기록에 lint 재실행을 요구함'
         report.write_text('# K1 QA\n', encoding='utf-8')
         commit('report without front matter')
         assert hook('stop')['decision'] == 'block', '형식이 깨진 기록은 lint로 돌려보내야 함'
