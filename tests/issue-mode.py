@@ -34,8 +34,13 @@ class API:
         self.issues, self.comments, self.posts, self.fail_post = [], [], 0, False
         self.failure = None
         self.allow_push = True
+        self.checks, self.reviews = [], []
 
     def get(self, path):
+        if '/check-runs' in path:
+            return {'check_runs': deepcopy(self.checks)}
+        if '/reviews' in path:
+            return deepcopy(self.reviews)
         if path.startswith('/repos/') and '/pulls/' not in path:
             return {'id': 7, 'full_name': path.removeprefix('/repos/'), 'permissions': {'push': self.allow_push}}
         if '/pulls/' in path:
@@ -566,6 +571,45 @@ def main():
                 api.pr['head'][field] = original
             mode.complete(store, api, newer['token'], 101, root, 'key', head, head, 1)
         assert store.read()['jobs']['101']['status'] == 'completed'
+        # 완료 뒤 draft PR의 실패 check·허용 작성자 수정 요청은 같은 이슈를 새 attempt로 되돌린다.
+        api.checks = [{'name': 'ci', 'conclusion': 'success'}]
+        api.reviews = [{'state': 'CHANGES_REQUESTED', 'submitted_at': iso(time.time() + 5), 'user': {'id': 99}, 'html_url': 'r1'}]
+        mode.poll_prs(store, api, newer['token'])
+        assert store.read()['jobs']['101']['status'] == 'completed', '통과 check·허용되지 않은 리뷰어로 되돌림'
+        api.checks.append({'name': 'test', 'conclusion': 'failure', 'html_url': 'https://github.com/run'})
+        mode.poll_prs(store, api, newer['token'])
+        followup = store.read()['jobs']['101']
+        assert followup['status'] == 'queued' and followup['pr_feedback'] == ['check test: failure https://github.com/run'], followup
+        with store.edit() as state:
+            state['jobs']['101'].update(status='completed', pr_feedback=[])
+        api.pr = {**api.pr, 'merged': True, 'state': 'closed'}
+        mode.poll_prs(store, api, newer['token'])
+        merged = store.read()['jobs']['101']
+        assert merged['status'] == 'completed' and merged['pr_closed'], '병합된 PR을 계속 봄'
+        api.checks, api.reviews = [], []
+        # 병합된 이슈 브랜치와 깨끗한 워크트리만 정리하고, 병합 안 된 브랜치와 고유 파일이 남은 워크트리는 남긴다.
+        subprocess.run(['git', '-C', str(root), 'update-ref', 'refs/remotes/origin/main', head], check=True)
+        for name in ('fullops/issue-1-a1', 'fullops/issue-3-a1'):
+            subprocess.run(['git', '-C', str(root), 'branch', name, head], check=True)
+        clean, dirty = root.parent / (root.name + '-a1'), root.parent / (root.name + '-a3')
+        subprocess.run(['git', '-C', str(root), 'worktree', 'add', '-q', str(clean), 'fullops/issue-1-a1'], check=True)
+        subprocess.run(['git', '-C', str(root), 'worktree', 'add', '-q', str(dirty), 'fullops/issue-3-a1'], check=True)
+        (dirty / 'local.txt').write_text('keep\n')
+        subprocess.run(['git', '-C', str(root), 'branch', 'fullops/issue-2-a1', head], check=True)
+        subprocess.run(['git', '-C', str(root), 'commit', '-q', '--allow-empty', '-m', 'unmerged'], check=True,
+                       env={**os.environ, 'GIT_AUTHOR_NAME': 't', 'GIT_AUTHOR_EMAIL': 't@example.com',
+                            'GIT_COMMITTER_NAME': 't', 'GIT_COMMITTER_EMAIL': 't@example.com'})
+        subprocess.run(['git', '-C', str(root), 'branch', '-f', 'fullops/issue-2-a1', 'HEAD'], check=True)
+        listed = mode.prune(store)
+        assert {b['branch'] for b in listed['branches']} == {'fullops/issue-1-a1', 'fullops/issue-3-a1'}, listed
+        assert clean.is_dir(), '목록만 볼 때 지움'
+        pruned = {b['branch']: b for b in mode.prune(store, apply=True)['branches']}
+        assert pruned['fullops/issue-1-a1'].get('removed') and not clean.exists()
+        assert 'kept' in pruned['fullops/issue-3-a1'] and (dirty / 'local.txt').is_file()
+        branches = mode.integration.git(root, 'branch', '--format=%(refname:short)').splitlines()
+        assert 'fullops/issue-2-a1' in branches and 'fullops/issue-3-a1' in branches and 'fullops/issue-1-a1' not in branches
+        subprocess.run(['git', '-C', str(root), 'reset', '-q', '--hard', head], check=True)
+        subprocess.run(['git', '-C', str(root), 'worktree', 'remove', '--force', str(dirty)], check=True)  # 테스트 정리
         api.pr = {'draft': False, 'state': 'open'}
         with store.edit() as state:
             state['jobs']['101']['status'] = 'reviewing'

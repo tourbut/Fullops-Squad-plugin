@@ -400,8 +400,9 @@ def poll(store, github, token):
         state['pages'] = {k: v for k, v in state['pages'].items() if '/comments' in k}
         state['pages'] = safe_pages({**state['pages'], **cache})
     poll_answers(store, github, token)
+    poll_prs(store, github, token)
     saved = store.read()
-    observations = {identifier: (job['digest'], fresh(saved, github, job))
+    observations ={identifier: (job['digest'], fresh(saved, github, job))
                     for identifier, job in saved['jobs'].items() if job['status'] in ACTIVE and job['status'] != 'reconciling'}
     with store.edit() as state:
         guard(state, token)
@@ -409,6 +410,56 @@ def poll(store, github, token):
             job = state['jobs'][identifier]
             if denial and job['digest'] == fingerprint and job['status'] in ACTIVE:
                 job.update(status=denial[0], reason=denial[1], resume='작업을 안전 경계에서 보존하고 작성자 재확인')
+
+
+FAILED_CHECKS = {'failure', 'timed_out', 'action_required', 'startup_failure'}
+
+
+def poll_prs(store, github, token):
+    """completed 이슈의 draft PR에서 실패한 check와 허용 작성자의 수정 요청 리뷰를 보면 같은 이슈를 새 attempt로 되돌린다.
+    병합·닫힌 PR은 더 보지 않는다. 리뷰·check 본문은 싣지 않고 이름·링크만 남긴다."""
+    saved = store.read()
+    guard(saved, token)
+    config, found = saved['config'], {}
+    for identifier, job in saved['jobs'].items():
+        if job['status'] != 'completed' or not job.get('pr_number') or job.get('pr_closed'):
+            continue
+        base = f"/repos/{config['repository']}"
+        try:
+            pr = github.get(f"{base}/pulls/{int(job['pr_number'])}")
+            if pr.get('merged') or pr.get('state') != 'open':
+                found[identifier] = None
+                continue
+            if (pr.get('head') or {}).get('sha') != job['head']:
+                continue  # 사용자가 이어서 고친 PR은 자동으로 되돌리지 않는다.
+            # shortcut: 첫 100건만 본다. check·리뷰가 더 많은 저장소가 생기면 pages로 바꾼다.
+            runs = (github.get(f"{base}/commits/{job['head']}/check-runs?per_page=100") or {}).get('check_runs') or []
+            reviews = github.get(f"{base}/pulls/{int(job['pr_number'])}/reviews?per_page=100") or []
+        except APIError:
+            continue  # 한 PR의 조회 실패가 폴러 전체를 멈추지 않게 다음 주기에 다시 본다.
+        feedback = [f"check {r.get('name')}: {r.get('conclusion')} {r.get('html_url') or ''}".strip()
+                    for r in runs if r.get('conclusion') in FAILED_CHECKS]
+        feedback += [f"changes requested: {r.get('html_url')}" for r in reviews
+                     if r.get('state') == 'CHANGES_REQUESTED' and r.get('submitted_at') and
+                     str((r.get('user') or {}).get('id')) in config['allowed'] and
+                     timestamp(r['submitted_at']) >= job.get('completed_at', 0)]
+        if feedback:
+            found[identifier] = feedback
+    if not found:
+        return
+    with store.edit() as state:
+        guard(state, token)
+        for identifier, feedback in found.items():
+            job = state['jobs'][identifier]
+            if job['status'] != 'completed':
+                continue
+            if feedback is None:
+                job['pr_closed'] = True
+                continue
+            job.update(status='queued', pr_feedback=feedback, reason='draft PR 후속 수정 필요: ' + feedback[0],
+                       resume='다음 wait가 새 attempt로 전달한다')
+            job['history'].append({'phase': 'pr_feedback', 'at': iso(time.time()), 'pr': job.get('pr_url'), 'feedback': feedback})
+            record(state, 'pr_feedback', issue_id=identifier, pr=job.get('pr_url'))
 
 
 def claim(store, github, token):
@@ -447,6 +498,7 @@ def claim(store, github, token):
             return {'issue_id': identifier, 'task_key': job['task_key'], 'attempt': job['attempt'],
                     'branch': config['branch_prefix'] + f"{job['snapshot']['number']}-a{job['attempt']}",
                     'snapshot': job['snapshot'], 'digest': job['digest'], 'answers': job['answers'],
+                    'pr_feedback': job.get('pr_feedback') or [], 'previous_pr': job.get('pr_url') if job.get('pr_feedback') else None,
                     'scope': config['scope'], 'receipt_required': True,
                     'dependency_review_required': job['dependencies'] is None and any(j['status'] in HELD for j in state['jobs'].values())}
 
@@ -833,9 +885,44 @@ def complete(store, github, token, identifier, worktree, review_key, base, head,
             raise ValueError('리뷰/PR 확인 중 attempt가 변경됐습니다')
         if fresh(state, github, current):
             raise ValueError('완료 기록 직전의 정책/본문 변경')
-        current.update(status='completed', head=head, base=base, review_key=review_key,
-                       pr_url=pr['html_url'], reason='검증·리뷰·draft PR 완료; 병합은 사용자 판단')
+        current.update(status='completed', head=head, base=base, review_key=review_key, pr_number=int(pr_number),
+                       pr_url=pr['html_url'], pr_closed=False, pr_feedback=[], completed_at=time.time(),
+                       reason='검증·리뷰·draft PR 완료; 병합은 사용자 판단')
         record(state, 'completed', issue_id=str(identifier), head=head, pr=pr['html_url'])
+
+
+def prune(store, apply=False):
+    """기본 브랜치에 병합된 이슈 작업 브랜치와 그 워크트리만 정리한다. 기본은 목록만 보인다.
+    미커밋·미추적·ignored 고유 파일이 있거나 현재 체크아웃이면 남긴다. 원격 브랜치는 지우지 않는다."""
+    import review
+    repo = store.repo
+    prefix = (store.read().get('config') or {}).get('branch_prefix') or 'fullops/issue-'
+    connection = integration.config(repo).get('git', {})
+    target = (connection['remote'] + '/' if connection.get('remote') else '') + (connection.get('base') or 'main')
+    trees, path = {}, None
+    for line in integration.git(repo, 'worktree', 'list', '--porcelain').splitlines():
+        if line.startswith('worktree '):
+            path = Path(line[len('worktree '):])
+        elif line.startswith('branch refs/heads/'):
+            trees[line[len('branch refs/heads/'):]] = path
+    # --merged는 병합 커밋·fast-forward만 안다. squash 병합 브랜치는 병합으로 보지 않고 남긴다.
+    merged = [b for b in integration.git(repo, 'branch', '--merged', target, '--format=%(refname:short)').splitlines()
+              if b.startswith(prefix)]
+    result = []
+    for branch in merged:
+        item = {'branch': branch, 'worktree': str(trees[branch]) if branch in trees else None}
+        if apply:
+            try:
+                if branch in trees:
+                    if trees[branch].resolve() == repo.resolve():
+                        raise ValueError('현재 체크아웃이라 남깁니다')
+                    review.remove_snapshot(repo, trees[branch])
+                integration.git(repo, 'branch', '-d', branch)
+                item['removed'] = True
+            except (ValueError, subprocess.CalledProcessError) as error:
+                item['kept'] = str(error) or type(error).__name__
+        result.append(item)
+    return {'target': target, 'apply': apply, 'branches': result}
 
 
 def worker_job(store, state, session, context):
@@ -991,7 +1078,7 @@ def boundary(repo, session, command, files, commands, context=None):
         return None if coordinator else str(error)
     job = job or next((j for j in jobs if j['status'] in ACTIVE), jobs[-1])
     controls = [w for w in commands if 'issue_mode.py' in ' '.join(w) and any(c in w for c in
-                ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete'))]
+                ('status', 'disable', 'pause', 'resume', 'wait', 'claim', 'checkpoint', 'question', 'answers', 'reconcile', 'sync', 'complete', 'prune'))]
     control = bool(controls)
     if coordinator and control and len(commands) == 1 and not files:
         return None
@@ -1264,6 +1351,7 @@ def main():
                 p.add_argument('--' + field, required=True)
             p.add_argument('--pr-number', type=int, required=True)
     sub.add_parser('status')
+    sub.add_parser('prune').add_argument('--apply', action='store_true', help='목록 대신 병합된 이슈 브랜치·깨끗한 워크트리를 지운다')
     sub.add_parser('session-end')
     args = parser.parse_args()
     try:
@@ -1285,6 +1373,9 @@ def main():
             print(json.dumps({'config': state['config'], 'owner': state['owner'], 'cursor': state['cursor'],
                               'jobs': {k: {field: job.get(field) for field in ('status', 'task_key', 'attempt', 'reason', 'resume', 'pr_url')}
                                        for k, job in state['jobs'].items()}, 'events': state['events'][-20:]}, ensure_ascii=False, indent=2))
+            return 0
+        if args.command == 'prune':
+            print(json.dumps(prune(store, args.apply), ensure_ascii=False, indent=2))
             return 0
         if args.command in ('pause', 'resume', 'disable'):
             if not stop(store, args.session, args.command):

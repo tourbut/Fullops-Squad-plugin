@@ -61,7 +61,11 @@ wait의 `answer_candidates`는 같은 이슈 원 작성자 stable ID이며 현�
 
 구현/테스트 후 `checkpoint --phase reviewing --receipt <현재 receipt>`를 기록한다. 기존 lint와 독립 fixed-SHA 리뷰의 `review.py check`를 통과하고 같은 저장소의 **draft PR**을 생성한다. PR 본문은 `Refs #<번호>`로 연결한다. 자동 close 키워드를 쓰지 않는다. 완료 worker의 integration 기록은 `integration.py hold`로 사용자 병합 판단과 PR 링크를 남긴다. route/review gate를 없애거나 성공 처리하지 않는다.
 
-`complete --token-file <lease JSON 경로> --issue-id <id> --worktree <검증 체크아웃> --review-key <키> --base <SHA> --head <SHA> --pr-number <번호>`가 review gate와 draft/base/head/repository를 확인한 뒤만 completed이다. 사용자에게 의미 있는 시작·블로커·완료를 알리고 주기 성공 댓글은 남기지 않는다.
+`complete --token-file <lease JSON 경로> --issue-id <id> --worktree <검증 체크아웃> --review-key <키> --base <SHA> --head <SHA> --pr-number <번호>`가 review gate와 draft/base/head/repository를 확인한 뒤만 completed이다.
+
+completed 뒤에도 폴러가 그 draft PR을 본다. 완료 head의 check가 실패하거나 허용 작성자가 `CHANGES_REQUESTED` 리뷰를 남기면 같은 이슈를 queued로 되돌린다. 다음 claim의 `pr_feedback`(check 이름·링크, 리뷰 링크)과 `previous_pr`를 새 지시서에 넣고, 새 attempt의 draft PR 본문에 이전 PR을 적는다. 이전 PR은 닫지 않고 사용자 판단에 둔다. 사용자가 PR에 직접 커밋해 head가 바뀌었거나 PR이 병합·닫혔으면 되돌리지 않는다. 재시도 한도는 그대로 적용된다.
+
+사용자가 PR을 병합한 뒤 `python3 <issue_mode.py> --repo <root> prune`으로 기본 브랜치에 병합된 이슈 작업 브랜치와 그 워크트리를 확인하고, `--apply`로 정리한다. 미커밋·미추적·ignored 고유 파일이 있는 워크트리, 현재 체크아웃, squash 병합으로 `--merged`에 잡히지 않는 브랜치는 남긴다. 원격 브랜치는 지우지 않는다. 사용자에게 의미 있는 시작·블로커·완료를 알리고 주기 성공 댓글은 남기지 않는다.
 
 `pause|resume|disable --session <enable에 사용한 session>`과 `status`를 사용한다. pause는 수집/새 claim을 멈추며 진행 worker는 별도 자연 경계 정책으로 처리한다. SessionEnd는 OFF, crash/접속 불명확은 lease 만료로 차단된다. 종료된 coor를 자동 재기동하지 않는다. 새 coor는 사용자가 명시적으로 enable하며 기존 active attempt는 reconciling이다. `reconcile --token-file <새 lease JSON 경로> --issue-id <id> --reason <정본 task/worker/receipt 확인 근거>`에서 기존 Run을 조회한 뒤 기존 작업을 인계한다. worker 부재/unverifiable는 재실행 허가가 아니다. 질문·댓글·대기열·증거는 보존하고 사람의 worktree/dirty 파일은 삭제하지 않는다.
 
