@@ -39,7 +39,7 @@ summary: Lint 게이트
 | DOC-003 | ERROR | 바뀐 FullOps 일반 Markdown의 front matter가 없거나 필수 필드·상태·날짜·형식이 틀림. `deliverables.py --stamp --path <경로>`로 쓴다. 빈 인박스·템플릿·외부 공통 규칙은 제외한다. 문서 검사는 코드 lint의 exclude와 별도로 적용한다 |
 | LINT-000 | WARNING | 프로젝트 lint 명령이 등록되지 않음 |
 | LINT-001 | WARNING | 검사 대상 브랜치가 `lint.json`을 바꿈. 변경은 병합 후 적용된다 |
-| LINT-002 | WARNING | `required: true` 시험 명령이 120초를 넘게 걸림. 개발 중 매번 돌 필요가 없으면 `level`이나 `paths`로 범위를 좁힌다 |
+| LINT-002 | WARNING | 매번 도는 명령이 120초를 넘게 걸림. `required: true` 시험 명령과 `paths`·`level`이 없는 명령이 대상이다. 개발 중 매번 돌 필요가 없으면 `level`이나 `paths`로 범위를 좁힌다 |
 | CUSTOM-NNN | 규칙별 | `rules`에 등록한 레포별 정규식 규칙 |
 
 ## 설정
@@ -54,6 +54,7 @@ summary: Lint 게이트
 - 기존 린터가 있으면 미사용 규칙(ruff F401/F841, eslint no-unused-vars, oxlint)을 기존 설정에서 활성화해 연결한다. 기본 SLOP 규칙은 미사용 코드 분석을 대신하지 않는다.
 - `size`, `exclude`(glob), `timeout_seconds`는 프로젝트 기준에 맞게 조정한다. 기준을 낮추는 변경은 이유를 지시서에 남긴다.
 - `rules`는 반복되는 실수를 규칙으로 쌓는 곳이다. 형식은 `{"code": "CUSTOM-001", "description": "…", "pattern": "<Python 정규식>", "file_extensions": [".py"], "severity": "ERROR|WARNING", "suggestion": "…", "exclude_patterns": [], "exclude_paths": [], "enabled": true}`다. `exclude_patterns`는 줄 내용(여러 줄 규칙은 일치 구간)의 정규식이고, `exclude_paths`는 레포 상대경로 glob이다. 규칙별 경로 예외는 다른 보안·테스트 검사를 끄지 않는다. 규칙을 끌 때는 삭제하지 않고 `enabled: false`로 둔다. 추가·변경한 이유는 이 문서 아래에 한 줄씩 남긴다.
+- 규칙·명령 조정 후보는 `python3 <lint_tune.py> --repo <루트> [--min-warnings 50]`로 본다. 리뷰 폴더에 남은 `lint.json` 사본과 `result.json` 지적을 모은다. 경고가 많은데 지적 본문에 그 코드가 한 번도 나오지 않은 `rules` 항목, 평균 120초를 넘는 범위 없는 명령을 후보로 낸다. 제안만 하며 설정은 바꾸지 않는다. 지적 연결은 본문의 코드 문자열로 센 추정이다. 사용자 승인 뒤 기본 브랜치에서 `exclude_paths`·severity·`enabled`·`paths`·`level`을 고치고 아래 규칙 변경 기록에 이유를 남긴다. dev 직접 작업처럼 리뷰 폴더가 없는 lint는 집계하지 않는다.
 - `size.max_diff_added: 0`은 추가 줄 예산 검사를 끈다. 여러 줄을 검사하는 정규식은 `multiline: true`로 등록한다. 일치한 구간에 추가 줄이 있을 때만 경고한다. 기존 레포의 사용자 rules는 자동 교체하지 않는다.
 
 ## 레포별 lint 구성

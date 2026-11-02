@@ -375,10 +375,12 @@ def lint(repo, base_ref, raise_level=None):
                 run_command(repo, c, config['timeout_seconds'], gate / 'logs')
                 for c in config['commands']]
     for c, done in zip(config['commands'], commands):
-        if c.get('required') and c.get('kind') == 'test' and 'seconds' in done and done['seconds'] > SLOW_SECONDS:
+        # required 시험은 paths가 있어도, 그 밖의 명령은 paths·level이 없을 때만 매번 돈다.
+        always = c.get('required') and c.get('kind') == 'test' or not (c.get('paths') or c.get('level'))
+        if always and 'seconds' in done and done['seconds'] > SLOW_SECONDS:
             violations.append({'code': 'LINT-002', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
-                               'message': f'required 시험 명령 {c["name"]}이 {done["seconds"]:.0f}초 걸렸습니다. required는 레벨·문서 변경과 '
-                                          '관계없이 매번 돈다. 개발 중 필요 없으면 level이나 paths로 범위를 좁히세요'})
+                               'message': f'명령 {c["name"]}이 {done["seconds"]:.0f}초 걸렸습니다. 범위 없이 코드 변경마다 '
+                                          '돈다. 개발 중 필요 없으면 level이나 paths로 범위를 좁히세요'})
     if not config['commands']:
         violations.append({'code': 'LINT-000', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '프로젝트 lint 명령이 등록되지 않았습니다. setup에서 기존 도구를 연결하세요'})
