@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """변경 파일에 프로젝트 lint 명령과 스택 무관 기본 검사를 실행한다. 기존 위반은 소급하지 않는다."""
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import difflib
 from fnmatch import fnmatch
 import hashlib
@@ -271,6 +272,7 @@ def skips_tests(command, code):
 
 
 PATHS = '바뀐 파일이 명령의 paths와 맞지 않음'
+EARLIER = '앞 단계 명령이 실패해 실행하지 않음'
 SLOW_SECONDS = 120
 
 
@@ -310,6 +312,31 @@ def run_command(repo, command, timeout, logs=None):
         log.write_text(output, encoding='utf-8', errors='replace')
         entry['log'] = str(log)
     return entry
+
+
+def run_stages(repo, config, results, logs):
+    """None 자리의 명령을 실행해 채운다. 시험이 아닌 명령(lint·build 등)을 먼저 모두 차례로 돌리고, 하나라도
+    실패하면 시험 명령은 건너뛴다. 통과하면 시험 명령을 `parallel_tests`(기본 true)에 따라 동시에 돌린다.
+    차례로 돌 때는 시험 하나가 실패하면 남은 시험을 건너뛴다."""
+    commands, timeout = config['commands'], config['timeout_seconds']
+    pending = [n for n, r in enumerate(results) if r is None]
+    tests = [n for n in pending if commands[n].get('kind') == 'test']
+    for n in [n for n in pending if n not in tests]:  # 빠른 정적 검사는 실패를 한 번에 모두 보이게 끝까지 돈다
+        results[n] = run_command(repo, commands[n], timeout, logs)
+    failed = any(results[n]['status'] in ('failed', 'timeout') for n in pending if n not in tests)
+    if failed or not tests:
+        for n in tests:
+            results[n] = {**commands[n], 'status': 'skipped', 'reason': EARLIER}
+        return
+    if not config.get('parallel_tests', True) or len(tests) == 1:
+        for n in tests:
+            results[n] = ({**commands[n], 'status': 'skipped', 'reason': EARLIER} if failed else
+                          run_command(repo, commands[n], timeout, logs))
+            failed = failed or results[n]['status'] in ('failed', 'timeout')
+        return
+    with ThreadPoolExecutor(max_workers=len(tests)) as pool:  # subprocess 대기는 GIL을 잡지 않는다
+        for n, done in zip(tests, pool.map(lambda n: run_command(repo, commands[n], timeout, logs), tests)):
+            results[n] = done
 
 
 def lint(repo, base_ref, raise_level=None):
@@ -371,9 +398,9 @@ def lint(repo, base_ref, raise_level=None):
     commands = [{**c, 'status': 'skipped', 'reason': f'기준 설정 test_level={level}, 명령 최소 level={c["level"]}'}
                 if not policy.command_selected(c, level) else
                 {**c, 'status': 'skipped', 'reason': PATHS} if skips_paths(c, paths) else
-                {**c, 'status': 'skipped', 'reason': NO_CODE} if skips_tests(c, code) else
-                run_command(repo, c, config['timeout_seconds'], gate / 'logs')
+                {**c, 'status': 'skipped', 'reason': NO_CODE} if skips_tests(c, code) else None
                 for c in config['commands']]
+    run_stages(repo, config, commands, gate / 'logs')
     for c, done in zip(config['commands'], commands):
         # required 시험은 paths가 있어도, 그 밖의 명령은 paths·level이 없을 때만 매번 돈다.
         always = c.get('required') and c.get('kind') == 'test' or not (c.get('paths') or c.get('level'))

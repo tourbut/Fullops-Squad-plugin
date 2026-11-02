@@ -16,6 +16,7 @@ ROUND = re.compile(r'-(?:FIX|RECHECK|RETEST|LOWS|R\d+)(?=-|$)', re.I)
 WIDTHS = re.compile(r'(?<!\d)(1920|1440|1366|1280|1024|768|430|414|390|375|360|320)(?:\s*px)?(?!\d)')
 THEMES = re.compile(r'라이트.{0,6}다크|light.{0,6}dark', re.I)
 LIGHT_LEVELS = ('minimal', 'lite')
+LINT_LEVEL = re.compile(r'lint\.py\b[^\n`]*?--level[ =]+([a-z]+)')
 REPORT_LINES = 40
 
 
@@ -114,15 +115,22 @@ def round_folder(root, files):
 
 def advice(root, files, level, handover_pattern):
     """방금 쓴 지시서·보고서가 테스트 레벨 예산을 넘는 것 같으면 알릴 문장들"""
+    import policy
     notes = []
-    if level not in LIGHT_LEVELS:
-        return notes
     for name, _ in files:
         relative = _relative(root, name)
         path = root / relative
         try:
             text = path.read_text(encoding='utf-8')
         except (OSError, UnicodeDecodeError):
+            continue
+        raised = sorted({v for v in LINT_LEVEL.findall(text) if v in policy.LEVELS and level in policy.LEVELS and
+                         policy.LEVELS.index(v) > policy.LEVELS.index(level)}) if handover_pattern.search(relative) else []
+        if raised:
+            notes.append(f"지시서 {relative}의 lint 명령이 `--level {'/'.join(raised)}`로 기준 test_level {level}보다 넓은 시험을 lint마다 돌립니다. "
+                         '`--level`은 안정된 통합 후보에서 담당자가 한 번 돌리는 전체 회귀용입니다. 개발 과제 lint 줄에서 빼고, '
+                         '전체 회귀는 통합 후보 검증의 담당·시점으로 따로 적으세요(fullops-orca dispatch, rules/common/testing.md `담당과 반복 범위`).')
+        if level not in LIGHT_LEVELS:
             continue
         if handover_pattern.search(relative):
             widths = sorted(set(WIDTHS.findall(text)), key=int, reverse=True)
