@@ -425,19 +425,23 @@ def command_scope():
         config_path.write_text(json.dumps({**json.loads(config_path.read_text()), 'commands': [
             {'name': 'server test', 'kind': 'test', 'required': True, 'paths': ['server/**'], 'run': [PY, '-c', 'pass']},
             {'name': 'web', 'kind': 'test', 'required': True, 'paths': ['web/**'], 'run': [PY, '-c', noisy]},
-            {'name': 'regression', 'kind': 'test', 'level': 'full', 'run': [PY, '-c', 'pass']}]}))
+            {'name': 'regression', 'kind': 'test', 'level': 'full', 'run': [PY, '-c', 'pass']},
+            {'name': 'unscoped', 'kind': 'test', 'run': [PY, '-c', 'pass']},
+            {'name': 'scoped', 'kind': 'lint', 'paths': ['web/**'], 'run': [PY, '-c', 'pass']}]}))
         base = commit()
         (repo / 'web').mkdir()
         (repo / 'web/app.py').write_text('value = 1\n')
         commit()
         with patch.object(checks, 'SLOW_SECONDS', -1):
             result = checks.lint(repo, base)
-        server, web, regression = result['commands']
+        server, web, regression, _, _ = result['commands']
         assert server['status'] == 'skipped' and server['reason'] == checks.PATHS, server
+        slow = [v['message'].split()[1] for v in result['violations'] if v['code'] == 'LINT-002']
+        assert slow == ['web이', 'unscoped이'], '범위 없는 느린 명령도 경고하고 paths로 좁힌 일반 명령은 두고 본다'
         assert web['status'] == 'failed' and web['seconds'] >= 0 and len(web['output_tail'].splitlines()) == 40, web
         assert Path(web['log']).read_text(encoding='utf-8').count('line') == 100, '전체 출력은 로그 파일에 남는다'
         assert regression['status'] == 'skipped' and result['test_level'] != 'full'
-        assert [v['path'] for v in result['violations'] if v['code'] == 'LINT-002'] == [checks.CONFIG]
+        assert {v['path'] for v in result['violations'] if v['code'] == 'LINT-002'} == {checks.CONFIG}
         raised = checks.lint(repo, base, 'full')
         assert raised['test_level'] == 'full' and raised['commands'][2]['status'] == 'passed'
         assert checks.lint(repo, base, 'minimal')['test_level'] == result['test_level'], '--level은 낮추지 못한다'
@@ -450,6 +454,31 @@ def command_scope():
             assert 'paths' in str(error)
         else:
             raise AssertionError('빈 paths를 받아들임')
+
+
+def tune_report():
+    """lint_tune은 지적으로 이어지지 않은 잡음 규칙과 범위 없는 느린 명령만 후보로 낸다"""
+    import lint_tune
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-tune-') as tmp:
+        repo = Path(tmp)
+        (repo / '.fullops-squad/lint').mkdir(parents=True)
+        (repo / checks.CONFIG).write_text(json.dumps({**checks.DEFAULT, 'commands': [
+            {'name': 'slow', 'run': ['x']}, {'name': 'scoped', 'paths': ['web/**'], 'run': ['x']}]}))
+        for n, cited in enumerate((False, True)):
+            folder = repo / lint_tune.REVIEWS / f'K{n}-review'
+            folder.mkdir(parents=True)
+            (folder / 'lint.json').write_text(json.dumps({
+                'violations': [{'code': 'DESIGN-001', 'path': 'mock/a.html'}] * 3 + [{'code': 'SLOP-004', 'path': 'b.py'}] * 3,
+                'commands': [{'name': 'slow', 'seconds': 300}, {'name': 'scoped', 'seconds': 300}]}))
+            (folder / 'result.json').write_text(json.dumps({'findings': [{'content': 'SLOP-004 디버그 출력 남음'}] if cited else []}))
+        report = lint_tune.tune(repo, min_warnings=5)
+        rules = {r['code']: r for r in report['rules']}
+        assert report['reviews_with_lint'] == 2 and 'proposal' in rules['DESIGN-001'], report
+        assert rules['DESIGN-001']['top_paths'] == ['mock/a.html']
+        assert rules['SLOP-004']['cited_by_findings'] == 1 and 'proposal' not in rules['SLOP-004']
+        slow, scoped = report['commands']
+        assert slow['avg_seconds'] == 300 and 'proposal' in slow and 'proposal' not in scoped
+    print('PASS: lint tune proposes noisy uncited rules and slow unscoped commands only')
 
 
 def stale_lock():
@@ -467,6 +496,7 @@ def stale_lock():
 if __name__ == '__main__':
     command_cwd_aliases()
     stale_lock()
+    tune_report()
     command_scope()
     main()
     anti_slop()
