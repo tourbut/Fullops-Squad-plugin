@@ -481,6 +481,49 @@ def tune_report():
     print('PASS: lint tune proposes noisy uncited rules and slow unscoped commands only')
 
 
+def handover_level_advice():
+    """개발 지시서의 lint 줄이 기준보다 높은 --level을 요구하면 coordinator에게 한 번 알린다"""
+    import re
+    import harness_gate
+    with tempfile.TemporaryDirectory(prefix='fullops-level-advice-') as tmp:
+        root = Path(tmp)
+        inbox = root / '.fullops-squad/handovers/to_dev.md'
+        inbox.parent.mkdir(parents=True)
+        pattern = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
+        inbox.write_text('- lint: `python3 /x/scripts/lint.py --repo . --from abc --level full`' + chr(10), encoding='utf-8')
+        files = [(str(inbox), None)]
+        notes = harness_gate.advice(root, files, 'minimal', pattern) + harness_gate.advice(root, files, 'standard', pattern)
+        assert len(notes) == 2 and all('--level full' in n for n in notes), notes
+        assert not harness_gate.advice(root, files, 'full', pattern), '기준 레벨과 같으면 알리지 않는다'
+        inbox.write_text('- lint: `python3 /x/scripts/lint.py --repo . --from abc`' + chr(10), encoding='utf-8')
+        assert not harness_gate.advice(root, files, 'minimal', pattern)
+    print('PASS: handover lint --level above the base test level is flagged')
+
+
+def staged_commands():
+    """시험이 아닌 명령은 모두 돌되 하나라도 실패하면 시험 명령은 돌지 않고, 시험 명령은 동시에 돌며, parallel_tests: false면 차례로 돌다 멈춘다"""
+    import time
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-stage-') as tmp:
+        repo = Path(tmp)
+        ok, bad, slow = [PY, '-c', 'pass'], [PY, '-c', 'raise SystemExit(1)'], [PY, '-c', 'import time; time.sleep(1.5)']
+
+        def run(commands, **extra):
+            results = [None] * len(commands)
+            checks.run_stages(repo, {'commands': commands, 'timeout_seconds': 60, **extra}, results, None)
+            return [r['status'] for r in results], results
+        statuses, results = run([{'name': 'eslint', 'run': bad}, {'name': 'build', 'kind': 'build', 'run': ok},
+                                 {'name': 'unit', 'kind': 'test', 'run': ok}])
+        assert statuses == ['failed', 'passed', 'skipped'] and results[2]['reason'] == checks.EARLIER, results
+        started = time.monotonic()
+        statuses, _ = run([{'name': 'lint', 'run': ok}, {'name': 'a', 'kind': 'test', 'run': slow},
+                           {'name': 'b', 'kind': 'test', 'run': slow}, {'name': 'c', 'kind': 'test', 'run': bad}])
+        assert statuses == ['passed', 'passed', 'passed', 'failed'], statuses
+        assert time.monotonic() - started < 2.8, '시험 명령은 동시에 돈다'
+        statuses, _ = run([{'name': 'a', 'kind': 'test', 'run': bad}, {'name': 'b', 'kind': 'test', 'run': ok}], parallel_tests=False)
+        assert statuses == ['failed', 'skipped'], statuses
+    print('PASS: lint stages stop after a failure and run test commands in parallel')
+
+
 def stale_lock():
     with tempfile.TemporaryDirectory(prefix='fullops-lint-lock-') as tmp:
         lock = Path(tmp) / 'fullops-lint.lock'
@@ -497,6 +540,8 @@ if __name__ == '__main__':
     command_cwd_aliases()
     stale_lock()
     tune_report()
+    staged_commands()
+    handover_level_advice()
     command_scope()
     main()
     anti_slop()
