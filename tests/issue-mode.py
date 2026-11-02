@@ -341,6 +341,14 @@ def main():
                 assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context)
         finally:
             os.chdir(previous_cwd)
+        # Orca 1.4.246의 worker-show는 projection 없이 평면으로 온다(#118).
+        flat = {'dispatchId': 'ctx_auto', 'taskId': 'task_auto', 'runId': 'run', 'state': 'ready', 'stage': 'input_accepted',
+                'liveness': 'live', 'terminal': 'worker-term', 'workspace': 'repo::' + str(root)}
+        with patch.object(mode.integration, 'orca', side_effect=[flat, listing]):
+            blocked = mode.boundary(root, 'worker', ' '.join(merge), [], [merge], context)
+        assert blocked and 'binding' not in blocked and '정본' not in blocked, blocked
+        with store.edit() as state:
+            assert state['jobs']['101']['worker_sessions'].pop('worker')
         with patch.object(mode.integration, 'orca', side_effect=[projection, listing]):
             assert mode.boundary(root, 'worker', ' '.join(merge), [], [merge], context)
         with patch.object(mode.integration, 'orca', side_effect=AssertionError('binding queried again')):
@@ -450,7 +458,10 @@ def main():
                     if child and self.child_task_page is not None:
                         result['page'] = self.child_task_page
                     return result
-                workers = [{'taskId': task_id, 'projection': {'liveness': {'verdict': 'live' if status == 'running' else 'exited'}}}]
+                verdict = 'live' if status == 'running' else 'exited'
+                # 하위 Run은 Orca 1.4.246 평면 형식(liveness 문자열), 부모는 이전 projection 형식이다.
+                workers = [{'taskId': task_id, 'liveness': verdict} if child else
+                           {'taskId': task_id, 'projection': {'liveness': {'verdict': verdict}}}]
                 if child and self.extra_worker:
                     workers.append({'taskId': 'new-task-after-listing', 'projection': {'liveness': {'verdict': 'live'}}})
                 return {'workers': workers, 'page': self.child_page if child else {'total': 1, 'hasMore': False}}

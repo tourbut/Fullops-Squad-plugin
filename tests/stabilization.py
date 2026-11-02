@@ -211,6 +211,18 @@ class Stabilization(unittest.TestCase):
                 {'dispatchId': 'live', 'projection': {'outcome': 'in_progress'}}, {'dispatchId': 'done', 'projection': projection}]}
         with patch.object(flow_gate, 'orca', side_effect=status):
             self.assertEqual(flow_gate.run_state('run1'), (0, ['live']))
+        # Orca 1.4.246 평면 형식: outcome 대신 state, stage는 문자열이다(#118).
+        flat = {'dispatchId': 'd1', 'taskId': 't1', 'runId': 'r', 'state': 'succeeded', 'stage': 'settled', 'liveness': 'exited'}
+        with patch.object(flow_gate, 'orca', return_value=flat):
+            self.assertTrue(flow_gate.settled_in_runtime(state))
+        with patch.object(flow_gate, 'orca', return_value={**flat, 'state': 'ready', 'stage': 'input_accepted'}):
+            self.assertFalse(flow_gate.settled_in_runtime(state))
+        def flat_status(*args):
+            return {'messages': []} if args[1] == 'check' else {'workers': [
+                {'dispatchId': 'live', 'state': 'ready', 'liveness': 'live'}, {'dispatchId': 'done', **flat},
+                {'dispatchId': 'stopped', 'state': 'stopped', 'outcome': 'failed', 'liveness': 'exited'}]}
+        with patch.object(flow_gate, 'orca', side_effect=flat_status):
+            self.assertEqual(flow_gate.run_state('run1'), (0, ['live']))
         report = "python3 - <<'PY'\nreport = '''\norca orchestration worker-start\n'''\nprint(report)\nPY\n"
         self.assertEqual(flow_gate.operation_commands(report, 'worker-start'), [])
         self.assertEqual(flow_gate.operation_commands('echo orca orchestration worker-start', 'worker-start'), [])
@@ -354,6 +366,14 @@ class Stabilization(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'term_live.*--all'):
                 review.cleanup(self.repo, 'R1', 'd1', True)
         with patch.object(integration, 'orca', side_effect=orca([], str(self.repo))):
+            with self.assertRaisesRegex(ValueError, 'reviewer가 아닙니다'):
+                review.cleanup(self.repo, 'R1', 'd1', True)
+        # Orca 1.4.246: worker-read에는 workspace가 없어 worker-show의 평면 workspace로 확인한다(#118).
+        def flat(workspace):
+            return lambda *args, **kwargs: ({'terminals': []} if args[:2] == ('terminal', 'list') else
+                                            {'dispatchId': 'd1', 'source': 'transcript'} if args[1] == 'worker-read' else
+                                            {'dispatchId': 'd1', 'state': 'succeeded', 'workspace': 'repo::' + workspace})
+        with patch.object(integration, 'orca', side_effect=flat(str(self.repo))):
             with self.assertRaisesRegex(ValueError, 'reviewer가 아닙니다'):
                 review.cleanup(self.repo, 'R1', 'd1', True)
         (path / 'untracked.txt').write_text('keep')

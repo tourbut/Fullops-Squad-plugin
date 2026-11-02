@@ -38,6 +38,24 @@ def orca(*args, cwd=None):
     return data.get('result') if isinstance(data, dict) and data.get('ok') else None
 
 
+def worker_view(status):
+    """Orca worker 응답(worker-show·worker-list 항목·worker-read)을 한 형식으로 읽는다.
+    1.4.246부터 projection 없이 평면으로 오며 liveness·stage는 문자열, terminal은 handle, workspace는 '<repo>::<경로>'다."""
+    status = status if isinstance(status, dict) else {}
+    nested = isinstance(status.get('projection'), dict)
+    view = status['projection'] if nested else status
+    pane, liveness, stage = status.get('terminal'), view.get('liveness'), view.get('stage')
+    workspace = view.get('workspace')
+    workspace = workspace.get('id') if isinstance(workspace, dict) else workspace
+    path = pane.get('worktreePath') if isinstance(pane, dict) else str(workspace or '').split('::', 1)[-1] or None
+    return {'dispatchId': view.get('dispatchId'), 'taskId': view.get('taskId'), 'runId': view.get('runId'),
+            'outcome': view.get('outcome') or (view.get('state') if view.get('state') in ('succeeded', 'failed') else None),
+            'settled': (stage or {}).get('dispatch') in ('completed', 'failed') if nested else stage == 'settled',
+            'liveness': liveness.get('verdict') if isinstance(liveness, dict) else liveness,
+            'terminal': pane.get('handle') if isinstance(pane, dict) else pane,
+            'worktreePath': path, 'workspace': workspace, 'resource': view.get('resource')}
+
+
 def key_present(key, text):
     # 문장 끝 마침표는 구분자지만 K1.2 같은 실제 키의 일부는 구분자가 아니다.
     return re.search(rf'(?<![A-Za-z0-9._-]){re.escape(key)}(?![A-Za-z0-9_-]|\.[A-Za-z0-9._-])', text)
