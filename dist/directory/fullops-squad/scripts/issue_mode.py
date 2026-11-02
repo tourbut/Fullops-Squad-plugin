@@ -799,8 +799,7 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     task_ids = {t.get('id') for t in relevant} - {None}
     relevant_workers = [w for w in entries if w.get('taskId') in task_ids]
     exited = (task_ids and task_ids <= {w.get('taskId') for w in relevant_workers} and
-              all(w.get('projection', {}).get('liveness', {}).get('verdict') == 'exited'
-                  for w in relevant_workers))
+              all(integration.worker_view(w)['liveness'] == 'exited' for w in relevant_workers))
     child_receipts = {}
     for child_run, binding in job.get('child_runs', {}).items():
         if binding.get('task_key') != job['task_key']:
@@ -833,8 +832,7 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
         live = live or any(t.get('status') not in ('completed', 'failed', 'cancelled') for t in relevant_children)
         failed = failed or any(t.get('status') in ('failed', 'cancelled') for t in relevant_children)
         exited = bool(exited and ids and ids <= {w.get('taskId') for w in child_workers} and
-                      all(w.get('projection', {}).get('liveness', {}).get('verdict') == 'exited'
-                          for w in child_workers))
+                      all(integration.worker_view(w)['liveness'] == 'exited' for w in child_workers))
         child_receipts[child_run] = {'tasks': relevant_children, 'workers': fleet}
     with store.edit() as state:
         owner = guard(state, token)
@@ -940,8 +938,8 @@ def worker_job(store, state, session, context):
     status = integration.orca('orchestration', 'worker-show', '--dispatch', context['dispatch'], cwd=store.repo)
     if status is None:
         raise ValueError('worker의 자동 이슈 범위를 Orca 정본에서 확인하지 못했습니다')
-    projection = status.get('projection') or {}
-    run = projection.get('runId')
+    projection = integration.worker_view(status)
+    run = projection['runId']
     listing = integration.orca('orchestration', 'task-list', '--run', run, cwd=store.repo) if run else None
     if listing is None:
         raise ValueError('worker의 정본 task를 확인하지 못했습니다')
@@ -953,14 +951,12 @@ def worker_job(store, state, session, context):
         if registered:
             raise ValueError('등록된 자동 하위 Run의 task key가 현재 attempt와 다릅니다')
         return None, None
-    pane = status.get('terminal') or {}
     receipt = hook_path(store.repo, session)
     native = json.loads(receipt.read_text()) if receipt.is_file() else {}
     if (len(jobs) != 1 or projection.get('dispatchId') != context['dispatch'] or
             projection.get('taskId') != context.get('task') or native.get('provider_session') != session or
-            not native.get('orca_terminal') or pane.get('handle') != native['orca_terminal'] or
-            not pane.get('worktreePath') or
-            Path(pane.get('worktreePath') or '').resolve() != store.repo):
+            not native.get('orca_terminal') or projection['terminal'] != native['orca_terminal'] or
+            not projection['worktreePath'] or Path(projection['worktreePath']).resolve() != store.repo):
         raise ValueError('worker의 host session/terminal/task 작업 공간 binding이 다릅니다')
     job = jobs[0]
     child = job.get('child_runs', {}).get(run)

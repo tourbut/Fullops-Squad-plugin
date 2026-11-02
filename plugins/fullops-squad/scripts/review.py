@@ -279,12 +279,14 @@ def released(repo, path, dispatch):
     observation = {'terminals': 0}
     if dispatch:
         # release 뒤 terminal 출력은 지워지므로 auto source로 projection만 읽는다. worker 상태 이름은 판정에 쓰지 않는다.
-        status = orca('orchestration', 'worker-read', '--dispatch', dispatch, '--source', 'auto', '--limit', '1', cwd=repo) or {}
-        workspace = str(((status.get('projection') or {}).get('workspace') or {}).get('id') or '').split('::', 1)[-1]
+        from integration import worker_view
+        view = worker_view(orca('orchestration', 'worker-read', '--dispatch', dispatch, '--source', 'auto', '--limit', '1', cwd=repo))
+        if not view['workspace']:  # Orca 1.4.246의 worker-read에는 workspace가 없고 worker-show에 평면으로 있다
+            view = worker_view(orca('orchestration', 'worker-show', '--dispatch', dispatch, cwd=repo))
+        workspace = view['worktreePath'] if view['workspace'] else ''
         if workspace and Path(workspace).resolve() != Path(path).resolve():
             raise ValueError('release한 dispatch가 해당 snapshot의 reviewer가 아닙니다')
-        observation.update(dispatch=dispatch, workspace=workspace or None,
-                           resource=(status.get('projection') or {}).get('resource'))
+        observation.update(dispatch=dispatch, workspace=workspace or None, resource=view['resource'])
     return observation
 
 

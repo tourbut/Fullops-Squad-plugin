@@ -1,0 +1,15 @@
+{
+  "state": "waived",
+  "base": "99e7b50da36c27e2463633442705c1a363dd73fd",
+  "head": "63e492e11e104f69f3b376447d249715ea018048",
+  "reason": "사용자 생략 지시: 세션 누적(1.12.1+1.13.0+1.14.0) 판정이며 1.14.0 단독은 코드 4개 파일 118줄로 기준 미만, PR #117 CI·claude-review 통과",
+  "decided_by": "user",
+  "at": "2026-11-02T13:10:34+00:00",
+  "need": {
+    "required": true,
+    "reason": "대규모 코드 변경: 16개 파일 592줄 (기준 15개 또는 400줄)",
+    "code_files": 16,
+    "code_lines": 592,
+    "always": []
+  }
+}

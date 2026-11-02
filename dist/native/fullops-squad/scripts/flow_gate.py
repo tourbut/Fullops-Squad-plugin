@@ -286,11 +286,9 @@ def delivered(event, state):
 
 def settled_in_runtime(state):
     """변수·wrapper 호출의 receipt를 해석하지 못하면 현재 Dispatch의 정본 완료를 확인한다."""
-    status = orca('orchestration', 'worker-show', '--dispatch', state['dispatch']) or {}
-    projection = status.get('projection') or {}
-    return projection.get('dispatchId') == state['dispatch'] and bool(state.get('task')) and \
-        projection.get('taskId') == state['task'] and projection.get('outcome') in ('succeeded', 'failed') and \
-        (projection.get('stage') or {}).get('dispatch') in ('completed', 'failed')
+    view = integration.worker_view(orca('orchestration', 'worker-show', '--dispatch', state['dispatch']))
+    return view['dispatchId'] == state['dispatch'] and bool(state.get('task')) and \
+        view['taskId'] == state['task'] and view['outcome'] in ('succeeded', 'failed') and view['settled']
 
 
 def run_state(run, root=None):
@@ -302,7 +300,7 @@ def run_state(run, root=None):
         integration.record(root, inbox.get('messages') or [])
     unread = sum(1 for m in inbox.get('messages') or [] if m.get('type') in ('worker_done', 'question', 'escalation'))
     active = sorted(w.get('dispatchId') for w in workers.get('workers') or [] if
-                    (w.get('projection') or {}).get('outcome') not in ('succeeded', 'failed'))
+                    integration.worker_view(w)['outcome'] not in ('succeeded', 'failed'))
     return unread, active
 
 
