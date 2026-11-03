@@ -190,8 +190,8 @@ if shutil.which('node'):
         done = subprocess.run(['node', str(SKILL / 'render.mjs'), *args], capture_output=True, text=True)
         assert done.returncode == 2 and 'render.mjs:' in done.stderr, (args, done.stderr)
 templates = (SKILL / 'templates.md').read_text(encoding='utf-8')
-assert templates.count('](https://x.com/') == 12
-for phrase in ('go all out', 'world-class motion designer', 'Ask me for', 'ピクセル'):
+assert templates.count('](https://x.com/') == 17
+for phrase in ('go all out', 'world-class motion designer', 'Ask me for', 'ピクセル', '拆解万物', 'Before you build'):
     assert phrase not in templates, phrase
 
 # Common install plans must remain independent of video tools on every host.
