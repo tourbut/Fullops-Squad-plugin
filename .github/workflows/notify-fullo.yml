@@ -1,0 +1,45 @@
+name: Notify Fullo
+
+on:
+  push:
+    branches: [main]
+  issues:
+    types: [opened, closed, reopened]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send event to Fullo webhook
+        env:
+          FULLO_WEBHOOK_URL: ${{ secrets.FULLO_WEBHOOK_URL }}
+          FULLO_WEBHOOK_AUTH: ${{ secrets.FULLO_WEBHOOK_AUTH }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          COMPARE: ${{ github.event.compare }}
+          HEAD_MSG: ${{ github.event.head_commit.message }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          if [ -z "$FULLO_WEBHOOK_URL" ]; then echo "webhook secret not set; skipping"; exit 0; fi
+          if [ "$EVENT" = "push" ]; then
+            COUNT=$(jq '.commits | length' "$GITHUB_EVENT_PATH")
+            SUMMARY=$(printf '%s' "$HEAD_MSG" | head -n1 | cut -c1-200)
+            BODY=$(jq -n --arg e push --arg r "$REPO" --arg a "$ACTOR" --arg u "$COMPARE" \
+              --arg s "$SUMMARY" --argjson c "$COUNT" \
+              '{event:$e, repo:$r, actor:$a, commits:$c, head_summary:$s, url:$u}')
+          else
+            BODY=$(jq -n --arg e issues --arg act "$ACTION" --arg r "$REPO" --arg a "$ACTOR" \
+              --arg n "$ISSUE_NUM" --arg t "$(printf '%s' "$ISSUE_TITLE" | cut -c1-200)" --arg u "$ISSUE_URL" \
+              '{event:$e, action:$act, repo:$r, actor:$a, issue:$n, title:$t, url:$u}')
+          fi
+          curl -sS --fail --max-time 20 -X POST "$FULLO_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: $FULLO_WEBHOOK_AUTH" \
+            -d "$BODY" -o /dev/null -w "status %{http_code}\n"
