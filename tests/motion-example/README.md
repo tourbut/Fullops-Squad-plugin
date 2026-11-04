@@ -14,7 +14,7 @@ cp renders/v01/motion.mp4 public/motion.mp4
 DO_NOT_TRACK=1 ./node_modules/.bin/hyperframes check general --snapshots --json
 DO_NOT_TRACK=1 ./node_modules/.bin/hyperframes render general --strict --fps 30 --workers 1 --output renders/v01/general-intro.mp4
 ./node_modules/.bin/remotion studio src/index.jsx
-./node_modules/.bin/remotion render src/index.jsx Intro renders/v01/intro.mp4
+./node_modules/.bin/remotion render src/index.jsx Intro renders/v01/intro.mp4 --color-space bt709
 python3 <개발 저장소>/tests/motion_check.py --spec silent-spec.json --media renders/v01/motion.mp4 --out qa/v01/silent.json
 python3 <개발 저장소>/tests/motion_check.py --spec intro-spec.json --media renders/v01/intro.mp4 --out qa/v01/intro.json
 ```

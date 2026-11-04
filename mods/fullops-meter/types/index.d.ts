@@ -87,7 +87,7 @@ export type Seen = Record<string, { phase: Worker['phase']; since: number; isBas
 /** One `<key>-review` folder under `.fullops-squad/docs/evaluations/qa-reports/`. */
 export type Review = {
   key: string
-  /** recorded: `result.json` is written; waived, abandoned, superseded: that receipt stands; open: none yet. */
+  /** recorded: `result.json` carries the reviewer's conclusion; waived, abandoned, superseded: that receipt stands; open: no conclusion yet. */
   state: 'recorded' | 'waived' | 'abandoned' | 'superseded' | 'open'
   /** The first line of the reviewer's conclusion. */
   conclusion: string

@@ -97,6 +97,7 @@ class PlaywrightBrowser(Browser):
             self.process.wait(timeout=5)
         except (OSError, RuntimeError, SafetyStop, subprocess.TimeoutExpired):
             self.identity['cleanup'] = 'forced_after_bridge_failure'
+            self.identity.setdefault('blocked_requests', 'unknown')  # the count lives only in the bridge
             stop_process(self.process)
         finally:
             for stream in (self.process.stdin, self.process.stdout):

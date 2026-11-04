@@ -191,6 +191,17 @@ test('Windows launcher preserves shell metacharacters as data', { skip: process.
   assert.deepEqual(JSON.parse(result.stdout), values);
 });
 
+test('Windows launcher runs npm .ps1 shims under a Restricted policy', { skip: process.platform !== 'win32' }, t => {
+  const { root } = fixture(t);
+  fs.writeFileSync(path.join(root, 'fakecli.ps1'), 'Write-Output "ps1 $args"');
+  fs.writeFileSync(path.join(root, 'fakecli.cmd'), '@echo cmd %*');
+  const call = installer.invocation('fakecli', ['--version']);
+  const env = { ...process.env, PATH: root + path.delimiter + process.env.PATH, PSExecutionPolicyPreference: 'Restricted' };
+  const result = spawnSync(call.command, call.args, { encoding: 'utf8', windowsHide: true, env });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), 'ps1 --version');
+});
+
 test('corrupt metadata repairs through native commands before running dependencies', t => {
   const { calls, execute } = flow(t, { corrupt: true });
   assert.equal(installer.main(['update', '--hosts', 'grok'], execute), 0);

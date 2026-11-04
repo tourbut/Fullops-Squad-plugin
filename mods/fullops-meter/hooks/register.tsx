@@ -211,31 +211,39 @@ async function record(
   }))
 }
 
+/** Orca 1.4.246+ prints a concise view without the fields read here unless --full; an older Orca rejects the flag. */
+// shortcut: an Orca without --full is asked twice per call; keep the answer in Shared if that ever costs.
+const orca = async ($: EngineInterface, argv: readonly string[], timeoutMs: number) => {
+  const full = await $.process.run(['orca', 'orchestration', ...argv, '--full', '--json'], { timeoutMs })
+  return full.exitCode === 0 ? full : $.process.run(['orca', 'orchestration', ...argv, '--json'], { timeoutMs })
+}
+
 /** The workers the coordinator's Orca run has: Orca's own listing, nothing is sent anywhere. */
 async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   // A mod's child process may not carry Orca's launch token, and without it Orca cannot tell which terminal asks:
   // name this session's terminal outright (Orca still checks it against the token when one is there).
   const handle = await $.env.get('ORCA_TERMINAL_HANDLE')
   const from = handle === undefined || handle === '' ? [] : ['--from', handle]
-  const run = await $.process.run(['orca', 'orchestration', 'run-current', ...from, '--json'], { timeoutMs: 15_000 }).catch(() => undefined)
+  const run = await orca($, ['run-current', ...from], 15_000).catch(() => undefined)
   const runId = run === undefined || run.exitCode !== 0 ? null : parseRunId(run.stdout)
   if (runId === null) {
     await commit($, shared, meter => ({ ...meter, workers: null }))
     return
   }
   const [list, tasks] = await Promise.all([
-    $.process.run(['orca', 'orchestration', 'worker-list', '--run', runId, '--limit', '100', '--json'], { timeoutMs: 20_000 }),
+    orca($, ['worker-list', '--run', runId, '--limit', '100'], 20_000),
     // --brief caps each spec at 160 characters: the key is declared at its start.
-    $.process.run(['orca', 'orchestration', 'task-list', '--run', runId, '--brief', '--json'], { timeoutMs: 20_000 }),
+    orca($, ['task-list', '--run', runId, '--brief'], 20_000),
   ]).catch(() => [undefined, undefined] as const)
   if (list === undefined || tasks === undefined || list.exitCode !== 0) return
 
   const now = await $.clock.now()
   // A failed listing keeps the tasks already known, so the cards do not lose their task names for a poll.
   const known = await read($, fullopsAtom)
-  const { keys, queued } = tasks.exitCode === 0 ? parseTasks(tasks.stdout) : { keys: known?.keys ?? {}, queued: known?.queued ?? [] }
-  const seen = await read($, seenAtom)
   const rows = parseRows(list.stdout)
+  const sent = new Set(rows.map(row => row.taskId))
+  const { keys, queued } = tasks.exitCode === 0 ? parseTasks(tasks.stdout, sent) : { keys: known?.keys ?? {}, queued: known?.queued ?? [] }
+  const seen = await read($, seenAtom)
   const merged = reconcile(seen, rows, keys, now, shared.isFirstPoll)
   shared.isFirstPoll = false
   await update($, seenAtom, () => merged.seen)

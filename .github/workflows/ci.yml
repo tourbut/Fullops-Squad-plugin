@@ -79,6 +79,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Check native launchers and failure recovery
+        shell: bash  # Windows pwsh would only fail on the last command
         run: |
           node --test tests/npm-installer.cjs
           python tests/stabilization.py

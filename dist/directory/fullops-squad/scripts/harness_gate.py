@@ -105,9 +105,12 @@ def round_folder(root, files):
         match = ROUND.search(folder)
         if not match or match.start() == 0:
             continue
-        base = folder[:match.start()]
+        base, rest = folder[:match.start()], folder[match.end():]
+        if (root / REPORTS / (base + rest)).is_dir():  # 같은 역할 접미사(K1-DEV-FIX-test → K1-DEV-test)
+            return folder, base + rest
         existing = sorted((bool(ROUND.search(p.name[len(base):])), p.name) for p in (root / REPORTS).iterdir()
-                          if p.is_dir() and p.name != folder and (p.name == base or p.name.startswith(base + '-')))
+                          if p.is_dir() and p.name != folder and not p.name.endswith('-review') and
+                          (p.name == base or p.name.startswith(base + '-')))
         if existing:  # 차수 접미사가 없는 원래 과제 폴더를 먼저 가리킨다
             return folder, existing[0][1]
     return None

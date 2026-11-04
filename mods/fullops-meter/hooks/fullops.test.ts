@@ -42,6 +42,10 @@ describe('reviews', () => {
     expect(reviewLine(summarizeReview('K1', result, null, 0), 6 * 60_000).when).toBe('')
   })
 
+  test('a result.json without a conclusion yet is still open', () => {
+    expect(summarizeReview('K6', JSON.stringify({ conclusion: '', findings: [] }), null, 0).state).toBe('open')
+  })
+
   test('a receipt outranks the record, and a folder with neither is open', () => {
     expect(summarizeReview('K2', result, 'superseded', 0).state).toBe('superseded')
     expect(summarizeReview('K3', null, 'waived', 0).state).toBe('waived')

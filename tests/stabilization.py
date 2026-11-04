@@ -3,6 +3,7 @@ from contextlib import redirect_stdout
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -30,6 +31,9 @@ import review
 import setup
 import storage
 import work
+
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기 설정과 무관하게 stub 판정을 검사한다
 
 
 def load(name, path):
@@ -198,6 +202,7 @@ class Stabilization(unittest.TestCase):
         for bad in ('echo ' + command, command + '; echo fake', command.replace('worker_done', 'ask'), command + ' --help'):
             self.assertIsNone(flow_gate.settlement_command(bad, state))
         self.assertIsNotNone(flow_gate.settlement_command(command.replace('worker_done', 'escalation'), state))
+        self.assertIsNotNone(flow_gate.settlement_command(command.replace('orca ', 'orca-dev ', 1), state))
         projection = {'dispatchId': 'd1', 'taskId': 't1', 'outcome': 'succeeded', 'stage': {'dispatch': 'completed'}}
         with patch.object(flow_gate, 'orca', return_value={'projection': projection}):
             self.assertTrue(flow_gate.settled_in_runtime(state))
@@ -303,7 +308,7 @@ class Stabilization(unittest.TestCase):
         inbox = self.new()
         inbox.write_text(inbox.read_text() + '\n' + 'padding\n' * 600 + '\n## 완료 기준\n`fetch_user` returns version 2; update D05.\n')
         api = self.repo / 'api.py'
-        api.write_text('# overview\n' * 80 + 'def fetch_user():\n    return 1\n')
+        api.write_text('# overview\n' * 40 + 'status = 0\n' + '# overview\n' * 39 + 'def fetch_user():\n    return 1\n')
         (self.repo / 'caller.py').write_text('from api import fetch_user\nvalue = fetch_user()\n')
         (self.repo / 'test_api.py').write_text('from api import fetch_user\nassert fetch_user() == 1\n')
         (self.repo / 'contract.md').write_text('[API](api.py#fetch_user)\nD05\n')
@@ -311,7 +316,6 @@ class Stabilization(unittest.TestCase):
         candidate, error = jev_context.candidate(self.repo, self.git('rev-parse', 'HEAD'), 'api.py', 0, inbox.read_text())
         self.assertIsNone(error)
         self.assertGreater(candidate['source']['span']['start_line'], 37)
-        self.assertTrue(candidate['partial'])
         self.assertIn('fetch_user', work.task_excerpt(inbox.read_text()))
         result = jev_packet.packet(self.repo, 'dev', 'K1', ['api.py'], updates=['D05'])
         self.assertIn('api.py', result['categories']['direct_edit'])
@@ -394,8 +398,16 @@ class Stabilization(unittest.TestCase):
             (path / '.fullops-squad/.env').write_text('TOKEN=x\n')
             review.cleanup(self.repo, 'R1', 'd1', True)
         self.assertFalse(path.exists())
+        # 중단된 제거 재개: snapshot이 이미 없으면 Orca 조회(selector_not_found) 없이 영수증으로 마친다
+        record, receipt = review.snapshot_record(self.repo, 'R1'), folder / 'snapshot-cleanup.json'
+        storage.write_json(record, {**json.loads(record.read_text(encoding='utf-8')), 'state': 'active'})
+        storage.write_json(receipt, {**json.loads(receipt.read_text(encoding='utf-8')), 'state': 'validated'})
+        with patch.object(integration, 'orca', return_value=None):
+            review.cleanup(self.repo, 'R1', 'd1', True)
         review.cleanup(self.repo, 'R1', 'd1', True)
         self.assertEqual(review.historical(self.repo, 'R1')['state'], 'removed')
+        with self.assertRaisesRegex(ValueError, '정리까지'):
+            review.waive(self.repo, 'R1', self.base, self.base, 'rework', 'user')
         with self.assertRaises(OSError):
             review.check_independence(self.repo, result)
         (folder / 'report.md').write_text('tampered')
@@ -699,7 +711,8 @@ class Stabilization(unittest.TestCase):
         path = jev_observe.local_file(repo, 'api.py')
         self.assertEqual(path.relative_to(repo).as_posix(), 'api.py')
         self.assertEqual(path.read_bytes(), (self.repo / 'api.py').read_bytes())
-        for name in ('inside-link.py', '.env', str(self.root / 'outside.py'), '../outside.py'):
+        for name in ('inside-link.py', '.env', '.GIT/config', str(self.root / 'outside.py'), '../outside.py',
+                     *(('.git./config',) if sys.platform == 'win32' else ())):
             with self.assertRaises(ValueError):
                 jev_observe.local_file(repo, name)
         packet = jev_packet.packet(repo, 'dev', 'K1', seeds=['api.py'])

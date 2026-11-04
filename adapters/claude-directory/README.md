@@ -4,7 +4,7 @@ FullOps Squad is an opt-in development harness for Git repositories. It helps a 
 
 ## Requirements
 
-- Claude Code, with Git and Python 3.10 or later on `PATH`. On Windows, Claude Code runs hooks through Git Bash.
+- Claude Code, with Git and `python3` (Python 3.10 or later) on `PATH`. On Windows, Claude Code runs hooks through Git Bash; the Microsoft Store `python3` alias does not count.
 - Orca IDE for multi-worker orchestration (worker dispatch, terminals, messages). Single-session use works without Orca.
 - Optional: the GitHub CLI `gh` for issue mode and the board's issue list, the `ocr` CLI (open-code-review) for pre-merge review preparation, and a TypeSafe or OpenRouter API key for Jev routing and search.
 
@@ -19,7 +19,7 @@ claude plugin install fullops-squad@fullops-squad
 
 Then start a new session and ask Claude to set up FullOps in your repository.
 
-The directory edition does not install other plugins. You can optionally add the companion plugins `ponytail@ponytail` and `mattpocock-skills@claude-plugins-official`. The installed plugin's `scripts/deps.py --host claude-code` installs them and the CLI tools above for you.
+The directory edition does not install other plugins. You can optionally add the companion plugins `ponytail@ponytail` and `mattpocock-skills@claude-plugins-official`. The installed plugin's `scripts/deps.py --host claude-code` installs them and the `ocr` CLI for you. Install `gh` yourself.
 
 ## API keys
 
@@ -41,7 +41,7 @@ The Jev keys are not plugin options, because Claude Code passes plugin options o
   - `SessionStart`: `caveman_start` (optional terse-voice hint), `done_gate start` (records the session baseline), `flow_gate start` (role and routing brief).
   - `UserPromptSubmit`: `flow_gate prompt` (routing reminders).
   - `PreToolUse` on shell, edit, and agent tools: `flow_gate tool`. It can block an action that breaks the repository's role, routing, or integration rules.
-  - `PostToolUse` on shell tools: `flow_gate post`. It records Orca completion messages.
+  - `PostToolUse` on shell and edit tools, and `PostToolUseFailure` on shell tools: `flow_gate post`. It confirms a dispatched worker's `worker_done` delivery, records task flow state, and adds one-time notices.
   - `Stop`: `done_gate stop` (lint and review gate) and `flow_gate stop` (pending-integration gate, board refresh, which may call `gh issue list`).
   - `SessionEnd`: `issue_mode session-end`. It releases an issue-mode lease.
 

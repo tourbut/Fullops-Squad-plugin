@@ -14,6 +14,8 @@ spec = importlib.util.spec_from_file_location('jev_route', SCRIPTS / 'jev_route.
 jev = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev)
 from flow_gate import handover_denial
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED', 'TYPESAFE_API_KEY', 'OPENROUTER_API_KEY'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기·키 설정과 무관하게 stub과 키 없는 CLI를 검사한다
 
 
 def stub(sent, simple, role, role_p=0.9, docs=None):
@@ -37,6 +39,7 @@ def stub(sent, simple, role, role_p=0.9, docs=None):
 def main():
     with tempfile.TemporaryDirectory(prefix='fullops-jev-route-') as tmp:
         repo = Path(tmp)
+        os.environ['FULLOPS_JEV_CACHE'] = str(repo / 'cache')  # 실제 ~/.cache 응답이 --strict 판정을 바꾸지 않는다
         subprocess.check_output(['git', 'init', '-q', '-b', 'main', tmp])
         subprocess.run([sys.executable, str(SCRIPTS / 'setup.py'), '--repo', tmp,
                         '--roles', 'architecture', 'dev', 'art', 'ops', '--local-only'], check=True, capture_output=True)
@@ -121,7 +124,7 @@ def main():
                 raise AssertionError(f'잘못된 --model-only 허용: {bad[1:]}')
             except ValueError:
                 pass
-        offline = {**os.environ, 'FULLOPS_OFFLINE': '1', 'OPENROUTER_API_KEY': '', 'TYPESAFE_API_KEY': ''}
+        offline = {**os.environ, 'FULLOPS_OFFLINE': '1'}
         art_cmd = [sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'M-4-ART',
                    '--model-only', '--role', 'art', '--agent', 'codex', '--model', 'gpt-6-sol', '--effort', 'medium', '--strict']
         first = subprocess.run(art_cmd, capture_output=True, text=True, env=offline)
@@ -149,8 +152,7 @@ def main():
         result = jev.route(repo, 'T-4', 'API_KEY=sk-or-abcdefghijklmnop 로 바꿔줘', stub(sent, 0.99, 'ops'))
         assert result['route'] == 'design' and not sent  # 비밀값이 섞인 요청은 보내지 않는다
         strict = subprocess.run([sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'T-4-STRICT',
-                                 '--request', '버그 수정', '--strict'], capture_output=True, text=True,
-                                env={**os.environ, 'OPENROUTER_API_KEY': ''})
+                                 '--request', '버그 수정', '--strict'], capture_output=True, text=True)
         assert strict.returncode == 2 and 'Jev 생략' in strict.stderr
         assert not (repo / '.fullops-squad/docs/evaluations/jev/T-4-STRICT-route.json').exists()
 
@@ -160,8 +162,7 @@ def main():
 
         agents.write_text('## 라우팅 기준\n- 설계 역할: `architecture`\n', encoding='utf-8')
         cli = subprocess.run([sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'T-6',
-                              '--request', '버그 수정'], capture_output=True, text=True,
-                             env={**os.environ, 'OPENROUTER_API_KEY': '', 'FULLOPS_JEV_CACHE': str(repo / 'cache')})
+                              '--request', '버그 수정'], capture_output=True, text=True)
         assert cli.returncode == 0 and 'route: design → architecture' in cli.stdout, cli.stdout + cli.stderr
         saved = json.loads((repo / '.fullops-squad/docs/evaluations/jev/T-6-route.json').read_text(encoding='utf-8'))
         assert saved['route'] == 'design' and saved['error']
@@ -180,8 +181,7 @@ def main():
         except ValueError as error:
             assert 'UTF-8' in str(error)
         forced = subprocess.run([sys.executable, str(SCRIPTS / 'jev_route.py'), '--repo', tmp, '--key', 'T-6',
-                                 '--request', '버그 수정', '--force'], capture_output=True, text=True,
-                                env={**os.environ, 'OPENROUTER_API_KEY': ''})
+                                 '--request', '버그 수정', '--force'], capture_output=True, text=True)
         assert forced.returncode == 0 and '이전 결과' in forced.stderr
         assert len(list((repo / '.fullops-squad/docs/evaluations/jev').glob('T-6-route.prior-*.json'))) == 1
         assert '기존 결과' in again.stderr

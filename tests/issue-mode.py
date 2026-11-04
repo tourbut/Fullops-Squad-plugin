@@ -226,6 +226,18 @@ def main():
         assert mode.boundary(root, 'provider', 'orca terminal list', [], [['orca', 'terminal', 'list']]) is None
         start = ['orca', 'orchestration', 'worker-start', '--run', 'run', '--spec', job['task_key']]
         assert '한도' in mode.boundary(root, 'provider', ' '.join(start), [], [start])
+        # 한도 초과는 실행 단계만 막는다. 보류 사유를 보존하고 확정 종료 뒤 재시도·취소할 수 있다.
+        before_limit = store.read()
+        assert mode.checkpoint(store, api, token, 101, 'running', received=True) == 'held'
+        assert mode.checkpoint(store, api, token, 101, 'held', reason='tests fail', resume='owner:coor') == 'held'
+        assert store.read()['jobs']['101']['reason'] == 'tests fail'
+        with store.edit() as state:
+            state['jobs']['101']['settled'] = True
+        assert mode.checkpoint(store, api, token, 101, 'queued', reason='retry') == 'queued'
+        assert mode.checkpoint(store, api, token, 101, 'cancelled', reason='user cancel', resume='none') == 'cancelled'
+        with store.edit() as state:
+            state.clear()
+            state.update(before_limit)
         with store.edit() as state:
             state['jobs']['101']['started'] = time.time()
 
@@ -238,7 +250,11 @@ def main():
         q = mode.question(store, api, token, 101, '정보: 규격이 필요합니다. 질문: 크기는? 재개: 규격 확정')
         assert q['comment_id'] == 901 and api.posts == 1
         assert q['body'].startswith('@renamed\n')
+        # 질문 전에 쓴 댓글의 편집은 답변 경로를 바꾸지 않는다.
+        api.comments.append({'id': 950, 'body': 'typo', 'user': {'id': 42, 'login': 'renamed'}, 'html_url': 'https://github.com/early',
+                             'created_at': iso(time.time() - 3600), 'updated_at': iso(time.time())})
         mode.poll_answers(store, api, token)
+        assert store.read()['jobs']['101']['status'] != 'changed'
         assert mode.answer_delivery(store, token) is None  # 동일 계정의 자기 질문
         assert mode.boundary(root, 'provider', 'git push origin main', [], [['git', 'push', 'origin', 'main']])
 
@@ -351,6 +367,15 @@ def main():
             assert state['jobs']['101']['worker_sessions'].pop('worker')
         with patch.object(mode.integration, 'orca', side_effect=[projection, listing]):
             assert mode.boundary(root, 'worker', ' '.join(merge), [], [merge], context)
+        # 유지한 worker의 새 dispatch는 Orca 정본으로 다시 묶는다.
+        moved = deepcopy(projection)
+        moved['projection'].update(dispatchId='ctx_next', taskId='task_next')
+        with patch.object(mode.integration, 'orca', side_effect=[moved, {'tasks': [{**listing['tasks'][0], 'id': 'task_next'}]}]):
+            assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']],
+                                 {'dispatch': 'ctx_next', 'task': 'task_next'}) is None
+        with store.edit() as state:
+            assert state['jobs']['101']['worker_sessions']['worker']['dispatch'] == 'ctx_next'
+            state['jobs']['101']['worker_sessions']['worker'].update(dispatch='ctx_auto', task='task_auto')
         with patch.object(mode.integration, 'orca', side_effect=AssertionError('binding queried again')):
             assert mode.boundary(root, 'worker', 'cat .env', [], [['cat', '.env']], context)
             assert mode.boundary(root, 'worker', 'python3 build.py', [], [['python3', 'build.py']], context) is None
@@ -512,12 +537,17 @@ def main():
         with store.edit() as state:
             state['config']['allowed'] = allowed
         for words in (['gh', 'pr', 'merge', '1'], ['gh', 'issue', 'close', '1'], ['curl', 'https://evil'],
-                      ['git', 'push', 'origin', 'main'], ['git', 'reset', '--hard'], ['gh', 'api', 'repos/x']):
+                      ['git', 'push', 'origin', 'main'], ['git', 'reset', '--hard'], ['gh', 'api', 'repos/x'],
+                      ['gh', 'issue', 'edit', '1', '--body', 'list']):
             assert mode.boundary(root, 'provider', ' '.join(words), [], [words]), words
         assert mode.boundary(root, 'foreign', 'git reset --hard', [], [['git', 'reset', '--hard']]) is None
         assert mode.boundary(root, 'provider', '', [('../outside', 'x')], [])
         api.issues[0]['user']['login'] = 'renamed'
         assert mode.fresh(store.read(), api, store.read()['jobs']['101']) is None  # stable ID
+        # REST는 빈 본문을 null로, GraphQL은 ''로 준다.
+        assert mode.snapshot(issue(9, body=None))['source_digest'] == mode.snapshot(issue(9, body=''))['source_digest']
+        with patch.object(api, 'issue', return_value=None):
+            assert mode.fresh(store.read(), api, store.read()['jobs']['101'])[0] == 'cancelled'
         api.issues[0]['body'] = 'edited externally'
         mode.poll(store, api, token)
         assert store.read()['jobs']['101']['status'] == 'changed'
@@ -766,7 +796,7 @@ def main():
 
     # API pagination/304에서도 이전 next Link를 따라간다. foreign endpoint/redirect는 토큰 전송 전에 거부.
     client = GitHub('secret')
-    replies = [(200, {'ETag': 'a', 'Link': '<https://api.github.com/repos/o/r/issues?page=2>; rel="next"'}, [1]),
+    replies = [(200, {'ETag': 'a', 'Link': '<https://api.github.com/repositories/1300192/issues?page=2>; rel="next"'}, [1]),
                (200, {'ETag': 'b'}, [2])]
     with patch.object(client, 'request', side_effect=replies):
         rows, cache = client.pages('/repos/o/r/issues', {})
@@ -787,6 +817,10 @@ def main():
         fails(lambda: client.pages('/repos/o/r/issues', {}), 'scope')
     assert mode.redact('ghp_' + 'a' * 36) == '[REDACTED]'
     assert mode.redact('API_KEY=private-value') == '[REDACTED]'
+    assert mode.redact({'spec': ['GITHUB_TOKEN=abc'], 'n': 1}) == {'spec': ['[REDACTED]'], 'n': 1}
+    missing = {'data': {'repository': {'databaseId': 7, 'issue': None}}, 'errors': [{'type': 'NOT_FOUND'}]}
+    with patch.object(client, 'request', return_value=(200, {}, missing)):
+        assert client.issue('o/r', 1) is None
     print('PASS: issue-mode atomic FIFO/lease, author IDs, API recovery/304, question outbox, same-author answers, boundaries and review failure')
 
 

@@ -15,13 +15,21 @@ import policy
 from storage import atomic_write, write_json
 
 KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+PACKET_BLOCK = r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*'
 TEMPLATE = Path(__file__).resolve().parents[1] / "assets/repository/.fullops-squad/handovers/_TEMPLATE.md"
+
+
+def authored(text):
+    """템플릿 안내 줄을 뺀 지시서 본문. 템플릿의 백틱 예시와 D01~D13 범위는 과제 근거가 아니다."""
+    # shortcut: 옛 템플릿이나 coordinator가 고친 안내 줄은 걸러지지 않는다. 템플릿 버전 표식이 생기면 그것으로 거른다
+    template = set(TEMPLATE.read_text(encoding='utf-8').splitlines()) if TEMPLATE.is_file() else set()
+    return '\n'.join(line for line in text.splitlines() if line not in template)
 
 
 def active_repo(path):
     repo = Path(path).expanduser().resolve(strict=True)
     root = Path(subprocess.check_output(
-        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
+        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], encoding='utf-8').strip()).resolve()
     if root != repo or not (repo / ".fullops-squad/fullops.json").is_file():
         raise ValueError("활성화된 Git 레포 루트를 지정하세요")
     policy.load(repo)
@@ -66,14 +74,14 @@ def new(repo, role, key, goal, base=None, rework=False):
         raise ValueError('완료된 과제의 수정은 work.py reopen으로 새 시도를 여세요')
     if rework and not previous:
         raise ValueError('완료 기록이 없는 과제는 work.py new로 시작하세요')
-    content = TEMPLATE.read_text().replace("<과제 키>", key, 1).replace("<목표>", goal.strip(), 1)
+    content = TEMPLATE.read_text(encoding='utf-8').replace("<과제 키>", key, 1).replace("<목표>", goal.strip(), 1)
     meta = {'title': f'{key} — {goal.strip()}', 'status': 'draft', 'updated': date.today().isoformat(),
             'owner': role, 'tasks': [key], 'summary': goal.strip(), 'attempt': uuid.uuid4().hex}
     operating = policy.load(repo)
     meta['test_level'] = operating['test_level']
     meta['subagent_level'] = operating['subagent_level']
     if base:
-        meta['base'] = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', base + '^{commit}'], text=True).strip()
+        meta['base'] = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', base + '^{commit}'], encoding='utf-8').strip()
     if previous:
         references = '## 이전 완료 기록\n\n' + '\n'.join(f'- {p.relative_to(repo).as_posix()}' for p in sorted(previous)) + '\n\n'
         content = content.replace('## 완료 보고\n', references + '## 완료 보고\n')
@@ -86,7 +94,7 @@ def finish(repo, role, key):
     inbox = safe_file(repo, f".fullops-squad/handovers/to_{role}.md")
     if not inbox.is_file():
         raise ValueError(f"없는 역할 인박스: {inbox}")
-    content = inbox.read_text()
+    content = inbox.read_text(encoding='utf-8')
     if not content.strip():
         previous = archives(repo, role, key)
         if previous:
@@ -95,7 +103,7 @@ def finish(repo, role, key):
     if not deliverables.split(content)[1].lstrip().startswith(f"# {key} — "):
         raise ValueError("인박스 과제 키가 다릅니다")
     report = content.partition("## 완료 보고\n")[2].strip()
-    placeholder = TEMPLATE.read_text().partition("## 완료 보고\n")[2].strip()
+    placeholder = TEMPLATE.read_text(encoding='utf-8').partition("## 완료 보고\n")[2].strip()
     if not report or report == placeholder:
         raise ValueError("완료 보고 전문을 인박스에 먼저 작성하세요")
     from jev_packet import check
@@ -107,26 +115,29 @@ def finish(repo, role, key):
     token = f'<!-- fullops-attempt: {key} {attempt} -->'
     marker = f"## {key} — {date.today()}\n{token}\n"
     entry = ("\n" + marker + "\n" + content.rstrip() + "\n").encode()
-    log.parent.mkdir(parents=True, exist_ok=True)
-    if not log.exists():
-        log.write_text(deliverables.render({'title': f'{role} 완료 기록', 'status': 'draft',
-                       'updated': date.today().isoformat(), 'owner': role, 'summary': '지시서와 완료 보고를 보존한다.'}), encoding='utf-8')
     matching = [p for p in archives(repo, role, key) if token in p.read_text(encoding='utf-8')]
     if matching:
         log = matching[0]
-        saved = re.split(r'\n## [A-Za-z0-9][A-Za-z0-9._-]* — \d{4}-\d{2}-\d{2}\n<!-- fullops-attempt:',
-                         log.read_text(encoding='utf-8').split(token, 1)[1], maxsplit=1)[0]
-        if content.rstrip() not in saved:
+        if content.rstrip() not in archived(log.read_text(encoding='utf-8'), token):
             raise ValueError('같은 시도의 완료 기록이 다릅니다. 인박스를 보존하고 새 시도를 여세요')
     else:
+        if not log.exists():
+            atomic_write(log, deliverables.render({'title': f'{role} 완료 기록', 'status': 'draft',
+                         'updated': date.today().isoformat(), 'owner': role, 'summary': '지시서와 완료 보고를 보존한다.'}))
         atomic_write(log, log.read_bytes() + entry)
     if content.rstrip().encode() not in log.read_bytes():
         raise OSError("아카이브 확인 실패: 인박스를 유지합니다")
-    if inbox.read_text() != content:
+    if inbox.read_text(encoding='utf-8') != content:
         raise ValueError("아카이브 중 인박스가 변경됐습니다. 새 내용을 보존합니다")
     queue_followups(repo, requests)
     atomic_write(inbox, b'')
     print(log.relative_to(repo))
+
+
+def archived(log, token):
+    """완료 로그 본문에서 시도 토큰 뒤의 보존 섹션 하나를 꺼낸다."""
+    return re.split(r'\n## [A-Za-z0-9][A-Za-z0-9._-]* — \d{4}-\d{2}-\d{2}\n<!-- fullops-attempt:',
+                    log.split(token, 1)[1], maxsplit=1)[0]
 
 
 FOLLOWUPS = '## 완료 보고 후속 요청'
@@ -134,7 +145,7 @@ FOLLOWUPS = '## 완료 보고 후속 요청'
 
 def followups(repo, role, key, report):
     """완료 보고 `남은 일`에서 다른 역할에게 넘기는 항목을 뽑는다. coordinator가 잊지 않도록 PLANS.md 대기 목록에 올린다."""
-    roles = [r for r in json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text()).get('roles', {}) if r != role]
+    roles = [r for r in json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8')).get('roles', {}) if r != role]
     # 줄 첫머리의 `남은 일` 항목만 읽는다. 남겨 둔 템플릿 안내 문장('브랜치 / … / 남은 일.')은 보고가 아니다
     found = re.search(r'^[ \t|>*#-]*\**남은 일\**(.*)', report, re.M | re.S)
     if not found:
@@ -143,7 +154,7 @@ def followups(repo, role, key, report):
     lines = []
     for part in re.split(r'[,;·\n]', rest):
         part = part.strip(' :：-*\t.')
-        hit = next((r for r in roles if re.search(rf'\b{re.escape(r)}\b', part, re.I)), None)
+        hit = next((r for r in roles if re.search(rf'\b{re.escape(r)}\b', part, re.I | re.A)), None)
         if hit and part:
             lines.append(f'- [ ] {key} → {hit}: {part} (완료 보고 자동 등재 {date.today()})')
     return lines
@@ -163,10 +174,10 @@ def queue_followups(repo, lines):
 def recover(repo, role, key):
     """끊긴 worker 세션의 미커밋 작업을 WIP 커밋으로 보존하고 기본 브랜치·탐색 패킷을 맞춰 재배정 가능하게 만든다."""
     instruction(repo, role, key)
-    config = json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text())
+    config = json.loads(safe_file(repo, '.fullops-squad/fullops.json').read_text(encoding='utf-8'))
 
     def git(*args):
-        return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
+        return subprocess.check_output(['git', '-C', str(repo), *args], encoding='utf-8').strip()
     if git('rev-parse', '--abbrev-ref', 'HEAD') != config['roles'][role]:
         raise ValueError('역할 브랜치가 체크아웃된 worker 워크트리에서 실행하세요')
     wip, changed = None, []
@@ -195,7 +206,7 @@ def recover(repo, role, key):
 
 
 def validate_role(repo, role):
-    config = json.loads(safe_file(repo, ".fullops-squad/fullops.json").read_text())
+    config = json.loads(safe_file(repo, ".fullops-squad/fullops.json").read_text(encoding='utf-8'))
     if not isinstance(config, dict) or config.get("schema_version") != 1 or not isinstance(config.get("roles"), dict):
         raise ValueError("setup에서 역할 설정을 생성하거나 전환하세요")
     if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", role) or role not in config.get("roles", {}):
@@ -203,7 +214,7 @@ def validate_role(repo, role):
 
 
 def instruction_digest(text):
-    text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
+    text = re.sub(PACKET_BLOCK, '', text)
     header, separator, body = text.partition('\n## ')
     header = re.sub(r'^- (?:상태|복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id):[^\n]*(?:\n|$)',
                     '', header, flags=re.M)
@@ -214,9 +225,8 @@ def instruction_digest(text):
 
 def input_identity(repo, role, key, options):
     _, text = instruction(repo, role, key)
-    text = re.sub(r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*', '', text)
     from jev_observe import git_env, MODEL, offline
-    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True, env=git_env()).strip()
+    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], encoding='utf-8', env=git_env()).strip()
     meta = deliverables.front_matter(text) or {}
     if str(options.get('policy', '')).startswith(('find-', 'route-', 'context-')):
         options = {'model': MODEL, 'offline': offline(),

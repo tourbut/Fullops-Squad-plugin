@@ -1,6 +1,7 @@
 """가짜 브라우저와 stub Jev로 웹 조작 루프의 요소 문맥·fan-out 질문·통과/위험 중단/정체 판정·기록을 확인한다."""
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 
@@ -110,8 +111,13 @@ def main():
         assert risky['result'] == 'blocked_risky' and not risky['passed']  # 위험 질문이 선택보다 우선
 
         stuck = FakeBrowser()
+        moving = stuck.snapshot
+        stuck.snapshot = lambda: {**moving(), 'digest': 'same'}  # 스크롤해도 화면이 바뀌지 않는다
         stalled = web.run(scenario, stuck, jev([('scroll_down', None, None)] * 6), Path(tmp) / 'stall', log=lambda _: None)
-        assert stalled['result'] == 'stalled' and len(stuck.acts) == 3, stalled  # 같은 동작을 세 번 반복하면 멈춘다
+        assert stalled['result'] == 'stalled' and len(stuck.acts) == 3, stalled  # 같은 화면에서 같은 동작을 세 번 반복하면 멈춘다
+        repeated = web.run(scenario, FakeBrowser(), jev([('fill_submit', 'e3', 'milk')] * 3 + [('done', None, None)]),
+                           Path(tmp) / 'repeat', log=lambda _: None)
+        assert repeated['passed'], repeated  # 화면을 바꾸는 같은 동작의 반복은 정체가 아니다
 
         try:
             web.run({**scenario, 'checks': []}, FakeBrowser(), None, Path(tmp) / 'empty', log=lambda _: None)
@@ -144,6 +150,16 @@ def main():
         report = (out / 'report.md').read_text(encoding='utf-8')
         assert report.startswith('---\n') and '# K-1 조작 테스트 — 통과 (passed)' in report and '| 1 | fill | e3 | milk | 0.90 | ok |' in report, report
         assert '`scenarios/web/a.json`' in report and '| 통과 |' in report
+    with tempfile.TemporaryDirectory() as tmp:
+        git = lambda *a: subprocess.run(['git', '-C', tmp, *a], check=True, capture_output=True)
+        git('init', '-q')
+        (Path(tmp) / 'app.txt').write_text('x\n', encoding='utf-8')
+        git('add', '.')
+        git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'init')
+        runs = Path(tmp) / '.fullops-squad/docs/evaluations/qa-reports/K-1-test'
+        assert test_record.begin(runs / 'web-1', scenario)['worktree_dirty'] is False  # 실행 증거만 있으면 깨끗하다
+        (Path(tmp) / 'app.txt').write_text('changed\n', encoding='utf-8')
+        assert test_record.begin(runs / 'web-2', scenario)['worktree_dirty'] is True  # 제품 변경은 dirty다
     print('PASS: jev web loop element context, fan-out questions, pass/risk/stall/premature-done, records')
 
 

@@ -34,7 +34,7 @@ flowchart LR
 | E3 | 설계 → 배정 | route 기록이 있고 지시서 첫 줄이 `# <과제 키> — <목표>` | `handovers/to_<역할>.md`, `<키>-route.json` | `flow_gate.py:handover_denial`, `flow_gate.py:inbox_denial` | 차단 |
 | E4 | 배정 → 구현 | 분류된 과제 키, 역할 인박스, 최신 기본 브랜치를 가진 등록 worktree, 남은 통합 없음 | dispatch spec(지시서 경로·기준 SHA) | `flow_gate.py:route_key_denial`, `flow_gate.py:dispatch_inbox_denial`, `integration.py:baseline_denial`, `integration.py:denial`, `flow_gate.py:delegation_denial` | 차단 |
 | E5 | 구현 → worker_done | 현재 HEAD의 lint 통과, 작업 트리 깨끗함, 보고서가 링크한 캡처만 커밋 | 커밋, lint 통과 기록 | `done_gate.py:main`, `lint.py:stamp`, `harness_gate.py:unlinked_media`, `harness_gate.py:round_folder` | 차단 |
-| E6 | worker_done 송신 | dispatch 세션은 끝나기 전에 `worker_done`·`ask`·`escalation` 중 하나를 보낸다 | `worker_done` 메시지 | `flow_gate.py:settled_in_runtime`, `flow_gate.py:delivered` | 차단 |
+| E6 | worker_done 송신 | dispatch 세션은 끝나기 전에 `worker_done`이나 `escalation`을 보낸다. `ask`는 종결이 아니다 | `worker_done` 메시지 | `flow_gate.py:settled_in_runtime`, `flow_gate.py:delivered` | 차단 |
 | E7 | worker_done 형식 | 메시지에 브랜치·SHA가 있고 lint 통과 HEAD가 보고 SHA와 같다 | 완료 보고 | `integration.py:boundary_notes`, `integration.py:lint_drift`, `integration.py:take_notes` | 알림 |
 | E8 | worker_done → 리뷰 | coordinator가 Run의 메시지를 받아 통합 대기에 기록하고 리뷰 필요성을 판정한다 | 통합 기록, `review.py need` 판정 | `flow_gate.py:run_state`, `integration.py:record`, `review.py:need` | 차단 |
 | E9 | 리뷰 판정 기록 | 모든 병합에 리뷰 필요성 판정 또는 면제 기록이 남는다 | `review.py need` 결과·`waive` 기록 | 비어 있음(KnowsLink 병합 193건 중 149건 기록 없음. #82) | |
@@ -55,4 +55,4 @@ flowchart LR
 
 - 쓰기: coordinator 세션의 PostToolUse hook만 쓴다. `jev_route.py --key` → design, `worker-start` → build(Purpose: review면 review), 새 완료 보고 기록 → report, `review.py prepare|check --key` → review, 기본 브랜치에 들어간 SHA → merge.
 - 읽기: 모든 워크트리에서 `flow_state.py --repo <경로>`나 파일을 직접 읽는다.
-- 의도·검수·완료 노드는 아직 자동으로 옮기지 않는다(E1·E2·E13).
+- 의도·검수·완료 노드는 아직 자동으로 옮기지 않는다(E1·E2·E13). 배정 노드도 기록하지 않는다. `worker-start`는 과제를 설계에서 구현으로 바로 옮긴다.

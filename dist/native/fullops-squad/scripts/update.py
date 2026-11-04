@@ -39,7 +39,7 @@ def required(repo, notes):
 def plan(repo, previous=None, plugin=PLUGIN):
     repo = Path(repo).expanduser().resolve(strict=True)
     root = Path(subprocess.check_output(
-        ['git', '-C', str(repo), 'rev-parse', '--show-toplevel'], text=True).strip()).resolve()
+        ['git', '-C', str(repo), 'rev-parse', '--show-toplevel'], encoding='utf-8').strip()).resolve()
     if repo != root:
         raise ValueError(f'레포 루트를 지정하세요: {root}')
     marker = repo / '.fullops-squad/fullops.json'

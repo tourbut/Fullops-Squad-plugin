@@ -14,7 +14,7 @@ def main():
         repo = Path(tmp)
 
         def git(*args, cwd=tmp):
-            return subprocess.check_output(['git', '-C', cwd, *args], text=True).strip()
+            return subprocess.check_output(['git', '-C', cwd, *args], text=True, encoding='utf-8').strip()
 
         def commit(message):
             git('add', '-A')
@@ -22,7 +22,7 @@ def main():
             return git('rev-parse', 'HEAD')
 
         def hook(mode, session='s1', cwd=tmp, **event):
-            done = subprocess.run([sys.executable, str(SCRIPTS / 'done_gate.py'), mode], text=True, capture_output=True,
+            done = subprocess.run([sys.executable, str(SCRIPTS / 'done_gate.py'), mode], text=True, encoding='utf-8', capture_output=True,
                                   input=json.dumps({'session_id': session, 'cwd': cwd, **event}))
             assert done.returncode == 0, done.stderr
             return json.loads(done.stdout)
@@ -31,14 +31,14 @@ def main():
         assert hook('start') == {} and hook('stop') == {}  # FullOps가 아닌 레포
         subprocess.run([sys.executable, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'dev', '--local-only'],
                        check=True, capture_output=True)
-        (repo / 'app.py').write_text('x = 1\n')
+        (repo / 'app.py').write_text('x = 1\n', encoding='utf-8')
         config_path = repo / '.fullops-squad/lint/lint.json'
-        config = json.loads(config_path.read_text())
+        config = json.loads(config_path.read_text(encoding='utf-8'))
         config['exclude'] = []  # 기존 레포의 사용자 설정에 보드 제외가 없는 경우
         config['commands'] = [{'name': 'gate-test', 'kind': 'test', 'run': [sys.executable, '-c',
             "from pathlib import Path; import sys; sys.exit(3 if Path('.git/fail-test').exists() else 0)"]}]
-        config_path.write_text(json.dumps(config))
-        (repo / '.fullops-squad/board/index.html').write_text('old template\n')
+        config_path.write_text(json.dumps(config), encoding='utf-8')
+        (repo / '.fullops-squad/board/index.html').write_text('old template\n', encoding='utf-8')
         base = commit('base')
 
         brief = hook('start', source='startup')['hookSpecificOutput']
@@ -51,7 +51,7 @@ def main():
         assert hook('status', session='not-started')['done']['status'] == 'unknown'
         state_path = repo / '.git/fullops-gate/s1.json'
         saved = state_path.read_bytes()
-        state_path.write_text('{')
+        state_path.write_text('{', encoding='utf-8')
         assert 'systemMessage' in hook('stop')  # 오류는 차단 대신 한 번 안내한다.
         assert hook('stop') == {}
         assert hook('status')['done']['status'] == 'error'
@@ -65,23 +65,23 @@ def main():
         commit('refresh board')
         assert hook('stop') == {}, '보드 갱신 커밋도 lint 종료 게이트에서 제외한다'
 
-        (repo / 'notes.md').write_text('문서만 바꿨다\n')
+        (repo / 'notes.md').write_text('문서만 바꿨다\n', encoding='utf-8')
         assert hook('stop') == {}  # 코드가 아니다
-        (repo / 'app.py').write_text('x = 2\n')
+        (repo / 'app.py').write_text('x = 2\n', encoding='utf-8')
         blocked = hook('stop')
         assert blocked['decision'] == 'block' and 'app.py' in blocked['reason'] and '커밋' in blocked['reason']
         assert 'systemMessage' in hook('stop', stop_hook_active=True)  # 아무것도 안 하고 다시 끝내면 통과
-        (repo / 'app.py').write_text('x = 3\n')
+        (repo / 'app.py').write_text('x = 3\n', encoding='utf-8')
         assert hook('stop', stop_hook_active=True)['decision'] == 'block'  # 새 변경은 다시 막는다
 
         head = commit('work')
         assert hook('stop')['decision'] == 'block'  # 이 세션이 만든 커밋
         lint = subprocess.run([sys.executable, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base],
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, encoding='utf-8')
         assert lint.returncode == 0, lint.stdout
-        assert json.loads((repo / '.git/fullops-gate/pass.json').read_text())['head'] == head
+        assert json.loads((repo / '.git/fullops-gate/pass.json').read_text(encoding='utf-8'))['head'] == head
         assert hook('stop') == {}  # 통과 기록이 현재 HEAD와 같다
-        (repo / 'app.py').write_text('x = 4\n')
+        (repo / 'app.py').write_text('x = 4\n', encoding='utf-8')
         assert hook('stop')['decision'] == 'block'  # 통과 뒤 미커밋 코드
         git('checkout', '-q', '--', 'app.py')
 
@@ -89,13 +89,13 @@ def main():
         failure = repo / '.git/fail-test'
         failure.touch()
         failed = subprocess.run([sys.executable, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base],
-                                capture_output=True, text=True)
+                                capture_output=True, text=True, encoding='utf-8')
         assert failed.returncode == 1, failed.stdout
         assert not (repo / '.git/fullops-gate/pass.json').exists(), '실패 뒤 이전 lint 성공 기록이 남음'
         assert hook('stop')['decision'] == 'block'
         failure.unlink()
         recovered = subprocess.run([sys.executable, str(SCRIPTS / 'lint.py'), '--repo', tmp, '--from', base],
-                                   capture_output=True, text=True)
+                                   capture_output=True, text=True, encoding='utf-8')
         assert recovered.returncode == 0 and hook('stop') == {}
 
         # 통과 뒤 완료 기록·검증 보고만 바꾼 커밋은 lint를 다시 돌리지 않는다(#94). 다른 문서는 다시 돌린다.
@@ -121,11 +121,15 @@ def main():
         commit('notes')
         assert hook('stop')['decision'] == 'block'
         git('reset', '-q', '--hard', 'HEAD~1')
+        (repo / '모듈.py').write_text('z = 1\n', encoding='utf-8')
+        commit('non-ascii code')
+        assert '모듈.py' in hook('stop')['reason'], '따옴표로 감싼 비ASCII 경로도 코드 변경이다'
+        git('reset', '-q', '--hard', 'HEAD~1')
 
         # 다른 체크아웃에서 만든 커밋을 fast-forward로 받는 것은 이 세션의 코드 변경이 아니다.
         worker = repo.parent / f'{repo.name}-worker'
         git('worktree', 'add', '-q', '-b', 'fullops/dev-work', str(worker))
-        (worker / 'feature.py').write_text('y = 1\n')
+        (worker / 'feature.py').write_text('y = 1\n', encoding='utf-8')
         git('add', '-A', cwd=str(worker))
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'worker', cwd=str(worker))
         assert hook('start', session='coord', source='startup')
@@ -134,7 +138,7 @@ def main():
         assert hook('stop', session='before-gate') == {}  # 게이트 도입 전에 시작한 세션
         git('worktree', 'remove', '--force', str(worker))
 
-        broken = subprocess.run([sys.executable, str(SCRIPTS / 'done_gate.py'), 'stop'], text=True,
+        broken = subprocess.run([sys.executable, str(SCRIPTS / 'done_gate.py'), 'stop'], text=True, encoding='utf-8',
                                 capture_output=True, input='not json', cwd='/')
         assert broken.returncode == 0 and json.loads(broken.stdout) == {}  # fail-open
     print('PASS: done-gate session scope, doc-only allow, block, pass stamp, re-stop allow, ff merge, fail-open')

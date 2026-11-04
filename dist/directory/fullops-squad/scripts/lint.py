@@ -18,11 +18,11 @@ import uuid
 
 import deliverables
 import policy
-from work import active_repo, safe_file
+from work import active_repo
 from storage import write_json
 
 CONFIG = '.fullops-squad/lint/lint.json'
-DEFAULT = json.loads((Path(__file__).resolve().parents[1] / 'assets/repository' / CONFIG).read_text())
+DEFAULT = json.loads((Path(__file__).resolve().parents[1] / 'assets/repository' / CONFIG).read_text(encoding='utf-8'))
 PY = {'.py'}
 HASH = {'.sh', '.bash', '.rb', '.gd', '.pl', '.r'}
 C_STYLE = {'.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.svelte', '.vue', '.go', '.rs', '.java',
@@ -77,7 +77,7 @@ def load_config(repo, ref):
         if not command.get('name') or not isinstance(run, list) or not run or not all(isinstance(a, str) for a in run):
             raise ValueError('lint 명령은 name과 문자열 배열 run이 필요합니다')
         paths = command.get('paths')
-        if paths is not None and (not isinstance(paths, list) or not paths or not all(isinstance(p, str) and p for p in paths)):
+        if 'paths' in command and (not isinstance(paths, list) or not paths or not all(isinstance(p, str) and p for p in paths)):
             raise ValueError(f'lint 명령 paths는 비어 있지 않은 glob 문자열 배열입니다: {command["name"]}')
         cwd = (repo / command.get('cwd', '.')).resolve()
         if cwd != repo and repo not in cwd.parents:
@@ -204,8 +204,7 @@ def check_file(path, old, new, config):
                f'테스트 케이스 {len(CASE.findall(old)) - len(CASE.findall(new))}개 감소. 대체 테스트나 삭제 이유를 확인한다')
     rules = [r for r in config['rules'] if r.get('enabled', True)
              and (not r.get('file_extensions') or ext in r['file_extensions'])
-             and not any(fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:]))
-                         for p in r.get('exclude_paths', []))]
+             and not matches(path, r.get('exclude_paths', []))]
     additions = list(added_lines(old or '', new))
     numbers = {number for number, _ in additions}
     for rule in (r for r in rules if r.get('multiline')):
@@ -261,8 +260,7 @@ def code_changes(repo, base, head, config):
         if field.count('\t') < 2:
             continue
         added, deleted, path = field.split('\t', 2)
-        if Path(path).suffix.lower() in PY | HASH | C_STYLE and not any(
-                fnmatch(path, p) or (p.startswith('**/') and fnmatch(path, p[3:])) for p in config['exclude']):
+        if Path(path).suffix.lower() in PY | HASH | C_STYLE and not matches(path, config['exclude']):
             result.append((path, (int(added) if added.isdigit() else 0) + (int(deleted) if deleted.isdigit() else 0)))
     return result
 
@@ -297,10 +295,10 @@ def run_command(repo, command, timeout, logs=None):
     try:
         run = [shutil.which(command['run'][0]) or command['run'][0], *command['run'][1:]]  # Windows의 npx.cmd 등
         done = subprocess.run(run, cwd=repo / entry['cwd'], capture_output=True, text=True,
-                              timeout=timeout, errors='replace')
+                              timeout=timeout, encoding='utf-8', errors='replace')
         status, code, output = 'passed' if done.returncode == 0 else 'failed', done.returncode, done.stdout + done.stderr
-    except FileNotFoundError:
-        status, code, output = 'unavailable', None, ''
+    except OSError as error:  # 실행 파일·cwd 없음, 권한·형식 오류
+        status, code, output = 'unavailable', None, str(error)
     except subprocess.TimeoutExpired as error:
         status, code, output = 'timeout', None, ''.join(
             part.decode(errors='replace') if isinstance(part, bytes) else part or '' for part in (error.stdout, error.stderr))
@@ -324,11 +322,7 @@ def run_stages(repo, config, results, logs):
     for n in [n for n in pending if n not in tests]:  # 빠른 정적 검사는 실패를 한 번에 모두 보이게 끝까지 돈다
         results[n] = run_command(repo, commands[n], timeout, logs)
     failed = any(results[n]['status'] in ('failed', 'timeout') for n in pending if n not in tests)
-    if failed or not tests:
-        for n in tests:
-            results[n] = {**commands[n], 'status': 'skipped', 'reason': EARLIER}
-        return
-    if not config.get('parallel_tests', True) or len(tests) == 1:
+    if failed or len(tests) < 2 or not config.get('parallel_tests', True):
         for n in tests:
             results[n] = ({**commands[n], 'status': 'skipped', 'reason': EARLIER} if failed else
                           run_command(repo, commands[n], timeout, logs))
@@ -341,13 +335,6 @@ def run_stages(repo, config, results, logs):
 
 def lint(repo, base_ref, raise_level=None):
     """raise_level은 기준 test_level을 올리기만 한다(통합 후보에서 `--level full`). 낮추는 값은 무시한다"""
-    gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
-    gate.mkdir(exist_ok=True)
-    shutil.rmtree(gate / 'logs', ignore_errors=True)
-    (gate / 'pass.json').unlink(missing_ok=True)
-    (gate / 'lint-result.json').unlink(missing_ok=True)
-    attempt = uuid.uuid4().hex
-    write_json(gate / 'lint-attempt.json', {'attempt': attempt})
     dirty = git(repo, 'status', '--porcelain')
     if dirty:
         files = ', '.join(line.split(maxsplit=1)[-1] for line in dirty.splitlines()[:3])
@@ -356,6 +343,13 @@ def lint(repo, base_ref, raise_level=None):
     head = git(repo, 'rev-parse', 'HEAD')
     base = git(repo, 'rev-parse', '--verify', base_ref + '^{commit}')
     merge_base = git(repo, 'merge-base', base, head)
+    gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
+    gate.mkdir(exist_ok=True)
+    shutil.rmtree(gate / 'logs', ignore_errors=True)
+    (gate / 'pass.json').unlink(missing_ok=True)
+    (gate / 'lint-result.json').unlink(missing_ok=True)
+    attempt = uuid.uuid4().hex
+    write_json(gate / 'lint-attempt.json', {'attempt': attempt})
     config, digest = load_config(repo, merge_base)
     violations, files, additions = [], 0, 0
     if config_blob(repo, head) != config_blob(repo, merge_base):
@@ -368,7 +362,7 @@ def lint(repo, base_ref, raise_level=None):
             new = blob(repo, head, path)
             if new is not None:
                 violations += deliverable_violations(path, new, index)
-        if any(fnmatch(target, p) or (p.startswith('**/') and fnmatch(target, p[3:])) for p in config['exclude']):
+        if matches(target, config['exclude']):
             continue
         if any(fnmatch(Path(name).name, pattern) for name in (old_path, path) if name for pattern in DEPENDENCY_FILES):
             violations.append({'code': 'DEP-001', 'severity': 'WARNING', 'line': None, 'path': target,
@@ -425,7 +419,7 @@ def stamp(repo, result):
     try:
         gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
         gate.mkdir(exist_ok=True)
-        if json.loads((gate / 'lint-attempt.json').read_text())['attempt'] != result['attempt']:
+        if json.loads((gate / 'lint-attempt.json').read_text(encoding='utf-8'))['attempt'] != result['attempt']:
             return
         write_json(gate / 'pass.json', {k: result[k] for k in ('attempt', 'head', 'base', 'merge_base', 'config_sha256')})
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError):
@@ -435,13 +429,13 @@ def stamp(repo, result):
 def stale(lock):
     """강제 종료된 lint가 남긴 lock. PID가 없으면(이전 버전·쓰기 전 종료) 2시간이 지난 것만 본다"""
     try:
-        text, age = lock.read_text().strip(), time.time() - lock.stat().st_mtime
+        text, age = lock.read_text(encoding='utf-8').strip(), time.time() - lock.stat().st_mtime
     except OSError:
         return False
     if not text.isdigit():
         return age > 7200
     if os.name == 'nt':  # Windows의 os.kill(pid, 0)은 프로세스를 끝낸다
-        listed = subprocess.run(['tasklist', '/FI', f'PID eq {text}', '/NH', '/FO', 'CSV'], capture_output=True, text=True, errors='replace')
+        listed = subprocess.run(['tasklist', '/FI', f'PID eq {text}', '/NH', '/FO', 'CSV'], capture_output=True, text=True, encoding='utf-8', errors='replace')
         return listed.returncode == 0 and f'"{text}"' not in listed.stdout
     try:
         os.kill(int(text), 0)
@@ -485,7 +479,7 @@ def main():
             lock.unlink(missing_ok=True)
     for c in result['commands']:
         print(f"[{c['status']}] {c['name']}: {' '.join(c['run'])}" + (f" ({c['seconds']}초)" if 'seconds' in c else ''))
-        if c['status'] in ('failed', 'timeout'):
+        if c['status'] in ('failed', 'timeout', 'unavailable'):
             print(c['output_tail'] + (f"\n전체 출력: {c['log']}" if c.get('log') else ''))
     for v in result['violations']:
         print(f"{v['severity']} {v['code']} {v['path']}{':' + str(v['line']) if v['line'] else ''} {v['message']}")

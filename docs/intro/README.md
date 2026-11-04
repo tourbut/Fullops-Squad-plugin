@@ -30,9 +30,9 @@ summary: fullops-motion 템플릿 기본 경로로 만든 레포 소개 영상�
 Node 20 이상, `playwright`(또는 `playwright-core`와 시스템 Chrome), FFmpeg가 필요하다. 브라우저에서 `index.html`을 열면 실시간으로 재생된다.
 
 ```bash
-npm i -D playwright-core          # 렌더할 작업 폴더에서
-node plugins/fullops-squad/skills/fullops-motion/render.mjs docs/intro/index.html --stills 0,1.2,3.6,7,9.6,12.9 --out qa/intro/stills --width 1920 --height 1080 --channel chrome
-node plugins/fullops-squad/skills/fullops-motion/render.mjs docs/intro/index.html --out renders/intro.mp4 --width 1920 --height 1080 --fps 60 --duration 15 --subframes 2 --channel chrome
+npm i --no-save playwright-core     # 저장소 루트에서. package.json·lock을 바꾸지 않는다
+node plugins/fullops-squad/skills/fullops-motion/render.mjs docs/intro/index.html --stills 0,1.2,3.6,7,9.6,12.9 --out .local/intro/stills --width 1920 --height 1080 --channel chrome
+node plugins/fullops-squad/skills/fullops-motion/render.mjs docs/intro/index.html --out .local/intro/intro.mp4 --width 1920 --height 1080 --fps 60 --duration 15 --subframes 2 --channel chrome
 ```
 
 2026-10-17, Windows 11, Node 24.13.0, playwright-core 1.49.1, Chrome, FFmpeg 8.0.1에서 렌더했다(약 3분, 900프레임). 문구와 시각은 `seek(t)` 안의 상수에서 바꾼다.

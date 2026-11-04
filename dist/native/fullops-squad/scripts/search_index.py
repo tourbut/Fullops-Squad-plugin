@@ -1,7 +1,6 @@
 """Git 원문에서 추출한 메타데이터를 작업 트리별 JSON에 재사용한다. 본문은 저장하지 않는다."""
 import ast
 import codecs
-from fnmatch import fnmatch
 import json
 import os
 from pathlib import Path
@@ -11,7 +10,7 @@ import time
 
 from deliverables import split
 from jev_observe import digest, git_env, local_file, safe_text
-from lint import CONFIG, DEFAULT, header_summary
+from lint import CONFIG, DEFAULT, header_summary, matches, stale
 from storage import write_json
 
 SCHEMA_VERSION = 1
@@ -62,7 +61,7 @@ def blobs(repo, head, config):
         mode, kind, sha = (meta.split() + ['', '', ''])[:3]
         eligible = path.endswith('.md') if config['scope'] == 'documents' else not path.startswith(HARNESS) and path not in HARNESS_FILES
         # 하네스 문서는 코드 lint 제외와 무관하다. 나머지 경로의 의존성·빌드 제외는 유지한다.
-        excluded = any(fnmatch(path, x) or (x.startswith('**/') and fnmatch(path, x[3:])) for x in config['exclude'])
+        excluded = matches(path, config['exclude'])
         if kind == 'blob' and mode in ('100644', '100755') and eligible and not path.endswith('.meta') and (
                 config['scope'] == 'documents' and path.startswith(HARNESS) or not excluded):
             try:
@@ -184,7 +183,10 @@ def metadata(repo, head, scope='code', use_cache=True):
             raise OSError('symlink cache')
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         lock_path = path.parent / 'writer.lock'
+        if stale(lock_path):  # 강제 종료된 writer의 잠금은 lint와 같은 PID 규칙으로 회수한다
+            lock_path.unlink(missing_ok=True)
         lock = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.write(lock, str(os.getpid()).encode())
         previous = load(path, config_hash)
         entries = build(repo, rows, {item['path']: item for item in previous.get('files', [])})
         value = {'schema_version': SCHEMA_VERSION, 'parser_version': PARSER_VERSION,
@@ -196,9 +198,7 @@ def metadata(repo, head, scope='code', use_cache=True):
             try:
                 write_json(path, value)
                 break
-            except PermissionError:
-                if attempt == 2:
-                    raise
+            except OSError:  # 캐시를 못 써도 이미 만든 entries는 정확하다
                 time.sleep(0.02 * (attempt + 1))
         return entries
     except OSError:

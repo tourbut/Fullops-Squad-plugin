@@ -86,7 +86,7 @@ DESIGN-001은 줄 처음의 CSS custom property 선언을 토큰 정의로 허�
 
 직접 개발은 소스 확장자 목록 밖의 설정·에셋도 검사하며 기존 lint 제외 경로와 자동 현황판 파일은 유지한다. 아래 세션 재종료 예외는 coor와 배정된 worker에 적용한다.
 
-dev 주 담당자의 직접 구현은 현재 HEAD·세션 시작 기준 SHA의 lint와 다른 세션의 고정 SHA 독립 리뷰가 필요하다. 배정된 dev worker는 기존 worker 게이트를 따른다. 직접 구현의 누락·잘못된 리뷰 기록은 반복 Stop으로 생략할 수 없다. 정상 snapshot 정리 후에는 동일 SHA·작성자 세션의 이미 수락한 cleanup 영수증과 증거 hash를 확인한다. 신규 수락은 live snapshot 검사다. 잘못된 운영 정책이나 중단된 모드 전환은 복구 또는 새 세션 전까지 작업을 차단한다.
+dev 주 담당자의 직접 구현은 현재 HEAD의 lint 통과가 필요하다. 기준은 세션 시작 SHA다. `git.remote`가 있으면 원격 기본 브랜치에 이미 올라간 커밋은 뺀다. `review.py need`가 리뷰 필요로 판정하면 다른 세션의 고정 SHA 독립 리뷰나 사용자 면제(`review.py waive`) 기록도 필요하다. 배정된 dev worker는 기존 worker 게이트를 따른다. 직접 구현의 누락·잘못된 리뷰 기록은 반복 Stop으로 생략할 수 없다. 정상 snapshot 정리 후에는 동일 SHA·작성자 세션의 이미 수락한 cleanup 영수증과 증거 hash를 확인한다. 신규 수락은 live snapshot 검사다. 잘못된 운영 정책이나 중단된 모드 전환은 복구 또는 새 세션 전까지 작업을 차단한다.
 
 - 세션 안: 플러그인의 Stop hook(`done_gate.py`)이 이 세션에서 코드를 바꿨는데 현재 HEAD의 `lint.py` 통과 기록(`<git dir>/fullops-gate/pass.json`)이 없으면 종료를 한 번 막는다. 아무것도 바꾸지 않고 다시 끝내면 경고만 하고 통과한다. 이 체크아웃에서 직접 만든 커밋과 미커밋 변경만 보므로 fast-forward로 받은 커밋은 해당하지 않는다. hook 오류는 종료를 막지 않는다.
 - worker는 완료 보고 전에 실행한다. ERROR를 모두 고치고, 결과 요약(HEAD·ERROR·WARNING·실행 불가와 사유)을 완료 보고의 검증 항목에 적는다.
@@ -96,10 +96,10 @@ dev 주 담당자의 직접 구현은 현재 HEAD·세션 시작 기준 SHA의 l
 - UI 작업은 핸드오버의 테마·토큰·공용 컴포넌트 경로, 디자인 lint 결과·예외, 테마 전환 검증을 확인한다. 해당 없으면 근거가 필요하다. DESIGN WARNING과 누락 항목은 검토자가 판단하고 report.md에 기록한다.
 - 실행 불가(폐쇄망·도구 미설치)는 사유를 `reason`에 적고, 대신 수행한 정적 검사와 CI·스테이징에서 실행해야 한다는 점을 보고서에 남긴다. WARNING은 보고서에 기록하고 검토자가 판단한다.
 
-## 규칙 변경 기록
-
 ## hook 실행 확인
 
 같은 host 세션의 JSON 이벤트(`cwd`, `session_id`; camelCase도 지원)를 stdin으로 주고 `python3 <done_gate.py> status`를 실행하면 done/flow의 실제 호출 기록을 읽는다. 기록은 작업 트리별 `<git dir>/fullops-gate/hooks/`에 있으며 status 조회 자체는 실행 근거를 만들지 않는다. `executed`는 호출 완료이며 검증 통과를 뜻하지 않는다. `error`는 hook 오류, `unknown`은 기록 없음·읽기 불가다. mode별 events와 시각을 함께 확인한다.
 
 일반 hook 예외는 작업을 막지 않고 같은 오류 종류를 세션당 한 번 알린다. 오류 전문·명령·비밀값은 기록하지 않는다. 정책상 확정 위반의 기존 차단은 유지한다. hook 자체가 실행되지 않거나 기록 저장도 실패하면 알림도 없을 수 있다. 이때 unknown을 정상으로 해석하지 않고 수락 단계의 lint·review 증거를 확인한다. 설치 파일 존재는 실행 증거가 아니다.
+
+## 규칙 변경 기록

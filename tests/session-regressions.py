@@ -25,7 +25,7 @@ class SessionRegressions(unittest.TestCase):
         subprocess.run(['git', 'init', '-q', '-b', 'main', str(self.root)], check=True)
         (self.root / '.fullops-squad').mkdir()
         (self.root / '.fullops-squad/fullops.json').write_text(json.dumps({
-            'schema_version': 1, 'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}))
+            'schema_version': 1, 'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}), encoding='utf-8')
 
     def gate(self, command):
         with patch.object(flow_gate, 'context', return_value=('coordinator', None)):
@@ -40,7 +40,7 @@ class SessionRegressions(unittest.TestCase):
     def test_powershell_spec_variable_keeps_task_key(self):
         routes = self.root / '.fullops-squad/docs/evaluations/jev'
         routes.mkdir(parents=True)
-        (routes / 'K1-route.json').write_text('{"version":"jev-route-v3","task_key":"K1","route":"simple","role":"dev"}')
+        (routes / 'K1-route.json').write_text('{"version":"jev-route-v3","task_key":"K1","route":"simple","role":"dev"}', encoding='utf-8')
         with patch.object(integration, 'denial', return_value=None), \
              patch.object(integration, 'baseline_denial', return_value=None):
             self.assertIsNone(self.gate('$spec=\'Task key: K1. Read inbox\'; orca orchestration worker-start --spec $spec --run run_live --worktree path:dev'))
@@ -49,7 +49,7 @@ class SessionRegressions(unittest.TestCase):
     def test_route_sentence_punctuation_and_distinct_keys(self):
         routes = self.root / '.fullops-squad/docs/evaluations/jev'
         routes.mkdir(parents=True)
-        (routes / 'K1-route.json').write_text('{"version":"jev-route-v3","task_key":"K1","route":"simple","role":"dev"}')
+        (routes / 'K1-route.json').write_text('{"version":"jev-route-v3","task_key":"K1","route":"simple","role":"dev"}', encoding='utf-8')
         self.assertIsNone(flow_gate.route_key_denial(self.root, '--spec "Task key: K1. Read inbox"'))
         for key in ('K1.2', 'K1-other', 'K10'):
             self.assertIsNotNone(flow_gate.route_key_denial(self.root, f'--spec "Task key: {key}"'))
@@ -82,12 +82,12 @@ class SessionRegressions(unittest.TestCase):
              patch.object(integration, 'orca', return_value={'tasks': [{'id': 'task_live', 'spec': 'Task key: K1. Refer to K0.'}]}):
             routes = self.root / '.fullops-squad/docs/evaluations/jev'
             routes.mkdir(parents=True)
-            (routes / 'K1-route.json').write_text('{}')
-            (routes / 'K0-route.json').write_text('{}')
+            (routes / 'K1-route.json').write_text('{}', encoding='utf-8')
+            (routes / 'K0-route.json').write_text('{}', encoding='utf-8')
             path = self.root / (hashlib.sha256(b'msg_live').hexdigest() + '.json')
-            path.write_text(json.dumps({'message': 'msg_live', 'key': '', 'sha': None, 'hold': {'reason': 'review'}}))
+            path.write_text(json.dumps({'message': 'msg_live', 'key': '', 'sha': None, 'hold': {'reason': 'review'}}), encoding='utf-8')
             integration.record(self.root, [message])
-            saved = json.loads(path.read_text())
+            saved = json.loads(path.read_text(encoding='utf-8'))
             self.assertEqual(saved['sha'], sha)
             self.assertEqual(saved['key'], 'K1')
             self.assertEqual(saved['hold'], {'reason': 'review'})
@@ -103,7 +103,7 @@ class SessionRegressions(unittest.TestCase):
             integration.main()
         self.assertIn('term_coor', cli.call_args.args)
         self.assertIn('run_live', cli.call_args.args)
-        saved = json.loads((self.root / (hashlib.sha256(b'msg_recovered').hexdigest() + '.json')).read_text())
+        saved = json.loads((self.root / (hashlib.sha256(b'msg_recovered').hexdigest() + '.json')).read_text(encoding='utf-8'))
         self.assertEqual(saved['hold']['reason'], 'review')
         self.assertEqual(saved['sha'], 'abcdef0123456789')
 
@@ -118,12 +118,12 @@ class SessionRegressions(unittest.TestCase):
             for message_id, body, expected in reports:
                 integration.record(self.root, [{'id': message_id, 'type': 'worker_done', 'body': body}])
                 path = self.root / (hashlib.sha256(message_id.encode()).hexdigest() + '.json')
-                self.assertEqual(json.loads(path.read_text())['sha'], expected, body)
+                self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['sha'], expected, body)
 
     def test_handled_reads_nested_logs_and_primary_base(self):
         nested = self.root / '.fullops-squad/handovers/logs/2026-10-03/report.md'
         nested.parent.mkdir(parents=True)
-        nested.write_text('# K1 — completed\n')
+        nested.write_text('# K1 — completed\n', encoding='utf-8')
         self.assertTrue(flow_gate.handled(self.root, 'K1'))
         self.assertFalse(flow_gate.handled(self.root, 'K10'))
         subprocess.run(['git', 'init', '-q', '-b', 'main', str(self.root)], check=True)

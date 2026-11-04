@@ -58,7 +58,7 @@ def selection(repo, **overrides):
         config['design'] = 'DESIGN.md'
     if config['enabled'] and 'shadcn' in config['tools']:
         package = repo / 'package.json'
-        data = json.loads(package.read_text()) if package.is_file() else {}
+        data = json.loads(package.read_text(encoding='utf-8')) if package.is_file() else {}
         if not isinstance(data, dict) or any(not isinstance(data.get(k, {}), dict) for k in ('dependencies', 'devDependencies')):
             raise ValueError('프로젝트 package.json 의존성 형식을 확인하세요')
         packages = {**data.get('dependencies', {}), **data.get('devDependencies', {})}
@@ -85,11 +85,11 @@ def tool_status(repo, name):
     entry = root / 'node_modules' / package / 'package.json'
     binary = root / 'node_modules/.bin' / (item['command'] + ('.cmd' if os.name == 'nt' else ''))
     try:
-        metadata = json.loads(entry.read_text())
+        metadata = json.loads(entry.read_text(encoding='utf-8'))
         version = metadata['version']
         if metadata.get('name') != package or not isinstance(version, str) or not version:
             return 'package_identity_mismatch'
-        result = subprocess.run([str(binary), '--version'], capture_output=True, text=True, timeout=15)
+        result = subprocess.run([str(binary), '--version'], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=15)
         return 'cli_verified' if result.returncode == 0 and version in result.stdout.split() else 'execution_failed'
     except (OSError, ValueError, KeyError, subprocess.SubprocessError):
         return 'not_installed_or_unavailable'

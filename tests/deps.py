@@ -58,12 +58,12 @@ def main():
             name = item['package'].rsplit('@', 1)[0]
             package = npm_root / name / 'package.json'
             package.parent.mkdir(parents=True)
-            package.write_text(json.dumps({'name': name, 'version': '99.2.3'}))
+            package.write_text(json.dumps({'name': name, 'version': '99.2.3'}), encoding='utf-8')
         with patch.object(deps, 'missing_tools', return_value=[]), \
              patch.object(deps.subprocess, 'check_output', return_value=str(npm_root)), \
              patch.object(deps.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)):
             assert deps.tool_problems() == []
-            package.write_text(json.dumps({'name': 'wrong-package', 'version': '99.2.3'}))
+            package.write_text(json.dumps({'name': 'wrong-package', 'version': '99.2.3'}), encoding='utf-8')
             assert deps.tool_problems(), '잘못된 패키지 정체성을 허용했습니다'
         empty = {**os.environ, 'PATH': tmp}  # 필수 CLI가 없는 PATH
         env = {**os.environ, 'PATH': os.pathsep.join([tmp, os.environ.get('PATH', '')])}

@@ -89,7 +89,7 @@ def commands(host, registered=None, plugin=None):
 
 
 def registered_marketplaces(cli):
-    result = json.loads(subprocess.check_output([shutil.which(cli) or cli, "plugin", "marketplace", "list", "--json"], text=True))
+    result = json.loads(subprocess.check_output([shutil.which(cli) or cli, "plugin", "marketplace", "list", "--json"], encoding='utf-8'))
     if cli == "codex":
         return {m["name"]: m.get("marketplaceSource", {}).get("source", m["root"])
                 for m in result["marketplaces"]}
@@ -129,7 +129,7 @@ def skill_files(host, wanted=None):
     wanted = wanted if wanted is not None else data['skills'] + (data['codex']['skills'] if host in ('codex', 'grok', 'agy') else []) + (data['portable_skills'] if host in ('grok', 'agy') else [])
     lock = Path.home() / '.agents/.skill-lock.json'
     try:
-        installed = json.loads(lock.read_text()).get('skills', {}) if lock.is_file() else {}
+        installed = json.loads(lock.read_text(encoding='utf-8')).get('skills', {}) if lock.is_file() else {}
         if not isinstance(installed, dict) or any(not isinstance(entry, dict) or not isinstance(entry.get('source', ''), str) for entry in installed.values()):
             installed = {}
     except (OSError, ValueError, AttributeError):
@@ -204,11 +204,11 @@ def backup_skills(host, command):
                 if target.resolve().is_relative_to(folder):
                     raise ValueError('스킬 백업 경로는 원본 폴더 밖이어야 합니다')
                 digest = folder_digest(folder)
-                if any(mark.read_text() == digest for mark in backups.glob(f'*/{folder.name}.sha256')):
+                if any(mark.read_text(encoding='utf-8') == digest for mark in backups.glob(f'*/{folder.name}.sha256')):
                     saved.add(folder)
                     continue
                 shutil.copytree(folder, target, symlinks=True)
-                target.with_name(folder.name + '.sha256').write_text(digest)
+                target.with_name(folder.name + '.sha256').write_text(digest, encoding='utf-8')
                 saved.add(folder)
                 print(f'기존 스킬 보존: {target}', flush=True)
 
@@ -218,10 +218,10 @@ def tool_problems():
     if absent:
         return absent
     try:
-        root = Path(subprocess.check_output([shutil.which('npm') or 'npm', 'root', '--global'], text=True).strip())
+        root = Path(subprocess.check_output([shutil.which('npm') or 'npm', 'root', '--global'], encoding='utf-8').strip())
         for item in [*manifest()['tools'], *manifest()['mcp'].values()]:
             package = item['package'].rsplit('@', 1)[0]
-            installed = json.loads((root / package / 'package.json').read_text())
+            installed = json.loads((root / package / 'package.json').read_text(encoding='utf-8'))
             if installed.get('name') != package or not isinstance(installed.get('version'), str) or not installed['version']:
                 absent.append(f"{item['command']}: package identity/version unavailable")
         subprocess.run([shutil.which('ocr') or 'ocr', '--version'], check=True, capture_output=True, timeout=15)
@@ -238,7 +238,7 @@ def package_identity(root):
     root = Path(root)
     files = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
              for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and '.git' not in p.parts}
-    return {'version': json.loads((root / 'plugin.json').read_text())['version'],
+    return {'version': json.loads((root / 'plugin.json').read_text(encoding='utf-8'))['version'],
             'sha256': hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()}
 
 
@@ -248,7 +248,7 @@ def plugin_problems(host, expected=None, target=None):
         return []
     cli = 'claude' if host == 'claude-code' else host
     try:
-        data = json.loads(subprocess.check_output([shutil.which(cli) or cli, 'plugin', 'list', '--json'], text=True))
+        data = json.loads(subprocess.check_output([shutil.which(cli) or cli, 'plugin', 'list', '--json'], encoding='utf-8'))
         rows = data.get('installed', []) if host == 'codex' else data
         installed = {row.get('id') or row.get('pluginId') or f"{row.get('name')}@{row.get('marketplaceName') or row.get('marketplace')}": row
                      for row in rows if row.get('installed', True) and row.get('enabled', True)}
@@ -381,7 +381,8 @@ def main():
         parser.error("--host가 필요합니다")
     cli = {"claude-code": "claude"}.get(args.host, args.host)
     try:
-        registered = {} if args.dry_run or args.host in ("all", "both", "grok", "agy") else {cli: registered_marketplaces(cli)}
+        clis = ('codex', 'claude') if args.host in ('all', 'both') else (cli,)
+        registered = {} if args.dry_run or args.host in ("grok", "agy") else {c: registered_marketplaces(c) for c in clis}
         if args.dry_run:
             run(commands(args.host, registered), True)
         else:

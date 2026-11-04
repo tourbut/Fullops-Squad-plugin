@@ -39,6 +39,9 @@ with tempfile.TemporaryDirectory() as directory:
     assert result['retain'] and result['ttl'] == '1h' and result['context_tokens'] == 40_802
     assert judge(row(55, 40_000))['reason'] == 'cache likely expired'
     assert judge(row(10, 120_000))['reason'] == 'context too large'
+    synthetic = json.dumps({'type': 'assistant', 'timestamp': NOW.isoformat().replace('+00:00', 'Z'),
+                            'message': {'model': '<synthetic>', 'usage': {'input_tokens': 0, 'output_tokens': 0}}})
+    assert judge(row(10, 120_000), synthetic)['reason'] == 'context too large'  # local error replies are not usage
     # The 5-minute cache leaves only a short window.
     result = judge(row(3, 40_000, '5m'))
     assert result['retain'] and result['ttl'] == '5m'

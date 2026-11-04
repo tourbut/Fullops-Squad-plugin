@@ -18,7 +18,7 @@ def main():
         repo = Path(tmp)
 
         def git(*args):
-            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True, encoding='utf-8').strip()
         git('init', '-q', '-b', 'main')
         git('config', 'user.name', 'Test')
         git('config', 'user.email', 'test@example.com')

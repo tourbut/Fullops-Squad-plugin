@@ -89,6 +89,9 @@ describe('reading Orca', () => {
     expect(parseRunId(JSON.stringify({ result: { run: { id: 'run_a' } } }))).toBe('run_a')
     expect(parseRunId(JSON.stringify({ result: { run: null } }))).toBeNull()
     expect(parseRunId('')).toBeNull()
+    // A task the worker listing holds is not queued, even when its row names no dispatch.
+    const blocked = JSON.stringify({ result: { tasks: [{ id: 't1', status: 'blocked', spec: 'K1' }, { id: 't2', status: 'ready', spec: 'K2' }] } })
+    expect(parseTasks(blocked, new Set(['t1'])).queued).toEqual(['K2'])
   })
 })
 

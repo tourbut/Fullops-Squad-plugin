@@ -29,7 +29,7 @@ Jev(TypeSafe System One 모델)를 호출하는 `jev_*.py` 스크립트가 사�
 
 | 스크립트 | 용도 |
 |---|---|
-| `jev_route.py` | 요청 분류(simple/design), 담당 역할·모델·갱신 산출물 추천 |
+| `jev_route.py` | 요청 분류(simple/design 또는 implementation/product), 담당 역할·갱신 산출물 추천, coordinator가 고른 모델 tuple 기록 |
 | `jev_find.py`, `jev_context.py`, `jev_packet.py` | 코드·문서 위치 탐색, 문서 관련성 분류, 탐색 패킷 |
 | `jev_test_web.py`, `jev_test_unity.py` | 웹·Unity 조작 테스트 루프 |
 

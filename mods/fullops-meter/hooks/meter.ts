@@ -65,7 +65,7 @@ export const sessionHit = (meter: Meter): number | null => {
   return all === 0 ? null : Math.round((meter.samples.reduce((sum, s) => sum + s.read, 0) / all) * 100)
 }
 
-/** The band's first line: what the status line holds, with the margins and the cache's advice. */
+/** `/meter`'s cache line: what the hint line holds, with the margins and the cache's advice. */
 export const bandLine = (meter: Meter, now: number, policy: Policy): string => {
   const c = meter.context
   const parts: string[] = [`${modelText(meter)} (${meter.ttl})`]
@@ -145,7 +145,7 @@ export const queuedText = (queued: readonly string[]): string => {
   return `queued: ${queued.slice(0, SHOWN).join(', ')}${more}`
 }
 
-/** The band's second line:the workers the coordinator sent work to. Empty when there is nothing to show. */
+/** The band above the prompt: the workers the coordinator sent work to. Empty when there is nothing to show. */
 export const workerLine = (workers: readonly Worker[] | null, now: number): string => {
   if (workers === null || workers.length === 0) return ''
   const shown = workers.slice(0, SHOWN).map(w => workerText(w, now))

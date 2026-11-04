@@ -30,13 +30,13 @@
     "showBand": {
       "type": "boolean",
       "title": "Show the worker band above the prompt",
-      "description": "The band shows coor worker dispatches when a FullOps run has any. Model, context and cache stay on the status line.",
+      "description": "The band shows coor worker dispatches when a FullOps run has any. Model, context and cache stay on the hint line under the prompt.",
       "default": true
     },
     "warnSeconds": {
       "type": "number",
       "title": "Cache notice at (seconds)",
-      "description": "Show a notice, and turn the countdown to its warning state, this many seconds before the prompt cache lapses (at most half its lifetime). Leave time to run /compact.",
+      "description": "Show a notice this many seconds before the prompt cache lapses (at most half its lifetime). Leave time to run /compact.",
       "default": 300,
       "min": 5,
       "max": 1800
@@ -44,7 +44,7 @@
     "compactAtTokens": {
       "type": "number",
       "title": "Suggest /compact above (tokens)",
-      "description": "When the cache is about to lapse and the prompt is at least this large, the band and notice suggest /compact while it is still cached. A judgement, not a documented figure.",
+      "description": "When the cache is about to lapse and the prompt is at least this large, the notice and /meter suggest /compact while it is still cached. A judgement, not a documented figure.",
       "default": 100000,
       "min": 20000,
       "max": 1000000

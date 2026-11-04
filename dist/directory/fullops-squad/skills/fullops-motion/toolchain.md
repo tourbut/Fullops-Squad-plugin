@@ -10,7 +10,7 @@ node <스킬 경로>/render.mjs index.html --stills 0,0.5,1,1.5 --out qa/v01/sti
 node <스킬 경로>/render.mjs index.html --out renders/v01/clip.mp4 --width 1920 --height 1080 --fps 60 --duration 15 --subframes 4 [--audio audio/mix.wav]
 ```
 
-`render.mjs`는 페이지의 `window.seek(t)`를 프레임 시각마다 호출하고 화면을 캡처해 FFmpeg(H.264, yuv420p, CFR)로 보낸다. `--subframes N`은 한 프레임 안의 N개 시각을 평균해 모션 블러를 만든다. 시스템 Chrome은 `--channel chrome`, PATH 밖의 FFmpeg는 `--ffmpeg <경로>`로 지정한다. 브라우저는 로컬 파일만 연다. 입력 오류는 exit 2, 렌더 실패는 exit 1이다.
+`render.mjs`는 페이지의 `window.seek(t)`를 프레임 시각마다 호출하고 화면을 캡처해 FFmpeg(H.264, yuv420p, BT.709/TV, CFR)로 보낸다. `--subframes N`은 한 프레임 안의 N개 시각을 평균해 모션 블러를 만든다. 시스템 Chrome은 `--channel chrome`, PATH 밖의 FFmpeg는 `--ffmpeg <경로>`로 지정한다. 입력은 로컬 HTML 파일이다. 페이지의 외부 요청은 막지 않으므로 HTML은 로컬 자산만 참조한다. 기존 MP4 경로는 거부한다(exit 2). 입력 오류는 exit 2, 렌더 실패는 exit 1이다.
 
 ## HyperFrames·Remotion
 
@@ -42,7 +42,7 @@ DO_NOT_TRACK=1 ./node_modules/.bin/hyperframes preview clip --background
 DO_NOT_TRACK=1 ./node_modules/.bin/hyperframes check clip --snapshots --json
 DO_NOT_TRACK=1 ./node_modules/.bin/hyperframes render clip --strict --fps 30 --output renders/v01/clip.mp4
 ./node_modules/.bin/remotion studio src/index.jsx
-./node_modules/.bin/remotion render src/index.jsx Intro renders/v01/intro.mp4
+./node_modules/.bin/remotion render src/index.jsx Intro renders/v01/intro.mp4 --color-space bt709
 ```
 
 실제 브라우저와 ffmpeg가 PATH에 없다면 버전 CLI가 지원하는 실행 파일 옵션/환경 변수를 명시한다. HyperFrames: `HYPERFRAMES_BROWSER_PATH`, `HYPERFRAMES_FFMPEG_PATH`, `HYPERFRAMES_FFPROBE_PATH`. Remotion: `--browser-executable`. 실행 프로세스에만 적용하고 시스템 PATH는 바꾸지 않는다. 바이너리의 CPU/OS·codec 지원과 라이선스도 확인한다.

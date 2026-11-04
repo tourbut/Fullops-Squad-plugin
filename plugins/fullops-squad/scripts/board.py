@@ -13,7 +13,7 @@ import re
 import subprocess
 
 from board_documents import documents
-from deliverables import split
+from deliverables import document_status, identities, split
 
 BOARD = '.fullops-squad/board'
 STATUSES = ('done', 'active', 'blocked', 'todo')
@@ -22,6 +22,7 @@ ALIASES = {'in_progress': 'active', 'in-progress': 'active', 'doing': 'active', 
 NOTE_LIMIT = 80  # board.json 단계 note는 현재 상태 한 줄. 경위는 PLANS.md에 둔다
 TITLE = re.compile(r'^#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—\s+(.+?)\s*$', re.M)
 SEPARATOR = re.compile(r'\|?[\s:|-]+\|?')
+VOLATILE = re.compile(r'^(?: "updated_at"|  "checked_at"): .*\n', re.M)  # 생성·이슈 조회 시각
 
 
 def read(path):
@@ -72,11 +73,14 @@ def plain(text):
 
 def phases(board):
     result = []
-    for item in (board or {}).get('phases') or []:
+    items = board.get('phases')
+    for item in items if isinstance(items, list) else []:
         if isinstance(item, dict) and isinstance(item.get('name'), str) and item['name'].strip():
-            status = ALIASES.get(item.get('status'), item.get('status'))
+            status = item.get('status') if isinstance(item.get('status'), str) else None
+            status = ALIASES.get(status, status)
             status = status if status in STATUSES else 'todo'
-            refs = [d for d in item.get('deliverables') or [] if isinstance(d, str)]
+            refs = item.get('deliverables')
+            refs = [d for d in refs if isinstance(d, str)] if isinstance(refs, list) else []
             note = plain(item['note']) if isinstance(item.get('note'), str) else ''  # 마크다운 강조·링크 표시는 걷어 낸다
             result.append({'name': item['name'].strip(), 'status': status, 'deliverables': refs,
                            'note': note, 'note_long': len(note) > NOTE_LIMIT})
@@ -155,6 +159,8 @@ def models(root):
     """설계 뒤 worker용 모델 선택 기록. {'<과제 키>|<역할>': 모델}"""
     result = {}
     for path in sorted((root / 'docs/evaluations/jev').glob('*-model-*.json')):
+        if '.prior-' in path.name:  # jev_route의 이전 선택 백업
+            continue
         data = load(path) or {}
         if data.get('task_key') and data.get('role') and model_of(data):
             result[f"{data['task_key']}|{data['role']}"] = model_of(data)
@@ -224,7 +230,6 @@ def deliverables(root):
             if re.fullmatch(r'D\d{2}', ident):
                 paths = re.findall(r'`([^`]+)`', source)
                 sources = documents(root, paths)
-                from deliverables import identities, document_status
                 meta = next((d.get('meta') for d in sources if ident in identities(d.get('meta', {}))), None)
                 if meta:
                     meta = {**meta, 'id': ident, 'status': document_status(meta, ident)}
@@ -277,16 +282,18 @@ def build(repo):
     root = Path(repo) / '.fullops-squad'
     config = load(root / 'fullops.json') or {}
     board = load(root / 'board/board.json')
+    error = None if isinstance(board, dict) else 'board/board.json을 읽을 수 없습니다'
+    board = board if isinstance(board, dict) else {}
     return {
         'version': 1,
         'updated_at': datetime.now().astimezone().isoformat(timespec='seconds'),
         'repo': Path(repo).resolve().name,
         'branch': git(repo, 'rev-parse', '--abbrev-ref', 'HEAD'),
         'head': git(repo, 'rev-parse', '--short=12', 'HEAD'),
-        'title': (board or {}).get('title') or Path(repo).resolve().name,
-        'summary': (board or {}).get('summary') or '',
-        'board_error': None if isinstance(board, dict) else 'board/board.json을 읽을 수 없습니다',
-        'phases': phases(board if isinstance(board, dict) else None),
+        'title': board.get('title') or Path(repo).resolve().name,
+        'summary': board.get('summary') or '',
+        'board_error': error,
+        'phases': phases(board),
         'roles': roles(root, config),
         'notes': notes(root),
         'plans': plans(root),
@@ -304,12 +311,12 @@ def write(repo):
     output = Path(repo) / BOARD / 'board-data.js'
     output.parent.mkdir(parents=True, exist_ok=True)
     text = 'window.FULLOPS_BOARD = ' + json.dumps(build(repo), ensure_ascii=False, indent=1) + ';\n'
-    if read(output).split('\n', 3)[3:] != text.split('\n', 3)[3:]:  # 변경 시각만 다르면 다시 쓰지 않는다
+    if VOLATILE.sub('', read(output)) != VOLATILE.sub('', text):  # 변경 시각만 다르면 다시 쓰지 않는다
         output.write_text(text, encoding='utf-8', newline='\n')
     # index.html은 플러그인이 소유한 고정 양식이다. setup은 기존 파일을 덮지 않으므로 여기서 새 양식으로 맞춘다
     page = output.with_name('index.html')
     template = Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/board/index.html'
-    if template.is_file() and not page.is_symlink() and read(page).replace('\r\n', '\n') != read(template):
+    if template.is_file() and not page.is_symlink() and read(page) != read(template):
         page.write_text(read(template), encoding='utf-8', newline='\n')
     return output
 

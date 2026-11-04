@@ -8,7 +8,6 @@
 """
 import argparse
 import json
-import os
 import re
 import sys
 import time
@@ -153,7 +152,7 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
             result['route'] = 'product' if override_role == split[0] else 'implementation'
         result['override_reason'] = reason
     result['model'] = chosen if result.get('role') else None
-    head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True, env=git_env())
+    head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True, encoding='utf-8', env=git_env())
     result['head'] = head.stdout.strip() if head.returncode == 0 else None
     result['requires_packet'] = True
     if result.get('role'):
@@ -268,7 +267,7 @@ def main():
             if not args.role or args.model_only or args.request or args.override_role or args.agent:
                 raise ValueError('--bind-inbox에는 --role만 함께 지정하세요')
             output = safe_file(repo, f'.fullops-squad/docs/evaluations/jev/{args.key}-route.json')
-            result = json.loads(output.read_text())
+            result = json.loads(output.read_text(encoding='utf-8'))
             identity = input_identity(repo, args.role, args.key, {'policy': 'route-v4'})
             # coordinator 워크트리에서 분류한 route도 지금 HEAD가 그 분류 시점을 포함하면 연결한다
             later = result.get('head') and subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', result['head'], identity['head']],

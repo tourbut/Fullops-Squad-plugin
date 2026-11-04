@@ -66,6 +66,14 @@ def require_online():
         raise RuntimeError('Jev disabled: offline local search only')
 
 
+def sensitive_parts(parts):
+    # casefold: Windows·macOS에서 .GIT와 .Npmrc는 같은 파일이다
+    return any(part in ('.', '..') or part.startswith(('.env', '.secret')) or re.search(r'(^|[._-])env($|[._-])', part) or
+               part in ('.git', '.codex', '.agents', '.claude', '.ssh', '.aws', '.netrc', '.npmrc', '.pypirc') or
+               re.fullmatch(r'(secrets?|credentials?)(\..*)?', part) or re.fullmatch(r'id_(rsa|dsa|ecdsa|ed25519)(\.pub)?', part) or
+               part.endswith(('.pem', '.key', '.p12', '.pfx')) for part in map(str.casefold, parts))
+
+
 def local_file(repo, name, historical=False):
     if not isinstance(name, str) or not name or name.startswith('-'):
         raise ValueError('invalid path')
@@ -73,13 +81,7 @@ def local_file(repo, name, historical=False):
     path = path if path.is_absolute() else repo / path
     if not path.is_relative_to(repo):
         raise ValueError('path outside repository')
-    parts = path.relative_to(repo).parts
-    if any(part in ('.', '..') or part.startswith('.env') or part.startswith('.secret') or
-           re.search(r'(^|[._-])env($|[._-])', part, re.I) or
-           part in ('.git', '.codex', '.agents', '.claude', '.ssh', '.aws', '.netrc', '.npmrc', '.pypirc') or
-           re.fullmatch(r'(secrets?|credentials?)(\..*)?', part, re.I) or
-           re.fullmatch(r'id_(rsa|dsa|ecdsa|ed25519)(\.pub)?', part, re.I) or
-           part.lower().endswith(('.pem', '.key', '.p12', '.pfx')) for part in parts):
+    if sensitive_parts(path.relative_to(repo).parts):
         raise ValueError('sensitive path')
     if historical:
         return path  # Git mode 검사는 호출자가 맡는다. 현재 파일·symlink 상태와 독립적인 snapshot 경로다.
@@ -88,6 +90,8 @@ def local_file(repo, name, historical=False):
     resolved = path.resolve(strict=True)
     if not resolved.is_file() or not resolved.is_relative_to(repo.resolve()):
         raise ValueError('path outside repository or not a file')
+    if sensitive_parts(resolved.relative_to(repo.resolve()).parts):  # Windows 별칭(끝 점·공백, ::$DATA, 8.3 이름, junction): 실제 이름을 다시 본다
+        raise ValueError('sensitive path')
     return path  # 검증한 입력 경로를 유지한다. macOS /var → /private/var도 같은 레포다.
 
 
@@ -112,8 +116,8 @@ def excerpt(raw, spec):
         if not quote or text.count(quote) != 1:
             raise ValueError('quote missing or ambiguous')
         offset = text.index(quote)
-        selected_start = text[:offset].count('\n') + 1
-        selected_end = text[:offset + len(quote) - 1].count('\n') + 1
+        selected_start = len(text[:offset + 1].splitlines())  # `lines`와 같은 줄 분할
+        selected_end = len(text[:offset + len(quote)].splitlines())
     else:
         if type(spec.get('start_line')) is not int or type(spec.get('end_line')) is not int:
             raise ValueError('line span required')
@@ -231,7 +235,7 @@ class Key(str):
 
 
 def key_from_file(path):
-    lines = Path(path).read_text(encoding='utf-8', errors='replace').splitlines()
+    lines = Path(path).read_text(encoding='utf-8-sig', errors='replace').splitlines()
     for provider, spec in PROVIDERS.items():
         for line in lines:
             match = re.fullmatch(r'\s*' + spec['env'] + r'\s*=\s*["\']?([A-Za-z0-9._-]+)["\']?\s*', line)
@@ -299,8 +303,10 @@ def request(payload, key, timeout=30):
         result = subprocess.run(
             [shutil.which('curl') or 'curl', '--config', '-', '--silent', '--show-error', '--fail', '--max-time', str(timeout),
              '--header', 'Content-Type: application/json', '--data-binary', '@' + body, spec['url']],
-            input=config, text=True, capture_output=True, timeout=timeout + 2,
+            input=config, text=True, encoding='utf-8', capture_output=True, timeout=timeout + 2,
         )
+    except subprocess.TimeoutExpired:
+        raise TimeoutError(f'{provider} Jev request timed out') from None
     finally:
         os.unlink(body)
     if result.returncode:
@@ -329,7 +335,7 @@ def observe(data, repo, call):
     head = data.get('head')
     if not isinstance(head, str) or not re.fullmatch(r'[0-9a-f]{40}', head):
         raise ValueError('full head SHA is required')
-    actual = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', head + '^{commit}'], text=True, env=git_env()).strip()
+    actual = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', head + '^{commit}'], text=True, encoding='utf-8', env=git_env()).strip()
     if actual != head:
         raise ValueError('head SHA does not resolve exactly')
     input_hash = digest(json.dumps(data, sort_keys=True, ensure_ascii=False).encode())
@@ -578,14 +584,14 @@ def main():
     parser.add_argument('--output', required=True)
     parser.add_argument('--env-file', help=f'Read {KEY_NAMES} without sourcing shell code')
     args = parser.parse_args()
-    repo = Path(args.repo).resolve(strict=True)
-    data = json.loads(Path(args.input).read_text())
-    result = observe(data, repo, lambda payload: request(
-        payload, api_key(args.env_file, args.repo)))
     output = Path(args.output)
     if output.exists():
         parser.error('output already exists')
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    repo = Path(args.repo).resolve(strict=True)
+    data = json.loads(Path(args.input).read_text(encoding='utf-8'))
+    result = observe(data, repo, lambda payload: request(
+        payload, api_key(args.env_file, args.repo)))
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(output)
 
 

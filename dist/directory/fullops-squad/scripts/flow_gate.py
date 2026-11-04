@@ -33,6 +33,7 @@ SEND_LIMIT = 20  # coordinator가 terminal send로 보낼 수 있는 글자 수.
 HANDOVER = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
 TITLE = re.compile(r'#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—')
 STARTED = re.compile(r'\borchestration\s+worker-start\b.*?--run[ =]+["\']?([A-Za-z0-9_-]+)', re.S)
+ORCA = ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev')
 ROUTED = re.compile(r'\bjev_route\.py\b.*?--key[ =]+["\']?([A-Za-z0-9][A-Za-z0-9._-]*)', re.S)
 
 
@@ -100,7 +101,7 @@ def expand(command):
     return command
 
 
-def key_in(root, text, path=None):
+def key_in(text, path=None):
     match = TITLE.search(text or '')
     if not match and path and path.is_file():
         match = TITLE.search(deliverables.split(path.read_text(encoding='utf-8'))[1].lstrip().split('\n', 1)[0])
@@ -125,7 +126,7 @@ def inbox_denial(root, name, content):
     old = board.read(path)
     if old.strip() and isinstance(content, str) and not content.strip():
         return '역할 인박스를 직접 비우지 마세요. work.py finish로 지시서·완료 보고 전문을 로그에 보존한 뒤 비우세요.'
-    current, incoming = key_in(root, old), key_in(root, content, path)
+    current, incoming = key_in(old), key_in(content, path)
     if old.strip() and incoming and current != incoming:
         return (f'진행 중 역할 인박스({current or filename})를 다른 과제({incoming})로 덮어쓸 수 없습니다. '
                 '후속 과제는 PLANS.md에 대기시키세요. 같은 과제의 수정은 현재 인박스에 반영하고, '
@@ -227,7 +228,7 @@ def shell_commands(command):
 
 def operation_commands(command, operation, group='orchestration'):
     return [' '.join(words) for words in shell_commands(command) if
-            Path(words[0]).name in ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev') and
+            Path(words[0]).name in ORCA and
             words[1:3] == [group, operation] and not any(word in ('--help', '-h') for word in words)]
 
 
@@ -239,7 +240,7 @@ def settlement_command(command, state):
         words = list(lexer)
     except ValueError:
         return None
-    if len(words) < 4 or Path(words[0]).name not in ('orca', 'orca.exe', 'orca.cmd', 'orca-ide') or words[1:3] != ['orchestration', 'send']:
+    if len(words) < 4 or Path(words[0]).name not in ORCA or words[1:3] != ['orchestration', 'send']:
         return None
     if any(word in ('--help', '-h') or re.fullmatch(r'[;&|]+', word) for word in words):
         return None
@@ -254,7 +255,7 @@ def settlement_command(command, state):
             flags['--task-id'], flags['--dispatch-id'] = payload.get('taskId'), payload.get('dispatchId')
         except (ValueError, AttributeError):
             return None
-    if flags.get('--type') not in ('worker_done', 'escalation') or flags.get('--dispatch-id') != state.get('dispatch'):
+    if not state.get('dispatch') or flags.get('--type') not in ('worker_done', 'escalation') or flags.get('--dispatch-id') != state['dispatch']:
         return None
     if state.get('task') and flags.get('--task-id') != state['task']:
         return None
@@ -305,9 +306,7 @@ def run_state(run, root=None):
 
 
 def sent_text(command):
-    """`orca terminal send`로 보내는 글자. 없으면 빈 문자열."""
-    if not re.search(r'\bterminal\s+send\b', command):
-        return ''
+    """`orca terminal send`로 보내는 글자."""
     try:
         words = shlex.split(command, posix=True)
     except ValueError:
@@ -372,7 +371,7 @@ def route_key_denial(root, command):
     text = command
     for path in re.findall(r'[^\s\'"`]*handovers[/\\]to_[a-z][a-z0-9_-]*\.md', command):  # 지시서 경로를 넘기면 본문 첫 줄의 키
         handover = Path(path) if Path(path).is_absolute() else root / re.sub(r'^\.[/\\]', '', path)
-        text += ' Task key: ' + (key_in(root, None, handover) or '')
+        text += ' Task key: ' + (key_in(None, handover) or '')
     task, run = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command), re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
     if task:
         listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
@@ -397,7 +396,7 @@ def route_key_denial(root, command):
 
 def native_delegation(event):
     name = str(field(event, 'tool_name') or '').replace('__', '.').split('.')[-1]
-    return name in ('Agent', 'Task', 'spawn_agent', 'followup_task')
+    return name in ('Agent', 'Task', 'spawn_agent', 'followup_task', 'spawn_subagent')
 
 
 def dispatch_spec(command, dispatch):
@@ -445,8 +444,6 @@ def delegation_denial(root, event, state, config, starting, lead):
                 return '자동 이슈의 하위 작업은 권한·중지·완료를 추적할 수 있는 Orca worker-start와 자기 child Run을 사용하세요'
         tool = field(event, 'tool_input') or {}
         text = '\n'.join(str(tool[key]) for key in ('prompt', 'message', 'description') if key in tool)
-    else:
-        text = '\n'.join(starting)
     level = config['subagent_level']
     # 필수 독립 리뷰는 기존 clean snapshot/작성자 분리 검사를 이어서 통과해야 한다.
     mandatory_review = (not native and lead and not state.get('dispatch') and
@@ -527,7 +524,6 @@ def tool_denial(root, event, state):
     injection_commands = operation_commands(command, 'send', 'terminal') + operation_commands(command, 'dispatch')
     if INJECT.search('\n'.join(injection_commands)):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
-    asking_help = re.search(r'(?:^|\s)(?:--help|-h)(?=\s|[;&|]|$)', command)
     if lead and any(len(sent_text(send)) > SEND_LIMIT for send in
                                      operation_commands(command, 'send', group='terminal')):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
@@ -552,12 +548,13 @@ def tool_denial(root, event, state):
             if denial:
                 return denial
     if lead and designer:
-        new = re.search(r'\bwork\.py\b.*\bnew\b', '\n'.join(python_commands))
-        if new and not asking_help:
+        for line in python_commands:  # 명령마다 읽는다
             try:
-                words = shlex.split(command, posix=True)
+                words = shlex.split(line, posix=True)
             except ValueError:
-                words = command.split()
+                words = line.split()
+            if not re.search(r'\bwork\.py\b', line) or 'new' not in words or {'--help', '-h'} & set(words):
+                continue
             args = dict(zip(words, words[1:]))
             denial = None if direct_role and args.get('--role') == direct_role else handover_denial(
                 root, designer, args.get('--role'), args.get('--key'))
@@ -567,10 +564,10 @@ def tool_denial(root, event, state):
             match = HANDOVER.search(name.replace('\\', '/'))
             if match and match.group(1) != direct_role:
                 path = Path(name) if Path(name).is_absolute() else root / name
-                denial = handover_denial(root, designer, match.group(1), key_in(root, content, path))
+                denial = handover_denial(root, designer, match.group(1), key_in(content, path))
                 if denial:
                     return denial
-    if role == designer and not (lead and policy.load(root)['mode'] == 'dev'):
+    if role == designer and not (lead and config['mode'] == 'dev'):
         for name, _ in files:
             if Path(name).suffix.lower() in CODE and '.fullops-squad/' not in name.replace('\\', '/'):
                 return f'설계 역할은 코드를 고치지 않습니다({name}). 역할별 지시서에 적고 worker에게 맡기세요.'
@@ -621,7 +618,7 @@ def main(event=None):
     gate = Path(git(root, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
     gate.mkdir(exist_ok=True)
     session = gate / ('flow-' + re.sub(r'[^A-Za-z0-9_-]', '_', str(field(event, 'session_id') or 'default'))[:100] + '.json')
-    state = json.loads(session.read_text()) if session.is_file() else {}
+    state = json.loads(session.read_text(encoding='utf-8')) if session.is_file() else {}
     try:
         config = policy.load(root)
     except policy.PolicyError:
@@ -629,8 +626,10 @@ def main(event=None):
         commands = shell_commands(command)
         if mode == 'tool' and len(commands) == 1:
             words = commands[0]
+            # hook은 runtime 복사본에서 돈다. 경로 대신 같은 setup.py 내용인지 본다
             if len(words) > 2 and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name) and (
-                    Path(words[1].strip('\'"')).resolve() == Path(__file__).with_name('setup.py').resolve()) and '--repo' in words:
+                    (script := Path(words[1].strip('\'"'))).name == 'setup.py' and script.is_file() and
+                    script.read_bytes() == Path(__file__).with_name('setup.py').read_bytes()) and '--repo' in words:
                 index = words.index('--repo')
                 if index + 1 < len(words) and Path(words[index + 1].strip('\'"')).resolve() == root and (
                         any(flag in words for flag in ('--rollback', '--mode', '--primary-role', '--test-level', '--subagent-level'))):
@@ -736,7 +735,10 @@ def main(event=None):
             output = {'hookSpecificOutput': {'hookEventName': field(event, 'hook_event_name') or 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
     if mode in ('tool', 'post', 'prompt'):
         import issue_mode
-        issue_mode.heartbeat(root, field(event, 'session_id'))
+        try:  # lease 갱신 실패는 90초 뒤 만료로 끝난다. 이미 정한 판정을 지우지 않는다
+            issue_mode.heartbeat(root, field(event, 'session_id'))
+        except Exception:  # noqa: BLE001
+            pass
     if mode == 'stop' and (field(event, 'reason') or 'end_turn') == 'end_turn':
         if state.get('dispatch') and not state.get('settled') and settled_in_runtime(state):
             state['settled'] = True

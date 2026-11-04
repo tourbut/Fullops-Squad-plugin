@@ -41,6 +41,8 @@ def split(text):
             elif value.startswith("[") and value.endswith("]"):
                 try:
                     meta[key] = json.loads(value)
+                    if not all(isinstance(v, str) for v in meta[key]):  # [57]은 숫자가 아닌 과제 키 '57'이다
+                        raise ValueError
                 except ValueError:
                     meta[key] = [v.strip().strip("'\"") for v in value[1:-1].split(",") if v.strip()]
             elif value.startswith('"') and value.endswith('"'):
@@ -160,7 +162,7 @@ def meta_for(base, doc_id, sources):
 def active_base(repo):
     repo = Path(repo).expanduser().resolve(strict=True)
     root = Path(subprocess.check_output(
-        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
+        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], encoding='utf-8').strip()).resolve()
     base = repo / ".fullops-squad"
     if root != repo or not (base / "fullops.json").is_file():
         raise ValueError("활성화된 Git 레포 루트를 지정하세요")
@@ -224,7 +226,8 @@ def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, t
     if all_sources and (not doc_id or not status):
         raise ValueError('--all-sources에는 --id와 명시적 --status가 필요합니다')
     if doc_id and effective != index_status and not all_sources:
-        if any(document_status(front_matter(f.read_text(encoding='utf-8')) or {}, doc_id) != effective for f in siblings):
+        states = [document_status(front_matter(f.read_text(encoding='utf-8')) or {}, doc_id) for f in siblings]
+        if any(s != effective and not (s is None and effective == 'draft') for s in states):
             raise ValueError('여러 원천의 상태를 일부만 전환할 수 없습니다. 다른 원천의 상태를 검토해 일치시킨 뒤 재시도하세요')
     meta["updated"] = (today or date.today()).isoformat()
     tasks = meta.get("tasks") if isinstance(meta.get("tasks"), list) else ([meta["tasks"]] if meta.get("tasks") else [])
@@ -275,7 +278,7 @@ def check(repo, selected=None, strict=False):
         raise ValueError("산출물 인덱스의 D01–D13 행을 확인하세요")
     if selected and selected not in rows:
         raise ValueError(f"없는 산출물 ID: {selected}")
-    issues, errors, warnings = [], [], []
+    errors, warnings = [], []
     unwritten = 0
     for doc_id, (_, sources, status) in rows.items():
         if selected and doc_id != selected:
@@ -286,28 +289,22 @@ def check(repo, selected=None, strict=False):
         if status == "미작성":
             unwritten += 1
         elif status != '범위 밖' and missing:
-            issue = f"{doc_id} 원천 없음: {', '.join(missing)}"
-            issues.append(issue)
-            errors.append(issue)
+            errors.append(f"{doc_id} 원천 없음: {', '.join(missing)}")
         if status not in ("미작성", "범위 밖"):
             for path in [f for s in sources for f in source_files(base, s)]:
                 for problem in problems(path.read_text(encoding="utf-8", errors="replace"), doc_id, status):
                     message = f"{doc_id} {path.relative_to(base).as_posix()}: {problem}"
                     (errors if strict else warnings).append(message)
-                    if strict:
-                        issues.append(message)
         for document in (base / "docs/deliverables").glob(f"{doc_id}_*.md"):
             for target in re.findall(r"\]\(([^)]+)\)", document.read_text(encoding="utf-8")):
                 path = target.split("#", 1)[0]
                 if path and not re.match(r"[a-z]+://", path) and not (document.parent / path).exists():
-                    issue = f"{document.name} 링크 없음: {target}"
-                    issues.append(issue)
-                    errors.append(issue)
-    for issue in issues:
-        print(issue)
+                    errors.append(f"{document.name} 링크 없음: {target}")
+    for error in errors:
+        print(error)
     for warning in warnings:
         print(f"경고: {warning}")
-    print(f"검사: {selected or len(rows)} / 미작성: {unwritten} / 문제: {len(issues)} / 경고: {len(warnings)}")
+    print(f"검사: {selected or len(rows)} / 미작성: {unwritten} / 문제: {len(errors)} / 경고: {len(warnings)}")
     return errors
 
 

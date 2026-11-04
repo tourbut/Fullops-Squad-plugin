@@ -35,14 +35,14 @@ function parseArgs(args) {
 }
 
 // PowerShell passes decoded values as arguments, without building shell commands.
-// This also supports npm's .ps1/.cmd launchers on Windows.
+// This also supports npm's .ps1/.cmd launchers on Windows; RemoteSigned (process scope) lets local .ps1 shims run under Restricted.
 function invocation(command, args, platform = process.platform) {
   if (platform !== 'win32') return { command, args };
   const payload = Buffer.from(JSON.stringify({ command, args })).toString('base64');
   const script = `$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; $OutputEncoding=[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); ` +
     `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; ` +
     `$commandArgs=[string[]]$p.args; $global:LASTEXITCODE=0; & $p.command @commandArgs; exit $LASTEXITCODE`;
-  return { command: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')] };
+  return { command: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'RemoteSigned', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')] };
 }
 
 function run(command, args, env = process.env, capture = false) {
@@ -131,9 +131,8 @@ function pluginInfo(target, execute = run) {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'plugin.json'), 'utf8'));
   if (manifest.version !== row.version) throw new Error(`${target.label}: 설치 목록과 패키지 버전 불일치`);
   if (!/^\d+\.\d+\.\d+$/.test(row.version)) throw new Error('지원하지 않는 plugin version: stable SemVer가 필요합니다');
-  const raw = fs.readFileSync(path.join(root, 'dependencies.json'), 'utf8');
-  JSON.parse(raw);
-  return { root, version: row.version, dependencies: raw };
+  JSON.parse(fs.readFileSync(path.join(root, 'dependencies.json'), 'utf8'));  // a corrupt copy throws and main() repairs it
+  return { root, version: row.version };
 }
 
 function expectedVersion(target, execute = run) {

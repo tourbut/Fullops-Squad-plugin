@@ -34,6 +34,11 @@ def problems(scenario):
     found = []
     if not isinstance(scenario.get('goal'), str) or not scenario['goal'].strip():
         found.append('goal이 없다')
+    else:
+        try:
+            safe_text(scenario['goal'], 1000)
+        except ValueError:
+            found.append('goal에 민감한 값이 있거나 1000자를 넘는다')
     covers = scenario.get('covers')
     if not isinstance(covers, list) or not covers or not all(isinstance(c, str) and c.strip() for c in covers):
         found.append('covers에 이 시나리오가 검증하는 요구사항·통과 조건을 하나 이상 적는다')
@@ -45,11 +50,13 @@ def problems(scenario):
             kinds = [k for k in ('field', 'text', 'actor') if isinstance(c, dict) and k in c]
             if len(kinds) != 1:
                 found.append(f'checks[{n}]는 field, text, actor 중 하나만 가진다')
+            elif not isinstance(c[kinds[0]], str) or not c[kinds[0]].strip():
+                found.append(f'checks[{n}]의 {kinds[0]}는 비어 있지 않은 문자열이다')
             elif kinds == ['field'] and ('value' not in c or c.get('op', '==') not in ('==', '!=', '>', '>=', '<', '<=')):
                 found.append(f'checks[{n}] field는 value와 op(==, !=, >, >=, <, <=)가 필요하다')
     if not isinstance(scenario.get('player_args', []), list):
         found.append('player_args는 목록이다')
-    if not isinstance(scenario.get('max_steps', 30), int) or not 1 <= scenario.get('max_steps', 30) <= 200:
+    if type(scenario.get('max_steps', 30)) is not int or not 1 <= scenario.get('max_steps', 30) <= 200:
         found.append('max_steps는 1~200이다')
     return found
 
@@ -134,7 +141,7 @@ def check(condition, state):
     return {'condition': condition, 'value': present, 'passed': present != bool(condition.get('absent'))}
 
 
-def run(scenario, play, launch, call, out, log=print, timeout=120):
+def run(scenario, play, launch, call, out, log=print, timeout=120, source=None):
     """launch(play) → poll()/wait()/kill()이 있는 프로세스. 오프라인 테스트는 가짜 게임을 넘긴다."""
     identity = test_record.begin(out, scenario)
     calls = []
@@ -177,6 +184,7 @@ def run(scenario, play, launch, call, out, log=print, timeout=120):
                 result = 'stalled'
                 break
         else:
+            write_action(play, step + 1, 'quit')
             result = 'max_steps'
     except Exception as failure:  # noqa: BLE001 — 증거를 남긴 뒤 원래 실행 실패를 다시 던진다
         error, result = failure, 'error'
@@ -198,17 +206,9 @@ def run(scenario, play, launch, call, out, log=print, timeout=120):
     summary = {'version': 'jev-test-unity-v1', **identity, 'result': result, 'passed': error is None and result == 'passed',
                'steps': len(events), 'jev_calls': len(calls), 'calls': calls, **test_record.costs(calls),
                'elapsed_s': round(time.monotonic() - started, 3),
-               'latency_s': round(sum(e.get('latency_s') or 0 for e in calls), 3), 'checks': final, 'goal': scenario['goal'], 'covers': scenario.get('covers') or []}
-    if error:
-        summary.update(error_type=type(error).__name__, evidence_unavailable='execution stopped before final evidence')
-    try:
-        test_record.finish(out, summary, events, 'unity')
-    except Exception:  # noqa: BLE001
-        if error is None:
-            raise
-    if error:
-        raise error
-    return summary
+               'latency_s': round(sum(e.get('latency_s') or 0 for e in calls), 3), 'checks': final, 'goal': scenario['goal'], 'covers': scenario.get('covers') or [],
+               **({'scenario': source} if source else {})}
+    return test_record.finish(out, summary, events, 'unity', error)
 
 
 def main():
@@ -246,13 +246,9 @@ def main():
         mode = [] if args.graphics else ['-batchmode', '-nographics']
         return subprocess.Popen([args.player, *mode, '--jev-play', str(folder), '-logFile', str(folder / 'player.log'),
                                  *[str(a) for a in scenario.get('player_args', [])]])
-    summary = run(scenario, play, launch, lambda payload: request(payload, key), out)
     path = Path(args.scenario).resolve()
-    summary['scenario'] = path.relative_to(repo).as_posix() if path.is_relative_to(repo) else str(path)
-    (out / 'result.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    events = [json.loads(line) for line in (out / 'events.jsonl').read_text(encoding='utf-8').splitlines()]
-    test_record.write(out, summary, [(e['step'], e['action'], f"{e['confidence']:.2f}", e['lastOutcome'] or '-') for e in events],
-                      ['스텝', '행동', '확신', '직전 행동 결과'])
+    source = path.relative_to(repo).as_posix() if path.is_relative_to(repo) else str(path)
+    summary = run(scenario, play, launch, lambda payload: request(payload, key), out, source=source)
     log = play / 'player.log'  # 전체 로그는 커밋하지 않는다(.gitignore). 실패하면 원인 확인용으로 끝부분만 남긴다
     if not summary['passed'] and log.is_file():
         tail = log.read_text(encoding='utf-8', errors='replace').splitlines()[-200:]

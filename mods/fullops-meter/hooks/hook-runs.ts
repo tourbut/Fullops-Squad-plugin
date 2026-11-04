@@ -2,7 +2,7 @@ import type { HookRun } from '../types'
 import { ago, clock } from './meter'
 
 /** The settings hook events FullOps Squad's hooks.json hooks. */
-export const HOOK_EVENTS: ReadonlySet<string> = new Set(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'])
+export const HOOK_EVENTS: ReadonlySet<string> = new Set(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'SessionEnd'])
 /** Runs the pane keeps, newest first. */
 export const KEEP_HOOKS = 30
 /** Blocked runs the pane lists before it only counts. */

@@ -1,13 +1,13 @@
 # FullOps Squad privacy policy
 
-Last updated: 2026-10-16
+Last updated: 2026-11-04
 
 FullOps Squad is an open-source plugin for Claude Code, Codex and grok. This page describes what the plugin does with data. The project is maintained by tourbut. Source: https://github.com/tourbut/Fullops-Squad-plugin
 
 ## Summary
 
 - The plugin runs on your machine. It does not run a server and has no telemetry, analytics, or account system of its own.
-- It writes files only inside the repository you set it up in (`.fullops-squad/`), inside that repository's Git directory (`.git/fullops-*`), and in a local response cache (`~/.cache/fullops-squad/jev`). It also keeps hook runtime files under `~/.fullops-squad/runtime` in the own-marketplace edition.
+- It writes files only inside the repository you set it up in (`.fullops-squad/`), inside that repository's Git directory (`.git/fullops-*`), and in a local response cache (`~/.cache/fullops-squad/jev`). It also keeps hook runtime files under `~/.fullops-squad/runtime` in the own-marketplace edition. When you run `scripts/deps.py`, it writes an install record (`fullops-deps.json`) and backups of skills it replaces (`fullops-skill-backups/`) in each CLI's config folder (`~/.claude`, `~/.codex`, `~/.grok`). Trusting a repository for grok adds it to `~/.grok/trusted_folders.toml`.
 - It sends data to other services only in the cases below, and only when the matching feature runs. Each service handles that data under its own terms and privacy policy.
 - It is not directed at people under 18.
 
@@ -36,7 +36,7 @@ Set `FULLOPS_OFFLINE=1` to stop Jev calls and the board's issue list. Set `FULLO
 ## Your choices
 
 - Do not set the API keys and the matching features stay off or fall back to local behavior. See `CREDENTIALS.md` in the plugin for each key.
-- Uninstall the plugin and delete `.fullops-squad/` in your repositories, `~/.cache/fullops-squad`, and `~/.fullops-squad` to remove its files.
+- Uninstall the plugin and delete `.fullops-squad/` in your repositories, `~/.cache/fullops-squad`, `~/.fullops-squad`, and `fullops-deps.json` and `fullops-skill-backups/` in each CLI's config folder to remove its files.
 
 ## Changes and contact
 

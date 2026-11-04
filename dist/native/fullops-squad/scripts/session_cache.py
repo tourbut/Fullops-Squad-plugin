@@ -39,7 +39,8 @@ def usages(transcript):
             except ValueError:
                 continue
             usage = (row.get('message') or {}).get('usage') if isinstance(row, dict) else None
-            if isinstance(usage, dict) and row.get('timestamp'):
+            # Claude Code writes local errors (session limit, expired login) as zero-usage '<synthetic>' replies.
+            if isinstance(usage, dict) and row.get('timestamp') and row['message'].get('model') != '<synthetic>':
                 rows.append((row['timestamp'], usage))
     return rows
 

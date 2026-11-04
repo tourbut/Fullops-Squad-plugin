@@ -1,4 +1,5 @@
 """운영 모드와 테스트 범위의 정본을 읽는다. 역할·브랜치·기존 검사 계약은 보존한다."""
+import functools
 import json
 from pathlib import Path
 import re
@@ -31,9 +32,16 @@ class PolicyError(ValueError):
     pass
 
 
+@functools.lru_cache(maxsize=None)
+def common_dir(root):
+    """hook 한 번에 여러 모듈이 묻는 git 공통 디렉터리를 프로세스당 한 번만 계산한다. root는 str로 넘긴다."""
+    common = Path(subprocess.check_output(['git', '-C', root, 'rev-parse', '--git-common-dir'], text=True,
+                                          encoding='utf-8').strip())
+    return (common if common.is_absolute() else Path(root) / common).resolve()
+
+
 def transition_path(root):
-    common = Path(subprocess.check_output(['git', '-C', str(root), 'rev-parse', '--git-common-dir'], text=True).strip())
-    return (common if common.is_absolute() else Path(root) / common).resolve() / 'fullops-mode-transition.json'
+    return common_dir(str(Path(root).resolve())) / 'fullops-mode-transition.json'
 
 
 def validate(config):
@@ -54,7 +62,10 @@ def validate(config):
     if mode == 'dev' and (not role or not isinstance(branch, str) or branch == 'HEAD' or
                          not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*', branch)):
         raise PolicyError('dev 모드의 primary_role·primary_branch를 setup.py에서 지정하세요')
-    review = {**REVIEW_POLICY, **(config.get('review_policy') or {})}
+    custom = config.get('review_policy') or {}
+    if not isinstance(custom, dict):
+        raise PolicyError('review_policy는 객체여야 합니다')
+    review = {**REVIEW_POLICY, **custom}
     if any(type(review[k]) is not int or review[k] < 0 for k in ('min_code_lines', 'min_code_files')) or             not isinstance(review['always'], list) or not all(isinstance(g, str) and g for g in review['always']) or \
             type(review['auto']) is not bool:
         raise PolicyError('review_policy는 0 이상 정수 min_code_lines·min_code_files, 경로 glob 목록 always, boolean auto여야 합니다')
@@ -74,9 +85,10 @@ def load(root):
 
 
 def identity(root, config, coordinator=None, dispatched=False):
-    process = subprocess.run(['git', '-C', str(root), 'symbolic-ref', '--short', 'HEAD'], capture_output=True, text=True)
+    process = subprocess.run(['git', '-C', str(root), 'symbolic-ref', '--short', 'HEAD'], capture_output=True, text=True,
+                             encoding='utf-8')
     branch = process.stdout.strip() if process.returncode == 0 else subprocess.check_output(
-        ['git', '-C', str(root), 'rev-parse', '--abbrev-ref', 'HEAD'], text=True).strip()
+        ['git', '-C', str(root), 'rev-parse', '--abbrev-ref', 'HEAD'], text=True, encoding='utf-8').strip()
     role = next((role for role, name in config['roles'].items() if name == branch), None)
     if config['mode'] == 'coor':
         primary = role is None or role == (config.get('primary_role') or coordinator)

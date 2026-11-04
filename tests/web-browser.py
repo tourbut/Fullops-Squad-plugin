@@ -131,7 +131,7 @@ def main():
             if args.engine == 'ego':
                 result['ego'] = exercise(lambda safety: EgoBrowser(safety, args.ego), url, out / 'ego')
             if args.engine in ('orca', 'both'):
-                version = subprocess.run([web.find_orca(), '--version'], capture_output=True, text=True, timeout=10)
+                version = subprocess.run([web.find_orca(), '--version'], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10)
                 def factory(safety):
                     browser = web.Browser(web.find_orca(), args.worktree)
                     if version.returncode == 0:

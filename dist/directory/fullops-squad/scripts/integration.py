@@ -8,17 +8,16 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import shlex
 
-from done_gate import git
+from done_gate import ancestor, git
 from storage import write_json
 
 
 def dispatch_key(text):
     """명시 선언, 현재 인박스 또는 spec 첫 단어만 과제 정체성으로 쓴다."""
-    named = re.findall(r'\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)', text, re.I)
+    named = {key.rstrip('.') for key in re.findall(r'\bTask\s+key\s*[:=]?\s*([A-Za-z0-9][A-Za-z0-9._-]*)', text, re.I)}
     if named:
-        return named[0].rstrip('.') if len(set(named)) == 1 else None
+        return named.pop() if len(named) == 1 else None
     spec = re.search(r'--spec(?:=|\s+)["\']([^"\']+)', text)
     if spec:
         return re.match(r'[A-Za-z0-9][A-Za-z0-9._-]*', spec.group(1)).group(0) if re.match(r'[A-Za-z0-9]', spec.group(1)) else None
@@ -140,9 +139,7 @@ def record(root, messages):
 def tip(root, hashes):
     """구현·기록 커밋처럼 여러 SHA를 적었으면 나머지를 모두 포함하는 끝 커밋. 갈라졌거나 없으면 None"""
     for candidate in hashes:
-        if all(other == candidate or subprocess.run(
-                ['git', '-C', str(root), 'merge-base', '--is-ancestor', other, candidate],
-                capture_output=True).returncode == 0 for other in hashes):
+        if all(other == candidate or ancestor(root, other, candidate) for other in hashes):
             return candidate
     return None
 
@@ -244,11 +241,6 @@ def merge_drift(root, commands):
     return None
 
 
-def ancestor(root, source, target):
-    return subprocess.run(['git', '-C', str(root), 'merge-base', '--is-ancestor', source, target],
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
-
-
 def references(root, settings):
     connection = settings.get('git') or {}
     if connection:
@@ -270,13 +262,15 @@ def pending(root):
     result = []
     for path in sorted(directory(root).glob('*.json')):
         item = json.loads(path.read_text(encoding='utf-8'))
-        if item.get('hold'):
+        if item.get('hold') or item.get('integrated'):
             continue
         sha = item.get('sha')
         if not sha or not ancestor(root, sha, base):
             result.append({**item, 'action': '병합', 'base': base})
         elif published and not ancestor(root, sha, published):
             result.append({**item, 'action': 'push', 'base': base})
+        else:  # 통합을 마친 기록은 git으로 다시 검사하지 않는다(hook 시간 제한)
+            write_json(path, {**item, 'integrated': True})
     return result
 
 
@@ -330,7 +324,7 @@ def baseline_denial(root, command):
             check_independence(root, {'review_schema_version': 2, 'head': head, 'independence': {
                 'snapshot_path': str(worker), 'snapshot_head': head, 'read_only': True,
                 'implementer_session': fields['Implementer session'], 'reviewer_session': fields['Reviewer session']}})
-            if not ancestor(worker, head, head) or not ancestor(root, head, head):
+            if not ancestor(root, head, head):
                 raise ValueError('현재 저장소의 commit이 아닙니다')
         except (OSError, ValueError, subprocess.CalledProcessError) as error:
             return f'리뷰 snapshot 정체성 확인 실패: {error}'

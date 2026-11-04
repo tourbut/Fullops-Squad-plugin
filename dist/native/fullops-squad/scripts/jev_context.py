@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """dispatch 전 후보 문서를 Jev로 분류해 worker가 먼저 읽을 목록을 줄인다. 제외는 추천일 뿐 게이트가 아니다."""
 import argparse
-import json
-import os
 from pathlib import Path
 import re
 import subprocess
 import time
 
 from jev_observe import api_key, digest, excerpt, local_file, observe, request, safe_text, git_env
-from deliverables import front_matter
-from work import KEY, active_repo, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
+from deliverables import front_matter, split
+from work import KEY, TEMPLATE, active_repo, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
 
 SPAN_LINES, SPAN_CHARS, MAX_SOURCE = 34, 3500, 65536
 
@@ -32,9 +30,10 @@ def candidate(repo, head, rel, n, task=''):
         item['summary'] = safe_text(' — '.join(str(meta[k]) for k in ('title', 'summary') if meta.get(k)), 1000)
     except ValueError:
         pass
-    terms = set(re.findall(r'[A-Za-z_][A-Za-z_0-9]{2,}', task))
-    hits = [n for n, line in enumerate(lines) if n >= SPAN_LINES and any(re.search(rf'\b{re.escape(term)}\b', line) for term in terms)]
-    start = max(0, hits[0] - 5) if hits else 0
+    word = r'[A-Za-z_][A-Za-z_0-9]{2,}'  # 템플릿 안내문·front matter 단어는 과제 키워드가 아니다
+    terms = set(re.findall(word, split(task)[1])) - set(re.findall(word, TEMPLATE.read_text(encoding='utf-8')))
+    hit = next((n for n in range(SPAN_LINES, len(lines)) if any(re.search(rf'\b{re.escape(term)}\b', lines[n]) for term in terms)), None)
+    start = max(0, hit - 5) if hit is not None else 0
     end, size = start, 0
     while end < min(len(lines), start + SPAN_LINES) and size + len(lines[end]) <= SPAN_CHARS:
         size, end = size + len(lines[end]), end + 1
@@ -45,8 +44,6 @@ def candidate(repo, head, rel, n, task=''):
         return item, 'sensitive or oversized passage'
     saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{rel}'], capture_output=True, env=git_env())  # 체크아웃 변환(CRLF) 적용
     item['source'] = {'sha256': digest(raw), 'at_head': saved.returncode == 0 and saved.stdout == raw, 'span': span}
-    item['total_lines'], item['partial'] = len(lines), start != 0 or end < len(lines)
-    item['search_hits'] = [n + 1 for n in hits]
     return item, None
 
 
@@ -56,14 +53,16 @@ def context(repo, role, key, paths, call, required=(), handover=None):
     paths = list(dict.fromkeys(paths))
     if len(paths) > 20:
         raise ValueError('후보는 20개 이하로 좁히세요')
-    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True, env=git_env()).strip()
+    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True, encoding='utf-8', env=git_env()).strip()
     candidates, unsent, refused = [], {}, []
-    for n, name in enumerate(dict.fromkeys(paths)):
+    for n, name in enumerate(paths):
         try:
             rel = local_file(repo, name).relative_to(repo).as_posix()
         except (OSError, ValueError) as error:
             refused.append({'path': name, 'reason': str(error)})
             continue
+        if any(c['path'] == rel for c in candidates):
+            continue  # 같은 파일의 다른 표기(./a, 절대 경로)는 한 번만 분류한다
         item, reason = candidate(repo, head, rel, n, text)
         candidates.append(item)
         if reason:
@@ -77,8 +76,7 @@ def context(repo, role, key, paths, call, required=(), handover=None):
     return {**outcome, **input_identity(repo, role, key, {'policy': 'context-v2', 'paths': paths, 'required': list(required)}),
             'unsent_sources': unsent, 'refused_paths': refused,
             'elapsed_seconds': round(time.monotonic() - started, 3),
-            'input_partial': len(text) > 3500, 'instruction_chars': len(text),
-            'remaining_instruction': {'start_char': 3500, 'end_char': len(text)} if len(text) > 3500 else None}
+            'input_partial': len(text) > 3500, 'instruction_chars': len(text)}
 
 
 def report(result):

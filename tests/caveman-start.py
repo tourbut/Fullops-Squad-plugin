@@ -20,13 +20,14 @@ import storage
 def target(command):
     assert 'CLAUDE_PLUGIN_ROOT' not in command and '/cache/' not in command
     assert '.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py' in command
-    return shlex.split(command)[3:]
+    assert command.startswith('python3 -I -X utf8 -c ')
+    return shlex.split(command)[6:]
 
 
 for host in ('codex', 'claude'):
-    manifest = json.loads((PACKAGE / f'.{host}-plugin/plugin.json').read_text())
+    manifest = json.loads((PACKAGE / f'.{host}-plugin/plugin.json').read_text(encoding='utf-8'))
     # Claude Code는 hooks/hooks.json을 자동으로 읽으므로 manifest에 중복 선언하지 않는다.
-    config = json.loads((PACKAGE / manifest.get('hooks', './hooks/hooks.json')).read_text())
+    config = json.loads((PACKAGE / manifest.get('hooks', './hooks/hooks.json')).read_text(encoding='utf-8'))
     assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'} | (
         {'PostToolUseFailure'} if host == 'claude' else set())  # 종료코드가 0이 아닌 배정 명령도 기록한다
     group, gate, flow = config['hooks']['SessionStart']
@@ -50,7 +51,7 @@ with tempfile.TemporaryDirectory() as directory:
            'CLAUDE_CONFIG_DIR': str(Path(directory) / 'custom-claude')}
     def run():
         return json.loads(subprocess.check_output(
-            [sys.executable, str(PACKAGE / 'scripts/caveman_start.py')], env=env, text=True))
+            [sys.executable, str(PACKAGE / 'scripts/caveman_start.py')], env=env, text=True, encoding='utf-8'))
     assert 'hookSpecificOutput' not in run()
     for root in (Path(directory) / '.agents', Path(env['CODEX_HOME']), Path(env['CLAUDE_CONFIG_DIR'])):
         skill = root / 'skills/caveman/SKILL.md'
@@ -75,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix='fullops hook ') as directory:
     commands = [h['command'] for groups in config['hooks'].values() for g in groups for h in g['hooks']]
     def invoke(command):
         result = subprocess.run([sys.executable, *shlex.split(command)[1:]], input='{}',
-                                text=True, capture_output=True, env=env, cwd=home)
+                                text=True, encoding='utf-8', capture_output=True, env=env, cwd=home)
         assert result.returncode == 0, (command, result.stderr)
         return result.stdout
     with patch.object(hook_runtime, 'runtime_root', return_value=root):

@@ -29,6 +29,14 @@ def origin(url):
     return f'{parts.scheme}://{host}' + (f':{port}' if port and port != (443 if parts.scheme == 'https' else 80) else '')
 
 
+def origin_allowed(url, origins):
+    """해석할 수 없는 주소나 문자열이 아닌 값은 막는다. JS 브리지처럼 닫힌 쪽으로 실패한다."""
+    try:
+        return isinstance(url, str) and origin(url) in origins
+    except ValueError:
+        return False
+
+
 def loopback(url):
     host = urlsplit(url).hostname
     try:
@@ -91,9 +99,9 @@ def problems(scenario, operations):
         found.append('allowed_origins must be a bounded origin list')
     else:
         try:
-            if any(origin(v) != v for v in origins) or origins and origin(scenario['url']) not in origins:
+            if any(origin(v) != v for v in origins) or 'allowed_origins' in safety and origin(scenario['url']) not in origins:
                 found.append('allowed_origins must contain exact origins including the start URL')
-        except (KeyError, ValueError):
+        except (KeyError, TypeError, ValueError):
             found.append('allowed_origins are invalid')
     allowed = safety.get('allowed_operations', [])
     if not isinstance(allowed, list) or any(not isinstance(v, str) or v not in operations for v in allowed) or len(set(allowed)) != len(allowed):

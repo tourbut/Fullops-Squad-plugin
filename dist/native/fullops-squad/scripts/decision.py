@@ -8,14 +8,14 @@ from pathlib import Path
 import re
 
 from done_gate import git
+from policy import common_dir
 from storage import write_json
 
 STATES = ('open', 'answered', 'dropped')
 
 
 def directory(root):
-    common = Path(git(root, 'rev-parse', '--git-common-dir'))
-    return (common if common.is_absolute() else Path(root) / common).resolve() / 'fullops-decisions'
+    return common_dir(str(Path(root).resolve())) / 'fullops-decisions'
 
 
 def now():
