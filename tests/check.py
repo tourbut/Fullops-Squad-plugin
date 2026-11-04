@@ -88,6 +88,7 @@ def main():
         assert manifest['userConfig']['context7_api_key']['sensitive'] is True
         assert '${user_config.context7_api_key}' in context7['headers']['Authorization']
         assert (directory / 'CREDENTIALS.md').is_file() and (native / 'CREDENTIALS.md').is_file()
+        assert (directory / 'events.md').is_file() and (native / 'events.md').is_file()
         hooks = loads((directory / 'hooks/hooks.json').read_text(encoding='utf-8'))
         commands = [h['command'] for groups in hooks['hooks'].values() for group in groups for h in group['hooks']]
         assert len(commands) == 10 and all(c.startswith('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ') for c in commands)

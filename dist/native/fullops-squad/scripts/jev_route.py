@@ -256,6 +256,7 @@ def main():
     parser.add_argument('--reason', help='--override-role의 근거(500자 이하)')
     parser.add_argument('--force', action='store_true', help='기존 결과를 백업하고 같은 키로 재선정')
     parser.add_argument('--strict', action='store_true', help='Jev 폴백이 발생하면 결과를 기록하지 않고 오류로 종료')
+    parser.add_argument('--origin', choices=['user', 'bot'], default='user', help='요청 진입점. 봇 경유 요청은 bot')
     parser.add_argument('--env-file', help='TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY를 코드 실행 없이 읽는다')
     args = parser.parse_args()
     try:
@@ -306,6 +307,7 @@ def main():
                   route(repo, args.key, args.request, call, args.override_role, args.reason, args.agent, args.model, args.effort))
     except (OSError, ValueError) as error:
         parser.exit(1, f'Jev 라우팅 실패: {error}\n')
+    result['origin'] = args.origin
     errors = [result['error']] if result.get('error') else []
     if result.get('docs_status') == 'partial':
         errors.append('산출물 일부 미확인: ' + ', '.join(result.get('unresolved_deliverables') or []))

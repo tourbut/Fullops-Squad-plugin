@@ -45,6 +45,7 @@ def build(output=NATIVE):
         shutil.copy2(ROOT / "LICENSE", staged / "LICENSE")
         shutil.copytree(ROOT / "docs/releases", staged / "releases")
         shutil.copy2(ROOT / "docs/issue-auto-mode.md", staged / "issue-auto-mode.md")
+        shutil.copy2(ROOT / "docs/events.md", staged / "events.md")  # orca-helm·봇이 읽는 이벤트·결정 형식
         shutil.copy2(ROOT / "docs/credentials.md", staged / "CREDENTIALS.md")
         write_json(staged / "plugin.json", {key: common[key] for key in ("name", "version", "description")})
         for host, directory in (("codex", ".codex-plugin"), ("claude-code", ".claude-plugin")):
