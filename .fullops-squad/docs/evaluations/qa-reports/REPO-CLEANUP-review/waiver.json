@@ -1,0 +1,15 @@
+{
+  "state": "waived",
+  "base": "71893540a4a7f22a4347a65e3aa9fdbc5abad203",
+  "head": "9ed74bd0c9b222147aed64894c1f56503eafeeda",
+  "reason": "사용자 결정 D003: PR #126 독립 리뷰 생략. 병합 책임자가 diff, 전체 npm test(35de341), gate lint ERROR 0(9ed74bd), Linux CI checks 통과로 확인",
+  "decided_by": "user",
+  "at": "2026-11-04T22:36:40+00:00",
+  "need": {
+    "required": true,
+    "reason": "대규모 코드 변경: 132개 파일 4205줄 (기준 15개 또는 400줄)",
+    "code_files": 132,
+    "code_lines": 4205,
+    "always": []
+  }
+}
