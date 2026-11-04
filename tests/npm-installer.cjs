@@ -40,7 +40,7 @@ test('Codex homes include current, default, explicit and existing Orca without c
 test('marketplace source conflicts block registration; Claude dependencies come first', () => {
   const target = { host: 'claude-code', cli: 'claude', label: 'claude' };
   const commands = installer.registration(target, new Map());
-  assert.deepEqual(commands.map(c => c[1][3]), ['DietrichGebert/ponytail', 'anthropics/claude-plugins-official', 'tourbut/Fullops-Squad-plugin']);
+  assert.deepEqual(commands.map(c => c[1][3]), ['DietrichGebert/ponytail', 'anthropics/claude-plugins-official', 'cursor/plugins', 'tourbut/Fullops-Squad-plugin']);
   assert.throws(() => installer.registration(target, new Map([['fullops-squad', 'another/repo']])), /출처 충돌/);
   assert.equal(installer.normalizeSource('https://github.com/tourbut/Fullops-Squad-plugin.git'), 'tourbut/fullops-squad-plugin');
 });
