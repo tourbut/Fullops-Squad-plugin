@@ -1,12 +1,12 @@
 {
   "title": "FullOps Squad 플러그인",
-  "summary": "v1.15.1 운영 중. 이 레포에 FullOps를 적용해 개발하며 이슈 자동 모드를 실사용 검증한다.",
+  "summary": "v1.16.0 운영 중. 이 레포에 FullOps를 적용해 개발하며 이슈 자동 모드를 실사용 검증한다.",
   "phases": [
     {
       "name": "구현",
       "status": "doing",
       "deliverables": [],
-      "note": "전체 코드 정리·리팩토링 진행 중 (chore/repo-cleanup)"
+      "note": "1.16.0: 전체 정리와 자동 승인 섀도 판정(#125 1·2단계)"
     },
     {
       "name": "QA",
