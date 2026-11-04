@@ -140,7 +140,7 @@ python3 <플러그인>/scripts/jev_find.py find --repo . --role dev --key TASK-1
 ```
 
 결과는 각각 `<과제 키>-find.json`과 `<과제 키>-documents-find.json`에 남습니다.
-별도 지시서에는 `--handover .fullops-squad/handovers/<파일>.md`를 지정합니다.
+`--handover`는 역할 인박스 `.fullops-squad/handovers/to_<역할>.md`만 받습니다.
 필요한 후보를 합친 뒤 `jev_context.py`가 관련성·근거·충돌·AI 지시문을 분류합니다. 추천이므로 필수 문서는 유지합니다.
 코드와 문서 검색을 분리해 문서 후보가 코드 후보를 밀어내는 것을 방지합니다.
 

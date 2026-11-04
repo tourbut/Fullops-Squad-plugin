@@ -14,6 +14,8 @@ spec = importlib.util.spec_from_file_location('jev_context', SCRIPTS / 'jev_cont
 jev = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev)
 import jev_observe  # noqa: E402 — SCRIPTS를 경로에 넣은 뒤 import한다
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED', 'FULLOPS_JEV_CACHE_BYPASS'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기·캐시 우회 설정과 무관하게 stub과 캐시 적중을 검사한다
 
 
 def answers(payload, omit):
@@ -44,7 +46,7 @@ def main():
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'fixture')
         subprocess.run([sys.executable, str(SCRIPTS / 'work.py'), 'new', '--repo', tmp, '--role', 'dev',
                         '--key', 'T-1', '--goal', '로그인 오류 수정'], check=True, capture_output=True)
-        paths = ['src/auth.py', 'src/old.py', 'src/conf.py', 'src/big.py', '.env', 'src/auth.py']
+        paths = ['src/auth.py', 'src/old.py', 'src/conf.py', 'src/big.py', '.env', 'src/auth.py', './src/auth.py']
         sent = []
 
         def call(payload):

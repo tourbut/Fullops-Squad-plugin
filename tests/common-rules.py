@@ -58,7 +58,7 @@ class CommonRulesTests(unittest.TestCase):
         self.git('init', '-q', '-b', 'main')
 
     def git(self, *args):
-        return subprocess.check_output(['git', '-C', str(self.repo), *args], text=True).strip()
+        return subprocess.check_output(['git', '-C', str(self.repo), *args], encoding='utf-8').strip()
 
     def activate(self, **kwargs):
         with contextlib.redirect_stdout(io.StringIO()):
@@ -74,25 +74,25 @@ class CommonRulesTests(unittest.TestCase):
     def test_rules_have_bounded_scope_provenance_and_local_links(self):
         directory = ASSETS / 'rules/common'
         self.assertEqual({p.name for p in directory.iterdir()}, BUNDLE_NAMES)
-        readme = (directory / 'README.md').read_text()
+        readme = (directory / 'README.md').read_text(encoding='utf-8')
         self.assertIn('fullops-common-0.3.6', readme)
         self.assertIn('934195f955cf0da847d59fcd6f68856bce112d8b', readme)
-        license_text = (directory / 'ECC-LICENSE.txt').read_text()
+        license_text = (directory / 'ECC-LICENSE.txt').read_text(encoding='utf-8')
         self.assertIn('Copyright (c) 2026 Affaan Mustafa', license_text)
         self.assertIn('The above copyright notice and this permission notice', license_text)
         for file in directory.glob('*.md'):
-            for target in re.findall(r'\]\(([^)]+)\)', file.read_text()):
+            for target in re.findall(r'\]\(([^)]+)\)', file.read_text(encoding='utf-8')):
                 if '://' not in target and not target.startswith('#'):
                     self.assertTrue((file.parent / target.split('#', 1)[0]).is_file(), target)
         for name in RULE_NAMES:
-            content = (directory / name).read_text()
+            content = (directory / name).read_text(encoding='utf-8')
             self.assertLessEqual(len(content.splitlines()), 60)
             self.assertNotRegex(content, r'ecc:|tdd-guide|security-reviewer|TodoWrite|~/.claude')
         for name in ('FULLOPS.md', 'project.md', 'handovers/_TEMPLATE.md'):
-            self.assertIn('rules/common/README.md', (ASSETS / name).read_text())
+            self.assertIn('rules/common/README.md', (ASSETS / name).read_text(encoding='utf-8'))
         for name in ('setup-fullops', 'fullops-work', 'fullops-review', 'fullops-orca'):
             self.assertIn('.fullops-squad/rules/common/README.md',
-                          (PLUGIN / 'skills' / name / 'SKILL.md').read_text())
+                          (PLUGIN / 'skills' / name / 'SKILL.md').read_text(encoding='utf-8'))
 
     def test_dry_run_is_local_and_activation_copies_rules(self):
         before = snapshot(self.root)
@@ -110,7 +110,7 @@ class CommonRulesTests(unittest.TestCase):
         self.activate(roles=['implementer'])
         for name in ['rules/common/coding-style.md', 'FULLOPS.md', 'project.md',
                      'handovers/_TEMPLATE.md', 'handovers/to_implementer.md']:
-            (self.repo / '.fullops-squad' / name).write_text('# 사용자 수정본\n보존해야 한다.\n')
+            (self.repo / '.fullops-squad' / name).write_text('# 사용자 수정본\n보존해야 한다.\n', encoding='utf-8')
         before = snapshot(self.repo)
         self.assertEqual(self.activate(), [])
         self.assertEqual(snapshot(self.repo), before)
@@ -119,11 +119,11 @@ class CommonRulesTests(unittest.TestCase):
         self.activate(roles=['implementer'])
         shutil.rmtree(self.repo / RULES)
         marker = self.repo / '.fullops-squad/fullops.json'
-        config = json.loads(marker.read_text())
+        config = json.loads(marker.read_text(encoding='utf-8'))
         config['plugin_version'] = '0.3.0'
-        marker.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', newline='\n')
+        marker.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', newline='\n', encoding='utf-8')
         for name in ['FULLOPS.md', 'project.md', 'handovers/_TEMPLATE.md']:
-            (self.repo / '.fullops-squad' / name).write_text('# 기존 레포 정본\n자동 교체 금지\n')
+            (self.repo / '.fullops-squad' / name).write_text('# 기존 레포 정본\n자동 교체 금지\n', encoding='utf-8')
         before = snapshot(self.repo)
         planned = self.activate(dry_run=True)
         self.assertEqual(snapshot(self.repo), before)
@@ -132,14 +132,14 @@ class CommonRulesTests(unittest.TestCase):
         self.assert_bundle(self.repo)
         for name, content in before.items():
             self.assertEqual((self.repo / name).read_bytes(), content, name)
-        self.assertEqual(json.loads(marker.read_text())['plugin_version'], '0.3.0')
+        self.assertEqual(json.loads(marker.read_text(encoding='utf-8'))['plugin_version'], '0.3.0')
 
     def test_symlink_rule_destination_is_rejected_before_writes(self):
         self.activate(roles=['implementer'])
         shutil.rmtree(self.repo / RULES)
         external = self.root / 'external'
         external.mkdir()
-        (external / 'keep.md').write_text('수정 금지\n')
+        (external / 'keep.md').write_text('수정 금지\n', encoding='utf-8')
         try:
             (self.repo / RULES).symlink_to(external, target_is_directory=True)
         except (OSError, NotImplementedError):
@@ -154,9 +154,9 @@ class CommonRulesTests(unittest.TestCase):
         before = snapshot(PLUGIN)
         native = build.build(self.root / 'native')
         self.assert_bundle(native / 'assets/repository')
-        version = json.loads((PLUGIN / 'plugin.json').read_text())['version']
+        version = json.loads((PLUGIN / 'plugin.json').read_text(encoding='utf-8'))['version']
         for name in ('plugin.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json'):
-            self.assertEqual(json.loads((native / name).read_text())['version'], version)
+            self.assertEqual(json.loads((native / name).read_text(encoding='utf-8'))['version'], version)
         packaged_repo = self.root / 'packaged service'
         packaged_repo.mkdir()
         subprocess.run(['git', 'init', '-q', str(packaged_repo)], check=True)
@@ -170,7 +170,7 @@ class CommonRulesTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             work.new(self.repo, 'implementer', 'RULES-1', '공통 기준으로 구현')
         inbox = Path('.fullops-squad/handovers/to_implementer.md')
-        self.assertIn('## 적용 기준과 예외', (self.repo / inbox).read_text())
+        self.assertIn('## 적용 기준과 예외', (self.repo / inbox).read_text(encoding='utf-8'))
         self.git('add', '.')
         self.git('-c', 'user.name=FullOps Test', '-c', 'user.email=test@example.com',
                  'commit', '-q', '-m', 'test: prepare common rules and handover')

@@ -11,11 +11,10 @@ from board import deliverables
 from deliverables import front_matter
 from jev_find import code_map, git, result_path, MAX_BLOB
 from jev_observe import local_file, REQUIRED, digest, safe_text, git_env
-from work import active_repo, instruction, instruction_digest, input_identity, previous_result, save_result, task_excerpt, KEY
+from work import PACKET_BLOCK, active_repo, authored, instruction, instruction_digest, input_identity, previous_result, save_result, task_excerpt, KEY
 from storage import atomic_write
 
 CATEGORIES = ('direct_edit', 'impact_check', 'document_read', 'document_update')
-PACKET_BLOCK = r'<!-- fullops-packet:start -->[\s\S]*?<!-- fullops-packet:end -->\n*'
 # 문자열 검색에서 뺀다: 과거 산출물·증거·보관 기록은 명시 seed·필수·producer 추천으로만 들어온다.
 NOISE = ('artifacts/', '.fullops-squad/docs/evaluations/', '.fullops-squad/contexts/archive/', '.fullops-squad/handovers/logs/')
 SEARCH_REASON = 'symbol/keyword occurrence; reference semantics require verification'
@@ -68,14 +67,15 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                 ctx_status = data.get('context') or {}
                 if ctx_status.get('fallback'):
                     producer_status[suffix]['context_fallback'] = ctx_status['fallback']
-                if data.get('error') or data.get('partial') or data.get('input_partial') or data.get('docs_status') == 'partial' or data.get('unresolved_deliverables') or data.get('remaining_candidates') or data.get('refused_paths') or data.get('unsent_sources') or data.get('fallback') or ctx_status.get('fallback'):
+                status = producer_status[suffix]
+                if status.get('docs_status') == 'partial' or any(v for k, v in status.items() if k not in ('docs_status', 'ranking_status')):
                     unknown.append({'source': suffix, 'reason': 'producer uncertainty; inspect producer_status', **producer_status[suffix]})
     recommended = {c['path'] for c in sources.get('find', {}).get('candidates', [])} | set(sources.get('find', {}).get('seed_paths', []))
     explicit = set(seeds)
     dirty = git(repo, 'status', '--porcelain', '--untracked-files=all')
-    explicit.update(p for p in git(repo, 'diff', '--name-only', 'HEAD').splitlines() if not p.startswith(
+    changed = set(git(repo, 'diff', '--name-only', '-z', 'HEAD').split('\0')) - {''}
+    explicit.update(p for p in changed if not p.startswith(
                   ('.fullops-squad/handovers/', '.fullops-squad/board/', '.fullops-squad/docs/evaluations/jev/')))
-    direct = explicit
     mandatory = set(REQUIRED) | set(required)
     route = sources.get('route', {})
     update_ids = set(updates) | set(route.get('deliverables', []))
@@ -85,7 +85,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     optional = {p for p, cid in contexts.items() if (ctx.get('signals', {}).get(cid) or {}).get('decision') == 'suggest_omit'}
     mandatory.update(path for path in ctx.get('required_paths', []) if path)
     mapped = {path for scope in ('code', 'documents') for path, _ in code_map(repo, head, scope) if not path.startswith(NOISE)}
-    mapped.update(direct | mandatory | documents | set(contexts))
+    mapped.update(explicit | mandatory | documents | set(contexts))
     texts, file_hashes, source_basis = {}, {}, {}
     tracked = set(git(repo, 'ls-files', '-z').split('\0'))
     for name in sorted(mapped):
@@ -98,10 +98,8 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
             body = text if path == inbox else raw.decode('utf-8')
             texts[name] = body
             file_hashes[name] = instruction_digest(body) if path == inbox else digest(body.replace('\r\n', '\n').encode())
-            saved = subprocess.run(['git', '-C', str(repo), 'cat-file', '--filters', f'{head}:{name}'],
-                                   capture_output=True, env=git_env())
-            source_basis[name] = ('HEAD' if saved.returncode == 0 and saved.stdout == raw else
-                                  'tracked_worktree_overlay' if name in tracked else 'explicit_untracked_or_required')
+            source_basis[name] = (('tracked_worktree_overlay' if name in changed else 'HEAD') if name in tracked
+                                  else 'explicit_untracked_or_required')
         except (OSError, ValueError, UnicodeError):
             unknown.append({'path': name, 'reason': 'missing, oversized, sensitive or invalid; manual inspection'})
 
@@ -119,8 +117,8 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
         if doc_id and doc_id not in item['doc_ids']:
             item['doc_ids'].append(doc_id)
 
-    for path in direct:
-        add(path, 'document_update' if path.endswith('.md') else 'direct_edit', 'explicit edit seed/diff' if path in explicit else 'code find recommendation')
+    for path in explicit:
+        add(path, 'document_update' if path.endswith('.md') else 'direct_edit', 'explicit edit seed/diff')
     for path in mandatory | documents | recommended | (set(contexts) - optional):
         add(path, 'document_read' if path.endswith('.md') else 'impact_check', 'required or existing context recommendation')
         if path in contexts:
@@ -135,7 +133,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
     noise_terms = set(re.split(r'[^a-z0-9]+', key.lower())) | {role.lower()}  # 과제 키 조각은 모든 기록에 나온다
     terms = {t for t in terms if t.lower() not in noise_terms}
     symbols = {}
-    for path in direct:
+    for path in explicit:
         body = texts.get(path, '')
         try:
             tree = ast.parse(body) if path.endswith('.py') else None
@@ -162,7 +160,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
         for line, value in enumerate(body.splitlines(), 1):
             matches = [s for s in symbols if re.search(rf'\b{re.escape(s)}\b', value)]
             for symbol in matches[:4]:
-                if path in direct:
+                if path in explicit:
                     continue
                 category = 'document_read' if path.endswith('.md') else 'impact_check'
                 add(path, category, SEARCH_REASON,
@@ -176,13 +174,14 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
                         link_path = linked.resolve().relative_to(repo.resolve()).as_posix()
                     except ValueError:
                         continue
-                    if link_path in direct:
+                    if link_path in explicit:
                         add(path, 'document_read', 'local link to seed', {'method': 'markdown-link', 'line': line, 'seed': link_path})
                         entries[path]['sections'] = [target.split('#', 1)[1]] if '#' in target else []
+    mentioned = authored(text)  # 템플릿의 D01~D13 안내는 문서 언급이 아니다
     for doc in deliverables(repo / '.fullops-squad'):
         for source in doc['documents']:
             path = '.fullops-squad/' + source['path']
-            if doc['id'] in update_ids or path in entries or doc['id'] in text:
+            if doc['id'] in update_ids or path in entries or doc['id'] in mentioned:
                 add(path, 'document_update' if doc['id'] in update_ids else 'document_read',
                     'route/explicit update candidate' if doc['id'] in update_ids else 'source mapping/reference; keep unchanged unless verified',
                     {'method': 'deliverable-index', 'id': doc['id'], 'source': doc['source']}, doc['id'])
@@ -243,7 +242,7 @@ def build(repo, role, key, seeds=(), required=(), updates=(), decisions=(), forc
     if write_inbox:
         inbox, text = instruction(repo, role, key)
         text = re.sub(PACKET_BLOCK, '', text)
-        atomic_write(inbox, text.replace('## 완료 보고', handover(result, output.relative_to(repo)) + '\n\n## 완료 보고', 1))
+        atomic_write(inbox, text.replace('## 완료 보고', handover(result, output.relative_to(repo).as_posix()) + '\n\n## 완료 보고', 1))
     return result, output
 
 
@@ -257,7 +256,7 @@ def check(repo, role, key, completion=False, required=False, head=None, text=Non
     if text is None:
         _, text = instruction(repo, role, key)
     route = result_path(repo, key, 'route')
-    required = required or '<!-- fullops-packet:start -->' in text or result_path(repo, key, 'packet').is_file() or (route.is_file() and json.loads(route.read_text()).get('requires_packet'))
+    required = required or '<!-- fullops-packet:start -->' in text or result_path(repo, key, 'packet').is_file() or (route.is_file() and json.loads(route.read_text(encoding='utf-8')).get('requires_packet'))
     if not required:
         return
     try:
@@ -320,9 +319,9 @@ def main():
         if not KEY.fullmatch(args.key):
             raise ValueError('invalid task key')
         repo = active_repo(args.repo)
-        decisions = json.loads(local_file(repo, args.decisions).read_text()) if args.decisions else []
+        decisions = json.loads(local_file(repo, args.decisions).read_text(encoding='utf-8')) if args.decisions else []
         result, output = build(repo, args.role, args.key, args.seeds, args.required, args.update_docs, decisions, args.force, args.write_inbox)
-        print(output.relative_to(repo))
+        print(output.relative_to(repo).as_posix())
         print(f'후보 {len(result["items"])} · 전달 {len(delivered(result))} · partial={result["partial"]} · 미확인 {len(result["unknown"])}')
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'탐색 패킷 실패: {error}\n')

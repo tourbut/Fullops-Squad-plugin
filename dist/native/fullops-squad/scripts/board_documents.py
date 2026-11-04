@@ -87,14 +87,13 @@ def markdown(text):
 def documents(root, sources):
     root, result, seen = root.resolve(), [], set()
     for source in sources:
-        name = source
-        path = root / name
+        path = root / source
         try:
             if not path.resolve().is_relative_to(root) or any(p.is_symlink() for p in (path, *path.parents) if p != root and p.is_relative_to(root)):
                 raise ValueError('unsafe source')
             files = sorted(path.rglob('*.md')) if path.is_dir() else [path]
         except (OSError, ValueError):
-            result.append({'path': name, 'title': name, 'state': 'blocked', 'exists': False})
+            result.append({'path': source, 'title': source, 'state': 'blocked', 'exists': False})
             continue
         for file in files or [path]:
             relative = file.relative_to(root).as_posix()

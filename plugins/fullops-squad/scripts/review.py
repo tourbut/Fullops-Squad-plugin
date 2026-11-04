@@ -11,14 +11,14 @@ import subprocess
 import time
 import uuid
 from datetime import date, datetime, timezone
-from fnmatch import fnmatch
 
 import jev_find
 import deliverables
-from lint import changed_paths, code_changes, load_config, skips_paths, skips_tests, NO_CODE, PATHS
+from lint import changed_paths, code_changes, load_config, matches, skips_paths, skips_tests, NO_CODE, PATHS
 from jev_route import product_roles
-from work import active_repo, safe_file, KEY
+from work import active_repo, archived, safe_file, KEY
 from storage import write_json, atomic_write
+from done_gate import ancestor
 
 
 def ocr_command():
@@ -28,7 +28,7 @@ def ocr_command():
 def sha(repo, ref):
     if ref.startswith('-'):
         raise ValueError('Git 옵션을 ref로 사용할 수 없습니다')
-    return subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', ref + '^{commit}'], text=True).strip()
+    return subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify', ref + '^{commit}'], text=True, encoding='utf-8').strip()
 
 
 def rule_hash(rule):
@@ -37,7 +37,7 @@ def rule_hash(rule):
 
 EVIDENCE = '.fullops-squad/docs/evaluations/qa-reports/'
 # 하네스가 자동 생성·보관하는 기록. 요구사항 원천으로 읽을 수는 있지만 리뷰 대상 변경이 아니다.
-GENERATED = (EVIDENCE, '.fullops-squad/docs/evaluations/jev/', '.fullops-squad/handovers/logs/')
+GENERATED = ('.fullops-squad/docs/evaluations/jev/', '.fullops-squad/handovers/logs/')
 EVIDENCE_REASON = ('검증 증거·하네스 자동 생성 기록. 파일마다 열람하지 않고 같은 폴더의 manifest·result.json·report.md로 '
                    '존재와 무결성을 확인한다.')
 
@@ -48,7 +48,7 @@ SUMMARY = ('manifest.json', 'result.json')
 def evidence(path, reviewable=False):
     """리뷰어가 수백 개에 같은 사유를 적지 않게 prepare가 미리 채운다.
     OCR 대상 QA 증거 중 요약(manifest·result·.md)과 검증 스크립트는 직접 검토하고, 이전 리뷰 기록과 원시 JSON은 생략한다."""
-    if path.startswith(GENERATED[1:]) or path.endswith('.bak'):
+    if path.startswith(GENERATED) or path.endswith('.bak'):
         return True
     if not path.startswith(EVIDENCE):
         return False
@@ -66,13 +66,11 @@ def need(repo, base, head):
     """기준 설정(merge-base)의 review_policy로 독립 리뷰 필요 여부를 정한다. 작업 브랜치가 기준을 낮추지 못한다."""
     import policy
     base, head = sha(repo, base), sha(repo, head)
-    merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', base, head], text=True).strip()
+    merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', base, head], text=True, encoding='utf-8').strip()
     rules = policy.config_at_ref(repo, merge_base)[0]['review_policy']
     code = code_changes(repo, merge_base, head, load_config(repo, merge_base)[0])
     lines = sum(n for _, n in code)
-    changed = subprocess.check_output(['git', '-C', str(repo), 'diff', '--name-only', '-z', '--no-renames', merge_base, head],
-                                      text=True).split('\0')
-    forced = [p for p in changed if p and any(fnmatch(p, g) or (g.startswith('**/') and fnmatch(p, g[3:])) for g in rules['always'])]
+    forced = [p for p in changed_paths(repo, merge_base, head) if matches(p, rules['always'])]
     required = bool(forced) or lines >= rules['min_code_lines'] or len(code) >= rules['min_code_files']
     if forced:
         reason = f'review_policy.always 경로 변경: {", ".join(forced[:5])}'
@@ -96,6 +94,8 @@ def waive(repo, key, base, head, reason, decided_by):
     path = folder / 'waiver.json'
     if path.exists():
         raise ValueError('기존 면제 기록을 보존합니다. 새 리뷰 키를 사용하세요')
+    if (folder / 'snapshot-cleanup.json').is_file():
+        raise ValueError('정리까지 끝난 리뷰 기록을 보존합니다. 새 리뷰 키를 사용하세요')
     record = snapshot_record(repo, key)
     if (folder / 'result.json').is_file() or (record.is_file() and
             str(json.loads(record.read_text(encoding='utf-8')).get('state', '')).startswith(('active', 'creating'))):
@@ -117,11 +117,11 @@ def waived(repo, base, head):
 
 def worker_lint(repo, result):
     """같은 base·head로 이미 통과한 체크아웃별 lint 결과를 찾는다. 테스트를 다시 실행하지 않는다."""
-    listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True)
+    listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True, encoding='utf-8')
     for line in listed.splitlines():
         if not line.startswith('worktree '):
             continue
-        done = subprocess.run(['git', '-C', line[9:], 'rev-parse', '--absolute-git-dir'], capture_output=True, text=True)
+        done = subprocess.run(['git', '-C', line[9:], 'rev-parse', '--absolute-git-dir'], capture_output=True, text=True, encoding='utf-8')
         source = Path(done.stdout.strip()) / 'fullops-gate/lint-result.json'
         try:
             raw = source.read_bytes()
@@ -142,17 +142,30 @@ def prepare(repo, key, base, head, lint_source=None):
     env = dict(os.environ, OCR_NO_UPDATE='1')
     options = ['--repo', str(repo), '--from', base, '--to', head, '--rule', str(rule), '--format', 'json']
     def ocr(*args):
-        return json.loads(subprocess.check_output([ocr_command(), 'delegate', *args, *options], text=True, env=env))
+        return json.loads(subprocess.check_output([ocr_command(), 'delegate', *args, *options], text=True, encoding='utf-8', env=env))
     preview = ocr('preview')
     if preview.get('schema_version') != '1':
         raise ValueError('지원하지 않는 OCR preview 스키마')
     paths = [item['path'] for item in preview['reviewable_files']]
     if any(p.startswith('-') for p in paths):
         raise ValueError('옵션과 혼동되는 파일명은 직접 검토하세요')
-    rules = ocr('rule', *paths) if paths else {'schema_version': '1', 'groups': []}
-    if rules.get('schema_version') != '1' or digest != rule_hash(rule):
+    if ocr_command().lower().endswith(('.cmd', '.bat')):
+        # npm ocr.cmd는 cmd.exe를 거친다. 메타문자 파일명은 명령 주입을 막으려고 규칙 조회에서 빼고 pending으로 직접 검토한다
+        unsafe = [p for p in paths if re.search(r'[&|<>^%"]', p)]
+        if unsafe:
+            print(f'cmd.exe 메타문자 파일명은 OCR 규칙 조회에서 제외합니다(직접 검토): {", ".join(unsafe)}')
+        paths = [p for p in paths if p not in unsafe]
+    rules, batch = {'schema_version': '1', 'groups': []}, []
+    for index, path in enumerate(paths):
+        batch.append(path)
+        if index == len(paths) - 1 or len(subprocess.list2cmdline(batch + [paths[index + 1]])) > 6000:  # cmd.exe 8191자 제한
+            part = ocr('rule', *batch)
+            if part.get('schema_version') != '1':
+                raise ValueError('규칙 스키마 또는 실행 중 규칙 변경을 확인하세요')
+            rules, batch = {**part, 'groups': rules['groups'] + part['groups']}, []
+    if digest != rule_hash(rule):
         raise ValueError('규칙 스키마 또는 실행 중 규칙 변경을 확인하세요')
-    version = subprocess.check_output([ocr_command(), '--version'], text=True, env=env).strip()
+    version = subprocess.check_output([ocr_command(), '--version'], text=True, encoding='utf-8', env=env).strip()
     result = {'base': base, 'head': head, 'rule_sha256': digest, 'ocr_version': version,
               'prepared_at': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'reviewer': '', 'conclusion': '',
               'files': [file_entry(item, True) for item in preview['reviewable_files']] +
@@ -180,12 +193,12 @@ def prepare(repo, key, base, head, lint_source=None):
             print(f'lint 증거 재사용(재실행 금지): {lint_source}')
     destination.mkdir(parents=True)
     for name, data in [('preview', preview), ('rules', rules), ('result', result)]:
-        (destination / f'{name}.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+        (destination / f'{name}.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
     template = Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/review/_REPORT.md'
     # 병합 후 lint의 DOC-003을 막는다. 리뷰어는 본문만 채운다.
     meta = deliverables.render({'title': f'{key} 리뷰', 'status': 'draft', 'updated': date.today().isoformat(),
                                 'owner': 'reviewer', 'summary': f'{head[:12]} 병합 전 독립 리뷰 보고서'})
-    (destination / 'report.md').write_text(meta + '\n' + template.read_text(encoding='utf-8').replace('<과제 키>', key, 1), encoding='utf-8')
+    (destination / 'report.md').write_text(meta + '\n' + template.read_text(encoding='utf-8').replace('<과제 키>', key, 1), encoding='utf-8', newline='\n')
     if lint_raw is not None:
         atomic_write(destination / 'lint.json', lint_raw)
     print(destination.relative_to(repo))
@@ -206,7 +219,7 @@ def check_independence(repo, result):
     snapshot = Path(record['snapshot_path']).resolve(strict=True)
     if snapshot == Path(repo).resolve() or record.get('snapshot_head') != result['head'] or sha(snapshot, 'HEAD') != result['head']:
         raise ValueError('별도 snapshot의 고정 head가 리뷰와 다릅니다')
-    if Path(subprocess.check_output(['git', '-C', str(snapshot), 'rev-parse', '--show-toplevel'], text=True).strip()).resolve() != snapshot:
+    if Path(subprocess.check_output(['git', '-C', str(snapshot), 'rev-parse', '--show-toplevel'], text=True, encoding='utf-8').strip()).resolve() != snapshot:
         raise ValueError('snapshot_path는 Git 체크아웃 루트여야 합니다')
     if subprocess.run(['git', '-C', str(snapshot), 'symbolic-ref', '-q', 'HEAD'], capture_output=True).returncode != 1:
         raise ValueError('snapshot은 detached HEAD여야 합니다')
@@ -348,7 +361,7 @@ def abandoned(repo, key):
 
 def prune(repo):
     """이미 사라진 snapshot의 active 기록을 missing으로 닫고 남은 snapshot을 보고한다. 존재하는 worktree는 지우지 않는다."""
-    listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True)
+    listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True, encoding='utf-8')
     registered = {Path(line[9:]).resolve() for line in listed.splitlines() if line.startswith('worktree ')}
     folder = snapshot_record(repo, 'x').parent
     report = {'missing': [], 'live': []}
@@ -388,22 +401,22 @@ def cleanup(repo, key, dispatch, finished=False):
             raise ValueError('생성 기록과 리뷰 정체성이 다릅니다')
         if dispatch and data.get('dispatch') and data['dispatch'] != dispatch:
             raise ValueError('기록된 reviewer dispatch와 다릅니다')
-        observation = released(repo, path, dispatch)
-        if dispatch:
-            data['dispatch'] = dispatch
-        write_json(record, data)
         receipt = safe_file(repo, data['evidence'] + '/snapshot-cleanup.json')
-        if receipt.is_file() and not path.exists():
+        if receipt.is_file() and not path.exists():  # 지운 snapshot에는 terminal이 없다. release 관찰은 영수증에 있다
             saved = json.loads(receipt.read_text(encoding='utf-8'))
-            listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True)
-            if saved.get('live_check') != 'passed' or saved.get('evidence_sha256') != evidence_hashes(repo, key) or saved.get('independence') != independence or f'worktree {path}\n' in listed:
+            listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True, encoding='utf-8')
+            registered = {Path(line[9:]).resolve() for line in listed.splitlines() if line.startswith('worktree ')}
+            if saved.get('live_check') != 'passed' or saved.get('evidence_sha256') != evidence_hashes(repo, key) or saved.get('independence') != independence or path.resolve() in registered:
                 raise ValueError('중단된 정리의 증거/등록 경로를 확인하세요')
             write_json(receipt, {**saved, 'state': 'removed'})
             write_json(record, {**data, 'state': 'removed'})
             return
+        observation = released(repo, path, dispatch)
+        if dispatch:
+            data['dispatch'] = dispatch
+        write_json(record, data)
         check(repo, key, result['base'], result['head'])  # 신규 수락은 항상 live 검사한다.
         hashes = evidence_hashes(repo, key)
-        receipt = safe_file(repo, data['evidence'] + '/snapshot-cleanup.json')
         saved = {'base': result['base'], 'head': result['head'], 'independence': independence,
                  'live_check': 'passed', 'evidence_sha256': hashes, 'released_dispatch': dispatch,
                  'release_observation': observation, 'state': 'validated'}
@@ -427,13 +440,10 @@ def check_lint(repo, result, lint):
     if (lint['base'], lint['head']) != (result['base'], result['head']):
         raise ValueError('lint 결과의 base/head가 리뷰와 다릅니다. worker 체크아웃에서 lint.py를 다시 실행하세요')
     merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', result['base'], result['head']],
-                                         text=True).strip()
-    config = subprocess.run(['git', '-C', str(repo), 'cat-file', 'blob', f'{merge_base}:.fullops-squad/lint/lint.json'],
-                            capture_output=True)
-    if lint.get('merge_base') != merge_base or lint['config_sha256'] != (
-            hashlib.sha256(config.stdout).hexdigest() if config.returncode == 0 else None):
+                                         text=True, encoding='utf-8').strip()
+    settings, digest = load_config(repo, merge_base)
+    if lint.get('merge_base') != merge_base or lint['config_sha256'] != digest:
         raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
-    settings, _ = load_config(repo, merge_base)
     code = code_changes(repo, merge_base, result['head'], settings)
     import policy
     level, policy_digest = policy.at_ref(repo, merge_base)
@@ -473,7 +483,7 @@ def check_lint(repo, result, lint):
 def check(repo, key, base, head, task_key=None):
     directory = f'.fullops-squad/docs/evaluations/qa-reports/{key}-review'
     def read(name):
-        return json.loads(safe_file(repo, f'{directory}/{name}.json').read_text())
+        return json.loads(safe_file(repo, f'{directory}/{name}.json').read_text(encoding='utf-8'))
     preview, result = read('preview'), read('result')
     if (result['base'], result['head']) != (sha(repo, base), sha(repo, head)):
         raise ValueError('base/head가 변경됐습니다. 새 리뷰를 준비하세요')
@@ -502,21 +512,21 @@ def check(repo, key, base, head, task_key=None):
     check_lint(repo, result, lint)
     packet_key = task_key or key
     packet_path = jev_find.result_path(repo, packet_key, 'packet')
-    committed = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{packet_path.relative_to(repo).as_posix()}'], capture_output=True, text=True)
+    committed = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{packet_path.relative_to(repo).as_posix()}'], capture_output=True, text=True, encoding='utf-8')
     route_path = jev_find.result_path(repo, packet_key, 'route')
-    if packet_path.is_file() or committed.returncode == 0 or (route_path.is_file() and json.loads(route_path.read_text()).get('requires_packet')):
+    if packet_path.is_file() or committed.returncode == 0 or (route_path.is_file() and json.loads(route_path.read_text(encoding='utf-8')).get('requires_packet')):
         from jev_packet import check as check_packet
         if committed.returncode != 0:
             raise ValueError('리뷰할 SHA에 탐색 패킷이 없습니다')
         packet = json.loads(committed.stdout)
         role = packet['role']
-        content = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:.fullops-squad/handovers/to_{role}.md'], text=True)
+        content = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:.fullops-squad/handovers/to_{role}.md'], text=True, encoding='utf-8')
         if not content.strip():
             token = f'<!-- fullops-attempt: {packet_key} {packet["attempt"]} -->'
-            for path in subprocess.check_output(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', head, '--', '.fullops-squad/handovers/logs'], text=True).splitlines():
-                log = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:{path}'], text=True)
+            for path in subprocess.check_output(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', head, '--', '.fullops-squad/handovers/logs'], text=True, encoding='utf-8').splitlines():
+                log = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:{path}'], text=True, encoding='utf-8')
                 if token in log:
-                    content = re.split(r'\n## [A-Za-z0-9][A-Za-z0-9._-]* — \d{4}-\d{2}-\d{2}\n<!-- fullops-attempt:', log.split(token, 1)[1], maxsplit=1)[0].strip()
+                    content = archived(log, token).strip()
                     break
         check_packet(repo, role, packet_key, completion=True, required=True, head=head, text=content)
     record_find_score(repo, directory, packet_key, result['base'], result['head'])
@@ -575,13 +585,12 @@ def supersede(repo, key, replacement):
     original = json.loads((folder / 'result.json').read_text(encoding='utf-8'))
     next_folder = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{replacement}-review')
     result = json.loads((next_folder / 'result.json').read_text(encoding='utf-8'))
-    subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', original['head'], result['head']], check=True)
+    if not ancestor(repo, original['head'], result['head']):
+        raise ValueError('후속 리뷰 head가 원본 head의 후손이 아닙니다')
     def merge_base(data):
         return subprocess.check_output(['git', '-C', str(repo), 'merge-base', sha(repo, data['base']),
-                                        sha(repo, data['head'])], text=True).strip()
-    coverage = subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor',
-                               merge_base(result), merge_base(original)], capture_output=True)
-    if coverage.returncode != 0:
+                                        sha(repo, data['head'])], text=True, encoding='utf-8').strip()
+    if not ancestor(repo, merge_base(result), merge_base(original)):
         raise ValueError('후속 리뷰의 범위가 원본 미검토 변경을 포함하지 않습니다. 원본 기준부터 리뷰하세요')
     if (next_folder / 'snapshot-cleanup.json').is_file():
         historical(repo, replacement)
@@ -595,18 +604,18 @@ def supersede(repo, key, replacement):
 def record_find_score(repo, directory, task_key, base, head):
     """과제의 jev_find 결과가 있으면 실제 변경과 비교한 적중률을 남긴다. 수락 판단에는 쓰지 않는다."""
     labels_path = jev_find.result_path(repo, task_key, 'packet-labels')
-    labels = json.loads(labels_path.read_text()) if labels_path.is_file() else None
     for scope, suffix in [('code', 'find'), ('documents', 'documents-find')]:
         if not jev_find.result_path(repo, task_key, suffix).is_file():
             continue
         try:
+            labels = json.loads(labels_path.read_text(encoding='utf-8')) if labels_path.is_file() else None
             scored = jev_find.score(repo, task_key, base, head, scope, labels)
         except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
             print(f'jev_find {scope} score 생략: {error}')
             continue
         destination = safe_file(repo, f'{directory}/jev-{suffix}-score.json')
         value = json.dumps(scored, ensure_ascii=False, indent=2) + '\n'
-        if not destination.is_file() or destination.read_text() != value:
+        if not destination.is_file() or destination.read_text(encoding='utf-8') != value:
             atomic_write(destination, value)
         print(f"jev_find score ({scope} changed-file overlap): recall {scored['recall']} / precision {scored['precision']}")
 
@@ -623,7 +632,7 @@ def main():
     parser.add_argument('--abandon', action='store_true', help='cleanup: 중단·면제한 리뷰의 snapshot 정리(--reason 필수, 수락 아님)')
     parser.add_argument('--historical', action='store_true', help='check: 과거 완료 증거만 확인; 신규 수락에 사용 금지')
     parser.add_argument('--lint', help='prepare: 동일 코드·환경에서 이미 실행한 lint JSON을 재사용')
-    parser.add_argument('--task-key', help='check: jev_find 결과의 과제 키 (기본: 리뷰 키)')
+    parser.add_argument('--task-key', help='check: 탐색 패킷 완료 검사와 jev_find 지표의 과제 키 (기본: 리뷰 키)')
     args = parser.parse_args()
     try:
         if args.mode not in ('need', 'prune') and not KEY.fullmatch(args.key or ''):

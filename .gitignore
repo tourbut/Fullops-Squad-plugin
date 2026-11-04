@@ -3,5 +3,4 @@ __pycache__/
 node_modules/
 .env
 *.tgz
-.local/motion-issue8/
-.local/motion-issue8-final/
+.local/

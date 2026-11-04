@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -12,6 +13,8 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'plugins/fullops-squad/scripts/je
 spec = importlib.util.spec_from_file_location('jev_observe', SCRIPT)
 jev = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev)
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기 설정과 무관하게 stub 판정을 검사한다
 
 
 def git(repo, *args):
@@ -67,10 +70,7 @@ with tempfile.TemporaryDirectory() as directory:
                     'usage': {'input_tokens': 100, 'output_tokens': 10, 'cost': 0.001}}, 0.2
         for qid in payload['questions']:
             labels = list(payload['questions'][qid]['criteria'])
-            choice = ('irrelevant' if qid in ('c1', 'c2', 'c3') else
-                      'contradicts' if qid == 'x2' else
-                      'does_not_contradict' if qid.startswith('x') else
-                      'supports' if qid.startswith('v') else 'needed')
+            choice = 'supports'  # 완료 주장 질문은 v<n>뿐이다
             answers[qid] = {'type': 'choice', 'choice': choice, 'confidence': 0.99,
                             'probabilities': {label: 1.0 if label == choice else 0.0 for label in labels}}
         return {'model': 'typesafe/jev-1.13-20260917', 'answers': answers,
@@ -257,18 +257,17 @@ with tempfile.TemporaryDirectory() as directory:
             pass
         assert not calls
 
-    for invalid in (None, [], {}, {'type': 'choice', 'choice': 'invented', 'confidence': 1,
-                                'probabilities': {'invented': 1}},
-                    {'type': 'choice', 'choice': 'needed', 'confidence': float('nan'),
-                     'probabilities': {'needed': 1, 'optional': 0, 'irrelevant': 0}},
-                    {'type': 'choice', 'choice': 'needed', 'confidence': 1,
-                     'probabilities': {'needed': float('nan'), 'optional': 0, 'irrelevant': 0}},
-                    {'type': 'choice', 'choice': 'needed', 'confidence': 1,
-                     'probabilities': {'needed': 1.5, 'optional': 0, 'irrelevant': 0}}):
+    claim = {'type': 'choice', 'choice': 'supports', 'confidence': 1,
+             'probabilities': {'supports': 1, 'contradicts': 0, 'insufficient': 0}}
+    for qid, invalid in [('relevant', None), ('relevant', []), ('relevant', {}), ('relevant', claim),
+                         ('relevant', {'type': 'noul', 'noul': 1.5}),
+                         ('v0', {**claim, 'confidence': float('nan')}),
+                         ('v0', {**claim, 'probabilities': {'supports': float('nan'), 'contradicts': 0, 'insufficient': 0}}),
+                         ('v0', {**claim, 'probabilities': {'supports': 1.5, 'contradicts': 0, 'insufficient': 0}})]:
         def malformed(payload):
             answer, elapsed = response(payload)
-            if 'relevant' in answer['answers']:
-                answer['answers']['relevant'] = invalid
+            if qid in answer['answers']:
+                answer['answers'][qid] = invalid
             return answer, elapsed
         result = jev.observe(json.loads(json.dumps(base)), repo, malformed)
         assert result['context']['recommended_ids'] == result['context']['baseline_ids']
@@ -310,6 +309,8 @@ with tempfile.TemporaryDirectory() as directory:
     assert jev.excerpt(b'pre\nselected\npost\n', {'quote': 'selected'})['selected_start_line'] == 2
     assert jev.excerpt(b'pre\nselected\npost\n', {'quote': 'selected'})['end_line'] == 3
     assert jev.excerpt(b'a\nb\nc\n', {'quote': 'a\n'})['selected_end_line'] == 1
+    assert 'quote' in jev.excerpt(b'a\x0c\n' * 9 + b'quote\n', {'quote': 'quote'})['text']  # form feed와 단독 CR도 str.splitlines() 줄바꿈이다
+    assert 'quote' in jev.excerpt(b'a\r' * 9 + b'\nquote\n', {'quote': 'quote'})['text']
     adjacent = jev.excerpt(b'constraint: skip release\nselected claim\nexception: only staging\n',
                            {'quote': 'selected claim'})
     assert adjacent['text'] == 'constraint: skip release\nselected claim\nexception: only staging\n'

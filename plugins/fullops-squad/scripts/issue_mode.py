@@ -29,14 +29,20 @@ def digest(value):
 
 def snapshot(issue):
     value = {k: issue.get(k) for k in ('id', 'repository_id', 'number', 'html_url', 'user',
-                                     'title', 'body', 'created_at', 'updated_at', 'edit_verified', 'state')}
-    value['source_digest'] = digest([issue.get('title'), issue.get('body')])
+                                     'title', 'body', 'created_at', 'updated_at', 'state')}
+    value['source_digest'] = digest([issue.get('title'), issue.get('body') or ''])
     for field in ('title', 'body'):
         value[field] = redact(value[field] or '')
     return value
 
 
 def redact(text):
+    if isinstance(text, dict):
+        return {k: redact(v) for k, v in text.items()}
+    if isinstance(text, list):
+        return [redact(v) for v in text]
+    if not isinstance(text, str):
+        return text
     text = re.sub(r'(?:gh[pousr]_|github_pat_|sk-)[A-Za-z0-9_-]{16,}', '[REDACTED]', text)
     text = re.sub(r'-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----', '[REDACTED]', text)
     return re.sub(r'(?im)\b(?:authorization\s*:\s*bearer|[A-Z_]*(?:API_KEY|TOKEN|PASSWORD|SECRET)\s*[=:])\s*[^\s,;]+', '[REDACTED]', text)
@@ -256,12 +262,12 @@ class Orca:
 
 def owner_identity(store, orca, owner):
     hook = hook_path(store.repo, owner['provider_session'])
-    receipt = json.loads(hook.read_text()) if hook.is_file() else {}
+    receipt = json.loads(hook.read_text(encoding='utf-8')) if hook.is_file() else {}
     if receipt.get('provider_session') != owner['provider_session']:
         raise ValueError('현재 host SessionStart receipt가 없습니다; 활성화 blocked')
     if owner['session'].startswith('provider_session:'):
         binding = hook_path(store.repo, 'terminal-' + owner['terminal'])
-        current = json.loads(binding.read_text()) if binding.is_file() else {}
+        current = json.loads(binding.read_text(encoding='utf-8')) if binding.is_file() else {}
         if current.get('provider_session') != owner['provider_session'] or current.get('orca_terminal') != owner['terminal']:
             raise ValueError('현재 terminal의 native SessionStart binding이 다릅니다; 활성화 blocked')
     return orca.identity(owner['session'], owner['run'], owner['terminal'], owner['provider_session'], receipt)
@@ -336,8 +342,8 @@ def hook_path(repo, session):
 
 def heartbeat(repo, session):
     path = integration.directory(repo).parent / 'fullops-issues/state.sqlite'
-    if path.is_file():
-        with Store(repo).edit() as state:
+    if path.is_file() and ((store := Store(repo)).read()['owner'] or {}).get('provider_session') == session:
+        with store.edit() as state:
             owner = state['owner']
             if owner and owner['provider_session'] == session and owner['enabled'] and owner['expires'] > time.time():
                 owner['expires'] = time.time() + 90
@@ -346,6 +352,8 @@ def heartbeat(repo, session):
 def fresh(state, github, job, issue=None):
     config = state['config']
     issue = issue or github.issue(config['repository'], job['snapshot']['number'])
+    if issue is None:
+        return 'cancelled', 'GitHub issue가 삭제되었거나 다른 저장소로 이전됐습니다'
     if issue['id'] != job['snapshot']['id'] or issue['repository_id'] != config['repository_id']:
         raise ValueError('GitHub issue/repository identity 불일치')
     if str(issue['user']['id']) not in config['allowed']:
@@ -354,9 +362,8 @@ def fresh(state, github, job, issue=None):
         return 'cancelled', 'GitHub issue가 닫혔습니다'
     if not issue.get('edit_verified'):
         return 'changed', '본문의 편집 주체를 원래 작성자로 확인하지 못했습니다'
-    original = {k: job['snapshot'][k] for k in ('title', 'body')}
-    if (job['snapshot']['user']['id'] != issue['user']['id'] or job['snapshot']['source_digest'] != digest([issue.get('title'), issue.get('body')]) or
-            digest(original) != digest({k: redact(issue[k] or '') for k in original})):
+    if (job['snapshot']['user']['id'] != issue['user']['id'] or
+            job['snapshot']['source_digest'] != digest([issue.get('title'), issue.get('body') or ''])):
         return 'changed', '실행 snapshot과 이슈 본문이 다릅니다; 작성자 재확인/새 attempt 필요'
     return None
 
@@ -490,7 +497,7 @@ def claim(store, github, token):
                 job.update(status='held', reason='재시도 한도', resume='사용자가 한도를 변경하거나 취소')
                 continue
             job.update(status='claimed', epoch=owner['epoch'], started=time.time(), run=owner['run'],
-                       coor_session=owner['session'], receipt=None,
+                       receipt=None,
                        attempt=job['attempt'] + 1, task_key=f"GH-{config['repository_id']}-{job['snapshot']['number']}-A{job['attempt'] + 1}")
             job['history'].append({'phase': 'claimed', 'at': iso(time.time()), 'task_key': job['task_key'],
                                    'attempt': job['attempt'], 'run': owner['run'], 'session': owner['session'], 'digest': job['digest']})
@@ -527,7 +534,9 @@ def checkpoint(store, github, token, identifier, phase, *, reason='', resume='',
         if denial:
             job.update(status=denial[0], reason=denial[1], resume='사용자/작성자 재확인')
             return job['status']
-        if time.time() - job['started'] > state['config']['max_seconds'] or job['tokens'] > state['config']['max_tokens']:
+        # 한도는 실행 단계만 막는다. 보류·취소·재시도는 한도 초과 뒤에도 기록한다.
+        if phase in ('running', 'reviewing') and (time.time() - job['started'] > state['config']['max_seconds'] or
+                                                  job['tokens'] > state['config']['max_tokens']):
             job.update(status='held', reason='실행 시간/보고된 모델 사용량 한도', resume='사용자가 한도와 실제 사용량 확인')
             return 'held'
         if dependencies is not None:
@@ -670,23 +679,22 @@ def poll_answers(store, github, token):
                         previous['changed'] = True
                         current.update(status='changed', reason='이미 관측한 댓글 수정', resume='작성자의 새 확인 댓글')
                     continue
-                state['comments'][key] = {'issue_id': identifier, 'digest': fingerprint, 'processed': False,
+                state['comments'][key] = {'issue_id': identifier, 'digest': fingerprint,
                                           'candidate': False, 'snapshot': {**comment, 'body': redact(comment.get('body') or '')}}
                 author = comment.get('user') or {}
                 if (comment['id'] in own or '<!-- fullops-question:' in (comment.get('body') or '') or
                         author.get('id') != job['snapshot']['user']['id'] or str(author.get('id')) not in state['config']['allowed']):
-                    state['comments'][key]['processed'] = True
                     continue
+                if not any(timestamp(comment['created_at']) >= timestamp(state['outbox'][q].get('created_at', '1970-01-01T00:00:00Z'))
+                           for q in job['questions']):
+                    continue  # 질문 전 댓글은 답변 후보가 아니므로 편집 여부도 보지 않는다.
                 # REST 댓글에는 편집자 provenance가 없다. 수정된 댓글은 새 지시로 자동 수용하지 않는다.
                 if comment['updated_at'] != comment['created_at']:
-                    state['comments'][key]['processed'] = True
                     current.update(status='changed', reason='댓글 편집자 provenance 미확인', resume='작성자의 새 확인 댓글')
                     continue
-                if any(timestamp(comment['created_at']) >= timestamp(state['outbox'][q].get('created_at', '1970-01-01T00:00:00Z'))
-                       for q in job['questions']):
-                    state['comments'][key]['candidate'] = True
-                    current['answers'].append({'comment_id': comment['id'], 'url': comment['html_url'],
-                                               'body': redact(comment['body'] or ''), 'digest': fingerprint, 'received': False, 'decided': False})
+                state['comments'][key]['candidate'] = True
+                current['answers'].append({'comment_id': comment['id'], 'url': comment['html_url'],
+                                           'body': redact(comment['body'] or ''), 'digest': fingerprint, 'received': False, 'decided': False})
             for key, comment in state['comments'].items():
                 if comment['issue_id'] == identifier and key not in seen and comment.get('candidate'):
                     current.update(status='changed', reason='사용한 답변 댓글 삭제', resume='작성자의 새 확인 댓글')
@@ -741,7 +749,6 @@ def resolve_answers(store, github, token, identifier, decision, reason):
                 return 'changed'
         for answer in candidates:
             answer['decided'] = True
-            state['comments'][str(answer['comment_id'])]['processed'] = True
         job['history'].append({'phase': 'answer_decision', 'decision': decision, 'reason': reason,
                                'answers': [a['url'] for a in candidates]})
         status = ('held' if job.get('dispatch_intents') and not job.get('settled') else 'queued') if decision == 'sufficient' else 'awaiting_author'
@@ -844,8 +851,8 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
         job.update(status=('held' if failed else job['status']) if syncing else ('running' if live else 'held'), epoch=owner['epoch'],
                    settled=bool(not live and exited), **({} if syncing else {'started': time.time()}),
                    reason=('기존 task 실패/취소: ' if failed else '') + reason, resume='기존 worker 완료 후 검증; 같은 task를 재배정하지 않음')
-        job['history'].append(json.loads(redact(json.dumps({'phase': 'reconciled', 'reason': reason, 'tasks': relevant,
-                                                          'workers': workers, 'child_runs': child_receipts}))))
+        job['history'].append(redact({'phase': 'reconciled', 'reason': reason, 'tasks': relevant,
+                                      'workers': workers, 'child_runs': child_receipts}))
 
 
 def complete(store, github, token, identifier, worktree, review_key, base, head, pr_number):
@@ -930,9 +937,11 @@ def worker_job(store, state, session, context):
         if binding:
             if job['status'] in FINAL and not context.get('dispatch'):
                 continue  # 완료된 worker의 새 일반 작업을 옛 dispatch에 다시 묶지 않는다.
-            if context.get('dispatch') != binding['dispatch'] or context.get('task') != binding['task']:
+            if context.get('dispatch') == binding['dispatch'] and context.get('task') == binding['task']:
+                return job, binding['epoch'] if binding['task_key'] == job.get('task_key') else None
+            if not context.get('dispatch'):
                 raise ValueError('자동 worker의 dispatch/task binding이 바뀌었습니다')
-            return job, binding['epoch'] if binding['task_key'] == job.get('task_key') else None
+            # 유지한 worker의 새 dispatch는 아래 Orca 정본 확인으로 다시 묶는다.
     if not context.get('dispatch'):
         return None, None
     status = integration.orca('orchestration', 'worker-show', '--dispatch', context['dispatch'], cwd=store.repo)
@@ -952,7 +961,7 @@ def worker_job(store, state, session, context):
             raise ValueError('등록된 자동 하위 Run의 task key가 현재 attempt와 다릅니다')
         return None, None
     receipt = hook_path(store.repo, session)
-    native = json.loads(receipt.read_text()) if receipt.is_file() else {}
+    native = json.loads(receipt.read_text(encoding='utf-8')) if receipt.is_file() else {}
     if (len(jobs) != 1 or projection.get('dispatchId') != context['dispatch'] or
             projection.get('taskId') != context.get('task') or native.get('provider_session') != session or
             not native.get('orca_terminal') or projection['terminal'] != native['orca_terminal'] or
@@ -982,7 +991,7 @@ def dispatch_run(store, state, session, context, job, words):
     if (job['status'] != 'running' or not job.get('receipt') or not run or
             not integration.key_present(job['task_key'], ' '.join(words))):
         raise ValueError('실제 동일 coor 수신 receipt와 현재 task key/Run을 기록한 뒤 기존 route/dispatch를 수행하세요')
-    if owner.get('provider_session', owner['session']) == session:
+    if owner['provider_session'] == session:
         if run != owner['run']:
             raise ValueError('coor는 현재 소유 Run으로만 역할을 배정할 수 있습니다')
         return run, None
@@ -992,7 +1001,7 @@ def dispatch_run(store, state, session, context, job, words):
     if run == owner['run']:
         raise ValueError('하위 worker는 부모 coor Run 대신 자신의 child Run으로 배정해야 합니다')
     receipt = hook_path(store.repo, session)
-    native = json.loads(receipt.read_text()) if receipt.is_file() else {}
+    native = json.loads(receipt.read_text(encoding='utf-8')) if receipt.is_file() else {}
     authority = integration.orca('orchestration', 'run-show', '--id', run, cwd=store.repo)
     if (not context.get('dispatch') or not native.get('orca_terminal') or
             native.get('provider_session') != session or not authority or
@@ -1035,7 +1044,7 @@ def outward(words):
         return False
     executable = Path(words[0]).name.lower().removesuffix('.exe')
     return ('worker-start' in words or (executable == 'git' and 'push' in words) or
-            (executable == 'gh' and not any(w in words for w in GH_READ)))
+            (executable == 'gh' and not any(w in words[1:3] for w in GH_READ)))
 
 
 def boundary(repo, session, command, files, commands, context=None):
@@ -1050,7 +1059,7 @@ def boundary(repo, session, command, files, commands, context=None):
     owner = state['owner']
     if not owner:
         return None
-    coordinator = owner.get('provider_session', owner['session']) == session
+    coordinator = owner['provider_session'] == session
     job = None
     if not coordinator:
         try:
@@ -1086,7 +1095,7 @@ def boundary(repo, session, command, files, commands, context=None):
     elif str(job['snapshot']['user']['id']) not in state['config']['allowed']:
         hold = '자동 작업 작성자의 allowlist가 철회됐습니다'
     elif time.time() - job.get('started', time.time()) > state['config']['max_seconds'] or job['tokens'] > state['config']['max_tokens']:
-        hold = '자동 이슈 실행 시간/보고된 모델 사용량 한도를 초과했습니다. checkpoint --phase held로 보류하세요'
+        hold = '자동 이슈 실행 시간/보고된 모델 사용량 한도를 초과했습니다. checkpoint --phase held --reason --resume으로 보류하세요'
     # coor는 보류 중에도 상태 확인·기록을 계속해야 한다. 배정·push·GitHub 변경만 막는다.
     if hold and (not coordinator or any(outward(w) for w in commands)):
         return hold
@@ -1144,7 +1153,7 @@ def boundary(repo, session, command, files, commands, context=None):
                 return '자동 모드에서 GitHub 저장소를 임의 변경할 수 없습니다'
             if 'create' in words and ('pr' not in words or '--draft' not in words):
                 return '자동 모드의 생성은 같은 저장소 draft PR만 허용합니다'
-            if not any(w in words for w in (*GH_READ, 'create')):
+            if not any(w in words[1:3] for w in (*GH_READ, 'create')):
                 return 'GitHub 변경은 draft PR 생성과 durable outbox 질문만 허용합니다'
             if 'create' in words:
                 expected = state['config']['branch_prefix'] + f"{job['snapshot']['number']}-a{job['attempt']}"
@@ -1159,10 +1168,10 @@ def boundary(repo, session, command, files, commands, context=None):
         if not candidate.is_absolute():
             candidate = Path(repo) / candidate
         try:
-            candidate.resolve().relative_to(Path(repo).resolve())
+            relative = candidate.resolve().relative_to(Path(repo).resolve())
         except ValueError:
             return '자동 작업 파일이 허용 작업 공간 밖입니다'
-        if any(part.lower().startswith('.env') or part.lower() in ('.git', '.codex', '.claude') for part in candidate.parts):
+        if any(part.lower().startswith('.env') or part.lower() in ('.git', '.codex', '.claude') for part in relative.parts):
             return '자동 이슈의 credential/실행 권한 변경은 허용 범위 밖입니다'
     return None
 
@@ -1176,8 +1185,12 @@ def reserve_dispatch(repo, session, commands, context=None):
     owner = saved['owner']
     if not owner:
         return
-    coordinator = owner.get('provider_session', owner['session']) == session
+    coordinator = owner['provider_session'] == session
     if coordinator:
+        try:
+            guard(saved, owner['token'])
+        except ValueError:
+            return  # OFF·만료 lease의 coor는 boundary와 같이 사용자가 직접 운영한다.
         job = next((j for j in saved['jobs'].values() if j['status'] == 'running' and j.get('epoch') == owner['epoch']), None)
         epoch = owner['epoch']
     else:
@@ -1262,7 +1275,7 @@ def start_watch(store, executable, token):
                '--orca', executable, 'watch']
     options = {'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt' else {'start_new_session': True}
     child = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL, text=True, **options)
+                             stderr=subprocess.DEVNULL, text=True, encoding='utf-8', **options)
     child.stdin.write(json.dumps({'token': token}))
     child.stdin.close()
     with store.edit() as state:
@@ -1396,7 +1409,7 @@ def main():
             token = json.load(sys.stdin)['token']
             try:
                 watch(store, github, Orca(args.orca), token)
-            except (ValueError, OSError, APIError, KeyError):
+            except (ValueError, KeyError, OSError, APIError, subprocess.SubprocessError, RuntimeError, sqlite3.Error):
                 with store.edit() as state:
                     if state['owner'] and state['owner']['token'] == token:
                         state['owner'].update(paused=True, blocked='poller 중단: 상태/lease/API를 확인하고 명시적으로 재활성화')
@@ -1408,7 +1421,7 @@ def main():
         elif args.command == 'checkpoint':
             result = checkpoint(store, github, args.token, args.issue_id, args.phase, reason=args.reason,
                                 resume=args.resume, dependencies=json.loads(args.dependencies) if args.dependencies else None,
-                                tokens=args.tokens, receipt=json.loads(local_file(store, args.receipt).read_text()) if args.receipt else None,
+                                tokens=args.tokens, receipt=json.loads(local_file(store, args.receipt).read_text(encoding='utf-8')) if args.receipt else None,
                                 received=args.received)
         elif args.command == 'question':
             result = question(store, github, args.token, args.issue_id, local_file(store, args.body_file).read_text(encoding='utf-8'))

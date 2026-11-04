@@ -53,6 +53,8 @@ export const summarizeReview = (key: string, result: string | null, marker: Mark
     parsed = {}
   }
   const record = asRecord(parsed)
+  // prepare writes result.json with an empty conclusion; the review is under way until the reviewer gives one, as review.py check requires.
+  if (text(record.conclusion).trim() === '') return { key, state: marker ?? 'open', conclusion: '', unresolved: 0, findings: 0, worst: null, at }
   const findings = Array.isArray(record.findings) ? record.findings.map(asRecord) : []
   const open = findings.filter(finding => finding.resolved !== true)
   const worst = SEVERITIES.find(severity => open.some(finding => finding.severity === severity)) ?? null

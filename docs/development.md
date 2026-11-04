@@ -1,7 +1,7 @@
 ---
 title: FullOps Squad 개발
 status: draft
-updated: 2026-10-06
+updated: 2026-11-04
 owner: maintainer
 summary: 플러그인 원본 수정, 통합 설치기 패키징과 배포 검증 절차
 ---
@@ -70,7 +70,7 @@ grok plugin validate dist/native/fullops-squad
 agy plugin validate dist/native/fullops-squad
 ```
 
-`npm test`는 Python 회귀 검사와 표준 스키마 검사를 실행한다. setup·hook·스크립트 검사는 임시 레포에서 돌고, 공식 스키마 사본과 개발용 Ajv로 표준 형식을 검사하며 실행 중 스키마를 다운로드하지 않는다. agy 검증에는 MCP 실행 파일이 PATH에 있어야 한다. GitHub Actions는 기본 검사와 OCR CLI의 실제 delegate 검사를 별도 job으로 실행한다. 전체 Orca worker 기동은 별도 통합 검증이 필요하다.
+`npm test`는 설치기 검사, Python 회귀 검사, 표준 스키마 검사를 실행한다. setup·hook·스크립트 검사는 임시 레포에서 돌고, 공식 스키마 사본과 개발용 Ajv로 표준 형식을 검사하며 실행 중 스키마를 다운로드하지 않는다. agy 검증에는 MCP 실행 파일이 PATH에 있어야 한다. GitHub Actions는 PR마다 `checks` job 하나에서 빌드, `npm test`, `dist`·카탈로그 비교, OCR CLI delegate 검사를 차례로 실행한다. main 병합 뒤와 수동 실행에서는 Windows·macOS의 `portable`·`web-browser` job도 실행한다. 전체 Orca worker 기동은 별도 통합 검증이 필요하다.
 
 Windows에서 로컬로 돌리려면 실제 `python3` 실행 파일(Microsoft Store 스텁이 아닌 것), `PYTHONUTF8=1`, 심볼릭 링크용 개발자 모드가 필요하다.
 
@@ -82,7 +82,6 @@ shadcn 연계는 선택형 `python3 tests/shadcn-lint.py --tools <검사 도구 
 
 ## 참고
 
-- [Agent Plugins 표준 적용](agent-plugins-spec-review.md): 공통 배포 형식과 호스트 호환 패키지.
 - [mattpocock/skills](https://github.com/mattpocock/skills): 배포와 레포별 setup 분리 방식 참고.
 - [Claude Code 플러그인 의존성](https://code.claude.com/docs/en/plugin-dependencies): 네이티브 dependencies 및 cross-marketplace 허용 목록.
 - [OpenAI 플러그인 패키징](https://developers.openai.com/plugins/build/plugins): Codex 패키지 구조 참고.
@@ -91,7 +90,7 @@ shadcn 연계는 선택형 `python3 tests/shadcn-lint.py --tools <검사 도구 
 
 ## 고정 hook 실행 경로
 
-hook 명령은 Python의 사용자 홈에서 `.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py`를 실행한다. 호스트의 버전별 캐시나 작업 디렉터리에 의존하지 않는다. `deps.py --host`는 의존성 설치 전에 런타임을 준비하고 `--check --host`는 런타임 버전과 파일 존재도 확인한다. 외부 의존성 갱신 없이 복구할 때는 설치된 새 패키지의 `deps.py --runtime-only`를 사용한다.
+hook 명령은 Python의 사용자 홈에서 `.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py`를 실행한다. 호스트의 버전별 캐시나 작업 디렉터리에 의존하지 않는다. 명령은 `python3 -I -X utf8 -c`로 시작한다. `-I`는 작업 디렉터리 모듈과 `PYTHON*` 환경 변수를 무시한다. `-X utf8`은 로캘과 관계없이 UTF-8로 입출력한다. `deps.py --host`는 의존성 설치 전에 런타임을 준비하고 `--check --host`는 런타임 버전과 파일 존재도 확인한다. 외부 의존성 갱신 없이 복구할 때는 설치된 새 패키지의 `deps.py --runtime-only`를 사용한다.
 
 `hook_runtime.py`는 동일 사용자 호스트가 공유하는 실행 진입점이다. 마지막으로 명시적으로 설치한 패키지를 사용한다. 전체 패키지 사본은 내용 해시별 `packages/`에 보존하고 `current.json`만 원자적으로 교체한다. hook 하나가 시작할 때 선택한 사본은 실행 도중 바뀌지 않는다. 기존 사본은 실행 중 hook·하위 프로세스가 사용할 수 있어 자동 삭제하지 않는다. 디스크 정리는 모든 호스트 세션을 종료한 뒤 수행한다. 이 런타임은 설치 캐시이며 사용자 설정이나 비밀값을 복사하지 않는다.
 

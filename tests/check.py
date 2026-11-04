@@ -22,30 +22,49 @@ def snapshot(root):
             if p.is_file() and not {'.git', '__pycache__'} & set(p.relative_to(root).parts)}
 
 
+def text_io_encoding():
+    """Windows 기본 코드 페이지(cp949)에서도 UTF-8로 읽고 쓰도록 텍스트 I/O에 encoding을 적었는지 본다."""
+    # shortcut: Path.open()과 tempfile은 보지 않는다. 그 호출이 생기면 이 검사에 더한다
+    import ast
+    missing = []
+    for path in sorted([*(ROOT / 'plugins/fullops-squad/scripts').glob('*.py'), *(ROOT / 'scripts').glob('*.py')]):
+        for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
+            if not isinstance(node, ast.Call) or {'encoding', 'errors'} & {kw.arg for kw in node.keywords}:
+                continue
+            name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, 'id', '')
+            mode = next((kw.value for kw in node.keywords if kw.arg == 'mode'), node.args[1] if len(node.args) > 1 else None)
+            text_mode = not (isinstance(mode, ast.Constant) and 'b' in str(mode.value))
+            text_run = any(kw.arg in ('text', 'universal_newlines') and getattr(kw.value, 'value', False) for kw in node.keywords)
+            if name in ('read_text', 'write_text') or (name == 'open' and isinstance(node.func, ast.Name) and text_mode) or text_run:
+                missing.append(f'{path.relative_to(ROOT).as_posix()}:{node.lineno} {name}')
+    assert not missing, '텍스트 I/O에 encoding이 없다: ' + ', '.join(missing)
+
+
 def main():
+    text_io_encoding()
     setup = load('setup', 'plugins/fullops-squad/scripts/setup.py')
     work = load('work', 'plugins/fullops-squad/scripts/work.py')
     deliverables = load('deliverables', 'plugins/fullops-squad/scripts/deliverables.py')
     install = load('install', 'scripts/install.py')
     build = load('build', 'scripts/build.py')
-    dependencies = __import__('json').loads((ROOT / 'dependencies.json').read_text())
+    dependencies = __import__('json').loads((ROOT / 'dependencies.json').read_text(encoding='utf-8'))
     assert set(dependencies['mcp']) == {'context7'}  # codebase-memory-mcp는 0.4.1에서 제거했다
     assert dependencies['mcp']['context7']['package'] == '@upstash/context7-mcp@latest'
-    mcp = __import__('json').loads((ROOT / 'plugins/fullops-squad/mcp.json').read_text())
+    mcp = __import__('json').loads((ROOT / 'plugins/fullops-squad/mcp.json').read_text(encoding='utf-8'))
     assert mcp['mcpServers']['context7'] == {'type': 'stdio', 'command': dependencies['mcp']['context7']['command'], 'args': []}
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         source_before = snapshot(build.SOURCE)
         native = build.build(root / 'native')
-        native_mcp = __import__('json').loads((native / '.mcp.json').read_text())
-        assert native_mcp == __import__('json').loads((native / 'mcp_config.json').read_text())
+        native_mcp = __import__('json').loads((native / '.mcp.json').read_text(encoding='utf-8'))
+        assert native_mcp == __import__('json').loads((native / 'mcp_config.json').read_text(encoding='utf-8'))
         assert native_mcp['mcpServers'] == {name: {k: v for k, v in server.items() if k != 'type'} for name, server in mcp['mcpServers'].items()}
         assert not (native / 'mcp.json').exists()
-        (native / 'obsolete.txt').write_text('old build')
+        (native / 'obsolete.txt').write_text('old build', encoding='utf-8')
         build.build(native)
         assert not (native / 'obsolete.txt').exists() and snapshot(build.SOURCE) == source_before
         # 디렉터리 포털은 저장소의 .gitattributes(text·eol·filter 등 내용을 바꾸는 속성)가 있으면 검증을 거부한다.
-        tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files'], text=True).splitlines()
+        tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files'], encoding='utf-8').splitlines()
         assert not [f for f in tracked if f.rsplit('/', 1)[-1] == '.gitattributes'], '.gitattributes 금지(디렉터리 제출 불가)'
         # Anthropic 디렉터리판: 플러그인 폴더 안의 파일만 실행하고 다른 마켓플레이스·전역 MCP에 의존하지 않는다.
         directory = build.build_directory(native, root / 'directory')
@@ -82,14 +101,14 @@ def main():
         assert not any(p.name in ('.DS_Store', 'Thumbs.db', 'desktop.ini') for p in files)
         protected = root / 'user-files'
         protected.mkdir()
-        (protected / 'note').write_text('keep')
+        (protected / 'note').write_text('keep', encoding='utf-8')
         try:
             build.build(protected)
         except ValueError:
             pass
         else:
             raise AssertionError('사용자 디렉터리 빌드 덮어쓰기')
-        assert (protected / 'note').read_text() == 'keep'
+        assert (protected / 'note').read_text(encoding='utf-8') == 'keep'
         packaged = root / 'packaged-service'
         packaged.mkdir()
         subprocess.run(['git', 'init', '-q', str(packaged)], check=True)
@@ -106,9 +125,9 @@ def main():
         (repo / 'GEMINI.md').write_bytes(original.encode())
         existing_agents = repo / '.agents'
         existing_agents.mkdir()
-        (existing_agents / 'FULLOPS.md').write_text('다른 하네스의 기존 규칙')
-        (existing_agents / 'fullops.json').write_text('{"schema_version": 1}')
-        (existing_agents / 'notes.md').write_text('보존할 작업 기록')
+        (existing_agents / 'FULLOPS.md').write_text('다른 하네스의 기존 규칙', encoding='utf-8')
+        (existing_agents / 'fullops.json').write_text('{"schema_version": 1}', encoding='utf-8')
+        (existing_agents / 'notes.md').write_text('보존할 작업 기록', encoding='utf-8')
         agents_before = snapshot(existing_agents)
         old_pointer = setup.POINTER.replace('.fullops-squad/', '.agents/')
         (repo / 'CLAUDE.md').write_bytes((original + old_pointer + '추가 사용자 규칙\r\n').encode())
@@ -122,11 +141,11 @@ def main():
         assert (repo / 'GEMINI.md').read_bytes().startswith(original.encode())
         assert snapshot(existing_agents) == agents_before
         assert (repo / 'CLAUDE.md').read_bytes().endswith('추가 사용자 규칙\r\n'.encode())
-        assert '.agents/' not in (repo / 'CLAUDE.md').read_text()
+        assert '.agents/' not in (repo / 'CLAUDE.md').read_text(encoding='utf-8')
         assert (repo / setup.MARKER).exists()
         work.new(repo, 'backend_dev', 'TEST-1', '기록 검증')
         inbox = repo / '.fullops-squad/handovers/to_backend_dev.md'
-        assert work.deliverables.split(inbox.read_text())[1].lstrip().startswith('# TEST-1 — 기록 검증')
+        assert work.deliverables.split(inbox.read_text(encoding='utf-8'))[1].lstrip().startswith('# TEST-1 — 기록 검증')
         try:
             work.new(repo, 'backend_dev', 'TEST-2', '덮어쓰기 검증')
         except ValueError:
@@ -139,13 +158,13 @@ def main():
             pass
         else:
             raise AssertionError('빈 완료 보고 아카이브')
-        placeholder = work.TEMPLATE.read_text().partition('## 완료 보고\n')[2]
-        inbox.write_text(inbox.read_text().replace(placeholder, '브랜치 main / SHA 미커밋 / 검증 통과 / 로그 보존.\n'))
-        completed = inbox.read_text()
+        placeholder = work.TEMPLATE.read_text(encoding='utf-8').partition('## 완료 보고\n')[2]
+        inbox.write_text(inbox.read_text(encoding='utf-8').replace(placeholder, '브랜치 main / SHA 미커밋 / 검증 통과 / 로그 보존.\n'))
+        completed = inbox.read_text(encoding='utf-8')
         work.finish(repo, 'backend_dev', 'TEST-1')
         assert inbox.read_bytes() == b''
-        assert 'TEST-1' in (repo / f'.fullops-squad/handovers/logs/{date.today()}_to_backend_dev.md').read_text()
-        inbox.write_text(completed)
+        assert 'TEST-1' in (repo / f'.fullops-squad/handovers/logs/{date.today()}_to_backend_dev.md').read_text(encoding='utf-8')
+        inbox.write_text(completed, encoding='utf-8')
         log = repo / f'.fullops-squad/handovers/logs/{date.today()}_to_backend_dev.md'
         archived = log.read_bytes()
         work.finish(repo, 'backend_dev', 'TEST-1')
@@ -153,12 +172,12 @@ def main():
         inbox.write_bytes(b'')
         assert not deliverables.check(repo, 'D01')  # 미작성 원천은 실패가 아니다.
         deliverable = repo / '.fullops-squad/docs/deliverables/D01_business-plan.md'
-        deliverable.write_text('[원천](없는-파일.md)')
+        deliverable.write_text('[원천](없는-파일.md)', encoding='utf-8')
         assert deliverables.check(repo, 'D01')
         deliverable.unlink()
         log = repo / '.fullops-squad/handovers/logs/existing.md'
-        log.write_text('작업 기록')
-        inbox.write_text('진행 중 과제')
+        log.write_text('작업 기록', encoding='utf-8')
+        inbox.write_text('진행 중 과제', encoding='utf-8')
         state = snapshot(repo)
         assert setup.setup(repo, local_only=True) == []
         assert snapshot(repo) == state and snapshot(other) == {}
@@ -170,7 +189,7 @@ def main():
         else:
             raise AssertionError('하위 디렉터리 setup 허용')
         (other / '.fullops-squad').mkdir()
-        (other / '.fullops-squad/FULLOPS.md').write_text('기존 하네스')
+        (other / '.fullops-squad/FULLOPS.md').write_text('기존 하네스', encoding='utf-8')
         state = snapshot(other)
         try:
             setup.setup(other, roles=['backend_dev'])
@@ -194,7 +213,7 @@ def main():
         assert not (service / setup.MARKER).exists()
         assert git('ls-remote', 'origin') == refs_before
         setup.setup(service, roles=['gameplay', 'engine'], remote='origin')
-        config = __import__('json').loads((service / setup.MARKER).read_text())
+        config = __import__('json').loads((service / setup.MARKER).read_text(encoding='utf-8'))
         assert config['roles'] == {'gameplay': 'fullops/gameplay', 'engine': 'fullops/engine'}
         assert config['git'] == {'remote': 'origin', 'base': 'main'}
         assert not (service / '.fullops-squad/contexts/backend_dev.md').exists()
@@ -216,7 +235,7 @@ def main():
         setup.setup(service, roles=['mobile'], remote='origin')
         assert git('ls-remote', 'origin', 'refs/heads/fullops/gameplay').split()[0] == old_sha
         assert git('ls-remote', 'origin', 'refs/heads/fullops/mobile').split()[0] == git('rev-parse', 'HEAD')
-        assert work.deliverables.split((service / '.fullops-squad/handovers/to_gameplay.md').read_text())[1].lstrip().startswith('# GAME-1')
+        assert work.deliverables.split((service / '.fullops-squad/handovers/to_gameplay.md').read_text(encoding='utf-8'))[1].lstrip().startswith('# GAME-1')
         # A later CLI invocation must reuse the saved non-default remote/base.
         git('branch', 'release', old_sha)
         git('push', 'origin', 'release')
@@ -227,7 +246,7 @@ def main():
         subprocess.run([*cli, '--roles', 'renderer', '--dry-run'], check=True, capture_output=True)
         assert snapshot(service) == before and git('ls-remote', 'upstream') == refs_before
         subprocess.run([*cli, '--roles', 'renderer'], check=True, capture_output=True)
-        config = __import__('json').loads((service / setup.MARKER).read_text())
+        config = __import__('json').loads((service / setup.MARKER).read_text(encoding='utf-8'))
         assert config['git'] == {'remote': 'upstream', 'base': 'release'}
         assert git('ls-remote', 'upstream', 'refs/heads/fullops/renderer').split()[0] == old_sha
         assert setup.setup(service) == []  # shared API follows the same default resolution
@@ -235,7 +254,7 @@ def main():
         for extra in (['--roles', 'localworker', '--local-only'],
                       ['--roles', 'localworker', '--local-only', '--dry-run'],
                       ['--local-only', '--remote', 'upstream']):
-            result = subprocess.run([*cli, *extra], capture_output=True, text=True)
+            result = subprocess.run([*cli, *extra], capture_output=True, text=True, encoding='utf-8')
             assert result.returncode != 0
             assert snapshot(service) == before and git('ls-remote', 'upstream') == refs_before
         assert setup.setup(service, local_only=True) == []  # existing roles/docs can be maintained offline
@@ -243,7 +262,7 @@ def main():
         git('remote', 'rename', 'upstream', 'origin')
         subprocess.run([*cli, '--roles', 'explicitworker', '--remote', 'origin', '--base', 'main'],
                        check=True, capture_output=True)
-        config = __import__('json').loads((service / setup.MARKER).read_text())
+        config = __import__('json').loads((service / setup.MARKER).read_text(encoding='utf-8'))
         assert config['git'] == {'remote': 'origin', 'base': 'main'}
         assert git('ls-remote', 'origin', 'refs/heads/fullops/explicitworker').split()[0] == git('rev-parse', 'HEAD')
         before, refs_before = snapshot(service), git('ls-remote', 'origin')
@@ -256,7 +275,7 @@ def main():
                 raise AssertionError('잘못된 역할/기준 브랜치 허용')
             assert snapshot(service) == before and git('ls-remote', 'origin') == refs_before
         hook = remote / 'hooks/pre-receive'
-        hook.write_text('#!/bin/sh\nexit 1\n')
+        hook.write_text('#!/bin/sh\nexit 1\n', encoding='utf-8')
         hook.chmod(0o755)
         try:
             setup.setup(service, roles=['rejected'], remote='origin')
@@ -267,7 +286,7 @@ def main():
         assert snapshot(service) == before and git('ls-remote', 'origin') == refs_before
         # Explicit migration preserves old fixed-role documents.
         marker = service / setup.MARKER
-        marker.write_text('{"schema_version": 1, "plugin_version": "0.1.0"}\n')
+        marker.write_text('{"schema_version": 1, "plugin_version": "0.1.0"}\n', encoding='utf-8')
         handover = service / '.fullops-squad/handovers/to_gameplay.md'
         old_content = handover.read_bytes()
         setup.setup(service, roles=['gameplay'], local_only=True)
@@ -281,7 +300,7 @@ def main():
         else:
             raise AssertionError('심볼릭 링크 쓰기')
         (other / 'AGENTS.md').unlink()
-        (other / setup.MARKER).write_text('[]')
+        (other / setup.MARKER).write_text('[]', encoding='utf-8')
         state = snapshot(other)
         try:
             setup.setup(other, roles=['backend_dev'])

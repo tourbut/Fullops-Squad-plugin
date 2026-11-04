@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -63,7 +64,7 @@ global.document = {activeElement: {
   dispatchEvent(event) { if (event.type === 'keydown') submitted++; return true; }
 }};
 """ + web.ENTER + "; if (submitted !== 1) throw new Error('duplicate submission: ' + submitted);"
-        result = subprocess.run(['node', '-e', script], capture_output=True, text=True)
+        result = subprocess.run(['node', '-e', script], capture_output=True, text=True, encoding='utf-8', errors='replace')
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_candidate_boundaries_and_missing_coverage(self):
@@ -260,7 +261,7 @@ global.document = {activeElement: {
             ('observe_more', None, None), ('click', 'e81', None),
             ('observe_more', None, None), ('done', None, None)]), out, log=lambda _: None)
         self.assertTrue(summary['passed'])
-        events = [json.loads(line) for line in (out / 'events.jsonl').read_text().splitlines()]
+        events = [json.loads(line) for line in (out / 'events.jsonl').read_text(encoding='utf-8').splitlines()]
         plan = web_analysis.promote(scenario, summary, events)
         self.assertEqual([s['operation'] for s in plan['steps']], ['observe_more', 'click', 'observe_more'])
         replayed = web.run(scenario, browser(), None, Path(self.temp.name) / 'paged-replay', replay=plan, log=lambda _: None)
@@ -310,6 +311,35 @@ global.document = {activeElement: {
         browser = web_ego.EgoBrowser(contract.policy(self.scenario()), str(Path(self.temp.name) / 'missing-ego-browser'))
         with self.assertRaisesRegex(RuntimeError, 'no engine fallback'):
             self.execute(browser=browser, assertions_only=True)
+        summary = json.loads((Path(self.temp.name) / str(self.sequence) / 'result.json').read_text(encoding='utf-8'))
+        self.assertLessEqual({'web_ego.py', 'web_ego.mjs'}, set(summary['executor_files_sha256']))
+
+    def test_orca_preflight_fails_closed_on_unparseable_destinations(self):
+        page = {'url': 'http://127.0.0.1/todo', 'digest': 'd', 'local_digest': 'l',
+                'elements': [{'ref': 'e1', 'role': 'link', 'name': 'Contact'}]}
+        # A form with <input name="action"> clobbers form.action; Orca serializes the node as {}.
+        for change, expected in (({'href': 'http://127.0.0.1/next'}, None), ({'href': 'mailto:team@example.test'}, 'origin_not_allowed'),
+                                 ({'href': 'javascript:void(0)'}, 'origin_not_allowed'), ({'form_action': {}}, 'origin_not_allowed')):
+            browser = web.Browser('orca', 'path:test')
+            active = {'role': 'link', 'name': 'Contact', 'visible': True, 'occluded': False, 'sensitive': False,
+                      'state': ['disabled=false'], 'href': None, 'form_action': None, **change}
+            with patch.object(browser, 'snapshot', return_value=page), patch.object(browser, 'run', return_value={'ok': True}), \
+                 patch.object(browser, 'evaluate', return_value={'digest': 'l', 'active': active}):
+                self.assertEqual(browser.preflight(page, 'click', 'e1', contract.policy(self.scenario())), expected, change)
+
+    def test_unknown_blocked_count_voids_only_a_pass(self):
+        for scenario, plan, expected in ((self.scenario(), [('fill_submit', 'e3', 'milk'), ('done', None, None)], 'blocked_policy'),
+                                         (self.scenario(max_steps=1), [('fill_submit', 'e3', 'milk')], 'max_steps')):
+            fake = fixture.FakeBrowser()
+            fake.identity = {'blocked_requests': 'unknown'}
+            result = self.execute(scenario, fake, fixture.jev(plan))
+            self.assertEqual((result['result'], result['passed']), (expected, False))
+
+    def test_bridges_number_refs_with_the_probe_selector(self):
+        scripts = ROOT / 'plugins/fullops-squad/scripts'
+        probe = re.search(r"querySelectorAll\('([^']+)'\)", (scripts / 'web_dom.js').read_text(encoding='utf-8'))[1]
+        for bridge in ('web_playwright.cjs', 'web_ego.mjs'):
+            self.assertIn(f"const SELECTOR = '{probe}';", (scripts / bridge).read_text(encoding='utf-8'), bridge)
 
     def test_ego_bridge_reads_only_its_marked_answer(self):
         from types import SimpleNamespace
@@ -341,7 +371,7 @@ global.document = {activeElement: {
         for change in ({'max_steps': True}, {'setup_js': [1]}, {'checks': [{'text': 1}]},
                        {'checks': [{'js': '', 'equals': True}]}, {'safety': {'allowed_operations': [[]]}},
                        {'safety': {'allowed_origins': ['https://example.test'], 'requests': []}},
-                       {'url': None}):
+                       {'url': None}, {'safety': {'allowed_origins': []}}, {'url': [], 'safety': {'allowed_origins': []}}):
             with self.subTest(change=change):
                 scenario = self.scenario(**change)
                 self.assertTrue(web.problems(scenario))

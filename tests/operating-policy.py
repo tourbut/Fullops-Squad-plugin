@@ -34,7 +34,7 @@ class OperatingPolicy(unittest.TestCase):
         self.base = self.commit()
 
     def git(self, *args):
-        return subprocess.check_output(['git', '-C', str(self.repo), *args], text=True).strip()
+        return subprocess.check_output(['git', '-C', str(self.repo), *args], text=True, encoding='utf-8').strip()
 
     def apply(self, **options):
         with redirect_stdout(io.StringIO()):
@@ -154,7 +154,7 @@ class OperatingPolicy(unittest.TestCase):
     def test_dirty_dispatch_hold_and_review_block_transition(self):
         options = {'local_only': True, 'mode': 'dev'}
         extra = self.repo / 'user-note.txt'
-        extra.write_text('preserve')
+        extra.write_text('preserve', encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'dirty'):
             self.apply(**options)
         extra.unlink()
@@ -229,18 +229,18 @@ class OperatingPolicy(unittest.TestCase):
                                  [i <= index for i in range(5)] + [True, True])
                 self.assertIn(level, policy.test_brief(level))
         config_path = self.repo / lint.CONFIG
-        settings = json.loads(config_path.read_text())
+        settings = json.loads(config_path.read_text(encoding='utf-8'))
         storage.write_json(config_path, {**settings, 'commands': commands})
         base = self.commit()
         self.config(test_level='exhaustive')
-        (self.repo / 'app.py').write_text('value = 1\n')
+        (self.repo / 'app.py').write_text('value = 1\n', encoding='utf-8')
         head = self.commit()
         result = lint.lint(self.repo, base)
         self.assertEqual(result['head'], head)
         self.assertEqual(result['test_level'], 'lite')
         self.assertEqual([c['status'] for c in result['commands']],
                          ['passed', 'passed', 'skipped', 'skipped', 'skipped', 'passed', 'passed'])
-        (self.repo / 'NOTES.md').write_text('docs only\n')
+        (self.repo / 'NOTES.md').write_text('docs only\n', encoding='utf-8')
         docs = self.commit()
         result = lint.lint(self.repo, head)
         # 문서만 바뀌면 required 검사만 실행하고 check도 같은 생략을 허용한다.
@@ -313,7 +313,7 @@ class OperatingPolicy(unittest.TestCase):
         for name, content in (('package.json', '{"private":true}'), ('app.toml', 'enabled = true'),
                               ('scene.tscn', '[gd_scene format=3]')):
             with self.subTest(name=name):
-                (self.repo / name).write_text(content)
+                (self.repo / name).write_text(content, encoding='utf-8')
                 self.assertEqual(hook('stop')['decision'], 'block')
         head = self.commit()
         blocked = hook('stop')
@@ -352,11 +352,11 @@ class OperatingPolicy(unittest.TestCase):
             with patch.object(sys, 'argv', ['done_gate.py', mode]), patch.object(sys, 'stdin', io.StringIO(json.dumps(event))):
                 return done_gate.main()
         hook('start')
-        (self.repo / 'one.py').write_text('a = 1\n')
+        (self.repo / 'one.py').write_text('a = 1\n', encoding='utf-8')
         landed = self.commit()
         self.git('update-ref', 'refs/remotes/origin/main', landed)
         self.assertEqual(hook('stop'), {}, '원격 기본 브랜치에 올라간 커밋을 다시 검사함')
-        (self.repo / 'two.py').write_text('b = 2\n')
+        (self.repo / 'two.py').write_text('b = 2\n', encoding='utf-8')
         head = self.commit()
         self.assertIn(f'--from {landed}', hook('stop')['reason'])
         gate = Path(self.git('rev-parse', '--absolute-git-dir')) / 'fullops-gate'
@@ -367,10 +367,10 @@ class OperatingPolicy(unittest.TestCase):
             self.assertEqual(hook('stop'), {})
 
     def test_review_need_uses_base_policy_size_and_always_paths(self):
-        (self.repo / 'notes.md').write_text('docs\n')
+        (self.repo / 'notes.md').write_text('docs\n', encoding='utf-8')
         docs = self.commit()
         self.assertEqual(review.need(self.repo, self.base, docs)['action'], 'skip')
-        (self.repo / 'big.py').write_text(''.join(f'value_{i} = {i}\n' for i in range(400)))
+        (self.repo / 'big.py').write_text(''.join(f'value_{i} = {i}\n' for i in range(400)), encoding='utf-8')
         big = self.commit()
         decision = review.need(self.repo, docs, big)
         # 대규모여도 기본값은 사용자에게 먼저 묻는다.
@@ -389,7 +389,7 @@ class OperatingPolicy(unittest.TestCase):
         self.config(review_policy={'min_code_lines': 400, 'min_code_files': 15, 'always': ['auth/**'], 'auto': True})
         configured = self.commit()
         (self.repo / 'auth').mkdir()
-        (self.repo / 'auth/token.py').write_text('value = 1\n')
+        (self.repo / 'auth/token.py').write_text('value = 1\n', encoding='utf-8')
         self.config(review_policy={'min_code_lines': 100000, 'min_code_files': 1000, 'always': []})
         weakened = self.commit()
         # 작업 브랜치의 정책 완화는 기준 시점 판정을 바꾸지 못한다.
@@ -397,6 +397,16 @@ class OperatingPolicy(unittest.TestCase):
         self.assertEqual(review.need(self.repo, configured, weakened)['action'], 'review')  # 기준 설정 auto=true
         with self.assertRaises(policy.PolicyError):
             policy.validate({'schema_version': 1, 'review_policy': {'min_code_lines': -1}})
+        with self.assertRaises(policy.PolicyError):
+            policy.validate({'schema_version': 1, 'review_policy': [1]})
+
+    def test_policy_error_stop_blocks_once(self):
+        def broken(event):
+            raise policy.PolicyError('mode changed')
+        for active, key in ((False, 'decision'), (True, 'systemMessage')):
+            with patch.object(sys, 'argv', ['done_gate.py', 'stop']), patch.object(
+                    sys, 'stdin', io.StringIO(json.dumps({'cwd': str(self.repo), 'stop_hook_active': active}))):
+                self.assertIn(key, done_gate.run_hook(broken, 'done'))
 
     def test_review_reports_and_specs_do_not_trip_integration_or_inbox_gates(self):
         import hashlib
@@ -423,7 +433,7 @@ class OperatingPolicy(unittest.TestCase):
         self.assertFalse(review.abandoned(self.repo, 'STOP'))
 
     def test_superseded_pending_review_preserves_original(self):
-        (self.repo / 'app.py').write_text('"""behavior needing review"""\nprint("changed")\n')
+        (self.repo / 'app.py').write_text('"""behavior needing review"""\nprint("changed")\n', encoding='utf-8')
         implementation = self.commit()
         qa = self.repo / '.fullops-squad/docs/evaluations/qa-reports'
         old = qa / 'OLD-review/result.json'
@@ -439,7 +449,7 @@ class OperatingPolicy(unittest.TestCase):
         storage.write_json(replacement / 'result.json', result)
         for name in ('preview', 'rules', 'lint'):
             storage.write_json(replacement / f'{name}.json', {})
-        (replacement / 'report.md').write_text('Independent accepted review')
+        (replacement / 'report.md').write_text('Independent accepted review', encoding='utf-8')
         original = old.read_bytes()
         self.commit()
         with self.assertRaisesRegex(ValueError, '리뷰'):
@@ -453,7 +463,7 @@ class OperatingPolicy(unittest.TestCase):
             check.assert_called_once_with(self.repo, 'NEW', self.base, implementation)
         self.commit()
         self.apply(local_only=True, mode='dev', dry_run=True)
-        (replacement / 'report.md').write_text('changed evidence')
+        (replacement / 'report.md').write_text('changed evidence', encoding='utf-8')
         with self.assertRaisesRegex(ValueError, '증거'):
             review.superseded_check(self.repo, 'OLD')
 

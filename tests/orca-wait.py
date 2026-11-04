@@ -120,6 +120,9 @@ def main():
         code, out, calls = run(tmp, [batch('d1', 'heartbeat'), empty], '--max-minutes', '0')
         assert code == 0 and out['status'] == 'idle_timeout', out
         assert calls[-1][calls[-1].index('--ack') + 1] == 'd1' and len(calls) == 2
+        # 마지막 ack 응답에 실린 묶음도 버리지 않는다(Orca 1.4.247+는 돌려준 묶음을 처리됨으로 표시한다).
+        code, out, calls = run(tmp, [batch('d1', 'heartbeat'), batch('d2', 'worker_done'), empty], '--max-minutes', '0')
+        assert out['status'] == 'actionable' and out['deliveryId'] == 'd2', out
         settings = Path(tmp) / '.fullops-squad/.env'
         settings.parent.mkdir()
         settings.write_text('FULLOPS_WORKER_CHECK_MINUTES=invalid\n', encoding='utf-8')

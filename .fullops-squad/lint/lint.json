@@ -49,6 +49,7 @@
       ],
       "paths": [
         "plugins/fullops-squad/scripts/lint.py",
+        "plugins/fullops-squad/scripts/lint_tune.py",
         "tests/lint.py"
       ]
     },

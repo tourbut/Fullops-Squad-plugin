@@ -18,7 +18,7 @@ argument-hint: "[on <owner/repo> <login>[,<login>] [초] [backlog] | on | off | 
 
 - `on <owner/repo> <login>[,<login>...] [<초>] [backlog]`: 1번 질문을 생략한다. 주기는 기본 300초(최소 60), backlog는 단어가 있을 때만 포함한다. 2번 기본 자동 범위와 기본 한도(`--max-attempts 3 --max-seconds 3600 --max-tokens 100000`)를 사용자가 승인한 것으로 보고 3–5번을 진행한 뒤 바로 foreground `wait`에 들어간다. 저장된 설정이 같으면 configure를 생략한다. 다르면 `disable` 뒤 configure한다.
 - `on`: 저장된 설정으로 4–5번만 진행하고 `wait`한다. 저장된 설정이 없으면 1번 질문부터 한다.
-- `off`·`pause`·`resume`: enable에 쓴 session으로 같은 이름의 명령을 실행하고 `status`로 결과를 보고한다.
+- `off`: enable에 쓴 session으로 `disable`을 실행한다. `pause`·`resume`은 같은 이름의 명령을 실행한다. 실행 후 `status`로 결과를 보고한다.
 - `status`: `status` 요약(설정·소유자·이슈 상태)을 보고한다. 이 인자만으로 활성화하지 않는다.
 - 인자가 없거나 해석할 수 없으면 1번 질문부터 한다.
 
@@ -49,7 +49,7 @@ argument-hint: "[on <owner/repo> <login>[,<login>] [초] [backlog] | on | off | 
 5. API snapshot/작성자/allowlist 및 실행 한도를 `checkpoint`에서 재확인한다. `--tokens`는 **실제 확인한 추가 모델 사용량**만 보고한다. 측정할 수 없으면 생략하며, 이것만으로 보류하지 않는다. 그때 한도는 실행 시간·재시도 횟수로 적용된다. 실패 테스트는 한도 안에서 수정/재검증하며 성공으로 바꾸지 않는다. 권한·본문 변경·close·disable·만료 때 worker를 자연 경계에서 보존/정지하고 종료를 확인하기 전 강제 삭제·중복 재배정하지 않는다.
 6. 보류는 `checkpoint --phase held --reason <근거> --resume <소유자와 재개 조건>`로 기록한다. 재개 소유자가 사용자(결정·승인·범위 밖 직접 조치)이면 held로 끝내지 않고 이어서 아래 `question`으로 원래 이슈에 무엇이 필요한지·선택지·답하면 어떻게 재개되는지를 묻는다. 사용자는 터미널 대신 이슈 댓글로 답하고 같은 답변 경로로 재개된다. 독립 다음 이슈는 같은 wait로 처리한다. 실행 작업의 소유자/사유/증거는 history에 보존한다.
 
-보류·한도 초과·allowlist 철회 상태에서도 coor의 조회·기록·로컬 파일 작업은 계속된다. hook은 worker 배정, push, GitHub 변경만 막는다. 한도를 넘었으면 `checkpoint --phase held`로 보류한다. pause·disable·lease 만료 뒤의 coor는 자동 실행 중이 아니므로 자동 범위 제한을 받지 않고 사용자가 직접 운영한다. 이전 epoch의 worker만 fencing된다. 다른 체크아웃은 `git -C <경로> status|log|diff|show|rev-parse`처럼 조회만 하고, 설정 저장소의 `gh ... --repo <owner/repo>` 조회는 허용된다.
+보류·pause·한도 초과·allowlist 철회 상태에서도 coor의 조회·기록·로컬 파일 작업은 계속된다. hook은 worker 배정, push, GitHub 변경만 막는다. 한도를 넘었으면 `checkpoint --phase held --reason <근거> --resume <재개 조건>`으로 보류한다. disable·lease 만료 뒤의 coor는 자동 실행 중이 아니므로 자동 범위 제한을 받지 않고 사용자가 직접 운영한다. 이전 epoch의 worker만 fencing된다. 다른 체크아웃은 `git -C <경로> status|log|diff|show|rev-parse`처럼 조회만 하고, 설정 저장소의 `gh ... --repo <owner/repo>` 조회는 허용된다.
 
 ## 질문과 답변
 
@@ -59,7 +59,7 @@ wait의 `answer_candidates`는 같은 이슈 원 작성자 stable ID이며 현�
 
 ## 완료·중지·인계
 
-구현/테스트 후 `checkpoint --phase reviewing --receipt <현재 receipt>`를 기록한다. 기존 lint와 독립 fixed-SHA 리뷰의 `review.py check`를 통과하고 같은 저장소의 **draft PR**을 생성한다. PR 본문은 `Refs #<번호>`로 연결한다. 자동 close 키워드를 쓰지 않는다. 완료 worker의 integration 기록은 `integration.py hold`로 사용자 병합 판단과 PR 링크를 남긴다. route/review gate를 없애거나 성공 처리하지 않는다.
+구현/테스트 후 `checkpoint --token-file <lease JSON 경로> --issue-id <id> --phase reviewing --received`를 기록한다. 기존 lint와 독립 fixed-SHA 리뷰의 `review.py check`를 통과하고 같은 저장소의 **draft PR**을 생성한다. PR 본문은 `Refs #<번호>`로 연결한다. 자동 close 키워드를 쓰지 않는다. 완료 worker의 integration 기록은 `integration.py hold`로 사용자 병합 판단과 PR 링크를 남긴다. route/review gate를 없애거나 성공 처리하지 않는다.
 
 `complete --token-file <lease JSON 경로> --issue-id <id> --worktree <검증 체크아웃> --review-key <키> --base <SHA> --head <SHA> --pr-number <번호>`가 review gate와 draft/base/head/repository를 확인한 뒤만 completed이다.
 

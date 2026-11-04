@@ -4,7 +4,7 @@ When a user asks you to install FullOps Squad, follow the "설치" section of [R
 
 1. Identify the AI CLI running this conversation: Codex, Claude Code, or grok. If it cannot be identified, ask. For agy, or when the user wants to install a development checkout, follow the checkout install in [docs/development.md](docs/development.md).
 2. Run that CLI's marketplace and install commands from the README. For Claude Code, register the ponytail and claude-plugins-official marketplaces first so plugin dependencies resolve.
-3. Install external dependencies with the installed plugin's `scripts/deps.py --host <host>` (`codex`, `claude-code`, `grok`), then confirm with `scripts/deps.py --check`.
+3. Install external dependencies with the installed plugin's `scripts/deps.py --host <host>` (`codex`, `claude-code`, `grok`), then confirm with `scripts/deps.py --check --host <host>`.
 4. Report the installed version and any failed command. Tell the user that a new agent session is needed before running the `setup-fullops` skill.
 
 Installation is global to the selected CLI. Activate the harness in a service repository only when the user asks for setup there; that separate step creates `.fullops-squad/` in the chosen repository.

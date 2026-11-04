@@ -21,10 +21,12 @@ def load(path):
 def tune(repo, min_warnings=50):
     repo = Path(repo)
     config = {**DEFAULT, **(load(repo / CONFIG) or {})}
-    runs, warnings, paths, seconds, findings = 0, Counter(), defaultdict(Counter), defaultdict(list), []
+    runs, warnings, paths, seconds, findings, seen = 0, Counter(), defaultdict(Counter), defaultdict(list), [], set()
     for folder in sorted((repo / REVIEWS).glob('*-review')):
         result = load(folder / 'lint.json')
-        if isinstance(result, dict):
+        # 같은 SHA를 새 키로 다시 리뷰하면 prepare가 같은 lint 실행을 복사한다. attempt로 한 번만 센다
+        if isinstance(result, dict) and (result.get('attempt') or folder) not in seen:
+            seen.add(result.get('attempt') or folder)
             runs += 1
             for v in result.get('violations') or []:
                 warnings[v.get('code')] += 1

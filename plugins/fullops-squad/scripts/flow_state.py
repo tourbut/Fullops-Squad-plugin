@@ -10,6 +10,7 @@ import time
 import harness_gate
 import integration
 from storage import write_json
+from work import KEY
 
 # 노드 ID(docs/flow-graph.md 노드: 의도·설계·배정·구현·worker_done·리뷰·병합·검수·완료)와 그 노드에 들어올 때 지난 게이트
 NODES = ('intent', 'design', 'assign', 'build', 'report', 'review', 'merge', 'qa', 'done')
@@ -48,6 +49,8 @@ def task_of(root, key):
 
 def update(root, key, node, sha=None):
     base = harness_gate.base_key(task_of(root, key))
+    if not KEY.fullmatch(base):  # 명령에 적힌 키 그대로다
+        return
     path = directory(root) / f'{base}.json'
     try:
         state = json.loads(path.read_text(encoding='utf-8'))
@@ -55,6 +58,8 @@ def update(root, key, node, sha=None):
         state = {'key': base, 'gates': []}
     if state.get('node') == node and (sha is None or state.get('sha') == sha):
         return
+    if node == 'report' and sha == state.get('sha') and NODES.index(state.get('node', 'intent')) > NODES.index('report'):
+        return  # 다시 쓴 같은 완료 보고는 뒤 노드를 되돌리지 않는다
     count, budget = harness_gate.rework(root, base)[:2]
     state.update(node=node, rounds=count, budget=budget,
                  updated=datetime.now(timezone.utc).isoformat(timespec='seconds'))

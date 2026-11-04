@@ -33,7 +33,7 @@ class UpdateTests(unittest.TestCase):
         self.set_applied('0.9.8')
         self.plugin = self.root / 'plugin'
         self.plugin.mkdir()
-        (self.plugin / 'plugin.json').write_text(json.dumps({'version': '0.9.10'}))
+        (self.plugin / 'plugin.json').write_text(json.dumps({'version': '0.9.10'}), encoding='utf-8')
         notes = self.plugin / 'releases'
         notes.mkdir()
         for release in ('0.9.7', '0.9.8', '0.9.9', '0.9.10', '0.10.0'):
@@ -41,7 +41,7 @@ class UpdateTests(unittest.TestCase):
 
     def set_applied(self, release):
         self.marker.write_text(json.dumps({'schema_version': 1, 'plugin_version': release,
-                                          'roles': {'dev': 'fullops/dev'}}))
+                                          'roles': {'dev': 'fullops/dev'}}), encoding='utf-8')
 
     def test_oldest_baseline_numeric_order_and_target_bound(self):
         result = update.plan(self.repo, '0.9.9', self.plugin)
@@ -117,7 +117,10 @@ class UpdateTests(unittest.TestCase):
                                  '--from', '0.9.9', '--json'], capture_output=True, text=True,
                                 encoding='utf-8', check=True)
         report = json.loads(result.stdout)
-        self.assertEqual([n['version'] for n in report['releases']], ['0.9.9', '0.9.10', '0.9.11', '0.9.12', '0.9.13', '0.9.14', '1.0.0', '1.1.0', '1.1.1', '1.1.2', '1.2.0', '1.2.1', '1.3.0', '1.4.0', '1.4.1', '1.4.2', '1.4.3', '1.4.4', '1.5.0', '1.6.0', '1.7.0', '1.7.1', '1.8.0', '1.8.1', '1.8.2', '1.8.3', '1.8.4', '1.8.5', '1.8.6', '1.8.7', '1.8.8', '1.8.9', '1.9.0', '1.10.0', '1.11.0', '1.11.1', '1.12.0', '1.12.1', '1.13.0', '1.14.0', '1.14.1', '1.15.0', '1.15.1'])
+        target = update.version(json.loads((package / 'plugin.json').read_text(encoding='utf-8'))['version'])
+        expected = sorted((p.stem for p in (ROOT / 'docs/releases').glob('*.md')
+                           if update.version('0.9.8') < update.version(p.stem) <= target), key=update.version)
+        self.assertEqual([n['version'] for n in report['releases']], expected)
         self.assertTrue(report['steps'])
         self.assertIn('담당과 반복 범위', (package / 'assets/repository/.fullops-squad/rules/common/testing.md').read_text(encoding='utf-8'))
 

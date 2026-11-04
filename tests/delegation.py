@@ -34,7 +34,7 @@ class Delegation(unittest.TestCase):
             'message': f'Purpose: {purpose}; Task key: K; read only; inspect x.py and report findings'}}
 
     def test_native_off_and_lite_purpose_apply_to_host_tools(self):
-        for name in ('Agent', 'Task', 'collaboration.spawn_agent', 'functions__followup_task'):
+        for name in ('Agent', 'Task', 'collaboration.spawn_agent', 'functions__followup_task', 'spawn_subagent'):
             self.config['subagent_level'] = 'off'
             event = self.event(name)
             self.assertIn('off', flow_gate.delegation_denial(self.repo, event, {}, self.config, [], True))
@@ -83,7 +83,7 @@ class Delegation(unittest.TestCase):
 
     def test_lite_requires_read_only_contract_and_rejects_write_requests(self):
         config = {**self.config, 'subagent_level': 'lite'}
-        for name in ('Agent', 'Task', 'collaboration.spawn_agent', 'functions__followup_task'):
+        for name in ('Agent', 'Task', 'collaboration.spawn_agent', 'functions__followup_task', 'spawn_subagent'):
             for prompt in ('Purpose: research; inspect x.py',
                            'Purpose: review; edit x.py and implement the fix',
                            'Purpose: research; read only; edit x.py and implement the fix',

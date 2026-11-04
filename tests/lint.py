@@ -187,6 +187,7 @@ def anti_slop():
         assert 'reason' in review({**result, 'commands': [{**record, 'status': 'unavailable', 'exit_code': None}, *remaining]}).stderr
         failure = checks.run_command(repo, {**command, 'run': [PY, '-c', 'import sys; sys.exit(1)']}, 10)
         assert failure['kind'] == 'test' and failure['status'] == 'failed' and failure['exit_code'] == 1
+        assert checks.run_command(repo, {**command, 'cwd': 'old.py'}, 10)['status'] == 'unavailable'  # 시작 못 한 명령도 결과를 남긴다
 
 
 def main():
@@ -340,9 +341,11 @@ def main():
                          ('LINT-000', 'WARNING', '.fullops-squad/lint/lint.json', None)}, found
         git('reset', '-q', '--hard', base)
 
+        assert lint().returncode == 0 and gate.exists()
         (repo / 'dirty.py').write_text('d = 1\n')
         refused = lint()
         assert refused.returncode == 2 and 'dirty.py' in refused.stdout + refused.stderr and 'finish' in refused.stdout + refused.stderr  # 커밋 전 실행 거부
+        assert gate.exists(), '커밋 전 실행 거부가 같은 HEAD의 통과 기록을 지움'
         (repo / 'dirty.py').unlink()
 
         # review.py check의 lint 게이트 (OCR 없이 리뷰 기록을 구성한다)
@@ -445,15 +448,16 @@ def command_scope():
         raised = checks.lint(repo, base, 'full')
         assert raised['test_level'] == 'full' and raised['commands'][2]['status'] == 'passed'
         assert checks.lint(repo, base, 'minimal')['test_level'] == result['test_level'], '--level은 낮추지 못한다'
-        try:
-            config_path.write_text(json.dumps({**json.loads(config_path.read_text()), 'commands': [
-                {'name': 'bad', 'paths': [], 'run': [PY, '-V']}]}))
-            commit()
-            checks.load_config(repo, 'HEAD')
-        except ValueError as error:
-            assert 'paths' in str(error)
-        else:
-            raise AssertionError('빈 paths를 받아들임')
+        for bad in ([], None):
+            try:
+                config_path.write_text(json.dumps({**json.loads(config_path.read_text()), 'commands': [
+                    {'name': 'bad', 'paths': bad, 'run': [PY, '-V']}]}))
+                commit()
+                checks.load_config(repo, 'HEAD')
+            except ValueError as error:
+                assert 'paths' in str(error)
+            else:
+                raise AssertionError(f'paths={bad!r}를 받아들임')
 
 
 def tune_report():
@@ -467,16 +471,20 @@ def tune_report():
         for n, cited in enumerate((False, True)):
             folder = repo / lint_tune.REVIEWS / f'K{n}-review'
             folder.mkdir(parents=True)
-            (folder / 'lint.json').write_text(json.dumps({
+            (folder / 'lint.json').write_text(json.dumps({'attempt': f'a{n}',
                 'violations': [{'code': 'DESIGN-001', 'path': 'mock/a.html'}] * 3 + [{'code': 'SLOP-004', 'path': 'b.py'}] * 3,
                 'commands': [{'name': 'slow', 'seconds': 300}, {'name': 'scoped', 'seconds': 300}]}))
             (folder / 'result.json').write_text(json.dumps({'findings': [{'content': 'SLOP-004 디버그 출력 남음'}] if cited else []}))
+        again = repo / lint_tune.REVIEWS / 'K1-again-review'  # 같은 SHA 재리뷰가 복사한 lint 실행
+        again.mkdir(parents=True)
+        (again / 'lint.json').write_bytes((repo / lint_tune.REVIEWS / 'K1-review/lint.json').read_bytes())
         report = lint_tune.tune(repo, min_warnings=5)
         rules = {r['code']: r for r in report['rules']}
         assert report['reviews_with_lint'] == 2 and 'proposal' in rules['DESIGN-001'], report
         assert rules['DESIGN-001']['top_paths'] == ['mock/a.html']
         assert rules['SLOP-004']['cited_by_findings'] == 1 and 'proposal' not in rules['SLOP-004']
         slow, scoped = report['commands']
+        assert rules['DESIGN-001']['warnings'] == 6 and slow['runs'] == 2
         assert slow['avg_seconds'] == 300 and 'proposal' in slow and 'proposal' not in scoped
     print('PASS: lint tune proposes noisy uncited rules and slow unscoped commands only')
 

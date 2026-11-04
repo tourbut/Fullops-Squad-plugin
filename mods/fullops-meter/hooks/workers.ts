@@ -86,7 +86,7 @@ const OVER = new Set(['completed', 'cancelled', 'canceled', 'failed'])
  * `orca orchestration task-list --json`: task id to task key, and the keys of tasks still waiting
  * for a worker (no dispatch yet and not over), in listing order.
  */
-export const parseTasks = (stdout: string): { keys: Record<string, string>; queued: string[] } => {
+export const parseTasks = (stdout: string, sent: ReadonlySet<string> = new Set()): { keys: Record<string, string>; queued: string[] } => {
   let parsed: unknown
   try {
     parsed = JSON.parse(stdout)
@@ -101,7 +101,8 @@ export const parseTasks = (stdout: string): { keys: Record<string, string>; queu
       const task = asRecord(item)
       const key = keyOf(text(task.spec))
       keys[text(task.id)] = key
-      if (text(task.dispatch_id) === '' && !OVER.has(text(task.status))) queued.push(key || text(task.id))
+      // Newer Orca task rows no longer name their dispatch, so a task the worker listing holds is out.
+      if (text(task.dispatch_id) === '' && !sent.has(text(task.id)) && !OVER.has(text(task.status))) queued.push(key || text(task.id))
     }
   }
   return { keys, queued }

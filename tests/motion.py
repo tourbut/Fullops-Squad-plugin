@@ -82,15 +82,15 @@ with tempfile.TemporaryDirectory() as directory:
     assert any('too short' in f for f in motion.inspect(spec, metadata, [bad]))
 
     spec_path = root / 'spec.json'
-    spec_path.write_text(json.dumps(spec))
+    spec_path.write_text(json.dumps(spec), encoding='utf-8')
     media = root / 'video.mp4'
     media.write_bytes(b'prior successful render')
     output = root / 'qa/v01/result.json'
     cmd = [sys.executable, str(ROOT / 'tests/motion_check.py'), '--spec', str(spec_path),
            '--media', str(media), '--ffprobe', str(root / 'missing-ffprobe'), '--out', str(output)]
-    done = subprocess.run(cmd, capture_output=True, text=True)
+    done = subprocess.run(cmd, capture_output=True, encoding='utf-8', errors='replace')
     assert done.returncode == 2, done.stderr
-    report = json.loads(output.read_text())
+    report = json.loads(output.read_text(encoding='utf-8'))
     assert report['status'] == 'unavailable' and report['listening'] == 'not_run'
     previous = output.read_bytes()
     assert subprocess.run(cmd, capture_output=True).returncode == 2
@@ -113,7 +113,7 @@ with tempfile.TemporaryDirectory() as directory:
          patch.object(motion.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'tool version\n')), \
          patch.object(motion, 'decode_audio', side_effect=FileNotFoundError('missing decoder')):
         assert motion.main() == 2
-    assert json.loads((root / 'decode-unavailable.json').read_text())['audio_content'] == 'not_run'
+    assert json.loads((root / 'decode-unavailable.json').read_text(encoding='utf-8'))['audio_content'] == 'not_run'
 
     # Optional real codec regression; the standard suite has no video-tool dependency.
     if shutil.which('ffmpeg') and shutil.which('ffprobe'):
@@ -127,7 +127,7 @@ with tempfile.TemporaryDirectory() as directory:
                  'assets': ['source.wav'], 'audio_clips': [{'path': 'source.wav', 'start': 0.5, 'duration': 1}],
                  'texts': [], 'text_policy': [{'start': 0, 'end': 2, 'allow': []}]}
         small_path = root / 'small.json'
-        small_path.write_text(json.dumps(small))
+        small_path.write_text(json.dumps(small), encoding='utf-8')
         base = ['ffmpeg', '-v', 'error', '-nostdin', '-f', 'lavfi', '-i', 'color=c=blue:s=64x64:r=10:d=2',
                 '-i', str(pcm), '-filter_complex', '[1:a]adelay=500:all=1,apad[a]', '-map', '0:v', '-map', '[a]',
                 '-t', '2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709',
@@ -143,12 +143,12 @@ with tempfile.TemporaryDirectory() as directory:
             video = root / f'{label}.mp4'
             command = base.copy()
             command[command.index('-filter_complex') + 1] = f'[1:a]adelay=500:all=1,apad{audio_filter}[a]'
-            created = subprocess.run(command + change + [str(video)], capture_output=True, text=True)
+            created = subprocess.run(command + change + [str(video)], capture_output=True, encoding='utf-8', errors='replace')
             assert created.returncode == 0, created.stderr
             report_path = root / f'{label}-qa.json'
             checked = subprocess.run([sys.executable, str(ROOT / 'tests/motion_check.py'), '--spec', str(small_path),
-                                      '--media', str(video), '--out', str(report_path)], capture_output=True, text=True)
-            report = json.loads(report_path.read_text())
+                                      '--media', str(video), '--out', str(report_path)], capture_output=True, encoding='utf-8', errors='replace')
+            report = json.loads(report_path.read_text(encoding='utf-8'))
             assert checked.returncode == expected_code, (label, checked.stderr, report)
             if label == 'vfr':
                 assert report['frame_cadence'] == 'failed', report
@@ -164,7 +164,7 @@ with tempfile.TemporaryDirectory() as directory:
     font.write_bytes(b'fixture font')
     gsap = root / 'node_modules/gsap/dist/gsap.min.js'
     gsap.parent.mkdir(parents=True)
-    gsap.write_text('// fixture GSAP')
+    gsap.write_text('// fixture GSAP', encoding='utf-8')
     (root / 'general').mkdir()
     narration = root / 'input.wav'
     for seconds, expected in ((15, 1), (1, 0)):
@@ -174,7 +174,7 @@ with tempfile.TemporaryDirectory() as directory:
             audio.setframerate(8000)
             audio.writeframes(b'\0\0' * (8000 * seconds))
         prepared = subprocess.run([sys.executable, str(script), '--font', str(font), '--voice-file', str(narration)],
-                                  capture_output=True, text=True)
+                                  capture_output=True, encoding='utf-8', errors='replace')
         assert prepared.returncode == expected, prepared.stderr
         if expected:
             assert not list((root / 'public').iterdir()), 'invalid narration copied assets'
@@ -186,8 +186,9 @@ with tempfile.TemporaryDirectory() as directory:
 SKILL = ROOT / 'plugins/fullops-squad/skills/fullops-motion'
 if shutil.which('node'):
     for args in ([], ['index.html'], ['index.html', '--out', 'o.mp4', '--width', '0', '--height', '9', '--duration', '1'],
-                 ['index.html', '--out', 'o', '--width', '9', '--height', '9', '--stills', 'a']):
-        done = subprocess.run(['node', str(SKILL / 'render.mjs'), *args], capture_output=True, text=True)
+                 ['index.html', '--out', 'o', '--width', '9', '--height', '9', '--stills', 'a'],
+                 ['index.html', '--out', 'o', '--subframe', '4']):
+        done = subprocess.run(['node', str(SKILL / 'render.mjs'), *args], capture_output=True, encoding='utf-8', errors='replace')
         assert done.returncode == 2 and 'render.mjs:' in done.stderr, (args, done.stderr)
 templates = (SKILL / 'templates.md').read_text(encoding='utf-8')
 assert templates.count('](https://x.com/') == 17

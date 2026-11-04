@@ -98,7 +98,7 @@ def probe(executable, path, frames=False):
     if frames:
         command += ['-show_frames', '-show_entries', 'frame=media_type,best_effort_timestamp_time']
     result = subprocess.run(command + ['-of', 'json', str(path)],
-                            capture_output=True, text=True, timeout=180, check=True)
+                            capture_output=True, encoding='utf-8', timeout=180, check=True)
     return json.loads(result.stdout)
 
 

@@ -24,7 +24,7 @@ def runtime(python):
     code = "import importlib.metadata,json;from pathlib import Path;from playwright.sync_api import sync_playwright;" \
            "p=sync_playwright().start();print(json.dumps({'playwright':importlib.metadata.version('playwright'),'firefox_installed':Path(p.firefox.executable_path).is_file()}));p.stop()"
     try:
-        result = subprocess.run([python, '-c', code], capture_output=True, text=True, timeout=15)
+        result = subprocess.run([python, '-c', code], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=15)
         return json.loads(result.stdout) if result.returncode == 0 else {'playwright': None, 'firefox_installed': False}
     except (OSError, ValueError, subprocess.SubprocessError):
         return {'playwright': None, 'firefox_installed': False}

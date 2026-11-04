@@ -9,6 +9,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
 import jev_observe as jev  # noqa: E402
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED', 'FULLOPS_JEV_CACHE_BYPASS'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기·캐시 우회 설정과 무관하게 stub과 캐시 적중을 검사한다
 
 
 def main():
@@ -50,6 +52,16 @@ def main():
                 {'model': 'jev-1.13.0', 'answers': {}, 'usage': {'input_tokens': 3, 'output_tokens': 1}}))
             filled, _ = jev.request(request, jev.Key.of('ts-test_KEY', 'typesafe'))
             assert filled['usage']['cost'] == 0  # 공식 API는 비용을 보고하지 않는다
+
+            def hung(argv, **kw):
+                seen['body'] = argv[argv.index('--data-binary') + 1][1:]
+                raise subprocess.TimeoutExpired(argv, kw['timeout'])
+            jev.subprocess.run = hung
+            try:
+                jev.request(request, 'sk-or-test_KEY-1')
+                raise AssertionError('timeout not raised')
+            except TimeoutError as error:  # 호출자의 OSError fallback이 받는다
+                assert str(error) == 'openrouter Jev request timed out' and not Path(seen['body']).exists()
             del os.environ['FULLOPS_JEV_CACHE_BYPASS']
         finally:
             jev.subprocess.run = original
@@ -94,6 +106,8 @@ def main():
             assert jev.api_key(None, repo) == ''  # 키 줄이 없으면 Jev 없이 진행
             local.write_text('TYPESAFE_API_KEY=ts-from_dotenv\n', encoding='utf-8')
             assert jev.api_key(None, repo).provider == 'typesafe'
+            local.write_bytes(b'\xef\xbb\xbfTYPESAFE_API_KEY=ts-bom\n')  # Windows PowerShell 5.1 Set-Content -Encoding UTF8은 BOM을 쓴다
+            assert jev.api_key(None, repo) == 'ts-bom'
         finally:
             os.environ.pop('OPENROUTER_API_KEY', None)
             os.environ.pop('TYPESAFE_API_KEY', None)

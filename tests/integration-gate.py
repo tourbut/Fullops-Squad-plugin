@@ -10,6 +10,10 @@ SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/fullops-squad/scripts'
 
 
 def main():
+    sys.path.insert(0, str(SCRIPTS))
+    import integration
+    # dispatch_spec가 정리한 키 앞에 원래 spec('… Task key: K1.')을 붙여도 같은 키다
+    assert integration.dispatch_key('Task key: K1 Implement the form. Task key: K1.') == 'K1'
     with tempfile.TemporaryDirectory(prefix='fullops-integration-') as tmp:
         root = Path(tmp)
         repo, remote, worker = root / 'repo', root / 'remote.git', root / 'worker'

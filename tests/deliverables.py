@@ -14,6 +14,7 @@ import deliverables  # noqa: E402
 
 def main():
     today = date.today().isoformat()
+    assert deliverables.split('---\ntasks: [57, 1.10]\n---\n')[0]['tasks'] == ['57', '1.10']
     with tempfile.TemporaryDirectory(prefix='fullops-deliv-') as tmp:
         repo = Path(tmp)
         fo = repo / '.fullops-squad'

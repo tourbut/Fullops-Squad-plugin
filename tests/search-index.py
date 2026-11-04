@@ -23,6 +23,9 @@ import setup
 import storage
 import work
 
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기 설정과 무관하게 stub 판정을 검사한다
+
 
 class SearchIndex(unittest.TestCase):
     def setUp(self):
@@ -71,7 +74,7 @@ class SearchIndex(unittest.TestCase):
         with patch.object(index, 'prefix_blob', side_effect=AssertionError('unchanged blob parsed')):
             self.assertEqual(index.metadata(self.repo, self.base), first)
         self.assertEqual(path.stat().st_mtime_ns, before)
-        self.write('copy.py', (self.repo / 'api.py').read_text())
+        self.write('copy.py', (self.repo / 'api.py').read_text(encoding='utf-8'))
         self.git('mv', 'guide.md', 'renamed.md')
         self.write('api.py', '# Changed account API.\ndef lookup_user(uid):\n    return uid\n')
         head = self.commit()
@@ -95,9 +98,9 @@ class SearchIndex(unittest.TestCase):
         index.metadata(self.repo, self.base)
         path = index.cache_path(self.repo, 'code')
         for invalid in ('{', '[]', '{"schema_version": 9}'):
-            path.write_text(invalid)
+            path.write_text(invalid, encoding='utf-8')
             self.assertEqual(index.metadata(self.repo, self.base), expected)
-        malformed = json.loads(path.read_text())
+        malformed = json.loads(path.read_text(encoding='utf-8'))
         malformed['files'][0]['headings'] = [42]
         malformed['files_sha256'] = jev.digest(json.dumps(malformed['files'], sort_keys=True, ensure_ascii=False).encode())
         path.write_text(json.dumps(malformed), encoding='utf-8')
@@ -113,6 +116,12 @@ class SearchIndex(unittest.TestCase):
             self.assertEqual(write.call_count, 3)
         self.assertFalse(lock.exists())
         self.assertFalse(path.exists())
+        dead = subprocess.Popen([sys.executable, '-c', ''])
+        dead.wait()
+        lock.write_text(str(dead.pid), encoding='utf-8')  # 강제 종료된 writer가 남긴 잠금
+        self.assertEqual(index.metadata(self.repo, self.base), expected)
+        self.assertTrue(path.exists())
+        self.assertFalse(lock.exists())
 
     def test_policy_and_parser_changes_invalidate(self):
         index.metadata(self.repo, self.base)
@@ -123,7 +132,7 @@ class SearchIndex(unittest.TestCase):
         self.assertNotIn('api.py', dict(index.code_map(self.repo, self.commit())))
 
     def test_same_blob_paths_worktrees_and_concurrent_writers(self):
-        self.write('copy.py', (self.repo / 'api.py').read_text())
+        self.write('copy.py', (self.repo / 'api.py').read_text(encoding='utf-8'))
         self.commit()
         expected = index.metadata(self.repo, 'HEAD', use_cache=False)
         with ThreadPoolExecutor(max_workers=3) as pool:
@@ -152,7 +161,7 @@ class SearchIndex(unittest.TestCase):
         self.assertTrue(mapped['invalid.md']['partial'])
         self.assertIsNone(mapped['invalid.md']['statuses'])
         self.assertTrue(mapped['large.py']['partial'])
-        self.assertNotIn('sensitive-value', index.cache_path(self.repo, 'code').read_text())
+        self.assertNotIn('sensitive-value', index.cache_path(self.repo, 'code').read_text(encoding='utf-8'))
 
     def test_head_move_during_parse_keeps_fixed_commit(self):
         self.write('later.py', '# Later commit\n')
@@ -165,7 +174,7 @@ class SearchIndex(unittest.TestCase):
         with patch.object(index, 'prefix_blob', side_effect=move):
             entries = index.metadata(self.repo, 'HEAD')
         self.assertEqual({x['path'] for x in entries}, {'api.py', 'guide.md'})
-        self.assertEqual(json.loads(index.cache_path(self.repo, 'code').read_text())['head'], self.base)
+        self.assertEqual(json.loads(index.cache_path(self.repo, 'code').read_text(encoding='utf-8'))['head'], self.base)
 
     def test_shared_state_bounded_payload_and_invalid_ids(self):
         captured = []
@@ -218,7 +227,7 @@ class SearchIndex(unittest.TestCase):
         with patch.dict(os.environ, {'FULLOPS_OFFLINE': '1', 'GIT_TRACE': str(trace)}):
             items = index.metadata(self.repo, self.base)
         self.assertTrue(next(x for x in items if x['path'] == 'api.py')['read_error'])
-        self.assertNotIn('fetch ', trace.read_text())
+        self.assertNotIn('fetch ', trace.read_text(encoding='utf-8'))
         object_path.write_bytes(saved)
         items = index.metadata(self.repo, self.base)
         self.assertTrue(next(x for x in items if x['path'] == 'api.py')['searchable'])

@@ -43,6 +43,8 @@ def link(worktree):
     if root is None:
         return []
     top = Path(git(worktree, 'rev-parse', '--show-toplevel')).resolve()
+    if not (top / '.fullops-squad').is_dir():
+        return []  # FullOps가 없는 브랜치의 워크트리는 건드리지 않는다
     done = []
     for source in sorted((root / '.fullops-squad').glob('.env*')):
         target = top / '.fullops-squad' / source.name

@@ -1,5 +1,6 @@
 """제품/기술 역할 분리의 라우팅·배정 훅·브랜치 보존을 임시 레포에서 검증한다."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -14,6 +15,8 @@ import jev_packet
 import storage
 import work
 import setup
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기 설정과 무관하게 stub 판정을 검사한다
 
 
 with tempfile.TemporaryDirectory(prefix='fullops-product-') as tmp:

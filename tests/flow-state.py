@@ -19,7 +19,7 @@ def main():
         repo.mkdir()
 
         def git(*args, cwd=repo):
-            return subprocess.check_output(['git', '-C', str(cwd), *args], text=True, stderr=subprocess.DEVNULL).strip()
+            return subprocess.check_output(['git', '-C', str(cwd), *args], text=True, encoding='utf-8', stderr=subprocess.DEVNULL).strip()
 
         def commit(cwd, message):
             git('add', '-A', cwd=cwd)
@@ -46,9 +46,9 @@ def main():
         assert state('K1')['node'] == 'design' and state('K1')['gates'] == ['route'], state('K1')
         post('orca orchestration worker-start --run run_1 --worktree "w" --spec "Task key: K1; Purpose: implementation"')
         assert state('K1')['node'] == 'build'
-        (worker / 'f.py').write_text('f = 1\n')
+        (worker / 'f.py').write_text('f = 1\n', encoding='utf-8')
         first = commit(worker, 'feature')
-        (worker / 'g.py').write_text('g = 1\n')
+        (worker / 'g.py').write_text('g = 1\n', encoding='utf-8')
         sha = commit(worker, 'record')
         time.sleep(0.05)  # 완료 보고 기록이 마지막 확인 시각보다 나중이어야 한다
         # 구현·기록 SHA를 둘 다 적으면 나머지를 포함하는 끝 커밋을 쓴다
@@ -57,6 +57,11 @@ def main():
         assert state('K1')['node'] == 'report' and state('K1')['sha'] == sha
         post(f'python3 review.py check --repo . --key K1-DEV-REVIEW-R2 --from main --to {sha}')
         assert state('K1')['node'] == 'review' and state('K1-DEV-REVIEW-R2') is None  # 리뷰 키는 과제에 묶인다
+        time.sleep(0.05)
+        for record in integration.directory(repo).glob('*.json'):  # 같은 완료 보고를 다시 써도 리뷰에서 되돌리지 않는다
+            record.write_bytes(record.read_bytes())
+        post('python3 jev_route.py --repo . --key ../escape --text x')  # 경로가 되는 키는 기록하지 않는다
+        assert state('K1')['node'] == 'review' and not (integration.directory(repo).parent / 'escape.json').exists()
         git('merge', '-q', '--ff-only', sha)
         post(f'git merge --ff-only {sha}')
         final = state('K1')
@@ -65,7 +70,7 @@ def main():
         # 차수 키는 원래 과제의 상태로 모이고 반복 횟수를 센다
         route = repo / '.fullops-squad/docs/evaluations/jev/K1-FIX-route.json'
         route.parent.mkdir(parents=True, exist_ok=True)
-        route.write_text(json.dumps({'task_key': 'K1-FIX', 'route': 'simple', 'role': 'dev'}))
+        route.write_text(json.dumps({'task_key': 'K1-FIX', 'route': 'simple', 'role': 'dev'}), encoding='utf-8')
         post('python3 jev_route.py --repo . --key K1-FIX --text fix')
         assert state('K1')['node'] == 'design' and state('K1')['rounds'] == 1 and state('K1-FIX') is None
         # worker 세션은 쓰지 않고, 모든 워크트리가 같은 상태를 읽는다

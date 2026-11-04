@@ -15,7 +15,7 @@ def main():
         repo = Path(tmp)
 
         def git(*args):
-            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True, encoding='utf-8').strip()
 
         def hook(mode, native_env=None, **event):
             event.setdefault('cwd', tmp)
@@ -43,7 +43,7 @@ def main():
         # 현황판: coordinator가 PLANS.md만 바꾸고 board.json을 그대로 두면 한 번 확인을 요청한다
         plans, phases = repo / '.fullops-squad/PLANS.md', repo / '.fullops-squad/board/board.json'
         assert hook('stop', session_id='b') == {}  # 첫 종료는 기준만 기억한다
-        receipt = json.loads((repo / '.git/fullops-gate/hooks/flow-b.json').read_text())
+        receipt = json.loads((repo / '.git/fullops-gate/hooks/flow-b.json').read_text(encoding='utf-8'))
         assert receipt['status'] == receipt['events']['stop']['status'] == 'executed'
         plans.write_text(plans.read_text(encoding='utf-8') + '\n- 진행 기록\n', encoding='utf-8')
         assert 'board.json' in hook('stop', session_id='b')['reason']
@@ -67,8 +67,8 @@ def main():
         native_env = {'ORCA_TERMINAL_HANDLE': 'term-native-test'}
         for host_session in ('native-first', 'native-next'):
             hook('start', native_env=native_env, session_id=host_session)
-            receipt = json.loads((repo / f'.git/fullops-gate/flow-{host_session}.json').read_text())
-            binding = json.loads((repo / '.git/fullops-gate/flow-terminal-term-native-test.json').read_text())
+            receipt = json.loads((repo / f'.git/fullops-gate/flow-{host_session}.json').read_text(encoding='utf-8'))
+            binding = json.loads((repo / '.git/fullops-gate/flow-terminal-term-native-test.json').read_text(encoding='utf-8'))
             assert receipt['provider_session'] == binding['provider_session'] == host_session
             assert receipt['orca_terminal'] == binding['orca_terminal'] == native_env['ORCA_TERMINAL_HANDLE']
         devtree = repo / '.git/dev-worktree'
@@ -157,7 +157,7 @@ def main():
         assert hook('stop', session_id='w') == {}  # preamble 없는 세션은 막지 않는다
         preamble = 'Task t-1 ... orca orchestration send --type worker_done --task-id t-1 --dispatch-id d-1 ...'
         assert hook('prompt', session_id='w', prompt=preamble) == {}
-        native = json.loads((repo / '.git/fullops-gate/flow-w.json').read_text())
+        native = json.loads((repo / '.git/fullops-gate/flow-w.json').read_text(encoding='utf-8'))
         assert native['provider_session'] == 'w' and native['orca_terminal'] == 'term-worker'
         assert hook('stop', session_id='w')['decision'] == 'block'
         assert 'systemMessage' in hook('stop', session_id='w', stop_hook_active=True)  # 두 번째는 통과

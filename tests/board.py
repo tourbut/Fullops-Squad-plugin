@@ -142,6 +142,8 @@ def main():
             'model': {'agent': 'claude', 'model': 'claude-sonnet-5', 'effort': 'medium', 'source': 'jev', 'usage': {}}}), encoding='utf-8')
         (fo / 'docs/evaluations/jev/ART-9-model-art.json').write_text(json.dumps({'task_key': 'ART-9', 'role': 'art',
             'model': {'agent': 'codex', 'model': 'gpt-6-sol', 'effort': 'low', 'source': 'only'}}), encoding='utf-8')
+        (fo / 'docs/evaluations/jev/ART-9-model-art.prior-1.json').write_text(json.dumps({'task_key': 'ART-9', 'role': 'art',
+            'model': {'agent': 'claude', 'model': 'old-model', 'effort': 'low', 'source': 'only'}}), encoding='utf-8')
         review = fo / 'docs/evaluations/qa-reports/ART-2-review'
         review.mkdir(parents=True)
         (review / 'result.json').write_text(json.dumps({'head': 'a' * 40, 'reviewer': 'coordinator', 'conclusion': '수락',
@@ -190,7 +192,6 @@ def main():
         assert (d01['status'], d01['index_status'], d01['name'], d01['updated'], d01['owner'], d01['has_meta']) == (
             'review', 'approved', '점프 게임 사업계획서', '2026-09-24', 'arch', True), d01  # 문서가 표보다 우선
         assert d01['source_exists'] and not full['deliverables'][1]['source_exists'] and not full['deliverables'][1]['has_meta']
-        sys.path.insert(0, str(SCRIPTS))
         import deliverables
         meta = deliverables.front_matter((fo / 'docs/planning/business-plan.md').read_text(encoding='utf-8'))
         assert meta['tasks'] == ['JUMP-1', 'JUMP-2'] and meta['status'] == 'review' and meta['summary'] == '1차 빌드 범위와 일정'

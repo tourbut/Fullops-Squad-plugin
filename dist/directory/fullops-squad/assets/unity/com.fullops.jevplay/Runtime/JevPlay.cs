@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -121,15 +122,15 @@ namespace Fullops.JevPlay
                 while (Time.unscaledTime < until)
                 {
                     target = Nearest(parts[1]);
-                    if (target == null) { lastOutcome = "target gone"; break; }
-                    if (target.withinReach) break;
-                    Hold(target.x - Player().x, target.y - Player().y);
+                    var player = Player();
+                    if (target == null || player == null || target.withinReach) break;  // lastOutcome is set after the loop
+                    Hold(target.x - player.x, target.y - player.y);
                     yield return null;
                 }
                 Hold(0, 0);
                 yield return null;
                 target = Nearest(parts[1]);
-                lastOutcome = target == null ? "target gone" : target.withinReach ? "reached" :
+                lastOutcome = target == null ? "target gone" : target.withinReach ? "reached" : Player() == null ? "player missing" :
                     $"still {target.distance:0.0} away" + (Time.timeScale == 0f ? " (game paused)" : "");
             }
             else if (parts[0] == "press")
@@ -255,7 +256,8 @@ namespace Fullops.JevPlay
                 if (value == null) return "null";
                 type = value.GetType();
             }
-            return value is float f ? f.ToString("0.##") : value.ToString();
+            // jev_test_unity.py reads numbers with float(); never write a locale comma decimal (2,5)
+            return value is float f ? f.ToString("0.##", CultureInfo.InvariantCulture) : value is IFormattable x ? x.ToString(null, CultureInfo.InvariantCulture) : value.ToString();
         }
 
         static string[] Texts()

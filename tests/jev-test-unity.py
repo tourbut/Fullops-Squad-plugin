@@ -87,6 +87,8 @@ def main():
     assert shown['gamePaused'] is True  # 게임이 스스로 멈춘 상태를 Jev에게 알린다(레벨업 선택 등)
     bad = unity.problems({'goal': 'x', 'checks': [{'field': 'hp', 'op': '~', 'value': 1}], 'player_args': 'x'})
     assert len(bad) == 3, bad  # covers·op·player_args
+    weird = unity.problems({**scenario, 'goal': 'TOKEN=abc', 'max_steps': True, 'checks': [{'text': 5}]})
+    assert len(weird) == 3, weird  # 비밀값 goal·bool max_steps·문자열 아닌 text는 실행 전에 거른다
     with tempfile.TemporaryDirectory(prefix='fullops-jev-unity-') as tmp:
         tmp = Path(tmp)
         play = tmp / 'ok/play'
@@ -94,7 +96,7 @@ def main():
         summary = unity.run(scenario, play, FakeGame, jev(['approach:enemy', 'press:attack', 'press:attack', 'done']),
                             tmp / 'ok', **quiet)
         assert summary['passed'] and summary['steps'] == 4, summary
-        assert json.loads((play / 'action-4.json').read_text())['action'] == 'quit'  # 끝나면 게임에 quit를 보낸다
+        assert json.loads((play / 'action-4.json').read_text(encoding='utf-8'))['action'] == 'quit'  # 끝나면 게임에 quit를 보낸다
         events = [json.loads(l) for l in (tmp / 'ok/events.jsonl').read_text(encoding='utf-8').splitlines()]
         assert [e['lastOutcome'] for e in events] == ['', 'reached', 'pressed', 'pressed']
 
@@ -107,6 +109,11 @@ def main():
         play.mkdir(parents=True)
         stalled = unity.run(scenario, play, FakeGame, jev(['wait'] * 10), tmp / 'stall', **quiet)
         assert stalled['result'] == 'stalled' and stalled['steps'] == 4, stalled  # 같은 상태·같은 행동 세 번
+
+        play = tmp / 'max/play'
+        play.mkdir(parents=True)
+        capped = unity.run({**scenario, 'max_steps': 2}, play, FakeGame, jev(['approach:enemy', 'press:attack']), tmp / 'max', **quiet)
+        assert capped['result'] == 'max_steps' and json.loads((play / 'action-3.json').read_text(encoding='utf-8'))['action'] == 'quit'  # 스텝을 다 쓰면 quit를 보낸다
 
         class Dead:
             def poll(self): return 1
@@ -130,6 +137,12 @@ def main():
         assert (package / 'Runtime/JevPlay.cs').is_file() and (package / 'Runtime/JevPlay.cs.meta').is_file(), changes
         assert (repo / bridge.CONFIG).is_file() and len(changes) == 2
         assert bridge.install(repo) == []  # 같은 버전이면 변경 없음
+        assert bridge.install(repo, project='unity/Game') == []  # --project는 레포 기준 상대 경로
+        try:
+            bridge.install(repo, project='unity/Gmae')
+            raise AssertionError('Unity 프로젝트가 아닌 폴더에 설치함')
+        except ValueError:
+            assert not (repo / 'unity/Gmae').exists()
         check = subprocess.run([sys.executable, str(SCRIPTS / 'unity_bridge.py'), 'check', '--repo', str(repo)],
                                capture_output=True, text=True, encoding='utf-8')
         assert check.returncode == 0 and '최신' in check.stdout

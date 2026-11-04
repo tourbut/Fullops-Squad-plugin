@@ -32,7 +32,7 @@ def main():
 
         def hook(tool):
             output = subprocess.check_output([sys.executable, str(SCRIPTS / 'flow_gate.py'), 'tool'],
-                input=json.dumps({'cwd': tmp, 'session_id': 'rules', 'tool_input': tool}), text=True)
+                input=json.dumps({'cwd': tmp, 'session_id': 'rules', 'tool_input': tool}), text=True, encoding='utf-8')
             return json.loads(output).get('hookSpecificOutput', {}).get('permissionDecisionReason', '')
 
         assert '역할 인박스' in hook({'file_path': str(side), 'content': '# K2 — 별도 과제\n'})
@@ -60,9 +60,6 @@ def main():
         assert '역할 인박스' in hook({'file_path': str(side), 'content': '# K2 — 별도 과제\n'})
 
         # 현재 과제의 후속은 같은 인박스를 고친다. 완료 후 전문을 보존하고 다음 과제를 만든다.
-        route = repo / '.fullops-squad/docs/evaluations/jev/K1-route.json'
-        route.parent.mkdir(parents=True, exist_ok=True)
-        route.write_text(json.dumps({'route': 'simple', 'role': 'dev'}))
         assert not hook({'file_path': str(inbox), 'content': '# K1 — 같은 과제 후속\n'})
         remove_line = ('*** Begin Patch\n*** Update File: .fullops-squad/handovers/to_dev.md\n'
                        '@@\n-이전 후속 설명\n*** End Patch\n')

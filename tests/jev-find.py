@@ -13,6 +13,8 @@ sys.path.insert(0, str(SCRIPTS))
 spec = importlib.util.spec_from_file_location('jev_find', SCRIPTS / 'jev_find.py')
 jev = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jev)
+for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED'):
+    os.environ.pop(name, None)  # 셸의 Jev 끄기 설정과 무관하게 stub 판정을 검사한다
 
 
 def stub(sent, prefer, found=0.95):
@@ -45,7 +47,7 @@ def main():
         repo = Path(tmp)
 
         def git(*args):
-            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True, encoding='utf-8').strip()
 
         def commit(message):
             git('add', '-A')
@@ -56,11 +58,11 @@ def main():
         subprocess.run([sys.executable, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'dev', '--local-only'],
                        check=True, capture_output=True)
         files = {'src/auth/login.py': '"""로그인 요청 검증과 세션 발급."""\n', 'src/auth/token.py': '"""JWT 발급·갱신."""\n',
-                 'src/report/export.py': '# CSV 보고서 내보내기\n', 'docs/guide.md': '# 운영 가이드\n',
-                 '.env': 'KEY=1\n', 'node_modules/dep/index.js': '// dep\n'}
+                 'src/report/export.py': '# CSV 보고서 내보내기\n', 'docs/guide.md': '# 운영 가이드\n', 'src/한글.py': '# 한글 모듈\n',
+                 '.env': 'KEY=1\n', 'node_modules/dep/index.js': '// dep\n', 'src/state.py': 'status = 1\n'}
         for name, text in files.items():
             (repo / name).parent.mkdir(parents=True, exist_ok=True)
-            (repo / name).write_text(text)
+            (repo / name).write_text(text, encoding='utf-8')
         (repo / 'logo.png').write_bytes(b'\x89PNG\0\0data')
         (repo / 'link.py').symlink_to('src/auth/login.py')
         base = commit('fixture')
@@ -82,6 +84,7 @@ def main():
 
         sent = []
         result = jev.find(repo, 'dev', 'F-1', stub(sent, ['auth/login', 'auth/token']))
+        assert 'src/state.py' not in result['seed_paths'], '템플릿 안내 줄의 `status`는 과제 근거가 아니다'
         assert [c['path'] for c in result['candidates']] == ['src/auth/login.py', 'src/auth/token.py'], result['candidates']
         assert result['existence']['status'] == 'found' and result['error'] is None
         assert len(sent) == 1 and set(sent[0]['questions']) == {'where', 'exists'} and 'F-1' in sent[0]['state']['task']
@@ -122,21 +125,23 @@ def main():
         # score: 실제 변경과 비교한다. 새 파일은 찾을 수 없으므로 따로 센다.
         out = jev.result_path(repo, 'F-1', 'find')
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(result))
+        out.write_text(json.dumps(result), encoding='utf-8')
         jev.result_path(repo, 'F-1', 'context').write_text(json.dumps({'context': {
-            'candidate_paths': {'c0': 'src/auth/login.py', 'c1': 'src/report/export.py'}, 'recommended_ids': ['c1']}}))
-        (repo / 'src/auth/login.py').write_text('"""로그인 요청 검증과 세션 발급."""\nFIXED = True\n')
-        (repo / 'src/auth/mfa.py').write_text('"""2단계 인증."""\n')
+            'candidate_paths': {'c0': 'src/auth/login.py', 'c1': 'src/report/export.py'}, 'recommended_ids': ['c1']}}), encoding='utf-8')
+        (repo / 'src/auth/login.py').write_text('"""로그인 요청 검증과 세션 발급."""\nFIXED = True\n', encoding='utf-8')
+        (repo / 'src/auth/mfa.py').write_text('"""2단계 인증."""\n', encoding='utf-8')
         head = commit('work')
         scored = jev.score(repo, 'F-1', base, head)
         assert scored['changed_existing'] == ['src/auth/login.py'] and scored['new_files'] == ['src/auth/mfa.py'], scored
         assert scored['recall'] == 1.0 and scored['precision'] == 0.5 and scored['existence_correct'] is True
         assert scored['context_wrong_omits'] == ['src/auth/login.py']  # 제외 추천했는데 실제로 바뀐 파일
+        (repo / 'src/한글.py').write_text('# 한글 모듈\nX = 1\n', encoding='utf-8')
+        assert jev.score(repo, 'F-1', head, commit('korean'))['changed_existing'] == ['src/한글.py']  # quotePath 따옴표 경로가 아니다
 
         # 파일이 255개를 넘으면 모든 후보를 배치로 제시한다. 마지막 배치도 빠지지 않는다.
         for i in range(300):
             (repo / f'gen/part{i % 3}/file{i}.py').parent.mkdir(parents=True, exist_ok=True)
-            (repo / f'gen/part{i % 3}/file{i}.py').write_text(f'"""생성 코드 {i}."""\n')
+            (repo / f'gen/part{i % 3}/file{i}.py').write_text(f'"""생성 코드 {i}."""\n', encoding='utf-8')
         commit('many')
         sent = []
         big = jev.find(repo, 'dev', 'F-1', stub(sent, ['src/', 'auth/login']))

@@ -45,7 +45,9 @@ def install(repo, project=None, dry_run=False):
     repo = Path(repo).resolve()
     if not (repo / '.fullops-squad/fullops.json').is_file():
         raise ValueError('FullOps setup이 된 레포 루트를 지정하세요')
-    candidates = [Path(project).resolve()] if project else projects(repo)
+    candidates = [(repo / project).resolve()] if project else projects(repo)
+    if project and not (candidates[0] / 'ProjectSettings/ProjectVersion.txt').is_file():
+        raise ValueError(f'Unity 프로젝트 폴더가 아닙니다: {project}')
     if len(candidates) != 1:
         raise ValueError('Unity 프로젝트를 하나로 정할 수 없습니다. --project로 지정하세요: '
                          + (', '.join(str(p.relative_to(repo)) for p in candidates) or '없음'))

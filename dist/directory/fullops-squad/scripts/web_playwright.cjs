@@ -68,7 +68,8 @@ async function handle(message) {
     const destinations = [target.href, target.form_action];
     if (destinations.some(url => url && !destinationAllowed(url))) return 'origin_not_allowed';
     const index = Number(data.ref.slice(1));
-    const element = await page.locator(SELECTOR).nth(index).elementHandle();
+    // Same light-DOM numbering as web_dom.js; Playwright CSS locators would also count open shadow roots.
+    const element = (await page.evaluateHandle(([selector, i]) => document.querySelectorAll(selector)[i], [SELECTOR, index])).asElement();
     if (!element) return 'target_not_found';
     // A handle pins this node; subsequent DOM replacement cannot redirect the action to a different node.
     pending = { digest: current.digest, element, ref: data.ref };

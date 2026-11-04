@@ -235,7 +235,7 @@ class Browser:
         if target['role'] != expected['role'] or target['name'] != expected['name']:
             return 'focused_target_mismatch'
         for destination in (target.get('href'), target.get('form_action')):
-            if destination and contract.origin(destination) not in safety['allowed_origins']:
+            if destination is not None and not contract.origin_allowed(destination, safety['allowed_origins']):
                 return 'origin_not_allowed'
         self.pending = {'digest': local['digest'], 'safety': safety, 'ref': ref}
         return None
@@ -254,7 +254,7 @@ class Browser:
             if step == ('eval', '--expression', ENTER):
                 target = self.evaluate(f'({DOM})(true)')['active']
                 if not target or target['sensitive'] or target['occluded'] or 'disabled=true' in target['state'] or \
-                        target.get('form_action') and contract.origin(target['form_action']) not in saved['safety']['allowed_origins']:
+                        target.get('form_action') is not None and not contract.origin_allowed(target['form_action'], saved['safety']['allowed_origins']):
                     return 'error: submit_target_changed'
             data = self.run(*step)
             if not data.get('ok'):
@@ -341,7 +341,7 @@ def ask(call, scenario, page, history, step):
     return decision
 
 
-def run(scenario, browser, call, out, log=print, assertions_only=False, replay=None):
+def run(scenario, browser, call, out, log=print, assertions_only=False, replay=None, source=None):
     found = problems(scenario)
     if found:
         raise ValueError('invalid web scenario: ' + '; '.join(found))
@@ -435,7 +435,7 @@ def run(scenario, browser, call, out, log=print, assertions_only=False, replay=N
                 if visits[raw['digest']] >= scenario.get('max_visits', contract.BOUNDS['max_visits'][0]) and not result:
                     result = 'revisit_budget'
             entry['outcome'] = outcome
-            repeats = repeats + 1 if history and {k: history[-1].get(k) for k in ('operation', 'target', 'value')} == {k: entry[k] for k in ('operation', 'target', 'value')} else 0
+            repeats = repeats + 1 if events and all(events[-1][k] == entry[k] for k in ('state_id', 'operation', 'target', 'value')) else 0
             history.append({k: entry[k] for k in ('step', 'operation', 'target', 'value', 'outcome')})
             target = next((e for e in page['elements'] if e['ref'] == ref), None)
             if target:
@@ -450,7 +450,7 @@ def run(scenario, browser, call, out, log=print, assertions_only=False, replay=N
                 result = result or 'stalled'
                 break
         result = result or 'max_steps'
-        if final is None and result not in ('origin_not_allowed', 'time_budget'):
+        if final is None and result != 'time_budget':
             if contract.origin(browser.snapshot()['url']) not in safety['allowed_origins']:
                 result = 'origin_not_allowed'
             else:
@@ -459,7 +459,7 @@ def run(scenario, browser, call, out, log=print, assertions_only=False, replay=N
             result = 'time_budget'
     except SafetyStop as failure:
         result, final = str(failure), final or []
-    except subprocess.TimeoutExpired:
+    except (subprocess.TimeoutExpired, TimeoutError):
         result, final = 'time_budget', final or []
     except Exception as failure:  # noqa: BLE001 — 실행 실패의 비용·증거를 보존하고 원래 예외를 다시 던진다.
         error, result, final = failure, 'error', final or []
@@ -469,7 +469,8 @@ def run(scenario, browser, call, out, log=print, assertions_only=False, replay=N
         except Exception as failure:
             error, result = error or failure, 'error'
     passed = error is None and result == 'passed' and bool(final) and all(c.get('passed') is True for c in final)
-    if getattr(browser, 'identity', {}).get('blocked_requests', 0):
+    blocked = getattr(browser, 'identity', {}).get('blocked_requests', 0)
+    if blocked and (passed or blocked != 'unknown'):  # an unknown count voids only a PASS
         result, passed = 'blocked_policy', False
     summary = {'version': 'jev-test-web-v1', **identity, 'result': result, 'passed': passed, 'steps': len(events),
                'scope': 'assertions_only' if assertions_only else 'regression_replay' if replay is not None else 'exploration' if scenario.get('exploration') else 'scenario_checks',
@@ -479,17 +480,9 @@ def run(scenario, browser, call, out, log=print, assertions_only=False, replay=N
                'budgets': {k: scenario.get(k, v[0]) for k, v in contract.BOUNDS.items()},
                'latency_s': round(sum(e.get('latency_s') or 0 for e in calls), 3),
                'elapsed_s': round(time.monotonic() - started, 3), 'checks': final or [],
-               'url': contract.public_url(scenario['url']), 'goal': contract.redact(scenario['goal']), 'covers': contract.redact(scenario.get('covers') or [])}
-    if error:
-        summary.update(error_type=type(error).__name__, evidence_unavailable='execution stopped before final evidence')
-    try:
-        test_record.finish(out, summary, events, 'web')
-    except Exception:
-        if error is None:
-            raise
-    if error:
-        raise error
-    return summary
+               'url': contract.public_url(scenario['url']), 'goal': contract.redact(scenario['goal']), 'covers': contract.redact(scenario.get('covers') or []),
+               **({'scenario': source} if source else {})}
+    return test_record.finish(out, summary, events, 'web', error)
 
 
 def main():
@@ -542,7 +535,7 @@ def main():
         browser = EgoBrowser(contract.policy(scenario), args.ego)
     else:
         browser = Browser(orca, args.worktree or f'path:{repo.as_posix()}', args.page)
-        version = subprocess.run([orca, '--version'], capture_output=True, text=True, timeout=10)
+        version = subprocess.run([orca, '--version'], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10)
         if version.returncode == 0:
             browser.identity['version'] = safe_text(version.stdout.strip(), 200)
     deadline = time.monotonic() + scenario.get('max_seconds', contract.BOUNDS['max_seconds'][0])
@@ -551,13 +544,9 @@ def main():
         if remaining <= 0:
             raise SafetyStop('time_budget')
         return request(payload, key, timeout=min(30, remaining))
-    summary = run(scenario, browser, call, out, assertions_only=args.assert_only, replay=replay)
     path = Path(args.scenario).resolve()
-    summary['scenario'] = path.relative_to(repo).as_posix() if path.is_relative_to(repo) else str(path)
-    (out / 'result.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    events = [json.loads(line) for line in (out / 'events.jsonl').read_text(encoding='utf-8').splitlines()]
-    test_record.write(out, summary, [(e['step'], e['operation'], e['target'], e['value'], test_record.confidence(e), e['outcome'])
-                                     for e in events], ['스텝', '동작', '대상', '입력값 키', '확신', '결과'])
+    source = path.relative_to(repo).as_posix() if path.is_relative_to(repo) else str(path)
+    summary = run(scenario, browser, call, out, assertions_only=args.assert_only, replay=replay, source=source)
     print(f"결과: {summary['result']} passed={summary['passed']} steps={summary['steps']} "
           f"jev_cost=${summary['cost']} 기록: {out.relative_to(repo).as_posix()}")
     sys.exit(0 if summary['passed'] else 1)

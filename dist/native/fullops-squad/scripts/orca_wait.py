@@ -41,7 +41,7 @@ def check(args, ack):
     for flag, value in (('--run', args.run), ('--terminal', args.terminal), ('--ack', ack)):
         if value:
             command += [flag, value]
-    done = subprocess.run(command, capture_output=True, text=True)  # stderr는 keepalive 줄이다
+    done = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace')  # stderr는 keepalive 줄이다
     try:
         response = json.loads(done.stdout)
     except json.JSONDecodeError:
@@ -128,17 +128,22 @@ def main():
             ack = None  # 전달한 ack는 이번 호출에서 처리됐다
             messages = result.get('messages') or []
             if messages and not all(m.get('type') in quiet for m in messages):
-                integration.record(Path(args.repo).resolve(), messages)
+                try:
+                    integration.record(Path(args.repo).resolve(), messages)
+                    problem = None
+                except (OSError, ValueError, subprocess.SubprocessError) as error:  # 이미 소비된 묶음은 기록 실패와 함께 돌려준다
+                    problem = str(error)
                 print(json.dumps({'status': 'actionable', 'deliveryId': result.get('deliveryId'),
-                                  'messages': messages, 'absorbed': summarize(absorbed),
+                                  'messages': messages, 'absorbed': summarize(absorbed), 'record_error': problem,
                                   'integration': integration.pending(Path(args.repo).resolve())}, ensure_ascii=False, indent=1))
                 return 0
             if messages:
                 absorbed += messages
                 ack = result.get('deliveryId')
             if time.monotonic() >= deadline:
-                if ack:
-                    check(argparse.Namespace(**{**vars(args), 'wait_ms': 1}), ack)  # 흡수한 마지막 묶음을 ack
+                if ack:  # 흡수한 마지막 묶음을 ack한다. Orca 1.4.247+는 그 응답 묶음도 처리됨으로 표시하므로 같은 규칙으로 처리한다
+                    args.wait_ms = 1
+                    continue
                 print(json.dumps({'status': 'idle_timeout', 'check_minutes': args.max_minutes,
                                   'absorbed': summarize(absorbed)}, ensure_ascii=False, indent=1))
                 return 0

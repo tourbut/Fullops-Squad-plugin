@@ -8,7 +8,6 @@ Choice 질문으로 순위를, 같은 state의 Noul로 지도에서 관련성을
 import argparse
 from collections import defaultdict
 import json
-import os
 import re
 from pathlib import Path
 import subprocess
@@ -16,7 +15,7 @@ import time
 
 from jev_observe import MODEL, REQUIRED, api_key, checked_answer, checked_noul, digest, git_env, local_file, offline, require_online, request, safe_text, validated
 from lint import changed as changed_paths
-from work import KEY, active_repo, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
+from work import KEY, active_repo, authored, instruction, safe_file, input_identity, previous_result, save_result, task_excerpt
 from search_index import MAX_BLOB, PARSER_VERSION, code_map, git, metadata, description
 
 MAX_OPTIONS = 255
@@ -65,8 +64,7 @@ def batches(entries, task, budget=MAX_INPUT_CHARS):
 
 def find_options(scope, limit, strategy='batch'):
     return {'policy': POLICY, 'scope': scope, 'limit': limit, 'strategy': strategy,
-            'parser': PARSER_VERSION, 'input_chars': MAX_INPUT_CHARS, 'model': MODEL,
-            'offline': offline(), 'payload_cache_bypass': os.environ.get('FULLOPS_JEV_CACHE_BYPASS') == '1'}
+            'parser': PARSER_VERSION, 'input_chars': MAX_INPUT_CHARS}
 
 
 def local_candidates(entries, task, limit):
@@ -78,7 +76,7 @@ def local_candidates(entries, task, limit):
 
 
 def explicit_seeds(repo, head, text, paths):
-    literals = sorted(set(re.findall(r'`([^`\n]{1,240})`', text)))
+    literals = sorted(set(re.findall(r'`([^`\n]{1,240})`', authored(text))))
     seeds = (set(literals) | set(REQUIRED)) & paths
     if literals:
         argv = ['git', '-C', str(repo), 'grep', '-F', '-l', '-z', '--full-name']
@@ -154,7 +152,7 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code', strategy=
             options = {f'F{i:03d}': f'{path} — {summary}' if summary else path for i, (path, summary) in enumerate(pool)}
             answers = record(result, *ask(call, task, options, True))
             seen += len(pool)
-            existence.append(result['existence']['found_probability'])
+            existence.append(answers['exists'])
             picked = ranked(answers['where'], 0.99, limit)
             result['passes'].append({'level': 'file', 'options': len(options)})
             candidates.extend({'path': pool[int(o[1:])][0], 'summary': pool[int(o[1:])][1], 'probability': probability,
@@ -206,20 +204,16 @@ def record(result, answers, usage, elapsed, model):
         result['usage'][field] += usage.get(field, 0) if isinstance(usage.get(field, 0), (int, float)) else 0
     result['latency_seconds'] = round(result['latency_seconds'] + elapsed, 3)
     result['response_model'] = model
-    if 'exists' in answers:
-        found = answers['exists']
-        result['existence'] = {'found_probability': found,
-                               'status': 'found' if found >= FOUND else 'not_confirmed' if found <= ABSENT else 'unclear'}
     return answers
 
 
 def score(repo, key, base, head, scope='code', labels=None):
-    found = json.loads(result_path(repo, key, 'documents-find' if scope == 'documents' else 'find').read_text())
+    found = json.loads(result_path(repo, key, 'documents-find' if scope == 'documents' else 'find').read_text(encoding='utf-8'))
     head, merge_base = git(repo, 'rev-parse', head), git(repo, 'merge-base', base, head)
     mapped = {path for path, _ in code_map(repo, found['head'], found.get('scope', 'code'))}
-    changed = set(git(repo, 'diff', '--name-only', '--no-renames', merge_base, head).splitlines())
-    existing = changed & mapped
     statuses = changed_paths(repo, merge_base, head, env=git_env())
+    changed = {path for pair in statuses for path in pair if path}  # -z 출력이라 비ASCII 경로가 따옴표로 바뀌지 않는다
+    existing = changed & mapped
     new = {path for old, path in statuses if old is None and path and not path.startswith('.fullops-squad/')}
     candidates = {c['path'] for c in found['candidates']}
     hit = candidates & existing
@@ -236,10 +230,10 @@ def score(repo, key, base, head, scope='code', labels=None):
     packet = result_path(repo, key, 'packet')
     if packet.is_file():
         from jev_packet import evaluate
-        out['packet_evaluation'] = evaluate(json.loads(packet.read_text()), labels)
+        out['packet_evaluation'] = evaluate(json.loads(packet.read_text(encoding='utf-8')), labels)
     context = result_path(repo, key, 'context')
     if context.is_file():
-        ctx = json.loads(context.read_text()).get('context') or {}
+        ctx = json.loads(context.read_text(encoding='utf-8')).get('context') or {}
         omitted = {path for cid, path in ctx.get('candidate_paths', {}).items() if cid not in ctx.get('recommended_ids', [])}
         out['context_omitted'], out['context_wrong_omits'] = sorted(omitted), sorted(omitted & changed)
     return out
@@ -282,7 +276,7 @@ def main():
         else:
             if not (args.base and args.to):
                 raise ValueError('score에는 --from과 --to가 필요합니다')
-            labels = json.loads(local_file(repo, args.labels).read_text()) if args.labels else None
+            labels = json.loads(local_file(repo, args.labels).read_text(encoding='utf-8')) if args.labels else None
             result = score(repo, args.key, args.base, args.to, args.scope, labels)
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'Jev 탐색 실패: {error}\n')
@@ -301,7 +295,7 @@ def main():
     else:
         print(f"recall {result['recall']} / precision {result['precision']} / 존재 판정 {result['existence_correct']} / "
               f"새 파일 {len(result['new_files'])}")
-    print(output.relative_to(repo))
+    print(output.relative_to(repo).as_posix())
 
 
 if __name__ == '__main__':

@@ -14,15 +14,17 @@ def begin(out, scenario):
     if any((out / name).exists() for name in ('events.jsonl', 'result.json', 'report.md')):
         raise ValueError('이전 실행 증거가 있습니다. 새 실행 경로를 사용하세요')
     (out / 'events.jsonl').touch(exist_ok=False)
-    plugin = json.loads((Path(__file__).resolve().parents[1] / 'plugin.json').read_text())
-    target = subprocess.run(['git', '-C', str(out), 'rev-parse', 'HEAD'], capture_output=True, text=True)
-    dirty = subprocess.run(['git', '-C', str(out), 'status', '--porcelain'], capture_output=True, text=True)
-    files = ('jev_test_web.py', 'web_contract.py', 'web_dom.js', 'web_playwright.py', 'web_playwright.cjs') if 'url' in scenario else ('jev_test_unity.py',)
+    plugin = json.loads((Path(__file__).resolve().parents[1] / 'plugin.json').read_text(encoding='utf-8'))
+    target = subprocess.run(['git', '-C', str(out), 'rev-parse', 'HEAD'], capture_output=True, text=True, encoding='utf-8')
+    # ../..는 qa-reports 폴더다(<key>-test/<run>). 실행 증거는 작업 트리 변경으로 보지 않는다
+    dirty = subprocess.run(['git', '-C', str(out), 'status', '--porcelain', '--', ':/', ':(exclude)../..'], capture_output=True, text=True, encoding='utf-8')
+    files = ('jev_test_web.py', 'web_contract.py', 'web_dom.js', 'web_playwright.py', 'web_playwright.cjs', 'web_ego.py', 'web_ego.mjs') if 'url' in scenario else ('jev_test_unity.py',)
+    hashes = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in files}
     return {'plugin_version': plugin['version'], 'target_sha': target.stdout.strip() if target.returncode == 0 else None,
             'worktree_dirty': bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
-            'executor_sha256': hashlib.sha256(Path(__file__).with_name('jev_test_' + ('web.py' if 'url' in scenario else 'unity.py')).read_bytes()).hexdigest(),
+            'executor_sha256': hashes[files[0]],
             'scenario_sha256': hashlib.sha256(json.dumps(scenario, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
-            'executor_files_sha256': {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in files}}
+            'executor_files_sha256': hashes}
 
 
 def append(out, event):
@@ -32,24 +34,34 @@ def append(out, event):
         os.fsync(output.fileno())
 
 
-def finish(out, summary, events, kind):
-    write_json(out / 'result.json', summary)
-    if kind == 'web':
-        rows = [(e['step'], e['operation'], e['target'], e['value'], confidence(e), e['outcome']) for e in events]
-        header = ['스텝', '동작', '대상', '입력값 키', '확신', '결과']
-    else:
-        rows = [(e['step'], e['action'], f"{e['confidence']:.2f}", e['lastOutcome'] or '-') for e in events]
-        header = ['스텝', '행동', '확신', '직전 행동 결과']
-    write(out, summary, rows, header)
+def finish(out, summary, events, kind, error=None):
+    """실행이 error로 멈췄으면 증거에 남기고 error를 다시 던진다. 기록 실패는 error가 없을 때만 올린다."""
+    if error:
+        summary.update(error_type=type(error).__name__, evidence_unavailable='execution stopped before final evidence')
+    try:
+        write_json(out / 'result.json', summary)
+        if kind == 'web':
+            rows = [(e['step'], e['operation'], e['target'], e['value'], confidence(e), e['outcome']) for e in events]
+            header = ['스텝', '동작', '대상', '입력값 키', '확신', '결과']
+        else:
+            rows = [(e['step'], e['action'], f"{e['confidence']:.2f}", e['lastOutcome'] or '-') for e in events]
+            header = ['스텝', '행동', '확신', '직전 행동 결과']
+        write(out, summary, rows, header)
+    except Exception:  # noqa: BLE001
+        if error is None:
+            raise
+    if error:
+        raise error
+    return summary
 
 
 def confidence(event):
     return f"{event['confidence']:.2f}" if event.get('confidence') is not None else '-'
 
 
-def costs(events, failed=False):
+def costs(events):
     known = round(sum(e['cost'] for e in events if type(e.get('cost')) in (int, float)), 6)
-    unknown = failed or any(e.get('cost') is None for e in events)
+    unknown = any(e.get('cost') is None for e in events)
     return {'cost': None if unknown else known, 'known_cost': known, 'cost_status': 'unknown' if unknown else 'complete'}
 
 

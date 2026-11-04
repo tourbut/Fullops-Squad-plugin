@@ -61,7 +61,7 @@ POINTER = f"""{START}
 
 
 def git(repo, *args):
-    return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+    return subprocess.check_output(["git", "-C", str(repo), *args], encoding='utf-8').strip()
 
 
 def lint_commands(repo):
@@ -69,7 +69,7 @@ def lint_commands(repo):
     manifest = repo / 'package.json'
     if not manifest.is_file():
         return []
-    package = json.loads(manifest.read_text(encoding='utf-8'))
+    package = json.loads(manifest.read_text(encoding='utf-8-sig'))
     if not isinstance(package, dict) or not isinstance(package.get('scripts', {}), dict) or not isinstance(package.get('packageManager', ''), str):
         raise ValueError('package.json의 scripts·packageManager 형식을 확인하세요')
     scripts = package.get('scripts', {})
@@ -178,7 +178,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
           mode=None, primary_role=None, test_level=None, rollback=False, subagent_level=None):
     repo = Path(repo).expanduser().resolve(strict=True)
     root = Path(subprocess.check_output(
-        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], text=True).strip()).resolve()
+        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], encoding='utf-8').strip()).resolve()
     if root != repo:
         raise ValueError(f"레포 루트를 지정하세요: {root}")
     local_journal = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-setup.json'
@@ -205,7 +205,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
     marker = repo / MARKER
     if marker.is_symlink() or marker.parent.is_symlink():
         raise ValueError("심볼릭 링크 설정은 사용하지 않습니다")
-    config = json.loads(marker.read_text()) if marker.exists() else {"schema_version": 1}
+    config = json.loads(marker.read_text(encoding='utf-8')) if marker.exists() else {"schema_version": 1}
     if not isinstance(config, dict) or config.get("schema_version") != 1:
         raise ValueError("지원하지 않는 FullOps 설정 버전")
     connection = config.get("git", {})
@@ -251,8 +251,8 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         config['primary_role'] = 'dev'
     elif not marker.exists() and 'coor' in assigned:
         config['primary_role'] = 'coor'
-    if config.get('mode') == 'dev':
-        config.setdefault('primary_branch', git(repo, 'symbolic-ref', '--short', 'HEAD'))
+    if config.get('mode') == 'dev' and 'primary_branch' not in config:
+        config['primary_branch'] = git(repo, 'symbolic-ref', '--short', 'HEAD')
     policy.validate(config)
     transition = marker.exists() and (old_mode != config.get('mode', 'coor') or old_primary != config.get('primary_role'))
     if transition:
@@ -262,7 +262,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         journal = mode_journal
     print(f"운영 모드: {config.get('mode', 'coor')} / 주 담당: {config.get('primary_role') or '기존 coordinator'} / 테스트: {config.get('test_level', 'standard')} / 하위 위임: {config.get('subagent_level', 'off')}")
     templates = PLUGIN / "assets/repository"
-    files = {p.relative_to(templates).as_posix(): p.read_bytes()
+    files = {p.relative_to(templates).as_posix(): p.read_bytes().replace(b'\r\n', b'\n')  # Windows 체크아웃의 CRLF를 레포에 옮기지 않는다
              for p in sorted(templates.rglob("*")) if p.is_file()}
     if not marker.exists():
         name = '.fullops-squad/orca-agents.md'
@@ -324,7 +324,7 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
                 changes[name] = updated.encode()
         else:
             changes[name] = (content + ("\n\n" if content else "") + POINTER).encode()
-    config.setdefault("plugin_version", json.loads((PLUGIN / "plugin.json").read_text())["version"])
+    config.setdefault("plugin_version", json.loads((PLUGIN / "plugin.json").read_text(encoding='utf-8'))["version"])
     config["roles"] = assigned
     # Preflight the remote only after every local conflict has been checked.
     if not local_only:

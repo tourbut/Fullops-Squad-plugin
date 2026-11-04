@@ -24,19 +24,15 @@ def project(path):
     return main_checkout(path) or path
 
 
-def same(a, b):
-    a, b = os.path.normpath(a), os.path.normpath(b)
-    return a.lower() == b.lower() if os.name == 'nt' else a == b
-
-
-def trusted(path, text=None):
+def trusted(path):
     """신뢰 목록에 이 경로(또는 상위 폴더)가 trusted = true로 있는지."""
-    text = store().read_text(encoding='utf-8') if text is None and store().is_file() else (text or '')
-    target = str(path)
+    text = store().read_text(encoding='utf-8') if store().is_file() else ''
+    target = os.path.normcase(os.path.normpath(path))
     for folder, body in re.findall(r"^\[folders\.'([^']+)'\]\s*\n((?:(?!^\[).*\n?)*)", text, re.M):
-        if re.search(r'^\s*trusted\s*=\s*true\s*$', body, re.M):
-            if same(folder, target) or os.path.normpath(target).lower().startswith(os.path.normpath(folder).lower() + os.sep):
-                return True
+        folder = os.path.normcase(os.path.normpath(folder))
+        if re.search(r'^\s*trusted\s*=\s*true\s*$', body, re.M) and (
+                target == folder or target.startswith(folder.rstrip(os.sep) + os.sep)):
+            return True
     return False
 
 
@@ -61,6 +57,8 @@ def main():
     action.add_argument('--add', action='store_true', help='사용자 승인 뒤 신뢰 목록에 추가한다')
     args = parser.parse_args()
     path = project(args.repo)
+    if args.add and "'" in str(path):  # TOML literal key cannot hold '
+        parser.error(f'작은따옴표가 든 경로는 신뢰 목록에 쓰지 않습니다. grok 확인 화면에서 신뢰하세요: {path}')
     if args.check:
         ok = trusted(path)
         print(f"grok 신뢰 {'됨' if ok else '안 됨'}: {path}")

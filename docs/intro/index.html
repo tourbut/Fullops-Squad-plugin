@@ -38,7 +38,7 @@
   <div id="endUrl" class="abs mono"></div>
 </div>
 <script>
-const W = 1920, H = 1080, CX = 960, CY = 540
+const CX = 960, CY = 540
 const $ = id => document.getElementById(id)
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
 const ease = v => { v = clamp(v); return v * v * (3 - 2 * v) }
@@ -76,7 +76,7 @@ const crumb4 = split($('crumb4'), 'LINT · FIXED SHA · INDEPENDENT REVIEW · WO
 const endSub = split($('endSub'), 'Orca에서 AI 팀을 운영하는 플러그인')
 const endUrl = split($('endUrl'), 'github.com/tourbut/Fullops-Squad-plugin')
 
-// Layout measured once (fonts are local, so this is the same on every frame).
+// The title is measured once, after fonts load.
 const measure = el => el.getBoundingClientRect().width
 let TW, TX, TY = 430, DOTX
 const AGENTS = [['Claude Code', -560, -250], ['Codex', 470, -250], ['grok', -500, 250], ['agy', 520, 250]]

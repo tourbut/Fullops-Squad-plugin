@@ -32,7 +32,7 @@ class GitHub:
         self.token = token or os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
         if not self.token:
             result = subprocess.run(['gh', 'auth', 'token', '--hostname', 'github.com'],
-                                    capture_output=True, text=True, timeout=15)
+                                    capture_output=True, text=True, encoding='utf-8', timeout=15)
             if result.returncode or not result.stdout.strip():
                 raise APIError('authentication unavailable')
             self.token = result.stdout.strip()
@@ -82,9 +82,12 @@ class GitHub:
         """완전한 페이지 순회만 호출자가 원자적으로 저장한다. 304에도 이전 Link를 유지한다."""
         rows, staged, seen = [], {}, set()
         scope = urllib.parse.urlsplit(path).path
+        # GitHub의 next Link는 /repositories/<id>/... 정본 경로를 쓴다.
+        canonical = re.compile(r'/repositories/\d+' + re.escape(re.sub(r'^/repos/[^/]+/[^/]+', '', scope)))
         url = path
         while url:
-            if urllib.parse.urlsplit(url).path != scope:
+            current = urllib.parse.urlsplit(url).path
+            if current != scope and not canonical.fullmatch(current):
                 raise APIError('pagination scope changed')
             if url in seen:
                 raise APIError('pagination loop')
@@ -115,9 +118,12 @@ class GitHub:
           editor{login ... on User{databaseId} ... on Bot{databaseId}}}}}'''
         result = self.request('/graphql', 'POST', {'query': query, 'variables': {
             'owner': owner, 'name': name, 'number': number}})[2]
+        repo = (result.get('data') or {}).get('repository') or {}
+        if (repo.get('databaseId') and repo.get('issue') is None and result.get('errors') and
+                all(e.get('type') == 'NOT_FOUND' for e in result['errors'])):
+            return None  # 삭제·이전된 이슈
         if result.get('errors'):
             raise APIError('issue provenance unavailable')
-        repo = result.get('data', {}).get('repository') or {}
         issue = repo.get('issue')
         if not issue or not (issue.get('author') or {}).get('databaseId'):
             raise APIError('issue identity unavailable')
