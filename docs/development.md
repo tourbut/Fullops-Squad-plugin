@@ -80,6 +80,8 @@ shadcn 연계는 선택형 `python3 tests/shadcn-lint.py --tools <검사 도구 
 
 선택형 Jev 관찰 실험의 입력 형식과 실행 방법은 [Jev 관찰 실험](jev-observe.md)에 있다.
 
+coordinator·orca-helm·봇이 주고받는 사건, 사용자 결정, 자동 승인 섀도 판정의 형식은 [이벤트와 결정 형식](events.md)에 있다. 형식을 바꾸면 이 문서와 `tests/autonomy.py`를 함께 고친다.
+
 ## 참고
 
 - [mattpocock/skills](https://github.com/mattpocock/skills): 배포와 레포별 setup 분리 방식 참고.

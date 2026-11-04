@@ -50,6 +50,7 @@ coordinator는 비용이 낮은 모델로 운영한다. 설계는 직접 하지 
 
 운영 작업은 분류하지 않고 coordinator가 직접 처리한다. 플러그인·`setup-fullops` 갱신, 기본 브랜치를 워크트리에 반영하는 동기화·병합, worker 브랜치 병합, 현황판·PLANS.md 정리가 여기에 속한다. 코드·산출물 내용을 새로 만들거나 바꾸는 요청만 아래 절차로 분류한다.
 FullOps update 요청은 `update-fullops`로 설치 전 버전과 레포 적용 버전을 확인하고 이후 릴리스의 적용 항목까지 수행한다. 설치·setup 성공만으로 업데이트 적용을 완료 처리하지 않는다.
+봇(orca-helm 경유)으로 들어온 FullOps 작업도 coordinator가 받아 같은 절차로 분류한다. 아래 `jev_route.py`에 `--origin bot`을 붙여 route에 진입점을 남긴다. 그 과제의 질문·결정은 봇으로 먼저 묻고, Orca 대화에서 받은 답도 같은 결정 기록을 닫는다.
 
 1. 과제 키를 정한다. 이 스킬 기준 `../../scripts/jev_route.py`로 `python3 <jev_route.py> --repo <레포 루트> --key <과제 키> --request "<요청 원문>"`을 실행한다. 비밀값이 섞인 요청은 원문 대신 요약을 넘긴다. 4,000자 넘는 요청은 글자 단위로 요약한다. 결과는 `docs/evaluations/jev/<과제 키>-route.json`에 남는다. stderr의 Jev 폴백 경고를 확인한다. simple 분류의 담당 역할이 잘못됐으면 배정 전에 같은 키로 `--force`를 붙여 다시 분류한다. 역할 변경에는 `--override-role <역할> --reason "<근거>"`를 함께 써 기록한다. 이전 결과는 `.prior-<시각>.json`으로 보존된다. design 분류는 설계 역할에 배정한다.
 Jev는 모델을 고르지 않는다. 배정할 에이전트·모델·effort는 coordinator가 요청·지시서의 범위와 위험을 보고 `orca-agents.md` `## 모델 후보`에서 고른다(사용자·과제가 고정한 tuple이 있으면 그것, 후보가 없으면 배정표의 기본값). 담당 역할이 정해진 simple 분류는 같은 명령에 `--agent <CLI> --model <모델> --effort <effort>`를 함께 넘겨 route.json의 `model`에 기록한다. 프런트엔드 작업은 `fullops-frontend`로 주 스킬·디자인 정본·고정 tuple을 연결한다. 출력의 `갱신할 산출물`(route.json의 `deliverables`)은 이 요청으로 쓰거나 고쳐야 할 D01–D13이다. 추천일 뿐이며 판단으로 더하거나 뺄 수 있다.
@@ -146,6 +147,8 @@ coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summ
 ## merge — 병합 책임자
 
 먼저 이 스킬 기준 `../../scripts/review.py need --repo <루트> --from <기준 ref> --to <worker SHA>`로 독립 리뷰 필요 여부를 확인한다. 판정은 기준 시점 `fullops.json`의 `review_policy`(기본: 코드 400줄 또는 코드 파일 15개 이상, `always` 경로 glob)를 따른다. `required: false`인 소규모·문서·설정 변경은 reviewer worker·snapshot·prepare를 만들지 않는다. 병합 책임자가 diff와 worker의 `lint-result.json`(ERROR 0)을 직접 확인하고 PLANS.md와 병합 커밋 본문에 need 판정 사유를 남긴 뒤 아래 1번부터 진행한다. 같은 SHA에 lint.py를 다시 실행하지 않는다. 사용자가 리뷰를 요청하거나 위험이 보이면 판정과 관계없이 리뷰한다. `action: ask`(대규모 변경, 기본값)이면 reviewer를 띄우기 전에 사용자에게 need 사유와 진행/생략 선택지를 묻고 답을 기다린다. 생략하면 `review.py waive --decided-by user`로 기록한다. 사용자가 자동 진행을 지시했거나 `review_policy.auto`가 true(`action: review`)일 때만 묻지 않고 진행한다. 세부 절차는 fullops-review의 리뷰 필요 판정을 따른다.
+
+need 판정 뒤 이 스킬 기준 `../../scripts/autonomy.py judge --repo <루트> --from <지시서 기준 SHA> --to <worker SHA> --key <과제 키> [--review-key <리뷰 키>] --origin <user|bot> --record`로 자동 승인 섀도 판정을 남긴다. `--from`은 worker가 `lint.py --from`에 쓴 기준과 같아야 lint 결과를 찾는다. 섀도 모드에서는 등급(`auto`·`delay`·`ask`)과 관계없이 need 판정과 아래 절차로 병합한다. `blocked`(lint ERROR, 통과 결과 없음, 미해결 critical/high)면 병합하지 않는다. 사용자 결정이 필요하면 `decision.py add --key <과제 키> --sha <worker SHA> --risk <사유> --origin <진입점>`으로 연다. 답은 `decision.py answer --id <id> --answer <답> --sha <지금 병합할 SHA> --via <user|bot>`으로 닫는다. SHA가 바뀌었거나 만료된 결정은 다시 묻는다. 이미 닫힌 결정에 온 늦은 답은 `already`로 돌아오니 이미 처리됐다고만 알린다. 사건·결정·판정 형식은 [events.md](../../events.md)를 따른다.
 
 리뷰를 진행하면 `fullops-review`로 현재 기준/worker SHA의 delegate 리뷰를 완료하고 보고서·check 결과·skipped 사유·lint·테스트 결과를 확인한다. 파일 누락이나 미해결 critical/high가 있으면 수락을 보류한다. check 통과만으로 수락하지 않는다. coordinator가 낮은 모델이면 기계적 기준(check·lint·테스트·critical/high)만 직접 판단한다. 설계와 다르게 구현한 것, 범위 이탈, 트레이드오프 판단은 설계 역할이나 사용자에게 넘긴다. 수정 커밋 이후에는 최신 SHA의 리뷰가 필요하다.
 

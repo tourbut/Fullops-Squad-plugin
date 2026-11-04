@@ -41,7 +41,9 @@ with tempfile.TemporaryDirectory() as directory:
     assert run(repo, 'list')['decisions'] == []
     assert [d['status'] for d in run(repo, 'list', '--all')['decisions']] == ['answered', 'dropped']
 
-    assert '이미 answered' in run(repo, 'answer', '--id', 'D001', '--answer', '아니오', ok=False)
+    late = run(repo, 'answer', '--id', 'D001', '--answer', '아니오')  # 늦은 답은 덮지 않고 이미 처리됐다고 알린다
+    assert late['already'] and late['answer'] == '예', late
+    assert '이미 answered' in run(repo, 'drop', '--id', 'D001', '--reason', '늦음', ok=False)
     assert '없습니다' in run(repo, 'answer', '--id', '../x', '--answer', 'a', ok=False)
     assert '--question' in run(repo, 'add', '--question', '  ', ok=False)
     assert run(repo, 'add', '--question', '다음 결정')['id'] == 'D003'
