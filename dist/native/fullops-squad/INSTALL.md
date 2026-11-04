@@ -199,9 +199,12 @@ Claude Code 세션에서 실행합니다. 이미 등록된 마켓플레이스는
 ```text
 /plugin marketplace add DietrichGebert/ponytail
 /plugin marketplace add anthropics/claude-plugins-official
+/plugin marketplace add cursor/plugins
 /plugin marketplace add tourbut/Fullops-Squad-plugin
 /plugin install fullops-squad@fullops-squad
 ```
+
+Claude Code에는 Cursor 공식 [pstack](https://github.com/cursor/plugins/tree/main/pstack)도 의존 플러그인으로 함께 설치됩니다. pstack 스킬은 `/pstack:<이름>`으로 직접 부를 때만 동작합니다. FullOps를 적용한 레포에서는 FullOps의 결정·리뷰 규칙이 pstack 규칙보다 우선합니다.
 
 선택 사항으로, Claude Code 전용 mod인 [fullops-meter](https://github.com/tourbut/Fullops-Squad-plugin/blob/main/mods/fullops-meter/README.md)를 설치할 수 있습니다.
 - 모든 레포: 프롬프트 아래에 모델, 컨텍스트 잔량, 프롬프트 캐시를 보여 줍니다.

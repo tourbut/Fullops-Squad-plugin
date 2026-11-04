@@ -231,7 +231,7 @@ def tool_problems():
 
 
 def dependency_plugins(host):
-    return manifest()['codex']['plugins'] if host == 'codex' else ['ponytail@ponytail', 'mattpocock-skills@claude-plugins-official'] if host == 'claude-code' else []
+    return manifest()['codex']['plugins'] if host == 'codex' else ['ponytail@ponytail', 'mattpocock-skills@claude-plugins-official', 'pstack@cursor-plugins'] if host == 'claude-code' else []
 
 
 def package_identity(root):

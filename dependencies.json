@@ -1,7 +1,8 @@
 {
   "marketplaces": {
     "ponytail": "DietrichGebert/ponytail",
-    "claude-plugins-official": "anthropics/claude-plugins-official"
+    "claude-plugins-official": "anthropics/claude-plugins-official",
+    "cursor-plugins": "cursor/plugins"
   },
   "skill_cli": "skills@latest",
   "skills": [

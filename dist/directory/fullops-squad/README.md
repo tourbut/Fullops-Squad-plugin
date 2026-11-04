@@ -19,7 +19,7 @@ claude plugin install fullops-squad@fullops-squad
 
 Then start a new session and ask Claude to set up FullOps in your repository.
 
-The directory edition does not install other plugins. You can optionally add the companion plugins `ponytail@ponytail` and `mattpocock-skills@claude-plugins-official`. The installed plugin's `scripts/deps.py --host claude-code` installs them and the `ocr` CLI for you. Install `gh` yourself.
+The directory edition does not install other plugins. You can optionally add the companion plugins `ponytail@ponytail`, `mattpocock-skills@claude-plugins-official` and `pstack@cursor-plugins` (marketplace `cursor/plugins`). The installed plugin's `scripts/deps.py --host claude-code` installs them and the `ocr` CLI for you. Install `gh` yourself.
 
 ## API keys
 

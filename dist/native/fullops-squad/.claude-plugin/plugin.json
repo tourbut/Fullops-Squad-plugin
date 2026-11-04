@@ -16,6 +16,10 @@
     {
       "name": "mattpocock-skills",
       "marketplace": "claude-plugins-official"
+    },
+    {
+      "name": "pstack",
+      "marketplace": "cursor-plugins"
     }
   ],
   "license": "MIT"

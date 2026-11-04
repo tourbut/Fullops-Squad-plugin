@@ -6,7 +6,8 @@
   },
   "allowCrossMarketplaceDependenciesOn": [
     "ponytail",
-    "claude-plugins-official"
+    "claude-plugins-official",
+    "cursor-plugins"
   ],
   "plugins": [
     {

@@ -23,4 +23,6 @@ Context7은 키 없이 기본 사용이 가능하다. 선택적 인증값 전달
 
 실제 UI 작업은 `fullops-frontend`가 주 스킬 하나와 필요한 보조 검토만 호출한다. Playwright CLI·Impeccable 엔진·shadcn MCP는 dependencies.json의 frontend_tools에 선택형으로 등록돼 있으며 필수 설치/검사에 포함되지 않는다. `scripts/frontend.py`의 프로젝트별 dry-run·로컬 설치·준비 검사와 [도구 준비](skills/fullops-frontend/toolchain.md)를 따른다. 기본 tools는 빈 목록이며 hook·MCP 연결·폴더 신뢰는 자동 변경하지 않는다. Grok 설치에서도 `--trust`를 자동 전달하지 않는다.
 
+Claude Code에는 Cursor 공식 마켓플레이스 `cursor/plugins`(`cursor-plugins`)의 `pstack`을 의존 플러그인으로 설치한다(MIT). 공식 패키지는 Claude Code용뿐이라 Codex·grok에는 설치하지 않는다. 비공식 포트는 쓰지 않는다. pstack은 hook이 없고, `setup-pstack`을 뺀 스킬은 `/pstack:<이름>`으로 직접 부를 때만 동작한다. `/pstack:poteto-mode`의 "사람을 기다리지 않는다"·"도구 오류 뒤 다른 모델로 재시도" 규칙은 FullOps의 사용자 결정·리뷰 면제·보류 규칙과 다르다. FullOps를 적용한 레포에서는 FullOps 규칙이 우선한다. `/setup-pstack`은 실행할 때만 `~/.claude/rules/pstack-models.md`를 쓴다.
+
 CUAWright의 `cuawright-web`은 `optional_skills`의 별도 최신 선택 스킬이다. 기본 설치/check와 공통 네 스킬에 포함하지 않는다. Python Playwright/Firefox 준비와 선택 호스트 실행은 [웹 PoC 계약](skills/fullops-test/web-engine.md)을 따른다. 준비 스크립트는 새 모델 키·브라우저 다운로드·생성 코드 실행을 자동 추가하지 않는다.
