@@ -89,9 +89,14 @@ with tempfile.TemporaryDirectory(prefix='fullops-autonomy-') as tmp:
         {'path': 'docs/guide.md', 'content': '오타', 'severity': 'low', 'resolved': False}]}), encoding='utf-8')
     result = judge(docs, '--lint', str(saved / 'docs.json'), '--review-key', 'R1')
     assert (result['grade'], result['blocked'], result['blockers']) == ('auto', True, ['미해결 critical/high 1건']), result
-    shutil.rmtree(review.parent)
+    shutil.rmtree(review)
     result = judge('no-such-ref')
-    assert result['grade'] == 'ask' and result['reasons'][0].startswith('입력을 읽지 못했습니다'), result
+    assert result['grade'] == 'ask' and result['blocked'] and result['reasons'][0].startswith('입력을 읽지 못했습니다'), result
+    (repo / '.fullops-squad/docs/evaluations/qa-reports/R2-review').mkdir(parents=True)
+    (repo / '.fullops-squad/docs/evaluations/qa-reports/R2-review/result.json').write_text('[]', encoding='utf-8')
+    result = judge(docs, '--lint', str(saved / 'docs.json'), '--review-key', 'R2')  # 객체가 아닌 결과도 traceback 없이 ask
+    assert result['grade'] == 'ask' and result['blocked'], result
+    shutil.rmtree(repo / '.fullops-squad/docs/evaluations/qa-reports/R2-review')
     assert judge(docs, '--lint', str(saved / 'missing.json'))['grade'] == 'ask'
 
     # 섀도 기록은 ref·인덱스·작업 트리·다른 하네스 기록을 바꾸지 않는다

@@ -30,7 +30,7 @@ POLICY = {
     'delay_minutes': 60,
     'approval_hours': 24,
 }
-UNREADABLE = (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError)
+UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.CalledProcessError)
 
 
 def now():
@@ -55,10 +55,10 @@ def rules(config):
 def lint_problem(repo, base, head, source):
     """같은 base·head·설정에서 통과한 lint 결과가 없으면 (사유, 결과를 읽었는지)를 돌려준다."""
     target = {'base': base, 'head': head}
-    if not source:
-        found, _ = review.worker_lint(repo, target)
-        return (None, True) if found else ('같은 base·head·설정에서 통과한 lint 결과가 없습니다', False)
     try:
+        if not source:
+            found, _ = review.worker_lint(repo, target)
+            return (None, True) if found else ('같은 base·head·설정에서 통과한 lint 결과가 없습니다', False)
         data = json.loads(Path(source).read_bytes())
         errors = (sum(v['severity'] == 'ERROR' for v in data['violations'])
                   + sum(c['status'] in ('failed', 'timeout') for c in data['commands']))
@@ -93,6 +93,7 @@ def judge(repo, base, head, key=None, review_key=None, lint=None, origin='user')
         paths = changed_paths(repo, need['merge_base'], head)
     except UNREADABLE as error:
         out['reasons'].append(f'입력을 읽지 못했습니다: {error}')
+        out.update(blocked=True, blockers=['입력을 읽지 못해 lint·리뷰 결과를 확인하지 못했습니다'])
         return out
     out.update(base=base, head=head, merge_base=need['merge_base'], policy=rule, inputs={'need': need, 'paths': paths})
     risky = [p for p in paths if matches(p, rule['ask']) or matches(p, config['review_policy']['always'])]
