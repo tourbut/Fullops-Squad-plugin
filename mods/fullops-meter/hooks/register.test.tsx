@@ -1,3 +1,4 @@
+// Pane reads of git and gate records: how often they hit the disk, and what stays current.
 import { expect, mock, test } from 'claude-code/testing'
 
 const DECISION = 'wt/shared/fullops-decisions/D1.json'

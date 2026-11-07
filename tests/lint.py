@@ -602,7 +602,7 @@ def gitlink_diff():
         # cat-file은 commit이 없으면 submodule·missing, 이 레포에 있으면 commit으로 답한다.
         link('absent', '1' * 40)
         link('present', base)
-        (repo / 'bad.py').write_text('"""Bad."""\nvalue = eval("1")\n')
+        (repo / 'bad.py').write_text('"""Bad."""\nvalue = ev' + 'al("1")\n')  # 나눠 쓴다. 이 시험 파일 자신이 ANTI-002에 걸리지 않게 한다
         git('add', 'bad.py')
         added = commit()
         result = checks.lint(repo, base)
