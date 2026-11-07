@@ -36,7 +36,7 @@ class PolicyError(ValueError):
 def common_dir(root):
     """hook 한 번에 여러 모듈이 묻는 git 공통 디렉터리를 프로세스당 한 번만 계산한다. root는 str로 넘긴다."""
     common = Path(subprocess.check_output(['git', '-C', root, 'rev-parse', '--git-common-dir'], text=True,
-                                          encoding='utf-8').strip())
+                                          encoding='utf-8', stderr=subprocess.DEVNULL).strip())
     return (common if common.is_absolute() else Path(root) / common).resolve()
 
 

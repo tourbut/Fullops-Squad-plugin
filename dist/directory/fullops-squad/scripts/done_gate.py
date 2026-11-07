@@ -7,6 +7,7 @@ Stop에서 이 체크아웃이 직접 만든 커밋(HEAD reflog의 commit 항목
 대규모 변경의 독립 리뷰·사용자 면제는 반복 Stop으로 생략하지 못한다.
 """
 from datetime import datetime, timezone
+import functools
 import json
 from pathlib import Path
 import re
@@ -85,7 +86,15 @@ def field(event, name):
     return event.get(name, event.get(re.sub(r'_(\w)', lambda m: m.group(1).upper(), name)))
 
 
+@functools.lru_cache(maxsize=None)
+def location(root, flag):
+    """hook 한 번에 여러 함수가 묻는 저장소 위치를 프로세스당 한 번만 계산한다. HEAD와 무관한 값이다."""
+    return subprocess.check_output(['git', '-C', root, 'rev-parse', flag], text=True, encoding='utf-8', stderr=subprocess.DEVNULL).strip()
+
+
 def git(root, *args):
+    if len(args) == 2 and args[0] == 'rev-parse' and args[1] in ('--show-toplevel', '--absolute-git-dir'):
+        return location(str(Path(root).resolve()), args[1])
     return subprocess.check_output(['git', '-C', str(root), *args], text=True, encoding='utf-8', stderr=subprocess.DEVNULL).strip()
 
 

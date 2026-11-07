@@ -477,18 +477,24 @@ def delegation_denial(root, event, state, config, starting, lead):
     return None
 
 
+def issue_state_exists(root):
+    """자동 이슈를 쓴 적 없는 레포는 도구 호출마다 issue_mode(urllib·sqlite3)를 불러오지 않는다."""
+    return (integration.directory(root).parent / 'fullops-issues/state.sqlite').is_file()
+
+
 def tool_denial(root, event, state):
     tool = field(event, 'tool_input') or {}
     if not isinstance(tool, dict):
         return None
     command, files = targets(tool)
-    import issue_mode
-    try:
-        denial = issue_mode.boundary(root, field(event, 'session_id'), command, files, shell_commands(command), state)
-    except (OSError, ValueError, KeyError, issue_mode.sqlite3.Error):
-        denial = '자동 이슈 상태/범위를 확인하지 못했습니다. 상태를 복구한 뒤 재개하세요'
-    if denial:
-        return denial
+    if issue_state_exists(root):
+        import issue_mode
+        try:
+            denial = issue_mode.boundary(root, field(event, 'session_id'), command, files, shell_commands(command), state)
+        except (OSError, ValueError, KeyError, issue_mode.sqlite3.Error):
+            denial = '자동 이슈 상태/범위를 확인하지 못했습니다. 상태를 복구한 뒤 재개하세요'
+        if denial:
+            return denial
     candidate = settlement_command(command, state)
     if candidate:
         state['sending'] = {**candidate, 'tool_use_id': field(event, 'tool_use_id')}
@@ -715,7 +721,7 @@ def main(event=None):
         if denial:
             output = {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
                                              'permissionDecisionReason': 'FullOps: ' + denial}}
-        else:
+        elif issue_state_exists(root):
             import issue_mode
             command, _ = targets(field(event, 'tool_input') or {})
             try:
@@ -743,7 +749,7 @@ def main(event=None):
         if notes:  # 같은 지적은 세션에 한 번만 알린다
             state['advised'] = state.get('advised', []) + [hashlib.sha256(n.encode()).hexdigest()[:16] for n in notes]
             output = {'hookSpecificOutput': {'hookEventName': field(event, 'hook_event_name') or 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
-    if mode in ('tool', 'post', 'prompt'):
+    if mode in ('tool', 'post', 'prompt') and issue_state_exists(root):
         import issue_mode
         try:  # lease 갱신 실패는 90초 뒤 만료로 끝난다. 이미 정한 판정을 지우지 않는다
             issue_mode.heartbeat(root, field(event, 'session_id'))
@@ -809,7 +815,7 @@ def main(event=None):
             if reminder:
                 output = {'decision': 'block', 'reason': reminder}
             try:
-                board.write(root)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다
+                board.write(root, reuse_issues=True)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다
             except Exception:  # noqa: BLE001
                 pass
     if state != before:

@@ -1,16 +1,18 @@
 """임시 레포에서 현황판 데이터 수집·JS 출력·변경 없을 때 재작성 생략·coordinator Stop hook 자동 갱신·git 무시를 확인한다."""
+from datetime import datetime
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 from board_documents import documents, markdown
-from board import issues
+from board import issues, recent_issues, write
 
 
 def issue_checks():
@@ -46,6 +48,25 @@ def issue_checks():
             result = issues(Path('.'), {})
             assert result['error'] and not result['repository']
             run.assert_not_called()
+    # Stop hook 재사용: 5분 안의 성공만 쓰고, 오래됐거나 실패했거나 깨진 기록이면 다시 조회한다
+    with tempfile.TemporaryDirectory(prefix='fullops-board-issues-') as tmp:
+        output = Path(tmp) / 'board-data.js'
+
+        def saved(age, error=None):
+            at = datetime.fromtimestamp(time.time() - age).astimezone().isoformat(timespec='seconds')
+            output.write_text('window.FULLOPS_BOARD = ' + json.dumps({'issues': {'checked_at': at, 'error': error, 'items': [1]}}) + ';\n', encoding='utf-8')
+
+        with patch('board.issues', return_value='fresh') as fresh:
+            saved(60)
+            assert recent_issues(output, 'repo', {})['items'] == [1]
+            fresh.assert_not_called()
+            for age, error in ((400, None), (60, 'x'), (-60, None)):
+                saved(age, error)
+                assert recent_issues(output, 'repo', {}) == 'fresh'
+            output.write_text('broken', encoding='utf-8')
+            assert recent_issues(output, 'repo', {}) == 'fresh'
+            output.unlink()
+            assert recent_issues(output, 'repo', {}) == 'fresh'
 
 
 def document_checks():
@@ -214,6 +235,17 @@ def main():
         before = output.stat().st_mtime_ns
         run()
         assert output.stat().st_mtime_ns == before
+
+        # 내용이 같아도 새 이슈 조회 시각을 남겨야 다음 Stop이 gh를 다시 부르지 않는다
+        def queried(age):
+            at = datetime.fromtimestamp(time.time() - age).astimezone().isoformat(timespec='seconds')
+            return {'repository': 't/s', 'items': [], 'limit': 30, 'checked_at': at, 'error': None}
+        with patch('board.issues', return_value=queried(400)):
+            write(repo)
+        with patch('board.issues', return_value=queried(0)) as query:
+            write(repo, reuse_issues=True)
+            write(repo, reuse_issues=True)
+            assert query.call_count == 1
 
         # 깨진 board.json은 오류를 표시하고 나머지는 계속 보여 준다
         (fo / 'board/board.json').write_text('{', encoding='utf-8')

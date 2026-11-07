@@ -10,6 +10,7 @@ import shutil
 import subprocess
 
 from done_gate import ancestor, git
+import policy
 from storage import write_json
 
 
@@ -66,8 +67,7 @@ def config(root):
 
 
 def directory(root):
-    common = Path(git(root, 'rev-parse', '--git-common-dir'))
-    return (common if common.is_absolute() else Path(root) / common).resolve() / 'fullops-integration'
+    return policy.common_dir(str(Path(root).resolve())) / 'fullops-integration'
 
 
 def record(root, messages):
