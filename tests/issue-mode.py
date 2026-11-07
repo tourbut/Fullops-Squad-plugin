@@ -176,9 +176,9 @@ def handover():
         # 진행 중 이슈가 있어도 무관한 worker는 한 번만 확인한다.
         show = {'dispatchId': 'other', 'taskId': 'other-task', 'runId': 'other-run', 'terminal': 'x', 'workspace': 'repo::' + str(root)}
         unrelated = {'tasks': [{'id': 'other-task', 'spec': 'unrelated'}]}
-        with patch.object(mode.integration, 'orca', side_effect=[show, unrelated]) as lookup:
+        with patch.object(mode.integration, 'orca', side_effect=[show]) as lookup:  # 이슈의 Run이 아니면 task를 읽지 않는다
             assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context) is None
-        assert lookup.call_count == 2
+        assert lookup.call_count == 1
         with patch.object(mode.integration, 'orca', side_effect=AssertionError('Orca queried again')):
             assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context) is None
         # 그 Run이 이슈의 하위 Run으로 등록되면 생략 기록을 믿지 않고 다시 확인한다.
@@ -186,6 +186,14 @@ def handover():
             state['jobs']['102']['child_runs'] = {'other-run': {'task_key': work['task_key'], 'epoch': state['owner']['epoch']}}
         with patch.object(mode.integration, 'orca', side_effect=[show, unrelated]):
             assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        # 이슈의 Run에서 spec을 읽지 못하면(--full 없는 Orca 기본 응답) 무관한 worker로 기록하지 않고 막는다.
+        concise = {'tasks': [{'id': 'other-task', 'status': 'ready', 'title': 'x'}]}
+        with patch.object(mode.integration, 'orca', side_effect=[show, concise]) as lookup:
+            assert 'task spec' in mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        assert '--full' in lookup.call_args_list[1].args
+        with patch.object(mode.integration, 'orca', side_effect=[show, concise]) as again:  # 생략 기록을 남기지 않아 다시 묻는다
+            assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        assert again.call_count == 2
         with store.edit() as state:
             state['jobs']['102'].pop('child_runs')
 
@@ -194,7 +202,9 @@ def handover():
         mode.reserve_dispatch(root, 'first', [start])
         class Listing(Orca):
             tasks, page = [{'id': 'other', 'spec': 'unrelated'}], {'hasMore': False}
-            def call(self, *args):
+            def call(self, *args):  # Orca 1.4.251: spec·count·page는 --full일 때만 온다
+                if '--full' not in args:
+                    return {'tasks': [{'id': t['id'], 'status': 'ready', 'title': 'x'} for t in self.tasks]} if 'task-list' in args else {'scope': 'run', 'workers': []}
                 if 'task-list' in args:
                     return {'tasks': self.tasks, 'count': len(self.tasks), 'page': self.page}
                 return {'workers': [], 'page': {'total': 0, 'hasMore': False}}
@@ -657,7 +667,7 @@ def main():
             child_task_page = None
             extra_worker = False
             def call(self, *args):
-                child = args[-1] == 'child-run'
+                child = 'child-run' in args
                 task_id = 'task_child' if child else 'task_auto'
                 status = self.child_status if child else 'completed'
                 if 'task-list' in args:

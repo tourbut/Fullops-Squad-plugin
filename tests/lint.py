@@ -556,6 +556,24 @@ def staged_commands():
     print('PASS: lint stages stop after a failure and run test commands in parallel')
 
 
+def interrupt_ends_parallel_tests():
+    """POSIX 시험 명령은 새 세션이라 Ctrl+C가 닿지 않는다. 중단하면 pool이 timeout까지 기다리지 않게 끝낸다."""
+    import os, signal, threading, time
+    if os.name == 'nt':
+        return  # Windows의 lock 대기는 중단되지 않고, 자식은 같은 콘솔에서 Ctrl+C를 직접 받는다
+    sleeper = {'kind': 'test', 'name': 'sleep', 'run': [PY, '-c', 'import time; time.sleep(60)']}
+    config = {'commands': [sleeper, {**sleeper, 'name': 'sleep2'}], 'timeout_seconds': 120}
+    threading.Timer(1, os.kill, (os.getpid(), signal.SIGINT)).start()  # interrupt_main은 lock 대기를 깨우지 못한다
+    started = time.monotonic()
+    try:
+        checks.run_stages(Path('.'), config, [None, None], None)
+    except KeyboardInterrupt:
+        pass
+    else:
+        raise AssertionError('중단이 전달되지 않았습니다')
+    assert time.monotonic() - started < 20 and not checks.RUNNING
+
+
 def timeout_ends_tree():
     """timeout은 손자까지 끝내고 바로 돌아온다. 자식이 먼저 끝나 손자만 출력 파이프를 쥔 경우도 같다"""
     import time
@@ -639,6 +657,7 @@ if __name__ == '__main__':
     batch_read()
     gitlink_diff()
     timeout_ends_tree()
+    interrupt_ends_parallel_tests()
     command_cwd_aliases()
     stale_lock()
     tune_report()

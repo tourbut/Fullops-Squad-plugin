@@ -797,8 +797,9 @@ def resolve_answers(store, github, token, identifier, decision, reason):
 
 
 def full_run(orca, run):
-    """Run의 task와 worker 목록이 잘리지 않았음을 확인한다. 부재를 근거로 쓰는 경로의 전제다."""
-    listing = orca.call('orchestration', 'task-list', '--run', run)
+    """Run의 task와 worker 목록이 잘리지 않았음을 확인한다. 부재를 근거로 쓰는 경로의 전제다.
+    Orca 기본 응답에는 spec·count·page가 없어 --full이 필요하다."""
+    listing = orca.call('orchestration', 'task-list', '--run', run, '--full')
     tasks = listing.get('tasks')
     task_page = listing.get('page')
     if (not isinstance(tasks, list) or type(listing.get('count')) is not int or
@@ -808,7 +809,7 @@ def full_run(orca, run):
              ('total' in task_page and (type(task_page['total']) is not int or
                                        task_page['total'] != len(tasks)))))):
         raise ValueError('Run의 전체 task 목록을 확인하지 못했습니다')
-    fleet = orca.call('orchestration', 'worker-list', '--run', run)
+    fleet = orca.call('orchestration', 'worker-list', '--run', run, '--full')
     entries = fleet.get('workers')
     page = fleet.get('page') or {}
     if (not isinstance(entries, list) or page.get('hasMore') is not False or
@@ -865,9 +866,9 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     if unstarted:
         abandon_intents(store, orca, token, identifier, job, reason)
         return
-    task_listing = orca.call('orchestration', 'task-list', '--run', run)
+    task_listing = orca.call('orchestration', 'task-list', '--run', run, '--full')
     tasks = task_listing.get('tasks') or []
-    workers = orca.call('orchestration', 'worker-list', '--run', run)
+    workers = orca.call('orchestration', 'worker-list', '--run', run, '--full')
     if workers.get('page', {}).get('hasMore'):
         raise ValueError('전체 worker receipt를 확인하지 못했습니다. 다음 페이지 확인 필요')
     if not_dispatched:
@@ -1040,13 +1041,17 @@ def worker_job(store, state, session, context):
         raise ValueError('worker의 자동 이슈 범위를 Orca 정본에서 확인하지 못했습니다')
     projection = integration.worker_view(status)
     run = projection['runId']
-    listing = integration.orca('orchestration', 'task-list', '--run', run, cwd=store.repo) if run else None
-    if listing is None:
+    if not run:
         raise ValueError('worker의 정본 task를 확인하지 못했습니다')
-    task = next((t for t in listing.get('tasks', []) if t.get('id') == projection.get('taskId')), {})
     registered = [j for j in state['jobs'].values() if run in j.get('child_runs', {})]
-    jobs = [j for j in state['jobs'].values() if (j.get('run') == run or run in j.get('child_runs', {})) and j.get('task_key') and
-            integration.key_present(j['task_key'], str(task.get('spec') or ''))]
+    candidates = [j for j in state['jobs'].values() if (j.get('run') == run or run in j.get('child_runs', {})) and j.get('task_key')]
+    jobs = []
+    if candidates:  # 이슈의 Run에 속한 worker다. spec을 읽지 못한 채 무관한 worker로 판정하지 않는다.
+        listing = integration.task_list(run, cwd=store.repo)
+        spec = next((t.get('spec') for t in (listing or {}).get('tasks', []) if t.get('id') == projection.get('taskId')), None)
+        if not isinstance(spec, str):
+            raise ValueError('worker의 정본 task spec을 확인하지 못했습니다')
+        jobs = [j for j in candidates if integration.key_present(j['task_key'], spec)]
     if not jobs:
         if registered:
             raise ValueError('등록된 자동 하위 Run의 task key가 현재 attempt와 다릅니다')

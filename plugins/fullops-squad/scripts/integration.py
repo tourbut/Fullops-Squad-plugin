@@ -38,6 +38,11 @@ def orca(*args, cwd=None):
     return data.get('result') if isinstance(data, dict) and data.get('ok') else None
 
 
+def task_list(run=None, cwd=None):
+    """Orca task 목록. spec을 읽는 호출은 --full이 필요하다. 기본 응답(1.4.246+)에는 id·status·title만 온다."""
+    return orca('orchestration', 'task-list', *(['--run', run] if run else []), '--full', cwd=cwd)
+
+
 def worker_view(status):
     """Orca worker 응답(worker-show·worker-list 항목·worker-read)을 한 형식으로 읽는다.
     1.4.246부터 projection 없이 평면으로 오며 liveness·stage는 문자열, terminal은 handle, workspace는 '<repo>::<경로>'다."""
@@ -104,7 +109,7 @@ def record(root, messages):
         if task_id:
             run = message.get('run_id')
             if run not in tasks:
-                listing = orca('orchestration', 'task-list', *(['--run', run] if run else []), cwd=root)
+                listing = task_list(run, cwd=root)
                 tasks[run] = (listing or {}).get('tasks') or []
             spec = str(next((t for t in tasks[run] if t.get('id') == task_id), {}).get('spec') or '')
         if re.search(r'\bPurpose\s*[:=]\s*review\b', spec, re.I):

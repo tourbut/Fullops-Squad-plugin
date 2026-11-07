@@ -75,7 +75,8 @@ def targets(tool):
     path = tool.get('file_path') or tool.get('path') or tool.get('target_file')
     if isinstance(path, str):
         edits = tool.get('edits') if isinstance(tool.get('edits'), list) else [tool] if 'old_string' in tool else None
-        files.append((path, tool.get('content', tool.get('contents')) if edits is None else [
+        content = tool.get('content', tool.get('contents'))
+        files.append((path, (content if isinstance(content, str) else None) if edits is None else [
             (e['old_string'], e['new_string'], bool(e.get('replace_all'))) for e in edits
             if isinstance(e, dict) and isinstance(e.get('old_string'), str) and isinstance(e.get('new_string'), str)]))
     if command.lstrip().startswith('*** Begin Patch'):  # 패치 본문은 실행 명령이 아니다
@@ -404,6 +405,11 @@ def handled(root, key):
     return done.returncode == 0 and bool(integration.key_present(key, done.stdout))
 
 
+def task_listing(run):
+    """spec을 읽으므로 --full이 필요하다. 기본 응답(Orca 1.4.246+)에는 id·status·title만 온다."""
+    return orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []), '--full')
+
+
 def route_key_denial(root, command):
     """dispatch(worker-start·task-create)에 Jev 분류 기록이 있는 과제 키가 보이는지. `--task <id>`면 그 과제의 spec도 본다."""
     jev = root / '.fullops-squad/docs/evaluations/jev'
@@ -415,7 +421,7 @@ def route_key_denial(root, command):
         text += ' Task key: ' + (key_in(None, handover) or '')
     task, run = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command), re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
     if task:
-        listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
+        listing = task_listing(run)
         if listing is None:
             return None  # 과제 내용을 확인할 수 없으면 막지 않는다
         found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
@@ -451,7 +457,7 @@ def dispatch_spec(command, dispatch):
     task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
     if task:
         run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
-        listing = orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []))
+        listing = task_listing(run)
         if listing is not None:
             found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
             result += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')

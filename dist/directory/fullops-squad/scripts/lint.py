@@ -317,6 +317,9 @@ def changed_paths(repo, base, head):
     return sorted({p for pair in changed(repo, base, head) for p in pair if p})
 
 
+RUNNING = []  # 실행 중인 (process, job). 중단 때 끝낼 대상이다
+
+
 def kill_tree(process, job):
     """자식만 끝내면 손자가 출력 파이프를 쥐고 있어 communicate가 돌아오지 않는다. job·프로세스 그룹은 자식이 먼저 끝나도 손자를 찾는다"""
     if os.name == 'nt':
@@ -338,6 +341,8 @@ def run_tree(run, cwd, timeout):
         # shortcut: Popen 반환과 job 할당 사이에 자식이 띄운 프로세스는 job 밖이다. 실제로 놓치면 CREATE_SUSPENDED로 시작한다
         job = KERNEL32.CreateJobObjectW(None, None)
         KERNEL32.AssignProcessToJobObject(job, process._handle)  # 실패하면 process.kill과 제한 대기만 남는다
+    running = (process, job)
+    RUNNING.append(running)
     try:
         stdout, stderr = process.communicate(timeout=timeout)
         return process.returncode, stdout + stderr
@@ -349,6 +354,7 @@ def run_tree(run, cwd, timeout):
         kill_tree(process, job)
         raise
     finally:
+        RUNNING.remove(running)
         if os.name == 'nt':
             KERNEL32.CloseHandle(job)
 
@@ -394,8 +400,13 @@ def run_stages(repo, config, results, logs):
             failed = failed or results[n]['status'] in ('failed', 'timeout')
         return
     with ThreadPoolExecutor(max_workers=len(tests)) as pool:  # subprocess 대기는 GIL을 잡지 않는다
-        for n, done in zip(tests, pool.map(lambda n: run_command(repo, commands[n], timeout, logs), tests)):
-            results[n] = done
+        try:
+            for n, done in zip(tests, pool.map(lambda n: run_command(repo, commands[n], timeout, logs), tests)):
+                results[n] = done
+        except BaseException:  # 작업 스레드는 중단을 받지 못한다. 끝내지 않으면 pool 종료가 timeout까지 기다린다
+            for process, job in list(RUNNING):
+                kill_tree(process, job)
+            raise
 
 
 def lint(repo, base_ref, raise_level=None):
@@ -524,6 +535,8 @@ def main():
     parser.add_argument('--level', choices=policy.LEVELS, help='기준 test_level보다 높일 때만 쓴다(예: 통합 후보 full 회귀)')
     args = parser.parse_args()
     lock = None
+    if os.name != 'nt':  # 새 세션의 자식에게는 lint 프로세스 그룹의 SIGTERM이 닿지 않는다. 중단과 같게 정리한다
+        signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
         repo = active_repo(args.repo)
         lock = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-lint.lock'
