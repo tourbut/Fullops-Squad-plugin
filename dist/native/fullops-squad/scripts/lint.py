@@ -170,11 +170,24 @@ def changed(repo, base, head, env=None):
     return items
 
 
-def blob(repo, ref, path):
-    if path is None:
-        return ''  # 추가·삭제된 쪽은 빈 내용으로 비교한다
-    data = git(repo, 'cat-file', 'blob', f'{ref}:{path}', data=True)
-    return None if b'\0' in data else data.decode('utf-8', errors='replace')
+def read_blobs(repo, wanted):
+    """(ref, path)들을 `git cat-file --batch` 한 번으로 읽는다. 파일마다 프로세스를 띄우면 경로 1,551개에 49초가 걸린다.
+
+    값은 텍스트이고 NUL이 있는 바이너리는 None이다. 없는 경로는 ValueError다."""
+    wanted = list(dict.fromkeys(wanted))
+    done = subprocess.run(['git', '-C', str(repo), 'cat-file', '--batch', '-Z'], capture_output=True, check=True,
+                          input=b''.join(f'{ref}:{path}\0'.encode() for ref, path in wanted))
+    output, at, contents = done.stdout, 0, {}
+    for ref, path in wanted:
+        end = output.index(b'\0', at)
+        fields = output[at:end].split(b' ')
+        if len(fields) != 3 or fields[1] != b'blob':
+            raise ValueError(f'파일 내용을 읽지 못했습니다: {ref}:{path}')
+        at = end + 1 + int(fields[2])
+        data = output[end + 1:at]
+        at += 1  # 내용 뒤의 NUL
+        contents[ref, path] = None if b'\0' in data else data.decode('utf-8', errors='replace')
+    return contents
 
 
 def added_lines(old, new):
@@ -355,11 +368,15 @@ def lint(repo, base_ref, raise_level=None):
     if config_blob(repo, head) != config_blob(repo, merge_base):
         violations.append({'code': 'LINT-001', 'severity': 'WARNING', 'line': None, 'path': CONFIG,
                            'message': '이 브랜치의 lint 설정 변경은 적용하지 않았습니다. 병합 후 적용되니 변경 이유를 검토하세요'})
-    index = deliverables.index_rows(blob(repo, head, '.fullops-squad/' + deliverables.INDEX) or '')
-    for old_path, path in changed(repo, merge_base, head):
+    items = changed(repo, merge_base, head)
+    index_path = '.fullops-squad/' + deliverables.INDEX
+    contents = read_blobs(repo, [(head, index_path)] + [(head, path) for _, path in items if path] +
+                          [(merge_base, old) for old, path in items if old and path and not matches(path, config['exclude'])])
+    index = deliverables.index_rows(contents[head, index_path] or '')
+    for old_path, path in items:
         target = path or old_path
         if path:
-            new = blob(repo, head, path)
+            new = contents[head, path]
             if new is not None:
                 violations += deliverable_violations(path, new, index)
         if matches(target, config['exclude']):
@@ -372,8 +389,7 @@ def lint(repo, base_ref, raise_level=None):
                 violations.append({'code': 'ANTI-005', 'severity': 'WARNING', 'line': None, 'path': old_path,
                                    'message': '테스트 파일 삭제. 대체 테스트나 삭제 이유를 확인한다'})
             continue
-        new = blob(repo, head, path)
-        old = blob(repo, merge_base, old_path)
+        old = contents[merge_base, old_path] if old_path else ''  # 추가된 파일은 빈 내용으로 비교한다
         if new is None or old is None:
             continue
         files += 1

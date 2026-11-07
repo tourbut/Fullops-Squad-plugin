@@ -1,4 +1,6 @@
 """완료 보고 수신부터 기본 브랜치 병합·push·다음 배정의 최신 기준까지 확인한다."""
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -169,8 +171,12 @@ def main():
         git('reset', '-q', '--keep', 'HEAD~1')
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'merge', '-q', '--no-ff', '-m', 'merge dev', reported)
         assert hook('post', session_id='merge2', tool_input={'command': f'git merge --no-ff {reported}'}) == {}
-        subprocess.run([*script, 'hold', '--message', 'msg_free', '--reason', '형식 확인', '--owner', 'dev',
-                        '--resume', '재보고'], check=True, capture_output=True)
+        # 본문에서 SHA를 읽지 못한 보고는 hold 없이 SHA를 직접 기록한다. 없는 커밋은 받지 않는다
+        bad = subprocess.run([*script, 'set-sha', '--message', 'msg_free', '--sha', '0' * 40], capture_output=True, text=True, encoding='utf-8')
+        assert bad.returncode == 2 and '이 저장소의 커밋이 아닙니다' in bad.stderr, bad.stderr
+        fixed = subprocess.run([*script, 'set-sha', '--message', 'msg_free', '--sha', reported[:12], '--key', 'FREE-1'],
+                               check=True, capture_output=True, text=True, encoding='utf-8')
+        assert not any(item['message'] == 'msg_free' and item['action'] == '병합' for item in json.loads(fixed.stdout)['pending'])
         git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'merge', '-q', '-m', 'sync', 'main', cwd=worker)
         # 로컬 전용 setup도 지원한다. 기본 브랜치 이름을 main으로 가정하지 않는다.
         git('branch', '-m', 'main', 'trunk')
@@ -182,5 +188,26 @@ def main():
     print('PASS: completed SHA merge, base push, durable Stop gate, worker baseline')
 
 
+def concurrent_record():
+    """orca_wait를 동시에 실행해도 빈 파일을 읽어 죽지 않고, 이전 버전이 남긴 빈 기록은 다시 쓴다(#112)."""
+    sys.path.insert(0, str(SCRIPTS))
+    import integration
+    with tempfile.TemporaryDirectory(prefix='fullops-record-') as tmp:
+        repo = Path(tmp)
+        subprocess.run(['git', 'init', '-q', tmp], check=True)
+        (repo / '.fullops-squad').mkdir()
+        (repo / '.fullops-squad/fullops.json').write_text('{}', encoding='utf-8')
+        messages = [{'type': 'worker_done', 'id': f'm{n}', 'body': f'[완료] K{n} | 브랜치 fullops/dev | SHA abcdef{n}'} for n in range(4)]
+        empty = integration.directory(repo) / (hashlib.sha256(b'm0').hexdigest() + '.json')
+        empty.parent.mkdir(parents=True)
+        empty.write_text('', encoding='utf-8')
+        with ThreadPoolExecutor(8) as pool:
+            list(pool.map(lambda _: integration.record(repo, messages), range(8)))
+        for n, message in enumerate(messages):
+            saved = json.loads((empty.parent / (hashlib.sha256(message['id'].encode()).hexdigest() + '.json')).read_text(encoding='utf-8'))
+            assert saved['key'] == f'K{n}' and saved['sha'] == f'abcdef{n}', saved
+
+
 if __name__ == '__main__':
+    concurrent_record()
     main()

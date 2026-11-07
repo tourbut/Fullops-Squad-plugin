@@ -4,9 +4,34 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT =Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
+
+
+def location_cache():
+    """저장소 위치는 프로세스당 한 번만 묻고, HEAD처럼 바뀌는 값은 기억하지 않는다."""
+    sys.path.insert(0, str(SCRIPTS))
+    import done_gate
+    with tempfile.TemporaryDirectory(prefix='fullops-location-') as tmp:
+        def commit():
+            subprocess.check_call(['git', '-C', tmp, '-c', 'user.name=t', '-c', 'user.email=t@example.com',
+                                   'commit', '-q', '--allow-empty', '-m', 'x'])
+        try:
+            done_gate.git(tmp, 'rev-parse', '--show-toplevel')
+        except subprocess.CalledProcessError:
+            pass  # 저장소가 아닐 때의 실패는 기억하지 않는다
+        else:
+            raise AssertionError('임시 폴더가 저장소 안에 있습니다')
+        subprocess.check_call(['git', 'init', '-q', tmp])
+        commit()
+        top = done_gate.git(tmp, 'rev-parse', '--show-toplevel')
+        first = done_gate.git(tmp, 'rev-parse', 'HEAD')
+        with patch('done_gate.subprocess.check_output', side_effect=AssertionError('git을 다시 불렀습니다')):
+            assert done_gate.git(tmp, 'rev-parse', '--show-toplevel') == top
+        commit()
+        assert done_gate.git(tmp, 'rev-parse', 'HEAD') != first
 
 
 def main():
@@ -145,4 +170,5 @@ def main():
 
 
 if __name__ == '__main__':
+    location_cache()
     main()

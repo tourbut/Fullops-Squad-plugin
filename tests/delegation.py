@@ -194,6 +194,9 @@ class Delegation(unittest.TestCase):
     def test_failed_dispatch_reservation_blocks_launch(self):
         event = {'cwd': str(self.repo), 'session_id': 'host', 'tool_name': 'Bash',
                  'tool_input': {'command': 'orca orchestration worker-start --run r --spec "Task key: K"'}}
+        state = self.repo / '.git/fullops-issues/state.sqlite'  # 자동 이슈를 쓴 레포만 예약을 확인한다
+        state.parent.mkdir()
+        state.touch()
         with patch.object(sys, 'argv', ['flow_gate.py', 'tool']), patch.object(
                 sys, 'stdin', io.StringIO(json.dumps(event))), patch.object(flow_gate, 'tool_denial', return_value=None), patch.object(
                 issue_mode, 'reserve_dispatch', side_effect=ValueError('owner changed')):

@@ -11,8 +11,8 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 
-from board_documents import documents
 from deliverables import document_status, identities, split
 
 BOARD = '.fullops-squad/board'
@@ -22,6 +22,8 @@ ALIASES = {'in_progress': 'active', 'in-progress': 'active', 'doing': 'active', 
 NOTE_LIMIT = 80  # board.json 단계 note는 현재 상태 한 줄. 경위는 PLANS.md에 둔다
 TITLE = re.compile(r'^#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—\s+(.+?)\s*$', re.M)
 SEPARATOR = re.compile(r'\|?[\s:|-]+\|?')
+ISSUE_REUSE_SECONDS = 300
+UPDATED = re.compile(r'^ "updated_at": .*\n', re.M)
 VOLATILE = re.compile(r'^(?: "updated_at"|  "checked_at"): .*\n', re.M)  # 생성·이슈 조회 시각
 
 
@@ -222,6 +224,8 @@ def reviews(repo, root, limit=12):
 
 
 def deliverables(root):
+    from board_documents import documents  # 도구 호출마다 도는 hook이 board.read만 쓸 때 불러오지 않는다
+
     result = []
     for _, header, rows in tables(read(root / 'docs/deliverables/README.md')):
         if len(header) != 5:
@@ -278,7 +282,19 @@ def issues(repo, config):
     return result
 
 
-def build(repo):
+def recent_issues(output, repo, config):
+    """Stop마다 gh를 부르지 않는다. 직전 조회가 성공했고 ISSUE_REUSE_SECONDS 안이면 다시 쓴다."""
+    try:
+        saved = json.loads(read(output).removeprefix('window.FULLOPS_BOARD = ').rstrip().removesuffix(';'))['issues']
+        age = time.time() - datetime.fromisoformat(saved['checked_at']).timestamp()
+        if 0 <= age < ISSUE_REUSE_SECONDS and not saved['error']:
+            return saved
+    except (ValueError, KeyError, TypeError):
+        pass
+    return issues(repo, config)
+
+
+def build(repo, reuse_issues=False):
     root = Path(repo) / '.fullops-squad'
     config = load(root / 'fullops.json') or {}
     board = load(root / 'board/board.json')
@@ -303,15 +319,17 @@ def build(repo):
         'reviews': reviews(repo, root),
         'tests': tests(root),
         'deliverables': deliverables(root),
-        'issues': issues(repo, config),
+        'issues': recent_issues(Path(repo) / BOARD / 'board-data.js', repo, config) if reuse_issues else issues(repo, config),
     }
 
 
-def write(repo):
+def write(repo, reuse_issues=False):
     output = Path(repo) / BOARD / 'board-data.js'
     output.parent.mkdir(parents=True, exist_ok=True)
-    text = 'window.FULLOPS_BOARD = ' + json.dumps(build(repo), ensure_ascii=False, indent=1) + ';\n'
-    if VOLATILE.sub('', read(output)) != VOLATILE.sub('', text):  # 변경 시각만 다르면 다시 쓰지 않는다
+    text = 'window.FULLOPS_BOARD = ' + json.dumps(build(repo, reuse_issues), ensure_ascii=False, indent=1) + ';\n'
+    # 변경 시각만 다르면 다시 쓰지 않는다. 재사용 경로는 다음 Stop이 나이를 재도록 새 이슈 조회 시각을 남긴다
+    volatile = UPDATED if reuse_issues else VOLATILE
+    if volatile.sub('', read(output)) != volatile.sub('', text):
         output.write_text(text, encoding='utf-8', newline='\n')
     # index.html은 플러그인이 소유한 고정 양식이다. setup은 기존 파일을 덮지 않으므로 여기서 새 양식으로 맞춘다
     page = output.with_name('index.html')

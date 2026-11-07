@@ -7,13 +7,14 @@ Stop에서 이 체크아웃이 직접 만든 커밋(HEAD reflog의 commit 항목
 대규모 변경의 독립 리뷰·사용자 면제는 반복 Stop으로 생략하지 못한다.
 """
 from datetime import datetime, timezone
+import functools
 import json
 from pathlib import Path
 import re
 import subprocess
 import sys
 
-from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY, blob, config_blob, deliverable_violations, matches
+from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY, config_blob, deliverable_violations, matches, read_blobs
 import deliverables
 import policy
 from storage import write_json
@@ -85,7 +86,15 @@ def field(event, name):
     return event.get(name, event.get(re.sub(r'_(\w)', lambda m: m.group(1).upper(), name)))
 
 
+@functools.lru_cache(maxsize=None)
+def location(root, flag):
+    """hook 한 번에 여러 함수가 묻는 저장소 위치를 프로세스당 한 번만 계산한다. HEAD와 무관한 값이다."""
+    return subprocess.check_output(['git', '-C', root, 'rev-parse', flag], text=True, encoding='utf-8', stderr=subprocess.DEVNULL).strip()
+
+
 def git(root, *args):
+    if len(args) == 2 and args[0] == 'rev-parse' and args[1] in ('--show-toplevel', '--absolute-git-dir'):
+        return location(str(Path(root).resolve()), args[1])
     return subprocess.check_output(['git', '-C', str(root), *args], text=True, encoding='utf-8', stderr=subprocess.DEVNULL).strip()
 
 
@@ -145,9 +154,11 @@ def records_only(root, passed, head):
         changed = git(root, 'diff', '-z', '--name-only', passed, head).split('\0')
         if not all(p.startswith(RECORDS) for p in changed if p):
             return False
-        index = deliverables.index_rows(blob(root, head, '.fullops-squad/' + deliverables.INDEX) or '')
-        kept = git(root, 'diff', '-z', '--name-only', '--diff-filter=d', passed, head).split('\0')
-        return not any(deliverable_violations(p, blob(root, head, p) or '', index) for p in kept if p)
+        index_path = '.fullops-squad/' + deliverables.INDEX
+        kept = [p for p in git(root, 'diff', '-z', '--name-only', '--diff-filter=d', passed, head).split('\0') if p]
+        contents = read_blobs(root, [(head, index_path)] + [(head, p) for p in kept])
+        index = deliverables.index_rows(contents[head, index_path] or '')
+        return not any(deliverable_violations(p, contents[head, p] or '', index) for p in kept)
     except (OSError, ValueError, subprocess.CalledProcessError):
         return False
 

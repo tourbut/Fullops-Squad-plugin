@@ -91,6 +91,30 @@ def setup_commands():
         assert config_path.read_bytes() == saved
 
 
+def batch_read():
+    with tempfile.TemporaryDirectory(prefix='fullops-batch-read-') as tmp:
+        repo = Path(tmp)
+        def git(*args):
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+        git('init', '-q', '-b', 'main')
+        git('config', 'core.autocrlf', 'false')  # CRLF를 그대로 커밋해 읽기 결과를 확인한다
+        files = {'한글 공백.md': b'# \xed\x95\x9c\n', 'empty.txt': b'', 'crlf.txt': b'a\r\nb\r\n', 'bin.dat': b'a\0b\n'}
+        for name, data in files.items():
+            (repo / name).write_bytes(data)
+        git('add', '-A')
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'test')
+        head = git('rev-parse', 'HEAD')
+        read = checks.read_blobs(repo, [(head, name) for name in files] + [(head, 'empty.txt')])
+        assert read == {(head, '한글 공백.md'): '# 한\n', (head, 'empty.txt'): '', (head, 'crlf.txt'): 'a\r\nb\r\n', (head, 'bin.dat'): None}, read
+        for missing in ('없는 파일.md', 'none'):
+            try:
+                checks.read_blobs(repo, [(head, 'empty.txt'), (head, missing)])
+            except ValueError as error:
+                assert missing in str(error)
+            else:
+                raise AssertionError('없는 경로를 빈 내용으로 읽었습니다')
+
+
 def anti_slop():
     with tempfile.TemporaryDirectory(prefix='fullops-anti-slop-') as tmp:
         repo = Path(tmp)
@@ -545,6 +569,7 @@ def stale_lock():
 
 
 if __name__ == '__main__':
+    batch_read()
     command_cwd_aliases()
     stale_lock()
     tune_report()
