@@ -3,7 +3,8 @@ title: FullOps 1.16.1 레포 적용 기록
 status: draft
 updated: 2026-11-07
 owner: dev
-summary: 이 레포의 FullOps 적용 버전을 1.11.0에서 1.16.1로 갱신한 기록. 릴리스별 판정, 변경 파일, 검증, 보류 항목
+tasks: [FULLOPS-UPDATE-1.16.1]
+summary: "이 레포의 FullOps 적용 버전을 1.11.0에서 1.16.1로 갱신한 기록. 릴리스별 판정, 변경 파일, 검증, 보류 항목"
 ---
 
 # FullOps 1.16.1 레포 적용 기록
@@ -64,7 +65,7 @@ summary: 이 레포의 FullOps 적용 버전을 1.11.0에서 1.16.1로 갱신한
 ## 검증
 
 - `update.py --repo . --from 1.16.1 --verify`: 필수 적용 0/0 충족, 종료코드 0.
-- lint 결과는 커밋 뒤 `fullops/dev` HEAD에서 실행해 PLANS.md에 적는다.
+- lint: `lint.py --from main`을 `fullops/dev` HEAD에서 실행한다. 문서만 바뀌어 시험 명령은 건너뛴다.
 
 ## 보류
 
