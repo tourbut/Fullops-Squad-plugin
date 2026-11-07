@@ -3,8 +3,6 @@ export type Ttl = '5m' | '1h'
 
 /** One main-loop request: what the prompt cache did with it. */
 export type Sample = {
-  turnId: string
-  index: number
   model: string
   /** When the request started, in `$.clock.now()` milliseconds. The cache lifetime counts from here. */
   startedAt: number
@@ -14,7 +12,6 @@ export type Sample = {
   write: number
   /** Prompt tokens not cached at all. */
   fresh: number
-  output: number
 }
 
 /** The live context window, from `$.session.usage()`. */
@@ -120,13 +117,15 @@ export type IssueMode = {
   /** When the coordinator's lease lapses, in milliseconds; past it the mode is off whatever `enabled` says. */
   expiresAt: number
   /** The issue being worked, or the last one; null when none was taken yet. */
-  job: { number: number; status: string; taskKey: string } | null
+  job: { number: number; status: string } | null
 }
 
 /** What the FullOps pane and labels read from the repository. */
 export type FullOps = {
   /** The role this checkout plays (`coor`, `dev`, ...). */
   role: string
+  /** The role names in `fullops.json`, which review keys fold by; state from an older load carries none. */
+  roles?: string[]
   reviews: Review[]
   /** Orca task id to task key, so a dispatch card can name the task. */
   keys: Record<string, string>
@@ -148,8 +147,6 @@ export type FlowTask = {
   /** Reopens plus distinct rounds so far, and the budget before the coordinator is told to ask the person. */
   rounds: number
   budget: number
-  /** The last reported SHA; empty before a worker reports. */
-  sha: string
   /** When the coordinator hook last moved it, in milliseconds; 0 when the record has no readable time. */
   updated: number
 }

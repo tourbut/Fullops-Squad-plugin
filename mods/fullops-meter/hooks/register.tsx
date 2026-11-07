@@ -34,6 +34,8 @@ const DECISIONS = 'fullops-decisions'
 const ISSUES = 'fullops-issues/status.json'
 /** Where flow_state.py keeps each task's flow state, in the same shared git folder. */
 const FLOW = 'fullops-flow'
+/** How long a checkout's git folder locations are trusted: they move only when a worktree is moved or added again. */
+const LOCATION_MS = 60_000
 /** Transcript rows read per active worker: enough to reach its last words past a run of tool calls. */
 const PROGRESS_ROWS = 30
 /** The dock width the pane asks for; the person can still drag it. */
@@ -45,6 +47,12 @@ const TABS: readonly { tab: Tab; label: string; hotkey: string }[] = [
 ]
 /** A prompt this small is not worth a notice when its cache lapses. */
 const NOTICE_MIN_TOKENS = 20_000
+
+/** Where a checkout keeps its git files. */
+type Location = { gitDir: string; commonDir: string; readAt: number }
+
+/** A record file as last read. */
+type Kept<T> = { size: number; mtimeMs: number; value: T | null }
 
 /** What the hooks share. Plain values, so a hook can hand it to a helper along with `$`. */
 type Shared = {
@@ -70,6 +78,10 @@ type Shared = {
   /** When the last worker poll ran, so a stall is told of once, as it crosses the limit; 0 before any. */
   lastPollAt: number
   isFullOps: boolean
+  /** Each checkout read so far, by its root. */
+  locations: Record<string, Location>
+  decisionFiles: Map<string, Kept<Decision>>
+  flowFiles: Map<string, Kept<FlowTask>>
   lastStatus: string
   hasWarnedContext: boolean
   /** The `startedAt` of the cache entry the "about to lapse" notice was shown for. */
@@ -184,19 +196,16 @@ async function readContext($: EngineInterface, shared: Shared): Promise<void> {
 async function record(
   $: EngineInterface,
   shared: Shared,
-  step: { turnId: string; index: number; model: string; effort?: string | number },
+  step: { model: string; effort?: string | number },
   startedAt: number,
-  usage: { model: string; input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number },
+  usage: { model: string; input_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number },
 ): Promise<void> {
   const sample: Sample = {
-    turnId: step.turnId,
-    index: step.index,
     model: usage.model || step.model,
     startedAt,
     read: usage.cache_read_input_tokens,
     write: usage.cache_creation_input_tokens,
     fresh: usage.input_tokens,
-    output: usage.output_tokens,
   }
   const before = (await read($, meterAtom))?.samples ?? []
   shared.observed = observeTtl(before[before.length - 1], sample, shared.observed)
@@ -263,7 +272,7 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
         $.process
           .run(['orca', 'orchestration', 'worker-read', '--dispatch', worker.dispatchId, '--source', 'transcript', '--limit', String(PROGRESS_ROWS), '--json'], { timeoutMs: 15_000 })
           .catch(() => undefined),
-        readRecordStage($, workspace, worker.role, worker.since),
+        readRecordStage($, shared, workspace, worker.role, worker.since),
       ])
       const progress = (out?.exitCode === 0 ? parseProgress(out.stdout) : null) ?? kept
       const stage = stageOf(progress?.steps ?? [], Math.max(reached, recorded))
@@ -283,32 +292,56 @@ async function poll($: EngineInterface, shared: Shared): Promise<void> {
   if (shared.isPolling) return
   shared.isPolling = true
   try {
-    await readFullOps($)
+    await readFullOps($, shared)
     await pollWorkers($, shared)
   } finally {
     shared.isPolling = false
   }
 }
 
-/** The git folder a checkout uses: a worktree's `.git` is a file naming its own, the main checkout's is the folder. */
-async function gitDirOf($: EngineInterface, root: string): Promise<string> {
+/** The git folder a checkout uses and the one all its checkouts share: a worktree's `.git` is a file naming its own, the main checkout's is the folder. */
+async function locate($: EngineInterface, shared: Shared, root: string): Promise<Location> {
+  const now = await $.clock.now()
+  const known = shared.locations[root]
+  if (known !== undefined && now - known.readAt < LOCATION_MS) return known
   const pointer = await $.fs.read(`${root}/.git`).catch(() => null)
   const named = pointer === null ? undefined : /^gitdir:\s*(.+)$/m.exec(pointer)?.[1]?.trim()
-  if (named === undefined) return `${root}/.git`
-  return /^([A-Za-z]:)?[\\/]/.test(named) ? named : `${root}/${named}`
+  const gitDir = named === undefined ? `${root}/.git` : /^([A-Za-z]:)?[\\/]/.test(named) ? named : `${root}/${named}`
+  const commonDir = commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))
+  return (shared.locations[root] = { gitDir, commonDir, readAt: now })
 }
 
-/** The checkout's branch, from `.git/HEAD`. */
-async function readBranch($: EngineInterface): Promise<string | null> {
-  return branchOf(await $.fs.read(`${await gitDirOf($, '.')}/HEAD`).catch(() => ''))
+/** The records in a shared git folder. Answered decisions and merged tasks pile up there, so a file is read again only when its listing changes. */
+async function readRecords<T>(
+  $: EngineInterface,
+  kept: Map<string, Kept<T>>,
+  folder: string,
+  isRecord: (name: string) => boolean,
+  parse: (source: string) => T | null,
+): Promise<T[]> {
+  const files = (await $.fs.list(folder).catch(() => [])).filter(entry => entry.kind === 'file' && isRecord(entry.name))
+  const records: T[] = []
+  for (const { name, size, mtimeMs } of files) {
+    const path = `${folder}/${name}`
+    let file = kept.get(path)
+    if (file?.size !== size || file.mtimeMs !== mtimeMs) {
+      const source = await $.fs.read(path).catch(() => null)
+      // A failed read says nothing of the file, so the next refresh tries again.
+      if (source === null) continue
+      file = { size, mtimeMs, value: parse(source) }
+      kept.set(path, file)
+    }
+    if (file.value !== null) records.push(file.value)
+  }
+  return records
 }
 
 /** The stage a worker's own checkout proves: the gate files lint.py leaves and the archived completion report. */
-async function readRecordStage($: EngineInterface, workspace: string, role: string, since: number): Promise<number> {
+async function readRecordStage($: EngineInterface, shared: Shared, workspace: string, role: string, since: number): Promise<number> {
   const root = workspace.split('::').pop() ?? ''
   if (root === '') return 0
   const [gate, logs] = await Promise.all([
-    $.fs.list(`${await gitDirOf($, root)}/fullops-gate`).catch(() => []),
+    $.fs.list(`${(await locate($, shared, root)).gitDir}/fullops-gate`).catch(() => []),
     $.fs.list(`${root}/.fullops-squad/handovers/logs`).catch(() => []),
   ])
   return stageOfRecords(gate, logs, role, since)
@@ -341,37 +374,31 @@ async function readReviews($: EngineInterface): Promise<Review[]> {
 }
 
 /** The open decisions `decision.py` keeps in the folder every checkout shares, so a new session sees the old ones. */
-async function readDecisions($: EngineInterface): Promise<Decision[]> {
-  const gitDir = await gitDirOf($, '.')
-  const folder = `${commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))}/${DECISIONS}`
-  const files = (await $.fs.list(folder).catch(() => [])).filter(entry => entry.kind === 'file' && /^D\d+\.json$/.test(entry.name))
-  const decisions = await Promise.all(files.map(async file => parseDecision(await $.fs.read(`${folder}/${file.name}`).catch(() => ''))))
-  return decisions.filter((one): one is Decision => one !== null).sort((a, b) => a.askedAt - b.askedAt || a.id.localeCompare(b.id))
+async function readDecisions($: EngineInterface, shared: Shared, commonDir: string): Promise<Decision[]> {
+  const decisions = await readRecords($, shared.decisionFiles, `${commonDir}/${DECISIONS}`, name => /^D\d+\.json$/.test(name), parseDecision)
+  return decisions.sort((a, b) => a.askedAt - b.askedAt || a.id.localeCompare(b.id))
 }
 
 /** Each task's flow state the coordinator hook keeps in the folder every checkout shares. */
-async function readFlow($: EngineInterface): Promise<FlowTask[]> {
-  const gitDir = await gitDirOf($, '.')
-  const folder = `${commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))}/${FLOW}`
-  const files = (await $.fs.list(folder).catch(() => [])).filter(entry => entry.kind === 'file' && entry.name.endsWith('.json'))
-  const tasks = await Promise.all(files.map(async file => parseFlow(await $.fs.read(`${folder}/${file.name}`).catch(() => ''))))
-  return tasks.filter((one): one is FlowTask => one !== null)
+async function readFlow($: EngineInterface, shared: Shared, commonDir: string): Promise<FlowTask[]> {
+  return readRecords($, shared.flowFiles, `${commonDir}/${FLOW}`, name => name.endsWith('.json'), parseFlow)
 }
 
 /** The issue auto mode summary `issue_mode.py` keeps beside its state, in the folder every checkout shares. */
-async function readIssueMode($: EngineInterface): Promise<IssueMode | null> {
-  const gitDir = await gitDirOf($, '.')
-  const folder = commonDirOf(gitDir, await $.fs.read(`${gitDir}/commondir`).catch(() => null))
-  return parseIssueMode(await $.fs.read(`${folder}/${ISSUES}`).catch(() => ''))
+async function readIssueMode($: EngineInterface, commonDir: string): Promise<IssueMode | null> {
+  return parseIssueMode(await $.fs.read(`${commonDir}/${ISSUES}`).catch(() => ''))
 }
 
 /** The role, reviews, open decisions, task flow and issue mode, read from the repository's own files. */
-async function readFullOps($: EngineInterface): Promise<void> {
+async function readFullOps($: EngineInterface, shared: Shared): Promise<void> {
   const config = parseConfig(await $.fs.read(CONFIG).catch(() => ''))
   if (config === null) return
-  const role = checkoutRole(config, await readBranch($))
-  const [reviews, decisions, flow, issues] = await Promise.all([readReviews($), readDecisions($), readFlow($), readIssueMode($)])
-  await update($, fullopsAtom, before => ({ role, reviews, decisions, flow, issues, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
+  const { gitDir, commonDir } = await locate($, shared, '.')
+  // HEAD is read every time: a checkout can switch branch at any moment, and the role follows it.
+  const role = checkoutRole(config, branchOf(await $.fs.read(`${gitDir}/HEAD`).catch(() => '')))
+  const [reviews, decisions, flow, issues] = await Promise.all([readReviews($), readDecisions($, shared, commonDir), readFlow($, shared, commonDir), readIssueMode($, commonDir)])
+  const roles = Object.keys(config.roles)
+  await update($, fullopsAtom, before => ({ role, roles, reviews, decisions, flow, issues, keys: before?.keys ?? {}, queued: before?.queued ?? [] }))
 }
 
 /** Redraws the countdown and gives the "about to lapse" notice once per cache entry. */
@@ -433,6 +460,9 @@ export const register: Register = (on, options) => {
     isFirstPoll: true,
     lastPollAt: 0,
     isFullOps: false,
+    locations: {},
+    decisionFiles: new Map(),
+    flowFiles: new Map(),
     lastStatus: '',
     hasWarnedContext: false,
     warnedEntry: 0,
@@ -472,7 +502,7 @@ export const register: Register = (on, options) => {
     const startedAt = await $.clock.now()
     const result = yield* next(e)
     if (result.usage !== undefined && result.usage !== null) {
-      await record($, shared, { turnId: e.turnId, index: e.index, model: e.model, effort: e.effort }, startedAt, result.usage)
+      await record($, shared, { model: e.model, effort: e.effort }, startedAt, result.usage)
     }
     return result
   })
@@ -521,7 +551,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: FULLOPS_COMMAND }, async $ => {
-    await readFullOps($)
+    await readFullOps($, shared)
     await $.ui.open({ id: PANE, title: 'FullOps', columns: PANE_COLUMNS })
     return { text: 'FullOps pane opened. w, r and f switch tabs while it has focus.' }
   })
@@ -679,7 +709,7 @@ export const register: Register = (on, options) => {
           <Text dimColor>Each task's stage, kept by the coordinator's hook. Under it, its worker.</Text>
           {tasks.length === 0 && <Text>No task in the flow yet.</Text>}
           {tasks.map(one => {
-            const row = flowRow(one, fullops.reviews, workers ?? [], now)
+            const row = flowRow(one, fullops.reviews, workers ?? [], fullops.roles ?? [], now)
             return (
               <Box key={one.key} flexDirection="column" marginTop={1} flexShrink={0}>
                 <Box>

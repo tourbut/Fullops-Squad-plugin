@@ -7,14 +7,11 @@ const MIN = 60_000
 const policy = { warnMs: 60_000, compactAtTokens: 100_000 }
 
 const sample = (startedAt: number, read: number, write: number, fresh: number): Sample => ({
-  turnId: 't',
-  index: 0,
   model: 'claude-opus-5-5',
   startedAt,
   read,
   write,
   fresh,
-  output: 10,
 })
 
 const meter: Meter = {
