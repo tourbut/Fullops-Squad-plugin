@@ -64,11 +64,10 @@ class SearchIndex(unittest.TestCase):
         first = index.metadata(self.repo, self.base)
         api = next(item for item in first if item['path'] == 'api.py')
         self.assertEqual(api['definitions'][0]['signature'], 'fetch_user(user_id)')
-        self.assertEqual(api['definitions'][0]['line_start'], 2)
         doc = next(item for item in first if item['path'] == 'guide.md')
         self.assertEqual(doc['status'], 'approved')
         self.assertEqual(doc['statuses'], {'D05': 'review', 'D06': 'approved'})
-        self.assertEqual(doc['links'], ['api.py'])
+        self.assertEqual(doc['headings'], ['응답'])
         path = index.cache_path(self.repo, 'code')
         before = path.stat().st_mtime_ns
         with patch.object(index, 'prefix_blob', side_effect=AssertionError('unchanged blob parsed')):
@@ -105,6 +104,13 @@ class SearchIndex(unittest.TestCase):
         malformed['files_sha256'] = jev.digest(json.dumps(malformed['files'], sort_keys=True, ensure_ascii=False).encode())
         path.write_text(json.dumps(malformed), encoding='utf-8')
         self.assertEqual(index.metadata(self.repo, self.base), expected)
+        old = json.loads(path.read_text(encoding='utf-8'))  # 필드가 더 많던 이전 스키마 캐시는 재생성한다
+        old['schema_version'] = 1
+        old['files'] = [{**item, 'title': 'stale'} for item in old['files']]
+        old['files_sha256'] = jev.digest(json.dumps(old['files'], sort_keys=True, ensure_ascii=False).encode())
+        path.write_text(json.dumps(old), encoding='utf-8')
+        self.assertEqual(index.metadata(self.repo, self.base), expected)
+        self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['schema_version'], index.SCHEMA_VERSION)
         lock = path.parent / 'writer.lock'
         lock.touch()
         with patch.object(index, 'write_json', side_effect=AssertionError('write under another lock')):
@@ -156,11 +162,10 @@ class SearchIndex(unittest.TestCase):
         entries = index.metadata(self.repo, head)
         mapped = {x['path']: x for x in entries if x['searchable']}
         self.assertFalse({'.env', 'secret-body.py', 'image', 'link.py'} & set(mapped))
-        self.assertEqual(mapped['unsupported.rs']['parser'], 'header')
-        self.assertEqual(mapped['invalid.py']['parser'], 'header')
-        self.assertTrue(mapped['invalid.md']['partial'])
+        self.assertEqual(mapped['unsupported.rs']['definitions'], [])
+        self.assertEqual(mapped['invalid.py']['definitions'], [])
         self.assertIsNone(mapped['invalid.md']['statuses'])
-        self.assertTrue(mapped['large.py']['partial'])
+        self.assertIn('large.py', mapped)
         self.assertNotIn('sensitive-value', index.cache_path(self.repo, 'code').read_text(encoding='utf-8'))
 
     def test_head_move_during_parse_keeps_fixed_commit(self):
@@ -174,7 +179,8 @@ class SearchIndex(unittest.TestCase):
         with patch.object(index, 'prefix_blob', side_effect=move):
             entries = index.metadata(self.repo, 'HEAD')
         self.assertEqual({x['path'] for x in entries}, {'api.py', 'guide.md'})
-        self.assertEqual(json.loads(index.cache_path(self.repo, 'code').read_text(encoding='utf-8'))['head'], self.base)
+        cached = json.loads(index.cache_path(self.repo, 'code').read_text(encoding='utf-8'))['files']
+        self.assertEqual({x['path'] for x in cached}, {'api.py', 'guide.md'})
 
     def test_shared_state_bounded_payload_and_invalid_ids(self):
         captured = []
@@ -231,6 +237,24 @@ class SearchIndex(unittest.TestCase):
         object_path.write_bytes(saved)
         items = index.metadata(self.repo, self.base)
         self.assertTrue(next(x for x in items if x['path'] == 'api.py')['searchable'])
+
+    def test_one_batch_reader_keeps_prefix_limit_and_isolates_corrupt_blob(self):
+        self.write('a-large.md', '# Near\n' + 'x' * (3 * index.MAX_BLOB) + '\n# Far\n')
+        self.write('broken.py', '# Broken\n')
+        self.write('z-after.py', '# After corrupt blob\n')
+        head = self.commit()
+        sha = self.git('rev-parse', f'{head}:broken.py')
+        object_path = self.repo / '.git/objects' / sha[:2] / sha[2:]
+        saved = object_path.read_bytes()
+        object_path.chmod(0o600)
+        object_path.write_bytes(saved[:-6])  # 헤더는 읽히고 본문에서 git이 죽는 손상
+        with patch.object(index.subprocess, 'Popen', wraps=subprocess.Popen) as spawn:
+            items = {x['path']: x for x in index.metadata(self.repo, head)}
+        self.assertEqual(items['a-large.md']['headings'], ['Near'])  # 뒤따르는 응답과 어긋나지 않고 prefix만 읽는다
+        self.assertTrue(items['broken.py']['read_error'])
+        self.assertEqual(items['z-after.py']['summary'], 'After corrupt blob')
+        self.assertFalse(items['z-after.py'].get('read_error'))
+        self.assertLessEqual(sum('cat-file' in c.args[0] for c in spawn.call_args_list), 2)  # 손상 후 재시작 1회뿐
 
     def test_offline_all_entrypoints_and_fresh_packet(self):
         self.active()
