@@ -45,15 +45,15 @@ test_level: lite
 
 ## 해야 할 일과 파일 소유권
 
-- [ ] A lint 서브모듈 gitlink, Windows 자식 프로세스 timeout (`lint.py`, `tests/lint.py`)
-- [ ] B 리뷰 해시 autocrlf, Windows 리뷰 경로 시험 (`review.py`, `tests/review-check.py`)
-- [ ] C Jev 콜드 메타데이터, 캐시 필드 (`search_index.py`, `tests/search-index.py`)
-- [ ] D 이슈 모드 fencing·잠금·intent·조회 비용 (`issue_mode.py`, `issue_github.py`, `tests/issue-mode.py`)
-- [ ] E flow-gate patch·Write 내용 해석 (`flow_gate.py`, `tests/flow-gate.py`)
-- [ ] F setup 범위·스킬 경로·빈 폴더 (`setup.py`, setup 자산과 시험)
-- [ ] G fullops-meter 정리 (`mods/fullops-meter/`)
-- [ ] H 큰 시험 2건: `render.mjs` 파이프라인, 설치기 Codex 분기 (`tests/motion*.py`, `tests/npm-installer.cjs`)
-- [ ] 부모가 결과를 확인하고 dist를 다시 만들고 커밋한다.
+- [x] A lint 서브모듈 gitlink, Windows 자식 프로세스 timeout (`lint.py`, `tests/lint.py`)
+- [x] B 리뷰 해시 autocrlf, Windows 리뷰 경로 시험 (`review.py`, `tests/review-check.py`)
+- [x] C Jev 콜드 메타데이터, 캐시 필드 (`search_index.py`, `tests/search-index.py`)
+- [x] D 이슈 모드 fencing·잠금·intent·조회 비용 (`issue_mode.py`, `issue_github.py`, `tests/issue-mode.py`)
+- [x] E flow-gate patch·Write 내용 해석 (`flow_gate.py`, `tests/flow-gate.py`)
+- [x] F setup 범위·스킬 경로·빈 폴더 (`setup.py`, setup 자산과 시험)
+- [x] G fullops-meter 정리 (`mods/fullops-meter/`)
+- [x] H 큰 시험 2건: `render.mjs` 파이프라인, 설치기 Codex 분기 (`tests/motion*.py`, `tests/npm-installer.cjs`)
+- [x] 부모가 결과를 확인하고 dist를 다시 만들고 커밋한다.
 
 
 ## 완료 기준과 검증
@@ -79,7 +79,12 @@ UI 작업이 아니라 디자인 기준은 해당 없음이다.
 
 ## 완료 보고
 
-브랜치 / SHA / 변경 이유 / 검토 필요 / 검증한 것과 못 한 것 / 산출물·로그 링크 / 남은 일.
-항목당 1~2줄로 쓰고 상세는 `qa-reports/<과제 키>-test/report.md`(역할별로 나눈 키는 `<키>-DEV` 그대로) 링크로 대신한다. 브랜치와 완료 SHA는 여기에 적는다. worker_done 메시지에만 적지 않는다. worker_done 본문 첫 줄은 `[완료] <과제 키> | 브랜치 <이름> | SHA <브랜치 HEAD>` 한 줄로 쓰고 SHA는 하나만 적는다. `남은 일`에 다른 역할의 후속(예: tester 독립 QA)을 쓰면 `work.py finish`가 PLANS.md `## 완료 보고 후속 요청`에 등재한다.
-lint DEP-001이 있으면 파일별 의존성 변경 여부·필요성·표준 라이브러리 대안을 적는다. 의존성 변경이 없으면 그 근거를 적는다.
-처리는 `fullops-work`, 회신은 `fullops-orca` 스킬을 따른다.
+- 브랜치 / 구현 SHA: `fullops/dev` / 7ef2723
+- 변경 이유: PR #126에서 후속으로 남긴 8개 묶음을 처리한다(결정 D014).
+- 판단: Workflow로 파일 소유권을 나눠 병렬 구현했다. 부모가 `deps.py` 패치, 시험 등록, 문서, dist를 맡고 결과를 대조했다. 캐시 status·statuses는 결정 D016으로 제거했다.
+- 검토 필요: `review.py need`는 ask다(결정 D015로 독립 리뷰). 1차는 수락 불가였고 7ef2723에서 고쳤다.
+- 검증한 것: `npm test` 통과, 실제 Orca 1.4.251 조회 확인, Linux 시험. 상세는 [report.md](../docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md)에 있다.
+- 못 한 것: 실제 GitHub·이슈 자동 모드 전체 흐름, macOS, 실제 agy 세션.
+- DEP-001: `package.json`은 test 스크립트만 바뀌었다. 의존성 변경은 없다.
+- SIZE-002: 8개 묶음을 한 과제에서 처리해 상한을 넘었다. 그룹별 커밋으로 나눴다.
+- 남은 일: 재리뷰, main 병합 승인. 리뷰 후속은 PLANS.md에 있다.
