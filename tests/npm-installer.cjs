@@ -231,3 +231,156 @@ test('one target preflight failure leaves the other target able to finish', t =>
   assert.equal(installer.main(['update', '--hosts', 'claude,grok'], execute), 1);
   assert.ok(grok.calls.some(c => c.args.includes('--check')));
 });
+
+// Runs the real CLI and launcher against fakes on PATH. Fake python3 keeps deps.py from running; every home is under the temp root.
+const FAKE_CLI = String.raw`'use strict';
+const fs = require('node:fs'), path = require('node:path');
+const [cli, ...args] = process.argv.slice(2);
+const root = process.env.FAKE_ROOT, home = process.env.CODEX_HOME, command = args.join(' ');
+fs.appendFileSync(path.join(root, 'calls.log'), JSON.stringify({ cli, args, home }) + '\n');
+if (cli === 'python3' || command === '--version') process.exit(0);
+const file = path.join(home, 'fake-state.json');
+const state = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { marketplaces: {} };
+const marketplace = path.join(root, 'marketplace');
+const out = value => console.log(JSON.stringify(value));
+if (command === 'plugin marketplace list --json') out({ marketplaces: Object.entries(state.marketplaces).map(([name, source]) =>
+  ({ name, root: marketplace, marketplaceSource: { sourceType: 'git', source } })) });
+else if (command === 'plugin list --json --marketplace fullops-squad') out({ available: [], installed: !state.installed ? [] :
+  [{ pluginId: 'fullops-squad@fullops-squad', name: 'fullops-squad', marketplaceName: 'fullops-squad', version: state.installed }] });
+else if (args[1] === 'marketplace' && args[2] === 'add') state.marketplaces[args[3].includes('ponytail') ? 'ponytail' : 'fullops-squad'] = args[3];
+else if (command === 'plugin add fullops-squad@fullops-squad') {
+  const source = path.join(marketplace, 'dist/native/fullops-squad');
+  state.installed = JSON.parse(fs.readFileSync(path.join(source, 'plugin.json'), 'utf8')).version;
+  fs.cpSync(source, path.join(home, 'plugins/cache/fullops-squad/fullops-squad', state.installed), { recursive: true });
+} else if (command !== 'plugin marketplace upgrade fullops-squad') { console.error('unexpected: ' + command); process.exit(3); }
+fs.mkdirSync(home, { recursive: true });
+fs.writeFileSync(file, JSON.stringify(state));
+`;
+
+function writePackage(directory, version) {
+  fs.mkdirSync(path.join(directory, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(directory, 'scripts/deps.py'), '# accepts --no-refresh');
+  fs.writeFileSync(path.join(directory, 'scripts/update.py'), '');
+  fs.writeFileSync(path.join(directory, 'dependencies.json'), '{}');
+  fs.writeFileSync(path.join(directory, 'plugin.json'), JSON.stringify({ version }));
+}
+
+function codexHost(t, target = '1.2.0') {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'fullops-codex-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const bin = path.join(root, 'bin');
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, 'fake.cjs'), FAKE_CLI);
+  for (const cli of ['codex', 'python3']) {
+    fs.writeFileSync(path.join(bin, `${cli}.ps1`), `& node "$PSScriptRoot/fake.cjs" ${cli} @args; exit $LASTEXITCODE`);
+    fs.writeFileSync(path.join(bin, cli), `#!/bin/sh\nexec node "$(dirname "$0")/fake.cjs" ${cli} "$@"\n`, { mode: 0o755 });
+  }
+  const marketplace = path.join(root, 'marketplace');
+  fs.mkdirSync(path.join(marketplace, '.agents/plugins'), { recursive: true });
+  fs.writeFileSync(path.join(marketplace, '.agents/plugins/marketplace.json'), JSON.stringify({ plugins: [
+    { name: 'fullops-squad', source: { source: 'local', path: './dist/native/fullops-squad' } }] }));
+  writePackage(path.join(marketplace, 'dist/native/fullops-squad'), target);
+  const home = path.join(root, 'home');
+  const codexHome = path.join(home, '.codex');
+  const run = (args, env = {}) => {
+    fs.rmSync(path.join(root, 'calls.log'), { force: true });
+    const result = spawnSync(process.execPath, [path.join(__dirname, '../bin/fullops-squad.cjs'), ...args], {
+      encoding: 'utf8', windowsHide: true,
+      env: { ...process.env, PATH: bin + path.delimiter + process.env.PATH, HOME: home, USERPROFILE: home,
+        APPDATA: path.join(root, 'appdata'), CODEX_HOME: codexHome, FAKE_ROOT: root, ...env },
+    });
+    const log = path.join(root, 'calls.log');
+    const calls = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').map(line => JSON.parse(line)) : [];
+    return { ...result, calls, commands: calls.map(c => [c.cli, ...c.args].join(' ')) };
+  };
+  // A home that already holds this FullOps version from the given marketplace source.
+  const seed = (directory, installed, source = 'https://github.com/tourbut/Fullops-Squad-plugin.git') => {
+    if (installed) writePackage(path.join(directory, 'plugins/cache/fullops-squad/fullops-squad', installed), installed);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(path.join(directory, 'fake-state.json'), JSON.stringify({ installed,
+      marketplaces: { ponytail: 'https://github.com/DietrichGebert/ponytail.git', 'fullops-squad': source } }));
+  };
+  return { root, codexHome, run, seed };
+}
+
+const isMutation = command => /marketplace add|marketplace upgrade|plugin add|deps\.py|update\.py/.test(command);
+
+test('Codex install registers, installs and verifies in every home through the real launcher', t => {
+  const { root, codexHome, run } = codexHost(t);
+  const custom = path.join(root, 'custom home');
+  const result = run(['install', '--hosts', 'codex'], { CODEX_HOME: custom });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const homes = [custom, codexHome];
+  assert.deepEqual([...new Set(result.calls.map(c => c.home))].sort(), [...homes].sort(), 'no call may reach a home outside the temp root');
+  homes.forEach((home, index) => {
+    const own = result.calls.filter(c => c.home === home && c.args[0] !== '--version' && c.args[0] !== '-c');
+    const cache = path.join(home, 'plugins/cache/fullops-squad/fullops-squad/1.2.0');
+    const deps = path.join(cache, 'scripts/deps.py');
+    assert.deepEqual(own.filter(c => isMutation([c.cli, ...c.args].join(' '))).map(c => [c.cli, ...c.args].join(' ')), [
+      'codex plugin marketplace add DietrichGebert/ponytail',
+      'codex plugin marketplace add tourbut/Fullops-Squad-plugin',
+      'codex plugin marketplace upgrade fullops-squad',
+      'codex plugin add fullops-squad@fullops-squad',
+      // Shared tools refresh once per run, so only the first home omits --no-refresh.
+      `python3 ${deps} --host codex${index ? ' --no-refresh' : ''}`,
+      `python3 ${deps} --check --host codex`,
+    ]);
+    assert.ok(result.stdout.includes(`codex (${home}): 1.2.0`), result.stdout);
+  });
+});
+
+test('Codex update re-adds the plugin, since it has no plugin update, and forwards the prior version', t => {
+  const { root, codexHome, run, seed } = codexHost(t);
+  seed(codexHome, '1.1.0');
+  const repo = path.join(root, 'service repo');
+  const result = run(['update', '--hosts', 'codex', '--repo', repo]);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(result.commands.filter(isMutation)[0], 'codex plugin marketplace upgrade fullops-squad');
+  assert.ok(result.commands.includes('codex plugin add fullops-squad@fullops-squad'));
+  assert.ok(!result.commands.some(c => c.includes('plugin update') || c.includes('marketplace add')));
+  const plan = result.calls.find(c => c.args[0].endsWith('update.py'));
+  assert.equal(plan.args[0], path.join(codexHome, 'plugins/cache/fullops-squad/fullops-squad/1.2.0/scripts/update.py'));
+  assert.deepEqual(plan.args.slice(1), ['--repo', repo, '--from', '1.1.0']);
+  assert.match(result.stdout, /1\.2\.0 변경됨/);
+});
+
+test('Codex dry-run and check never mutate; check needs an installed plugin', t => {
+  const { codexHome, run, seed } = codexHost(t);
+  const dry = run(['update', '--hosts', 'codex', '--dry-run']);
+  assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+  assert.ok(dry.stdout.includes(JSON.stringify(['codex', 'plugin', 'add', 'fullops-squad@fullops-squad'])));
+  assert.equal(dry.commands.filter(isMutation).length, 0);
+  const absent = run(['check', '--hosts', 'codex']);
+  assert.equal(absent.status, 1);
+  assert.match(absent.stdout, /설치되지 않았습니다/);
+  seed(codexHome, '1.1.0');
+  const checked = run(['check', '--hosts', 'codex']);
+  assert.equal(checked.status, 0, checked.stdout + checked.stderr);
+  assert.deepEqual(checked.commands.filter(isMutation), [
+    `python3 ${path.join(codexHome, 'plugins/cache/fullops-squad/fullops-squad/1.1.0/scripts/deps.py')} --check --host codex`]);
+});
+
+test('Codex refuses a conflicting source and a downgrade; a corrupt cache repairs through plugin add', t => {
+  const conflict = codexHost(t);
+  conflict.seed(conflict.codexHome, '1.1.0', 'https://github.com/someone/else.git');
+  const blocked = conflict.run(['update', '--hosts', 'codex']);
+  assert.equal(blocked.status, 1);
+  assert.match(blocked.stderr, /fullops-squad 마켓플레이스 출처 충돌/);
+  assert.equal(blocked.commands.filter(isMutation).length, 0);
+
+  const older = codexHost(t, '1.0.0');
+  older.seed(older.codexHome, '1.1.0');
+  const downgrade = older.run(['update', '--hosts', 'codex']);
+  assert.equal(downgrade.status, 1);
+  assert.match(downgrade.stdout, /downgrade를 거부/);
+  assert.ok(!downgrade.commands.some(c => c.includes('plugin add') || c.includes('deps.py')));
+
+  const corrupt = codexHost(t);
+  corrupt.seed(corrupt.codexHome, '1.1.0');
+  fs.writeFileSync(path.join(corrupt.codexHome, 'plugins/cache/fullops-squad/fullops-squad/1.1.0/dependencies.json'), '{broken');
+  const repaired = corrupt.run(['update', '--hosts', 'codex']);
+  assert.equal(repaired.status, 0, repaired.stdout + repaired.stderr);
+  assert.match(repaired.stdout, /1\.2\.0 복구됨/);
+  const order = ['codex plugin add fullops-squad@fullops-squad', 'deps.py'].map(text => repaired.commands.findIndex(c => c.includes(text)));
+  assert.ok(order[0] >= 0 && order[1] > order[0]);
+});

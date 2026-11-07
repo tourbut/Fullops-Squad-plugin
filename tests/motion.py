@@ -27,6 +27,15 @@ def rejected(spec, root):
     raise AssertionError('invalid spec accepted')
 
 
+def chirp(path):
+    samples = [int(8000 * math.sin(2 * math.pi * (300 * i / 8000 + 200 * (i / 8000) ** 2)))
+               for i in range(8000)]
+    with wave.open(str(path), 'wb') as audio:
+        audio.setparams((1, 2, 8000, 0, 'NONE', 'not compressed'))
+        audio.writeframes(struct.pack(f'<{len(samples)}h', *samples))
+    return path
+
+
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory).resolve()
     (root / 'voice.wav').write_bytes(b'local asset')
@@ -117,13 +126,8 @@ with tempfile.TemporaryDirectory() as directory:
 
     # Optional real codec regression; the standard suite has no video-tool dependency.
     if shutil.which('ffmpeg') and shutil.which('ffprobe'):
-        pcm = root / 'source.wav'
-        samples = [int(8000 * math.sin(2 * math.pi * (300 * i / 8000 + 200 * (i / 8000) ** 2)))
-                   for i in range(8000)]
-        with wave.open(str(pcm), 'wb') as audio:
-            audio.setparams((1, 2, 8000, 0, 'NONE', 'not compressed'))
-            audio.writeframes(struct.pack(f'<{len(samples)}h', *samples))
-        small = {**spec, 'width': 64, 'height': 64, 'fps': 10, 'duration': 2,
+        pcm = chirp(root / 'source.wav')
+        small ={**spec, 'width': 64, 'height': 64, 'fps': 10, 'duration': 2,
                  'assets': ['source.wav'], 'audio_clips': [{'path': 'source.wav', 'start': 0.5, 'duration': 1}],
                  'texts': [], 'text_policy': [{'start': 0, 'end': 2, 'allow': []}]}
         small_path = root / 'small.json'
@@ -190,7 +194,94 @@ if shutil.which('node'):
                  ['index.html', '--out', 'o', '--subframe', '4']):
         done = subprocess.run(['node', str(SKILL / 'render.mjs'), *args], capture_output=True, encoding='utf-8', errors='replace')
         assert done.returncode == 2 and 'render.mjs:' in done.stderr, (args, done.stderr)
-templates = (SKILL / 'templates.md').read_text(encoding='utf-8')
+
+# Optional real render pipeline. render.mjs resolves Playwright from its cwd, so run from the repo: its node_modules or NODE_PATH.
+LAUNCH = "let c; for (const n of ['playwright', 'playwright-core']) { try { ({ chromium: c } = require(n)); break } catch {} } c.launch().then(b => b.close())"
+missing = [tool for tool in ('node', 'ffmpeg', 'ffprobe') if not shutil.which(tool)]
+if not missing and subprocess.run(['node', '-e', LAUNCH], cwd=ROOT, capture_output=True, timeout=120).returncode:
+    missing = ['launchable Playwright in the repo node_modules or NODE_PATH']
+if missing:
+    print(f'not_run: optional render.mjs pipeline ({", ".join(missing)} unavailable)')
+else:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory).resolve()
+        page = root / 'index.html'
+        page.write_text("<!doctype html><body style='margin:0'><script>window.seek = t => "
+                        "{ document.body.style.background = t < 0.42 ? 'rgb(255,0,0)' : 'rgb(0,0,255)' }</script>", encoding='utf-8')
+        size = ['--width', '64', '--height', '36']
+        video = [*size, '--fps', '10', '--duration', '1']
+
+        def render(*args, html=page):
+            return subprocess.run(['node', str(SKILL / 'render.mjs'), str(html), *map(str, args)], cwd=ROOT, timeout=300,
+                                  capture_output=True, encoding='utf-8', errors='replace')
+
+        def colors(media):
+            raw = subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-i', str(media), '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
+                                 capture_output=True, check=True).stdout
+            pixels = [raw[i:i + 3] for i in range(0, len(raw), 64 * 36 * 3)]
+            return ''.join('R' if p[0] > 200 and p[2] < 60 else 'B' if p[2] > 200 and p[0] < 60 else 'M' for p in pixels)
+
+        def check(media, **change):
+            plan = {**spec, 'width': 64, 'height': 36, 'fps': 10, 'duration': 1, 'audio': 'none', 'assets': [], 'audio_clips': [],
+                    'texts': [], 'text_policy': [{'start': 0, 'end': 1, 'allow': []}], **change}
+            plan_path, report_path = root / f'{media.stem}.json', root / f'{media.stem}-qa.json'
+            plan_path.write_text(json.dumps(plan), encoding='utf-8')
+            checked = subprocess.run([sys.executable, str(ROOT / 'tests/motion_check.py'), '--spec', str(plan_path),
+                                      '--media', str(media), '--out', str(report_path)], capture_output=True, encoding='utf-8', errors='replace')
+            assert checked.returncode == 0, report_path.read_text(encoding='utf-8')
+
+        # Stills land at the requested size, one per seek time.
+        done = render('--stills', '0,0.75', '--out', root / 'stills', *size)
+        assert done.returncode == 0, done.stderr
+        for name, color in (('t0.000.png', 'R'), ('t0.750.png', 'B')):
+            assert struct.unpack('>II', (root / 'stills' / name).read_bytes()[16:24]) == (64, 36)
+            assert colors(root / 'stills' / name) == color
+
+        # Every frame is a pure function of t, and the encode meets the delivery spec motion_check verifies.
+        plain = root / 'renders/v01/plain.mp4'
+        done = render('--out', plain, *video)
+        assert done.returncode == 0, done.stderr
+        assert json.loads(done.stdout)['frames'] == 10
+        assert colors(plain) == 'RRRRRBBBBB', colors(plain)
+        check(plain)
+
+        # Subframes keep the frame count; only the frame whose group straddles the cut (t=0.40, 0.45) mixes.
+        blurred = root / 'blurred.mp4'
+        done = render('--out', blurred, *video, '--subframes', 2)
+        assert done.returncode == 0, done.stderr
+        assert colors(blurred) == 'RRRRMBBBBB', colors(blurred)
+        check(blurred)
+
+        # --audio muxes the mix without shifting it.
+        chirp(root / 'mix.wav')
+        mixed = root / 'mixed.mp4'
+        done = render('--out', mixed, *video, '--audio', root / 'mix.wav')
+        assert done.returncode == 0, done.stderr
+        check(mixed, audio='required', assets=['mix.wav'], audio_clips=[{'path': 'mix.wav', 'start': 0, 'duration': 1}])
+
+        # An existing render is never overwritten.
+        previous = plain.read_bytes()
+        done = render('--out', plain, *video)
+        assert done.returncode == 2 and 'exists' in done.stderr, done.stderr
+        assert plain.read_bytes() == previous
+
+        # Failures exit 1 with render.mjs's own message, not a crash that skips browser.close(), and leave no file.
+        # The long --duration keeps frames coming after ffmpeg has already died.
+        broken = root / 'broken.html'
+        broken.write_text("<!doctype html><script>window.seek = t => { if (t >= 0.5) throw new Error('boom') }</script>", encoding='utf-8')
+        blank = root / 'blank.html'
+        blank.write_text('<!doctype html>', encoding='utf-8')
+        for name, html, extra, message in (('no-seek', blank, [], 'no window.seek'), ('throws', broken, [], 'boom'),
+                                           ('no-ffmpeg', page, ['--ffmpeg', root / 'missing-ffmpeg'], 'missing-ffmpeg'),
+                                           ('dead-ffmpeg', page, ['--crf', 'bad', '--duration', 20], 'ffmpeg exited')):
+            out = root / f'{name}.mp4'
+            done = render('--out', out, *video, *extra, html=html)
+            assert done.returncode == 1 and 'render.mjs: ' in done.stderr and message in done.stderr, (name, done.stderr)
+            assert 'node:internal' not in done.stderr, (name, done.stderr)
+            assert not out.exists(), name
+    print('PASS: real render.mjs stills, CFR video, subframes, audio mux, no-overwrite and failure exits')
+
+templates =(SKILL / 'templates.md').read_text(encoding='utf-8')
 assert templates.count('](https://x.com/') == 17
 for phrase in ('go all out', 'world-class motion designer', 'Ask me for', 'ピクセル', '拆解万物', 'Before you build'):
     assert phrase not in templates, phrase
