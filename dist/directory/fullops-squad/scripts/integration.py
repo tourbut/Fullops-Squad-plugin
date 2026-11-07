@@ -123,10 +123,11 @@ def record(root, messages):
         if notes:
             data['notes'] = notes
         try:
-            with path.open('x', encoding='utf-8') as stream:
-                json.dump(data, stream, ensure_ascii=False)
-        except FileExistsError:
-            saved = json.loads(path.read_text(encoding='utf-8'))
+            try:
+                saved = json.loads(path.read_text(encoding='utf-8'))
+            except (FileNotFoundError, ValueError):  # 없는 기록, 이전 버전이 쓰다 남긴 빈 파일
+                write_json(path, data)  # 동시 실행해도 읽는 쪽이 쓰는 중인 파일을 보지 않는다
+                continue
             changed = False
             for field in ('key', 'sha'):
                 if not saved.get(field) and data.get(field):
@@ -134,6 +135,9 @@ def record(root, messages):
                     changed = True
             if changed:
                 write_json(path, saved)
+        except PermissionError:  # Windows: 다른 프로세스가 같은 메시지의 기록을 쓰는 중이다. 파일이 있으면 그 결과를 쓴다
+            if not path.is_file():
+                raise
 
 
 def tip(root, hashes):
@@ -197,7 +201,8 @@ def take_notes(root):
             continue
         if item.get('notes') and not item.get('notified'):
             found.append(f"완료 보고 {item.get('key') or item.get('message')}: {'; '.join(item['notes'])}. "
-                         'fullops-orca의 worker_done 한 줄 형식과 lint 통과 SHA를 병합 전에 worker에게 확인하세요.')
+                         'fullops-orca의 worker_done 한 줄 형식과 lint 통과 SHA를 병합 전에 worker에게 확인하세요.'
+                         + ('' if item.get('sha') else f" 확인한 SHA는 `integration.py set-sha --message {item.get('message')} --sha <SHA>`로 기록합니다."))
             write_json(path, {**item, 'notified': True})
     return found
 
@@ -343,7 +348,8 @@ def baseline_denial(root, command):
             from jev_packet import check
             check(worker.resolve(), route['role'], dispatch_key(command), required=True)
     except (OSError, ValueError, KeyError, TypeError) as error:
-        return f'탐색 패킷/배정 역할 검사 실패: {error}'
+        return (f'탐색 패킷/배정 역할 검사 실패: {error}. 이 검사는 명령 실행 전 파일을 봅니다. '
+                '인박스 작성과 worker-start를 한 명령으로 묶었다면 인박스를 먼저 쓰고 worker-start를 다음 명령으로 실행하세요.')
     base, published = references(root, settings)
     sources = [base]
     if published:
@@ -357,8 +363,10 @@ def baseline_denial(root, command):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', default='.')
-    parser.add_argument('action', choices=['status', 'hold', 'resume'])
+    parser.add_argument('action', choices=['status', 'hold', 'resume', 'set-sha'])
     parser.add_argument('--message')
+    parser.add_argument('--sha', help='set-sha: 본문에서 읽지 못한 완료 SHA')
+    parser.add_argument('--key', help='set-sha: 본문에서 읽지 못한 과제 키')
     parser.add_argument('--reason')
     parser.add_argument('--owner')
     parser.add_argument('--resume')
@@ -384,6 +392,13 @@ def main():
             if not all(value and value.strip() for value in (args.reason, args.owner, args.resume)):
                 parser.error('hold에는 --reason, --owner, --resume이 필요합니다')
             item['hold'] = {'reason': args.reason, 'owner': args.owner, 'resume': args.resume}
+        elif args.action == 'set-sha':
+            try:
+                item['sha'] = git(root, 'rev-parse', '--verify', f'{args.sha}^{{commit}}')
+            except subprocess.CalledProcessError:
+                parser.error(f'이 저장소의 커밋이 아닙니다: {args.sha}')
+            if args.key:
+                item['key'] = args.key
         else:
             item.pop('hold', None)
         write_json(path, item)
