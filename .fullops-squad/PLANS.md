@@ -27,6 +27,7 @@ summary: 현재 작업
 | FLOW-STOP-WAIT | Claude Code coordinator가 Stop 훅에 포그라운드 대기로 묶이지 않게 수정 | dev(직접) | 구현·lint 완료(509b9bd, 기준 0f918bb). review need: skip(코드 2개 파일 52줄). lint ERROR 0, WARNING 2(SIZE-001). 보류: main 병합과 #112 종료, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/FLOW-STOP-WAIT-test/report.md` |
 | LINT-BATCH-READ | lint 파일 읽기를 `git cat-file --batch` 1회로 변경 | dev(직접) | 구현·lint 완료(241b7c4, 기준 0f918bb). 읽기 46.50초 → 1.69초. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/LINT-BATCH-READ-test/report.md` |
 | HOOK-SLIM | 저장소 위치 조회 통합, 이슈 상태 없을 때 import 생략, Stop `gh` 5분 재사용 | dev(직접) | 구현·lint 완료(d029a21, 기준 0f918bb). 도구 hook 약 1,000ms → 약 530ms, git 13~14개 → 5개, Stop 약 1,700ms → 약 730ms. `npm test` 통과. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/HOOK-SLIM-test/report.md` |
+| ISSUE112-SIDE | `record` 원자적 쓰기, `integration.py set-sha`, 배정 검사 안내 | dev(직접) | 구현·lint 완료(505d579, 기준 0f918bb). 인박스 검사 시점은 PreToolUse 한계로 안내만 고침. review need: skip(누적 코드 319줄, 기준 400줄). lint ERROR 0, WARNING 5(SIZE-001). 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/ISSUE112-SIDE-test/report.md` |
 
 ## 대기 목록
 
@@ -37,7 +38,7 @@ summary: 현재 작업
 | 1 | FLOW-STOP-WAIT | Claude Code coordinator가 Stop 훅에 포그라운드 대기로 묶이지 않게 수정 | 완료(위 표) | #112 |
 | 2 | LINT-BATCH-READ | `lint.py`의 `blob()`을 `git cat-file --batch` 일괄 읽기로 변경. 측정 49.2초 → 0.9초 | 완료(위 표) | #132 선행 개선 |
 | 3 | HOOK-SLIM | hook 전체 시간을 먼저 재고, 관계없는 호출 조기 종료·import 지연·git 호출 통합 | 완료(위 표) | #132 선행 개선 |
-| 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 진행 중(`handovers/to_dev.md`) | #112 "함께 본 작은 문제" |
+| 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
 | 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 4번 완료. 묶음이 크면 항목별 과제로 나눈다 | PR #126 "후속으로 남긴 것" |
 | 6 | ROADMAP-82 | #82 체크 상태 갱신, P2–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 5번 완료. 단계별 사용자 확인 | #82 |
 | 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
@@ -53,4 +54,4 @@ summary: 현재 작업
 ### 사용자 결정 대기
 
 - `core.longpaths` 켜기(`FULLOPS-UPDATE-1.16.1.md` 보류 항목)
-- FLOW-STOP-WAIT·LINT-BATCH-READ·HOOK-SLIM의 main 병합과 #112 종료
+- FLOW-STOP-WAIT·LINT-BATCH-READ·HOOK-SLIM·ISSUE112-SIDE의 main 병합과 #112 종료
