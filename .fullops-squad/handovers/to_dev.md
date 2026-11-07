@@ -1,0 +1,85 @@
+---
+title: "CLEANUP-FOLLOWUPS — PR #126 후속 8개 항목을 파일 소유권을 나눠 병렬로 처리"
+status: draft
+updated: 2026-11-07
+owner: dev
+tasks: [CLEANUP-FOLLOWUPS]
+summary: "PR #126 후속 8개 항목을 파일 소유권을 나눠 병렬로 처리"
+attempt: 9cc18decacfd44e09e22e22c9eb7c95b
+base: 0cea3b8b990c2f40fc549a36772b1b6381a007f5
+subagent_level: off
+test_level: lite
+---
+
+# CLEANUP-FOLLOWUPS — PR #126 후속 8개 항목을 파일 소유권을 나눠 병렬로 처리
+
+현재 과제는 이 역할 인박스에서 관리한다. 같은 과제의 후속은 본문에 반영하고 다른 과제는 PLANS.md에 대기시킨다. 완료하면 완료 보고 전문을 채우고 work.py finish로 지시서·결과를 로그에 보존한다.
+
+- 작성일: 2026-11-07
+- From / To: 대기 목록(PLANS.md) / dev 주 담당 세션
+- 상태: running
+- 테스트 레벨 / 하위 에이전트 레벨: fullops.json 선택값과 같은 값
+- 승인된 범위 / 추가 승인이 필요한 행위: `fullops/dev`의 구현·테스트·커밋, 사용자가 켠 Workflow / push, PR, main 병합, 이슈 종료, 릴리스, `core.longpaths` 변경, 독립 리뷰 생략
+- 상위 의도: 없음(묶음 작업이 아니다)
+- 담당 repo id / 워크트리 절대경로 / 브랜치: 53ea77e9-1236-434b-bae0-d909cea13d73 / C:/Users/shin/orca/workspaces/Fullops-Squad-plugin/dev / fullops/dev
+- 병합 책임자 / 기본 브랜치: 사용자 지시를 받은 dev 주 담당 / main
+- 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id: 없음. dev 직접 작업이라 사용자에게 직접 보고한다
+
+`상태`는 과제 상태다. front matter `status`는 문서 상태(draft/review/approved, lint DOC-003 어휘)라 서로 다른 값이 맞다.
+
+## 현재 상황과 확인 근거
+
+- PR #126 "후속으로 남긴 것" 8개 묶음을 사용자 결정 D014(이슈 모드까지 전부)로 진행한다.
+- 사용자가 2026-11-07 울트라코드 병렬 작업을 켰다. `rules/delegation.md`의 사용자가 켠 Workflow 예외를 따른다.
+- 기준은 main 0cea3b8이다.
+
+## 적용 기준과 예외
+
+공통 기준은 `.fullops-squad/rules/common/README.md` 및 연결된 코딩·테스트·보안 규칙이다.
+기준 커밋은 0f918bb다. 예외 없음. 사용자 방향(#132): npm 의존을 새로 더하지 않는다.
+
+## 먼저 읽을 문서
+
+- PR #126 본문의 `후속으로 남긴 것`
+- `.fullops-squad/rules/delegation.md`
+
+## 해야 할 일과 파일 소유권
+
+- [ ] A lint 서브모듈 gitlink, Windows 자식 프로세스 timeout (`lint.py`, `tests/lint.py`)
+- [ ] B 리뷰 해시 autocrlf, Windows 리뷰 경로 시험 (`review.py`, `tests/review-check.py`)
+- [ ] C Jev 콜드 메타데이터, 캐시 필드 (`search_index.py`, `tests/search-index.py`)
+- [ ] D 이슈 모드 fencing·잠금·intent·조회 비용 (`issue_mode.py`, `issue_github.py`, `tests/issue-mode.py`)
+- [ ] E flow-gate patch·Write 내용 해석 (`flow_gate.py`, `tests/flow-gate.py`)
+- [ ] F setup 범위·스킬 경로·빈 폴더 (`setup.py`, setup 자산과 시험)
+- [ ] G fullops-meter 정리 (`mods/fullops-meter/`)
+- [ ] H 큰 시험 2건: `render.mjs` 파이프라인, 설치기 Codex 분기 (`tests/motion*.py`, `tests/npm-installer.cjs`)
+- [ ] 부모가 결과를 확인하고 dist를 다시 만들고 커밋한다.
+
+
+## 완료 기준과 검증
+
+- 각 항목은 고쳐졌거나, 고치지 않은 이유와 필요한 결정을 기록한다.
+- 하위 작업은 커밋과 브랜치 변경을 하지 않는다. 부모가 변경 파일과 시험 결과를 확인한다.
+- `review.py need`가 `ask`이면 사용자에게 묻는다.
+- 증명 방법: 항목별 시험, `npm test` 통과, `lint.py --from 0cea3b8` ERROR 0.
+
+UI 작업이 아니라 디자인 기준은 해당 없음이다.
+
+## 갱신할 산출물
+
+없음.
+
+## 기대 산출물
+
+항목별 수정과 시험, 재생성한 dist, `docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md`.
+
+## 제약·협업·후속
+
+하위 지시에 `Purpose: implementation`, 과제 키, 파일 소유권, 완료 조건을 적는다. 커밋·push·PR·병합·이슈 종료·릴리스·`core.longpaths` 변경은 하위 작업에 맡기지 않는다. 의존성을 새로 더하지 않는다.
+
+## 완료 보고
+
+브랜치 / SHA / 변경 이유 / 검토 필요 / 검증한 것과 못 한 것 / 산출물·로그 링크 / 남은 일.
+항목당 1~2줄로 쓰고 상세는 `qa-reports/<과제 키>-test/report.md`(역할별로 나눈 키는 `<키>-DEV` 그대로) 링크로 대신한다. 브랜치와 완료 SHA는 여기에 적는다. worker_done 메시지에만 적지 않는다. worker_done 본문 첫 줄은 `[완료] <과제 키> | 브랜치 <이름> | SHA <브랜치 HEAD>` 한 줄로 쓰고 SHA는 하나만 적는다. `남은 일`에 다른 역할의 후속(예: tester 독립 QA)을 쓰면 `work.py finish`가 PLANS.md `## 완료 보고 후속 요청`에 등재한다.
+lint DEP-001이 있으면 파일별 의존성 변경 여부·필요성·표준 라이브러리 대안을 적는다. 의존성 변경이 없으면 그 근거를 적는다.
+처리는 `fullops-work`, 회신은 `fullops-orca` 스킬을 따른다.
