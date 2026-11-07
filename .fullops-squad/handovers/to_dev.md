@@ -20,7 +20,7 @@ test_level: lite
 - 상태: ready
 - 테스트 레벨 / 하위 에이전트 레벨: fullops.json 선택값과 같은 값
 - 승인된 범위 / 추가 승인이 필요한 행위: `fullops/dev`의 구현·테스트·커밋 / push, PR, main 병합, 이슈 종료, 릴리스, `npm ci`, `core.longpaths` 변경, 독립 리뷰 생략
-- 상위 의도: `docs/planning/intents/<묶음 키>.md` — 맡는 성공 기준 ID(묶음 작업이 아니면 없음)
+- 상위 의도: 없음(묶음 작업이 아니다)
 - 담당 repo id / 워크트리 절대경로 / 브랜치: 53ea77e9-1236-434b-bae0-d909cea13d73 / C:/Users/shin/orca/workspaces/Fullops-Squad-plugin/dev / fullops/dev
 - 병합 책임자 / 기본 브랜치: 사용자 지시를 받은 dev 주 담당 / main
 - 복귀 repo id / 워크트리 / 터미널 핸들 / run id / task id / dispatch id: 없음. dev 직접 작업이라 사용자에게 직접 보고한다
