@@ -556,6 +556,73 @@ def staged_commands():
     print('PASS: lint stages stop after a failure and run test commands in parallel')
 
 
+def timeout_ends_tree():
+    """timeout은 손자까지 끝내고 바로 돌아온다. 자식이 먼저 끝나 손자만 출력 파이프를 쥔 경우도 같다"""
+    import time
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-tree-') as tmp:
+        repo = Path(tmp)
+        grandchild = 'import os, pathlib, sys, time; pathlib.Path(sys.argv[1]).write_text(str(os.getpid())); time.sleep(30)'
+        for name, after in (('waits', 'child.wait()'), ('orphans', 'pass')):
+            pid_file = repo / f'{name}.pid'
+            spawn = (f'import subprocess, sys; child = subprocess.Popen([sys.executable, "-c", {grandchild!r}, {str(pid_file)!r}]); '
+                     f'print("started", flush=True); {after}')
+            entry = checks.run_command(repo, {'name': name, 'run': [PY, '-c', spawn]}, 5)
+            assert entry['status'] == 'timeout' and entry['exit_code'] is None, entry
+            assert entry['seconds'] < 20, entry  # 손자의 30초를 기다리면 이 상한을 넘는다
+            assert 'started' in entry['output_tail'], entry
+            deadline = time.monotonic() + 5
+            while not checks.stale(pid_file) and time.monotonic() < deadline:
+                time.sleep(0.1)
+            assert checks.stale(pid_file), f'{name}: 손자가 살아 있습니다'
+    print('PASS: lint timeout ends the whole process tree')
+
+
+def gitlink_diff():
+    """서브모듈 gitlink는 내용 없는 항목으로 넘어가고 같은 diff의 나머지는 평소대로 검사한다"""
+    with tempfile.TemporaryDirectory(prefix='fullops-lint-gitlink-') as tmp:
+        repo = Path(tmp)
+
+        def git(*args):
+            return subprocess.check_output(['git', '-C', tmp, *args], text=True).strip()
+
+        def link(path, oid):
+            (repo / path).mkdir(exist_ok=True)
+            git('update-index', '--add', '--cacheinfo', f'160000,{oid},{path}')
+
+        def commit():
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'test')
+            return git('rev-parse', 'HEAD')
+
+        git('init', '-q', '-b', 'main')
+        subprocess.run([PY, str(SCRIPTS / 'setup.py'), '--repo', tmp, '--roles', 'dev', '--local-only'],
+                       check=True, capture_output=True)
+        (repo / 'plain.txt').write_text('text\n')
+        git('add', '-A')
+        base = commit()
+        # cat-file은 commit이 없으면 submodule·missing, 이 레포에 있으면 commit으로 답한다.
+        link('absent', '1' * 40)
+        link('present', base)
+        (repo / 'bad.py').write_text('"""Bad."""\nvalue = eval("1")\n')
+        git('add', 'bad.py')
+        added = commit()
+        result = checks.lint(repo, base)
+        assert {(v['code'], v['path']) for v in result['violations'] if v['severity'] == 'ERROR'} == {('ANTI-002', 'bad.py')}, result
+        assert result['summary']['files'] == 1, result
+
+        # 갱신·이름 변경·삭제·파일에서 gitlink로 바꿈
+        link('absent', '2' * 40)
+        git('mv', 'present', 'moved')
+        (repo / 'plain.txt').unlink()
+        git('update-index', '--remove', 'plain.txt')
+        link('plain.txt', '3' * 40)
+        commit()
+        assert checks.lint(repo, added)['summary']['errors'] == 0
+        git('update-index', '--force-remove', 'absent', 'moved')
+        commit()
+        assert checks.lint(repo, added)['summary']['errors'] == 0
+    print('PASS: lint skips submodule gitlinks and keeps checking the rest of the diff')
+
+
 def stale_lock():
     with tempfile.TemporaryDirectory(prefix='fullops-lint-lock-') as tmp:
         lock = Path(tmp) / 'fullops-lint.lock'
@@ -570,6 +637,8 @@ def stale_lock():
 
 if __name__ == '__main__':
     batch_read()
+    gitlink_diff()
+    timeout_ends_tree()
     command_cwd_aliases()
     stale_lock()
     tune_report()
