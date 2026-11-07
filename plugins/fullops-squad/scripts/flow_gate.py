@@ -305,6 +305,16 @@ def run_state(run, root=None):
     return unread, active
 
 
+def waiting_in_background(event, run):
+    """이 Run의 orca_wait가 백그라운드에 살아 있으면 끝날 때 세션이 깨어난다.
+
+    field()를 쓰지 않는다. snake_case `background_tasks`는 Claude Code만 보낸다(grok은 camelCase, Codex는 없음)."""
+    tasks = event.get('background_tasks')
+    return isinstance(tasks, list) and any(
+        isinstance(task, dict) and 'orca_wait' in str(task.get('command')) and
+        run in re.split(r'''[\s='"]+''', str(task.get('command'))) for task in tasks)
+
+
 def sent_text(command):
     """`orca terminal send`로 보내는 글자."""
     try:
@@ -767,6 +777,8 @@ def main(event=None):
             if not status or not (status[0] or status[1]):
                 continue
             unread, active = status
+            if not unread and waiting_in_background(event, run):
+                continue
             marker = [run, unread, active]
             if field(event, 'stop_hook_active') and state.get('wait_blocked') == marker:
                 output = {'systemMessage': f'FullOps: Run {run}의 worker 결과를 받지 않은 채 세션을 끝냈습니다.'}
@@ -775,6 +787,12 @@ def main(event=None):
                 output = {'decision': 'block', 'reason':
                           f'FullOps: Run {run}에 처리하지 않은 worker_done·질문·escalation {unread}건이 있습니다. '
                           f'`orca orchestration check --run {run}`으로 받아 규칙대로 처리하고 ack하세요.'}
+            elif isinstance(event.get('background_tasks'), list):
+                state['wait_blocked'] = marker
+                output = {'decision': 'block', 'reason':
+                          f"FullOps: Run {run}의 worker({', '.join(active)})가 아직 실행 중인데 결과를 기다리는 대기가 없습니다. "
+                          f'`python3 <orca_wait.py> --orca <orca> --repo <레포 루트> --run {run}`을 `run_in_background`로 한 번 걸고 '
+                          '응답을 끝내세요. 끝나면 task-notification으로 세션이 깨어나고, 그동안 사용자 메시지와 다른 역할 배정을 받을 수 있습니다.'}
             else:
                 state['wait_blocked'] = marker
                 output = {'decision': 'block', 'reason':

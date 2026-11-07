@@ -218,7 +218,41 @@ def main():
         scenario([], live)
         waiting = hook('stop', session_id='wt')
         assert waiting.get('decision') == 'block' and 'orca_wait.py' in waiting['reason'] and 'ctx_1' in waiting['reason'], waiting
+        assert '포그라운드' in waiting['reason']  # Codex: background_tasks가 없으면 대기를 유지한다
         assert 'systemMessage' in hook('stop', session_id='wt', stop_hook_active=True)  # 같은 상태로 다시 끝내면 통과
+
+        # #112 Claude Code: 백그라운드 대기가 있으면 worker 실행 중에도 사용자 메시지와 다른 역할 배정을 받는다
+        waiter = {'id': 'b1', 'type': 'shell', 'status': 'running',
+                  'command': 'python3 "C:/x y/orca_wait.py" --orca orca --repo . --run run_9'}
+        assert hook('tool', session_id='cl', tool_name='Bash', tool_input={'command': start}) == {}
+        nudge = hook('stop', session_id='cl', background_tasks=[])
+        assert nudge.get('decision') == 'block' and 'run_in_background' in nudge['reason'], nudge
+        assert '포그라운드' not in nudge['reason']
+        assert hook('stop', session_id='cl', stop_hook_active=True, background_tasks=[waiter]) == {}
+        for message in ('진행 상황 알려줘', '다른 질문이 있어'):
+            hook('prompt', session_id='cl', prompt=message)
+            assert hook('stop', session_id='cl', background_tasks=[waiter]) == {}
+        running = list(live)
+        for key, role in (('W-ART', 'art'), ('W-ARCH', 'architecture')):
+            route(key, 'simple', role)
+            other = repo / f'.git/{role}-worktree'
+            git('worktree', 'add', '-q', str(other), roles[role])
+            assert hook('tool', session_id='cl', tool_name='Bash', tool_input={'command':
+                        f'orca orchestration worker-start --run run_9 --spec "{key} 작업" --agent claude --worktree "{other}"'}) == {}
+            running.append({'dispatchId': 'ctx_' + role, 'projection': {'outcome': None}})
+            scenario([], running)
+            assert hook('stop', session_id='cl', background_tasks=[waiter]) == {}
+            git('worktree', 'remove', str(other))
+        scenario([], live)
+        # 다른 Run의 대기, grok의 camelCase 키, 처리할 결과는 통과시키지 않는다
+        for tasks in ([{**waiter, 'command': waiter['command'] + '0'}], [{'type': 'shell'}, 'x']):
+            assert hook('stop', session_id='cl', background_tasks=tasks).get('decision') == 'block'
+        assert hook('tool', session_id='gk', tool_name='Bash', tool_input={'command': start}) == {}
+        assert '포그라운드' in hook('stop', session_id='gk', backgroundTasks=[waiter])['reason']
+        scenario([{'type': 'question'}], live)
+        assert 'check --run run_9' in hook('stop', session_id='cl', background_tasks=[waiter])['reason']
+        scenario([], live)
+
         scenario([{'type': 'heartbeat'}, {'type': 'worker_done'}], done_rows)
         unread = hook('stop', session_id='wt')
         assert unread.get('decision') == 'block' and 'check --run run_9' in unread['reason'], unread
