@@ -58,7 +58,7 @@ summary: "이 레포의 FullOps 적용 버전을 1.11.0에서 1.16.1로 갱신�
 ## dev 워크트리
 
 - 경로: `C:/Users/shin/orca/workspaces/Fullops-Squad-plugin/dev`
-- 브랜치: `fullops/dev` (기준 main 5161d7a). 아직 push하지 않았다.
+- 브랜치: `fullops/dev` (기준 main 5161d7a). 사용자 결정 D011로 PR을 만들어 main에 병합한다.
 - `policy.identity`는 `fullops/dev`를 주 담당 역할로 본다. `fullops.json`의 `primary_branch`는 바꾸지 않는다.
 - `.fullops-squad/.env`는 `env_link.py --all`로 main 체크아웃에 링크했다.
 
@@ -74,4 +74,3 @@ summary: "이 레포의 FullOps 적용 버전을 1.11.0에서 1.16.1로 갱신�
 | 세션 재시작 또는 `/reload-plugins` | 사용자 | dev 워크트리에서 새 세션을 열 때 함께 처리된다. |
 | `core.longpaths` 켜기 | 사용자 승인 후 dev | `env_link.py`가 긴 경로의 리뷰 snapshot 실패 가능성을 알렸다. 승인되면 `git config core.longpaths true`를 실행한다. |
 | dev 워크트리의 `node_modules` 설치 | 사용자 승인 후 dev | `npm test`를 그 워크트리에서 돌릴 때 필요하다. npm을 빼는 방향은 #132에서 검토한다. |
-| `fullops/dev`를 main에 병합 | 사용자 | 병합 전까지 main의 `plugin_version`은 1.11.0이다. |
