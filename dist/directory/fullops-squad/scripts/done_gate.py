@@ -13,7 +13,7 @@ import re
 import subprocess
 import sys
 
-from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY, blob, config_blob, deliverable_violations, matches
+from lint import C_STYLE, CONFIG, DEFAULT, HASH, PY, config_blob, deliverable_violations, matches, read_blobs
 import deliverables
 import policy
 from storage import write_json
@@ -145,9 +145,11 @@ def records_only(root, passed, head):
         changed = git(root, 'diff', '-z', '--name-only', passed, head).split('\0')
         if not all(p.startswith(RECORDS) for p in changed if p):
             return False
-        index = deliverables.index_rows(blob(root, head, '.fullops-squad/' + deliverables.INDEX) or '')
-        kept = git(root, 'diff', '-z', '--name-only', '--diff-filter=d', passed, head).split('\0')
-        return not any(deliverable_violations(p, blob(root, head, p) or '', index) for p in kept if p)
+        index_path = '.fullops-squad/' + deliverables.INDEX
+        kept = [p for p in git(root, 'diff', '-z', '--name-only', '--diff-filter=d', passed, head).split('\0') if p]
+        contents = read_blobs(root, [(head, index_path)] + [(head, p) for p in kept])
+        index = deliverables.index_rows(contents[head, index_path] or '')
+        return not any(deliverable_violations(p, contents[head, p] or '', index) for p in kept)
     except (OSError, ValueError, subprocess.CalledProcessError):
         return False
 
