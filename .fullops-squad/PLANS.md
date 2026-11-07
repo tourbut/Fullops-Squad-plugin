@@ -28,6 +28,7 @@ summary: 현재 작업
 | LINT-BATCH-READ | lint 파일 읽기를 `git cat-file --batch` 1회로 변경 | dev(직접) | 구현·lint 완료(241b7c4, 기준 0f918bb). 읽기 46.50초 → 1.69초. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/LINT-BATCH-READ-test/report.md` |
 | HOOK-SLIM | 저장소 위치 조회 통합, 이슈 상태 없을 때 import 생략, Stop `gh` 5분 재사용 | dev(직접) | 구현·lint 완료(d029a21, 기준 0f918bb). 도구 hook 약 1,000ms → 약 530ms, git 13~14개 → 5개, Stop 약 1,700ms → 약 730ms. `npm test` 통과. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/HOOK-SLIM-test/report.md` |
 | ISSUE112-SIDE | `record` 원자적 쓰기, `integration.py set-sha`, 배정 검사 안내 | dev(직접) | 구현·lint 완료(505d579, 기준 0f918bb). 인박스 검사 시점은 PreToolUse 한계로 안내만 고침. review need: skip(누적 코드 319줄, 기준 400줄). lint ERROR 0, WARNING 5(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/ISSUE112-SIDE-test/report.md` |
+| CLEANUP-FOLLOWUPS | PR #126 후속 8개 묶음을 Workflow로 병렬 구현(결정 D014) | dev(직접) | 구현·lint 완료(37a3ba0, 기준 0cea3b8). `npm test` 통과. review need: ask(코드 25개 파일 약 1,600줄) → 결정 D015로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`, run_88a80b39c65f, ctx_e532ea8c0ae8, snapshot `.fullops-review-6c25899aeb1642b4b55a88a6bfbce049`. 결정 D016: 캐시 status·statuses 제거 | `docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-review/` |
 
 ## 대기 목록
 

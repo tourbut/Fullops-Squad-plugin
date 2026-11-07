@@ -1,0 +1,60 @@
+{
+  "version": "jev-route-v3",
+  "task_key": "CLEANUP-FOLLOWUPS",
+  "requested_model": "~typesafe/jev-latest",
+  "route": "design",
+  "role": "architecture",
+  "deliverables": [],
+  "thresholds": {
+    "simple": 0.8,
+    "role": 0.6,
+    "deliverable": 0.5
+  },
+  "answers": {
+    "scope": {
+      "choice": "design",
+      "probabilities": {
+        "simple": 0.24,
+        "design": 0.76
+      },
+      "confidence": 0.52
+    },
+    "role": {
+      "choice": "dev",
+      "probabilities": {
+        "dev": 1
+      },
+      "confidence": 1
+    },
+    "docs": {
+      "D01": 0.42,
+      "D02": 0.41,
+      "D03": 0.4,
+      "D04": 0.21,
+      "D05": 0.36,
+      "D06": 0.22,
+      "D07": 0.21,
+      "D08": 0.25,
+      "D09": 0.29,
+      "D10": 0.49,
+      "D11": 0.42,
+      "D12": 0.47,
+      "D13": 0.4
+    }
+  },
+  "usage": {
+    "input_tokens": 1924,
+    "output_tokens": 300,
+    "cost": 8.0808e-05
+  },
+  "error": null,
+  "docs_status": "complete",
+  "unresolved_deliverables": [],
+  "additional_deliverables": [],
+  "latency_seconds": 0.685,
+  "response_model": "typesafe/jev-1.14-20261014",
+  "model": null,
+  "head": "37a3ba0020529ebf5b09a22ace082c572dabc511",
+  "requires_packet": true,
+  "origin": "user"
+}
