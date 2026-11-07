@@ -44,8 +44,7 @@ coordinator는 비용이 낮은 모델로 계속 띄워 두고, 설계 역할은
 - `dev` `codex` `gpt-6-sol` `low`: 문구·수치 변경 같은 단순 수정
 ```
 
-- `dev` `claude` `claude-sonnet-5-5` `medium`: 문서·문구 수정, 기존 패턴을 따르는 스크립트 수정과 테스트 추가
-- `dev` `claude` `claude-opus-5-5` `high`: hook·gate·상태 파일처럼 여러 스크립트에 걸치거나 보안 경계를 바꾸는 구현
+- `dev` `claude` `claude-opus-5-5` `high`: dev의 모든 작업. 사용자 지정(2026-11-07)
 - `architecture` `claude` `claude-opus-5-5` `high`: 설계 문서와 역할별 지시서
 - `reviewer` `claude` `claude-opus-5-5` `high`: 병합 전 고정 SHA 독립 코드 리뷰
 
