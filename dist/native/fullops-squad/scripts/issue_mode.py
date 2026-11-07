@@ -21,6 +21,8 @@ from issue_github import APIError, GitHub, iso, timestamp
 ACTIVE = {'claimed', 'running', 'reviewing', 'reconciling'}
 HELD = {'held', 'awaiting_author', 'reconciling', 'changed', 'policy_hold'}
 FINAL = {'completed', 'cancelled', 'rejected'}
+ASKABLE = ACTIVE | {'awaiting_author', 'held'}
+INTENT_GRACE = 600  # worker-start가 끝날 시간. 이보다 최근의 intent는 아직 시작 중일 수 있다.
 
 
 def digest(value):
@@ -285,6 +287,8 @@ def activate(store, orca, session, run, terminal, provider_session, now=None):
         old = state['owner']
         if old and old['enabled'] and old['expires'] > now and not Path(old['end_marker']).is_file():
             raise ValueError('같은 저장소에서 이미 활성 coor가 lease를 소유합니다')
+        if old and old['provider_session'] != provider_session:
+            state['former_owners'] = [s for s in state.get('former_owners', []) if s != provider_session] + [old['provider_session']]
         for job in state['jobs'].values():
             if occupies(job):
                 job.update(status='reconciling', reason='이전 session task/worker/receipt 확인 필요',
@@ -309,6 +313,14 @@ def guard(state, token, now=None):
             Path(owner['end_marker']).is_file() or owner['expires'] <= (time.time() if now is None else now)):
         raise ValueError('모드 OFF, 만료되거나 다른 coor의 fencing token입니다')
     return owner
+
+
+def holds(state, token):
+    try:
+        guard(state, token)
+    except ValueError:
+        return False
+    return True
 
 
 def stop(store, session, action='disable'):
@@ -589,7 +601,7 @@ def question(store, github, token, identifier, text):
         question_id = digest([identifier, job['attempt'], text])[:24]
         recovery = state['outbox'].get(question_id)
         # held는 사용자 결정·조치 대기를 이슈 댓글로 옮기는 경로다. 답변이 충분해도 미종료 worker가 있으면 resolve_answers가 다시 held로 둔다.
-        if (job['status'] not in ACTIVE | {'awaiting_author', 'held'} and not recovery) or job.get('epoch') != state['owner']['epoch']:
+        if (job['status'] not in ASKABLE and not recovery) or job.get('epoch') != state['owner']['epoch']:
             raise ValueError('현재 claim했거나 보류한 이슈에서만 질문할 수 있습니다')
         if job['digest'] != saved['jobs'][identifier]['digest'] or str(job['snapshot']['user']['id']) not in state['config']['allowed']:
             raise ValueError('질문 준비 중 snapshot/작성자 정책이 바뀌었습니다')
@@ -622,10 +634,14 @@ def question(store, github, token, identifier, text):
     if fresh(current, github, current['jobs'][identifier]):
         raise ValueError('질문 전송 직전의 정책/본문이 변경됐습니다')
     with store.edit() as state:
-        guard(state, token)
+        owner = guard(state, token)
         entry = state['outbox'][question_id]
         if entry.get('comment_id'):
             return entry
+        current = state['jobs'][identifier]
+        if not matches and (current['status'] not in ASKABLE or current.get('epoch') != owner['epoch'] or
+                            current['attempt'] != job['attempt'] or current['digest'] != job['digest']):
+            raise ValueError('질문 준비 중 이슈 상태/attempt가 바뀌었습니다; 게시하지 않습니다')
         if not matches and entry['status'] in ('sending', 'uncertain'):
             raise ValueError('이전 질문 POST 결과가 미확인입니다. 조회에 없다는 이유로 중복 게시하지 않습니다')
         if not matches and (entry.get('attempts', 0) >= state['config']['max_attempts'] or entry.get('next_attempt', 0) > time.time()):
@@ -637,24 +653,33 @@ def question(store, github, token, identifier, text):
         sent = matches[0] if matches else github.comment(saved['config']['repository'], job['snapshot']['number'], body)
     except (APIError, OSError) as error:
         with store.edit() as state:
-            guard(state, token)
             if state['outbox'][question_id].get('comment_id'):
                 return state['outbox'][question_id]
             definite = isinstance(error, APIError) and isinstance(error.status, int) and error.status in (401, 403, 404, 422, 429)
+            # 전송 결과는 소유 변경과 무관하게 outbox에 남긴다. 작업 상태는 현재 소유자만 바꾼다.
             state['outbox'][question_id].update(status='failed' if definite else 'uncertain',
                                               next_attempt=time.time() + (error.retry_after if isinstance(error, APIError) else 60))
-            state['jobs'][identifier].update(status='held', reason=f'질문 게시 거부 HTTP {error.status}' if definite else '질문 전송 결과 미확인',
-                                             resume='같은 질문의 outbox/권한/backoff를 확인하여 재조정')
+            current = state['jobs'][identifier]
+            if holds(state, token) and current['status'] in ASKABLE:
+                current.update(status='held', reason=f'질문 게시 거부 HTTP {error.status}' if definite else '질문 전송 결과 미확인',
+                               resume='같은 질문의 outbox/권한/backoff를 확인하여 재조정')
         raise
     with store.edit() as state:
-        guard(state, token)
+        # 게시된 댓글은 인계 뒤에도 사실이다. 재게시와 답변 유실을 막도록 outbox와 답변 추적은 남기고 작업 상태는 현재 소유자만 바꾼다.
         entry = state['outbox'][question_id]
         entry.update(status='sent', comment_id=sent['id'], url=sent['html_url'], created_at=sent['created_at'])
-        job = state['jobs'][identifier]
-        if question_id not in job['questions']:
-            job['questions'].append(question_id)
-        job.update(status='awaiting_author', reason='작성자 답변 대기', resume='질문에 충분한 작성자 답변')
-        return entry
+        current = state['jobs'][identifier]
+        if question_id not in current['questions']:
+            current['questions'].append(question_id)
+        owned = holds(state, token)
+        if not owned:
+            record(state, 'question_sent_after_fence', issue_id=identifier, question_id=question_id)
+        elif (current['status'] in ASKABLE and current['attempt'] == job['attempt'] and
+              current.get('epoch') == state['owner']['epoch']):
+            current.update(status='awaiting_author', reason='작성자 답변 대기', resume='질문에 충분한 작성자 답변')
+    if not owned:
+        raise ValueError('질문은 게시됐지만 게시 중 lease를 잃어 작업 상태는 바꾸지 않았습니다. 현재 소유 coor가 이어받습니다')
+    return entry
 
 
 def poll_answers(store, github, token):
@@ -721,25 +746,35 @@ def answer_delivery(store, token):
         return None
 
 
+def undecided_answers(state, token, identifier):
+    guard(state, token)
+    job = state['jobs'][str(identifier)]
+    if job['status'] != 'claimed':
+        raise ValueError(f"답변 판단은 wait가 답변을 전달한 claimed 상태에서 먼저 기록합니다(현재 {job['status']}). "
+                         'sync·checkpoint보다 answers를 먼저 실행하세요')
+    if job.get('epoch') != state['owner']['epoch'] or not job['answers']:
+        raise ValueError('현재 coor가 수신한 답변만 처리할 수 있습니다')
+    candidates = [a for a in job['answers'] if a['received'] and not a['decided']]
+    if not candidates:
+        raise ValueError('이미 판단한 답변입니다')
+    return job, candidates
+
+
 def resolve_answers(store, github, token, identifier, decision, reason):
     if decision not in ('sufficient', 'insufficient', 'conflicting') or not reason.strip():
         raise ValueError('답변의 충분성/충돌과 구체적 판단 근거가 필요합니다')
+    saved = store.read()
+    previous, expected = undecided_answers(saved, token, identifier)
+    # 쓰기 잠금 밖에서 조회한다. GitHub 응답을 기다리는 동안 hook의 쓰기(timeout=15)를 막지 않는다.
+    if fresh(saved, github, previous):
+        raise ValueError('현재 작성자/본문을 확인하세요')
+    comments, _ = github.pages(f"/repos/{saved['config']['repository']}/issues/{previous['snapshot']['number']}/comments?per_page=100", {})
+    available = {c['id']: c for c in comments}
     with store.edit() as state:
-        guard(state, token)
-        job = state['jobs'][str(identifier)]
-        if job['status'] != 'claimed':
-            raise ValueError(f"답변 판단은 wait가 답변을 전달한 claimed 상태에서 먼저 기록합니다(현재 {job['status']}). "
-                             'sync·checkpoint보다 answers를 먼저 실행하세요')
-        if job.get('epoch') != state['owner']['epoch'] or not job['answers']:
-            raise ValueError('현재 coor가 수신한 답변만 처리할 수 있습니다')
-        if fresh(state, github, job):
-            raise ValueError('현재 작성자/본문을 확인하세요')
-        guard(state, token)
-        candidates = [a for a in job['answers'] if a['received'] and not a['decided']]
-        if not candidates:
-            raise ValueError('이미 판단한 답변입니다')
-        comments, _ = github.pages(f"/repos/{state['config']['repository']}/issues/{job['snapshot']['number']}/comments?per_page=100", {})
-        available = {c['id']: c for c in comments}
+        job, candidates = undecided_answers(state, token, identifier)
+        if (candidates != expected or job['task_key'] != previous['task_key'] or job['digest'] != previous['digest'] or
+                str(job['snapshot']['user']['id']) not in state['config']['allowed']):
+            raise ValueError('답변 확인 중 attempt/답변/작성자 정책이 바뀌었습니다; 다시 판단하세요')
         for answer in candidates:
             comment = available.get(answer['comment_id'])
             if (not comment or digest(comment.get('body') or '') != answer['digest'] or
@@ -761,17 +796,75 @@ def resolve_answers(store, github, token, identifier, decision, reason):
         return status
 
 
+def full_run(orca, run):
+    """Run의 task와 worker 목록이 잘리지 않았음을 확인한다. 부재를 근거로 쓰는 경로의 전제다."""
+    listing = orca.call('orchestration', 'task-list', '--run', run)
+    tasks = listing.get('tasks')
+    task_page = listing.get('page')
+    if (not isinstance(tasks, list) or type(listing.get('count')) is not int or
+            listing['count'] != len(tasks) or
+            (task_page is not None and (not isinstance(task_page, dict) or
+             task_page.get('hasMore') is not False or
+             ('total' in task_page and (type(task_page['total']) is not int or
+                                       task_page['total'] != len(tasks)))))):
+        raise ValueError('Run의 전체 task 목록을 확인하지 못했습니다')
+    fleet = orca.call('orchestration', 'worker-list', '--run', run)
+    entries = fleet.get('workers')
+    page = fleet.get('page') or {}
+    if (not isinstance(entries, list) or page.get('hasMore') is not False or
+            type(page.get('total')) is not int or page['total'] != len(entries)):
+        raise ValueError('Run의 전체 worker receipt를 확인하지 못했습니다')
+    listed_ids = {t.get('id') for t in tasks} - {None}
+    if any(w.get('taskId') not in listed_ids for w in entries):
+        raise ValueError('Run의 worker와 전체 task 목록이 일치하지 않습니다; 다시 sync하세요')
+    return tasks, fleet
+
+
+def abandon_intents(store, orca, token, identifier, job, reason):
+    """worker-start가 실행되지 않은 dispatch intent를 coor 확인과 정본 조회로 닫는다.
+    자동으로 닫지 않는다. 같은 task key를 재배정하지 않도록 held로 두고 재시도는 새 attempt로 간다."""
+    key, intents = job['task_key'], job['dispatch_intents']
+    if job['status'] == 'claimed' and any(a['received'] and not a['decided'] for a in job['answers']):
+        raise ValueError('전달된 답변의 판단을 answers로 먼저 기록하세요')
+    # shortcut: 권한 프롬프트가 유예 뒤에 승인되면 늦게 시작한 worker를 막지 못한다. 실제로 생기면 worker-start 결과를 PostToolUse로 기록한다.
+    if not job.get('settled') and (not intents[-1].get('at') or time.time() - timestamp(intents[-1]['at']) < INTENT_GRACE):
+        raise ValueError('최근 dispatch intent는 아직 시작 중일 수 있습니다. 유예 시간 뒤 다시 확인하세요')
+    runs = {job['run'], *(i.get('run') for i in intents),
+            *(r for r, b in job.get('child_runs', {}).items() if b.get('task_key') == key)} - {None}
+    for run in sorted(runs):
+        tasks, _ = full_run(orca, run)
+        if any(not isinstance(t.get('spec'), str) or integration.key_present(key, t['spec']) for t in tasks):
+            raise ValueError('같은 task key의 task가 있거나 spec을 확인하지 못했습니다; sync로 확인하세요')
+    with store.edit() as state:
+        owner = guard(state, token)
+        current = state['jobs'][str(identifier)]
+        if (current['task_key'] != key or current.get('dispatch_intents') != intents or
+                current.get('child_runs') != job.get('child_runs') or current.get('settled') != job.get('settled')):
+            raise ValueError('조회 중 dispatch intent/attempt가 바뀌었습니다; 다시 확인하세요')
+        current['history'].append({'phase': 'intent_abandoned', 'at': iso(time.time()), 'reason': redact(reason),
+                                   'runs': sorted(runs), 'intents': len(intents), 'task_key': key})
+        current.update(settled=True, epoch=owner['epoch'])
+        if current['status'] in ACTIVE:
+            current.update(status='held', reason=reason, resume='queued checkpoint로 새 attempt; 같은 task key로 재배정하지 않음')
+        record(state, 'intent_abandoned', issue_id=str(identifier), task_key=key)
+
+
 def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatched=False):
     if not reason.strip():
         raise ValueError('기존 task/worker/receipt 확인 근거가 필요합니다')
     saved = store.read()
     guard(saved, token)
     job = saved['jobs'][str(identifier)]
-    if job['status'] != 'reconciling' and not syncing:
+    # settled면 남은 intent는 이전 attempt의 기록이다. 현재 attempt가 배정 전에 인계된 경우도 같은 조회로 닫는다.
+    unstarted = not_dispatched and job.get('dispatch_intents') and (job['status'] == 'reconciling' or not job.get('settled'))
+    if job['status'] != 'reconciling' and not syncing and not unstarted:
         raise ValueError('인계 시 미확인 작업만 reconcile할 수 있습니다')
     run = job.get('run')
     if not run:
         raise ValueError('기존 Run identity가 없어 재배정하지 않습니다. 수동 확인 필요')
+    if unstarted:
+        abandon_intents(store, orca, token, identifier, job, reason)
+        return
     task_listing = orca.call('orchestration', 'task-list', '--run', run)
     tasks = task_listing.get('tasks') or []
     workers = orca.call('orchestration', 'worker-list', '--run', run)
@@ -811,25 +904,8 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     for child_run, binding in job.get('child_runs', {}).items():
         if binding.get('task_key') != job['task_key']:
             continue
-        child_tasks = orca.call('orchestration', 'task-list', '--run', child_run)
-        listed_tasks = child_tasks.get('tasks')
-        task_page = child_tasks.get('page')
-        if (not isinstance(listed_tasks, list) or type(child_tasks.get('count')) is not int or
-                child_tasks['count'] != len(listed_tasks) or
-                (task_page is not None and (not isinstance(task_page, dict) or
-                 task_page.get('hasMore') is not False or
-                 ('total' in task_page and (type(task_page['total']) is not int or
-                                           task_page['total'] != len(listed_tasks)))))):
-            raise ValueError('하위 Run의 전체 task 목록을 확인하지 못했습니다')
-        fleet = orca.call('orchestration', 'worker-list', '--run', child_run)
-        entries = fleet.get('workers')
-        page = fleet.get('page') or {}
-        if (not isinstance(entries, list) or page.get('hasMore') is not False or
-                type(page.get('total')) is not int or page['total'] != len(entries)):
-            raise ValueError('하위 Run의 전체 worker receipt를 확인하지 못했습니다')
-        listed_ids = {t.get('id') for t in listed_tasks} - {None}
-        if any(w.get('taskId') not in listed_ids for w in entries):
-            raise ValueError('하위 Run의 worker와 전체 task 목록이 일치하지 않습니다; 다시 sync하세요')
+        listed_tasks, fleet = full_run(orca, child_run)
+        entries = fleet['workers']
         relevant_children = [t for t in listed_tasks
                              if integration.key_present(job['task_key'], str(t.get('spec') or ''))]
         if not relevant_children:
@@ -883,13 +959,17 @@ def complete(store, github, token, identifier, worktree, review_key, base, head,
             pr.get('base', {}).get('repo', {}).get('id') != config['repository_id'] or
             pr.get('base', {}).get('ref') != expected_base):
         raise ValueError('같은 저장소의 현재 SHA·허용 작업 브랜치·draft PR·기본 base를 확인하지 못했습니다')
+    # 쓰기 잠금 밖에서 조회하고, 잠금 안에서는 조회 뒤 작업이 그대로인지만 본다.
+    latest = store.read()
+    guard(latest, token)
+    if fresh(latest, github, latest['jobs'][str(identifier)]):
+        raise ValueError('완료 기록 직전의 정책/본문 변경')
     with store.edit() as state:
         guard(state, token)
         current = state['jobs'][str(identifier)]
-        if current['status'] != 'reviewing' or current.get('attempt') != job['attempt']:
+        if (current['status'] != 'reviewing' or current.get('attempt') != job['attempt'] or current['digest'] != job['digest'] or
+                str(current['snapshot']['user']['id']) not in state['config']['allowed']):
             raise ValueError('리뷰/PR 확인 중 attempt가 변경됐습니다')
-        if fresh(state, github, current):
-            raise ValueError('완료 기록 직전의 정책/본문 변경')
         current.update(status='completed', head=head, base=base, review_key=review_key, pr_number=int(pr_number),
                        pr_url=pr['html_url'], pr_closed=False, pr_feedback=[], completed_at=time.time(),
                        reason='검증·리뷰·draft PR 완료; 병합은 사용자 판단')
@@ -932,9 +1012,11 @@ def prune(store, apply=False):
 
 def worker_job(store, state, session, context):
     """host receipt와 Orca 정본 dispatch/task를 연결한다. 수동 세션은 연결하지 않는다."""
+    bound = False
     for job in state['jobs'].values():
         binding = job.get('worker_sessions', {}).get(session)
         if binding:
+            bound = True
             if job['status'] in FINAL and not context.get('dispatch'):
                 continue  # 완료된 worker의 새 일반 작업을 옛 dispatch에 다시 묶지 않는다.
             if context.get('dispatch') == binding['dispatch'] and context.get('task') == binding['task']:
@@ -943,6 +1025,15 @@ def worker_job(store, state, session, context):
                 raise ValueError('자동 worker의 dispatch/task binding이 바뀌었습니다')
             # 유지한 worker의 새 dispatch는 아래 Orca 정본 확인으로 다시 묶는다.
     if not context.get('dispatch'):
+        return None, None
+    # 이슈와 무관한 worker는 도구 호출마다 Orca를 부르지 않는다. 끝났고 종료까지 확인한 attempt에는 새 worker가 없다.
+    if not bound and not any(j.get('task_key') and (j['status'] not in FINAL or occupies(j)) for j in state['jobs'].values()):
+        return None, None
+    # attempt와 Run이 그대로면 Orca의 답도 그대로다. 바뀌면 scope가 달라져 다시 묻는다.
+    scope = digest([[j['task_key'], j.get('run'), sorted(j.get('child_runs', {}))] for j in state['jobs'].values() if j.get('task_key')])
+    worker = [context['dispatch'], context.get('task')]
+    known = state.get('unrelated_workers') or {}
+    if known.get('scope') == scope and known['workers'].get(session) == worker:
         return None, None
     status = integration.orca('orchestration', 'worker-show', '--dispatch', context['dispatch'], cwd=store.repo)
     if status is None:
@@ -959,6 +1050,13 @@ def worker_job(store, state, session, context):
     if not jobs:
         if registered:
             raise ValueError('등록된 자동 하위 Run의 task key가 현재 attempt와 다릅니다')
+        try:
+            with store.edit() as current:
+                known = current.get('unrelated_workers') or {}
+                current['unrelated_workers'] = {'scope': scope, 'workers': {
+                    **(known['workers'] if known.get('scope') == scope else {}), session: worker}}
+        except sqlite3.Error:
+            pass  # 조회 생략용 기록이다. 판정은 이미 끝났고 다음 호출이 다시 확인한다.
         return None, None
     receipt = hook_path(store.repo, session)
     native = json.loads(receipt.read_text(encoding='utf-8')) if receipt.is_file() else {}
@@ -1047,6 +1145,16 @@ def outward(words):
             (executable == 'gh' and not any(w in words[1:3] for w in GH_READ)))
 
 
+def superseded(state, session, commands):
+    """인계로 lease를 잃은 coor의 진행 중 작업이 현재 소유자의 이슈에 외부 효과를 내려는지 본다. 이슈 밖 작업은 막지 않는다."""
+    if session not in state.get('former_owners', []) or not holds(state, state['owner']['token']):
+        return False  # 소유자의 lease가 없으면 사용자가 직접 운영한다.
+    keys = [j['task_key'] for j in state['jobs'].values() if j.get('task_key') and j['status'] not in FINAL]
+    return any(outward(words) and (state['config']['branch_prefix'] in ' '.join(words) or
+                                   any(integration.key_present(k, ' '.join(words)) for k in keys))
+               for words in commands)
+
+
 def boundary(repo, session, command, files, commands, context=None):
     """기존 flow-gate의 해석 가능한 명령/파일에 자동 작업의 추가 범위 검사를 적용한다."""
     if not session:
@@ -1062,6 +1170,8 @@ def boundary(repo, session, command, files, commands, context=None):
     coordinator = owner['provider_session'] == session
     job = None
     if not coordinator:
+        if superseded(state, session, commands):
+            return '이 세션의 lease는 새 coor로 인계됐습니다. 이슈의 배정·push·GitHub 변경은 현재 소유 coor가 처리합니다'
         try:
             job, epoch = worker_job(store, state, session, context or {})
         except (ValueError, OSError) as error:
@@ -1354,7 +1464,7 @@ def main():
             if name == 'answers':
                 p.add_argument('--decision', choices=['sufficient', 'insufficient', 'conflicting'], required=True)
             elif name == 'reconcile':
-                p.add_argument('--not-dispatched', action='store_true', help='정본 기록으로 이전 coor가 실제 배정 전 중단됐음을 수동 확인')
+                p.add_argument('--not-dispatched', action='store_true', help='정본 기록으로 실제 배정 전 중단됐음을 수동 확인. 미시작 dispatch intent도 이 경로로 닫는다')
         else:
             for field in ('worktree', 'review-key', 'base', 'head'):
                 p.add_argument('--' + field, required=True)

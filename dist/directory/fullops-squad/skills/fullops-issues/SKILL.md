@@ -49,7 +49,7 @@ argument-hint: "[on <owner/repo> <login>[,<login>] [초] [backlog] | on | off | 
 5. API snapshot/작성자/allowlist 및 실행 한도를 `checkpoint`에서 재확인한다. `--tokens`는 **실제 확인한 추가 모델 사용량**만 보고한다. 측정할 수 없으면 생략하며, 이것만으로 보류하지 않는다. 그때 한도는 실행 시간·재시도 횟수로 적용된다. 실패 테스트는 한도 안에서 수정/재검증하며 성공으로 바꾸지 않는다. 권한·본문 변경·close·disable·만료 때 worker를 자연 경계에서 보존/정지하고 종료를 확인하기 전 강제 삭제·중복 재배정하지 않는다.
 6. 보류는 `checkpoint --phase held --reason <근거> --resume <소유자와 재개 조건>`로 기록한다. 재개 소유자가 사용자(결정·승인·범위 밖 직접 조치)이면 held로 끝내지 않고 이어서 아래 `question`으로 원래 이슈에 무엇이 필요한지·선택지·답하면 어떻게 재개되는지를 묻는다. 사용자는 터미널 대신 이슈 댓글로 답하고 같은 답변 경로로 재개된다. 독립 다음 이슈는 같은 wait로 처리한다. 실행 작업의 소유자/사유/증거는 history에 보존한다.
 
-보류·pause·한도 초과·allowlist 철회 상태에서도 coor의 조회·기록·로컬 파일 작업은 계속된다. hook은 worker 배정, push, GitHub 변경만 막는다. 한도를 넘었으면 `checkpoint --phase held --reason <근거> --resume <재개 조건>`으로 보류한다. disable·lease 만료 뒤의 coor는 자동 실행 중이 아니므로 자동 범위 제한을 받지 않고 사용자가 직접 운영한다. 이전 epoch의 worker만 fencing된다. 다른 체크아웃은 `git -C <경로> status|log|diff|show|rev-parse`처럼 조회만 하고, 설정 저장소의 `gh ... --repo <owner/repo>` 조회는 허용된다.
+보류·pause·한도 초과·allowlist 철회 상태에서도 coor의 조회·기록·로컬 파일 작업은 계속된다. hook은 worker 배정, push, GitHub 변경만 막는다. 한도를 넘었으면 `checkpoint --phase held --reason <근거> --resume <재개 조건>`으로 보류한다. disable·lease 만료 뒤의 coor는 자동 실행 중이 아니므로 자동 범위 제한을 받지 않고 사용자가 직접 운영한다. 이전 epoch의 worker는 fencing된다. 다른 host 세션으로 인계된 뒤에는 새 lease가 유효한 동안 이전 coor의 미완료 이슈 대상 외부 명령(worker 배정, push, PR 생성)도 막는다. 다른 체크아웃은 `git -C <경로> status|log|diff|show|rev-parse`처럼 조회만 하고, 설정 저장소의 `gh ... --repo <owner/repo>` 조회는 허용된다.
 
 ## 질문과 답변
 
@@ -69,4 +69,4 @@ completed 뒤에도 폴러가 그 draft PR을 본다. 완료 head의 check가 �
 
 `pause|resume|disable --session <enable에 사용한 session>`과 `status`를 사용한다. pause는 수집/새 claim을 멈추며 진행 worker는 별도 자연 경계 정책으로 처리한다. SessionEnd는 OFF, crash/접속 불명확은 lease 만료로 차단된다. 종료된 coor를 자동 재기동하지 않는다. 새 coor는 사용자가 명시적으로 enable하며 기존 active attempt는 reconciling이다. `reconcile --token-file <새 lease JSON 경로> --issue-id <id> --reason <정본 task/worker/receipt 확인 근거>`에서 기존 Run을 조회한 뒤 기존 작업을 인계한다. worker 부재/unverifiable는 재실행 허가가 아니다. 질문·댓글·대기열·증거는 보존하고 사람의 worktree/dirty 파일은 삭제하지 않는다.
 
-이전 coor가 실제 worker 배정 전에 중단됐음을 수신 receipt·명령 기록·종료 증거로 수동 확인한 경우에만 `reconcile --not-dispatched --token-file <새 lease JSON 경로> --issue-id <id> --reason <확인 근거>`를 쓴다. dispatch intent가 없고 기존 Run의 task/worker 전체 조회가 모두 명시적 0건일 때만 같은 attempt를 claimed로 인계한다. 단순 조회 부재만으로 이 옵션을 선택하지 않는다. 이전 receipt는 이력으로 보존하며 현재 coor가 새 수신 receipt로 running checkpoint를 기록한다.
+이전 coor가 실제 worker 배정 전에 중단됐음을 수신 receipt·명령 기록·종료 증거로 수동 확인한 경우에만 `reconcile --not-dispatched --token-file <새 lease JSON 경로> --issue-id <id> --reason <확인 근거>`를 쓴다. dispatch intent가 없고 기존 Run의 task/worker 전체 조회가 모두 명시적 0건일 때만 같은 attempt를 claimed로 인계한다. dispatch intent가 있으면 마지막 intent가 600초 지났고 현재 과제 키를 가진 task가 없으며 전체 조회가 완전할 때만 intent를 닫는다. 이 경우 job은 held가 되고 새 attempt와 새 과제 키로 재시도한다. 닫을 때마다 `max_attempts`를 한 번 쓴다. 단순 조회 부재만으로 이 옵션을 선택하지 않는다. 이전 receipt는 이력으로 보존하며 현재 coor가 새 수신 receipt로 running checkpoint를 기록한다.

@@ -67,26 +67,55 @@ def route_of(root, key):
 
 
 def targets(tool):
-    """도구 입력에서 (셸 명령, [(수정 경로, 새 내용 또는 None)])"""
+    """도구 입력에서 (셸 명령, [(수정 경로, 새 내용·부분 편집 목록(edited가 풂) 또는 None)])"""
     command = tool.get('command') or tool.get('cmd') or ''
     if isinstance(command, list):
         command = ' '.join(map(str, command))
     files = []
     path = tool.get('file_path') or tool.get('path') or tool.get('target_file')
     if isinstance(path, str):
-        files.append((path, tool.get('content')))
+        edits = tool.get('edits') if isinstance(tool.get('edits'), list) else [tool] if 'old_string' in tool else None
+        files.append((path, tool.get('content', tool.get('contents')) if edits is None else [
+            (e['old_string'], e['new_string'], bool(e.get('replace_all'))) for e in edits
+            if isinstance(e, dict) and isinstance(e.get('old_string'), str) and isinstance(e.get('new_string'), str)]))
     if command.lstrip().startswith('*** Begin Patch'):  # 패치 본문은 실행 명령이 아니다
-        chunks = re.split(r'^\*\*\* (?:Add|Update) File: (.+)$', command, flags=re.M)
-        for name, body in zip(chunks[1::2], chunks[2::2]):
+        chunks = re.split(r'^\*\*\* (Add|Update|Delete) File: (.+)$', command, flags=re.M)
+        for kind, name, body in zip(chunks[1::3], chunks[2::3], chunks[3::3]):
             moved = re.search(r'^\*\*\* Move to: (.+)$', body, flags=re.M)
-            added = [line[1:] for line in body.splitlines() if line.startswith('+')]
-            files.append(((moved.group(1) if moved else name).strip(),
-                          '\n'.join(added) if added else None))
+            added = '\n'.join(line[1:] for line in body.splitlines() if line.startswith('+'))
+            if moved:  # 원본은 사라진다. shortcut: 대상은 추가 줄만 본다, 인박스로 옮기는 흐름이 생기면 원본+hunk로 계산한다
+                files += [(name.strip(), ''), (moved.group(1).strip(), added or None)]
+            else:
+                files.append((name.strip(), hunk_edits(body) if kind == 'Update' else added))
         command = ''
     return expand(command), files
 
 
-ASSIGN = re.compile(r"""(?:^|(?<=[\s;&(]))(?:export\s+|\$)?([A-Za-z_]\w*)\s*=\s*(?:'([\w.-]+)'|"([\w.-]+)"|([\w.-]+)(?=[\s;&)]|$))""", re.M)
+def hunk_edits(body):
+    """apply_patch의 Update 본문을 (찾을 글, 바꿀 글, 전부 바꿈) 목록으로 읽는다. 각 묶음의 첫 줄은 머리글이나 @@ 줄의 나머지다."""
+    edits = []
+    for hunk in re.split(r'^@@.*$', body, flags=re.M):
+        lines = hunk.splitlines()[1:]
+        edits.append(('\n'.join(line[1:] for line in lines if line[:1] in ('', ' ', '-')),
+                      '\n'.join(line[1:] for line in lines if line[:1] in ('', ' ', '+')), False))
+    return edits
+
+
+def edited(root, name, content):
+    """부분 편집을 현재 파일에 적용한 전문. 찾지 못한 조각은 도구가 실패할 편집이라 건너뛴다."""
+    if not isinstance(content, list):
+        return content
+    path = Path(name.replace('\\', '/'))
+    text = board.read(path if path.is_absolute() else root / path)
+    for before, after, every in content:
+        if before:
+            text = text.replace(before, after, -1 if every else 1)
+        elif after:  # 맥락 없는 패치 추가는 파일 끝에 붙는다
+            text = (text + '\n' if text else '') + after
+    return text
+
+
+ASSIGN =re.compile(r"""(?:^|(?<=[\s;&(]))(?:export\s+|\$)?([A-Za-z_]\w*)\s*=\s*(?:'([\w.-]+)'|"([\w.-]+)"|([\w.-]+)(?=[\s;&)]|$))""", re.M)
 
 
 def expand(command):
@@ -120,6 +149,8 @@ def inbox_denial(root, name, content):
     if parent != '.fullops-squad/handovers' or not filename.lower().endswith('.md') or filename == '_TEMPLATE.md':
         return None
     if not HANDOVER.fullmatch(relative):
+        if content == '' and path.is_file():
+            return None  # 기존 과제명 파일을 지우거나 pending으로 옮기는 정리는 생성이 아니다
         return ('현재 지시서는 역할 인박스 `handovers/to_<역할>.md`에 작성하세요. '
                 '다음 과제는 PLANS.md에 대기시키고 완료 기록은 handovers/logs/에 보존하세요. '
                 '기존 미완료 추가 자료는 handovers/pending/에서 참조하세요.')
@@ -487,6 +518,7 @@ def tool_denial(root, event, state):
     if not isinstance(tool, dict):
         return None
     command, files = targets(tool)
+    files = [(name, edited(root, name, content)) for name, content in files]
     if issue_state_exists(root):
         import issue_mode
         try:

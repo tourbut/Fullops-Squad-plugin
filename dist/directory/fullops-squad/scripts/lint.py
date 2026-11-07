@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import time
 import tokenize
@@ -49,6 +50,15 @@ SECRET = re.compile(r"""(?:password|passwd|pwd|api[_-]?key|apikey|secret(?:_key)
 SECRET_OK = re.compile(r"""[:=]\s*["'](?:test|example|dummy|placeholder|changeme|xxx|your_|<)|"""
                        r"""os\.environ|process\.env|import\.meta\.env|settings\.""", re.IGNORECASE)
 DEPENDENCY_FILES = ('package.json', 'pyproject.toml', 'requirements*.txt', 'go.mod', 'build.gradle*')
+KILL_WAIT_SECONDS = 5
+if os.name == 'nt':
+    import ctypes
+    KERNEL32 = ctypes.WinDLL('kernel32')  # 핸들이 64비트라 인자 형식을 정한다
+    KERNEL32.CreateJobObjectW.restype = ctypes.c_void_p
+    KERNEL32.CreateJobObjectW.argtypes = ctypes.c_void_p, ctypes.c_wchar_p
+    KERNEL32.AssignProcessToJobObject.argtypes = ctypes.c_void_p, ctypes.c_void_p
+    KERNEL32.TerminateJobObject.argtypes = ctypes.c_void_p, ctypes.c_uint
+    KERNEL32.CloseHandle.argtypes = ctypes.c_void_p,
 
 
 def git(repo, *args, data=False, env=None):
@@ -168,6 +178,13 @@ def changed(repo, base, head, env=None):
             items.append((None if status[0] == 'A' else path, None if status[0] == 'D' else path))
             i += 2
     return items
+
+
+def gitlinks(repo, base, head):
+    """diff 안의 서브모듈 항목 {(ref, 경로)}. blob이 없고, commit이 없으면 cat-file이 없는 경로처럼 답해 모드로만 가른다."""
+    fields = git(repo, 'diff', '--raw', '-z', '--no-renames', '--no-ext-diff', base, head, data=True).decode().split('\0')
+    return {(ref, path) for meta, path in zip(fields[::2], fields[1::2])
+            for ref, mode in zip((base, head), meta[1:].split()[:2]) if mode == '160000'}
 
 
 def read_blobs(repo, wanted):
@@ -300,6 +317,42 @@ def changed_paths(repo, base, head):
     return sorted({p for pair in changed(repo, base, head) for p in pair if p})
 
 
+def kill_tree(process, job):
+    """자식만 끝내면 손자가 출력 파이프를 쥐고 있어 communicate가 돌아오지 않는다. job·프로세스 그룹은 자식이 먼저 끝나도 손자를 찾는다"""
+    if os.name == 'nt':
+        KERNEL32.TerminateJobObject(job, 1)
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except OSError:  # 그룹이 이미 비었다
+            pass
+    process.kill()
+
+
+def run_tree(run, cwd, timeout):
+    """(종료코드, 출력). timeout·중단 때 프로세스 트리를 끝내고, 트리를 벗어난 자손이 쥔 파이프는 오래 기다리지 않는다"""
+    process = subprocess.Popen(run, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                               encoding='utf-8', errors='replace', start_new_session=True)  # Windows는 무시한다
+    job = None
+    if os.name == 'nt':
+        # shortcut: Popen 반환과 job 할당 사이에 자식이 띄운 프로세스는 job 밖이다. 실제로 놓치면 CREATE_SUSPENDED로 시작한다
+        job = KERNEL32.CreateJobObjectW(None, None)
+        KERNEL32.AssignProcessToJobObject(job, process._handle)  # 실패하면 process.kill과 제한 대기만 남는다
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+        return process.returncode, stdout + stderr
+    except subprocess.TimeoutExpired:
+        kill_tree(process, job)
+        stdout, stderr = process.communicate(timeout=KILL_WAIT_SECONDS)
+        raise subprocess.TimeoutExpired(run, timeout, stdout, stderr) from None
+    except BaseException:  # 새 세션의 자식에게는 Ctrl+C가 닿지 않는다
+        kill_tree(process, job)
+        raise
+    finally:
+        if os.name == 'nt':
+            KERNEL32.CloseHandle(job)
+
+
 def run_command(repo, command, timeout, logs=None):
     """logs 폴더가 있으면 전체 출력을 `<이름>.log`로 남긴다. 결과에는 마지막 40줄과 그 경로만 둔다"""
     entry = {'name': command['name'], 'kind': command.get('kind', 'lint'),
@@ -307,9 +360,8 @@ def run_command(repo, command, timeout, logs=None):
     started = time.monotonic()
     try:
         run = [shutil.which(command['run'][0]) or command['run'][0], *command['run'][1:]]  # Windows의 npx.cmd 등
-        done = subprocess.run(run, cwd=repo / entry['cwd'], capture_output=True, text=True,
-                              timeout=timeout, encoding='utf-8', errors='replace')
-        status, code, output = 'passed' if done.returncode == 0 else 'failed', done.returncode, done.stdout + done.stderr
+        code, output = run_tree(run, repo / entry['cwd'], timeout)
+        status = 'passed' if code == 0 else 'failed'
     except OSError as error:  # 실행 파일·cwd 없음, 권한·형식 오류
         status, code, output = 'unavailable', None, str(error)
     except subprocess.TimeoutExpired as error:
@@ -370,8 +422,10 @@ def lint(repo, base_ref, raise_level=None):
                            'message': '이 브랜치의 lint 설정 변경은 적용하지 않았습니다. 병합 후 적용되니 변경 이유를 검토하세요'})
     items = changed(repo, merge_base, head)
     index_path = '.fullops-squad/' + deliverables.INDEX
-    contents = read_blobs(repo, [(head, index_path)] + [(head, path) for _, path in items if path] +
-                          [(merge_base, old) for old, path in items if old and path and not matches(path, config['exclude'])])
+    links = gitlinks(repo, merge_base, head)
+    wanted = ([(head, index_path)] + [(head, path) for _, path in items if path] +
+              [(merge_base, old) for old, path in items if old and path and not matches(path, config['exclude'])])
+    contents = {**read_blobs(repo, [key for key in wanted if key not in links]), **dict.fromkeys(links)}  # 바이너리처럼 내용 검사를 건너뛴다
     index = deliverables.index_rows(contents[head, index_path] or '')
     for old_path, path in items:
         target = path or old_path
