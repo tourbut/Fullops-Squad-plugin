@@ -65,8 +65,6 @@ class SearchIndex(unittest.TestCase):
         api = next(item for item in first if item['path'] == 'api.py')
         self.assertEqual(api['definitions'][0]['signature'], 'fetch_user(user_id)')
         doc = next(item for item in first if item['path'] == 'guide.md')
-        self.assertEqual(doc['status'], 'approved')
-        self.assertEqual(doc['statuses'], {'D05': 'review', 'D06': 'approved'})
         self.assertEqual(doc['headings'], ['응답'])
         path = index.cache_path(self.repo, 'code')
         before = path.stat().st_mtime_ns
@@ -164,7 +162,7 @@ class SearchIndex(unittest.TestCase):
         self.assertFalse({'.env', 'secret-body.py', 'image', 'link.py'} & set(mapped))
         self.assertEqual(mapped['unsupported.rs']['definitions'], [])
         self.assertEqual(mapped['invalid.py']['definitions'], [])
-        self.assertIsNone(mapped['invalid.md']['statuses'])
+        self.assertEqual(mapped['invalid.md']['headings'], ['Invalid approval metadata'])
         self.assertIn('large.py', mapped)
         self.assertNotIn('sensitive-value', index.cache_path(self.repo, 'code').read_text(encoding='utf-8'))
 

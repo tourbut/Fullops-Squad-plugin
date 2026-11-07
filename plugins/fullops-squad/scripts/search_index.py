@@ -107,16 +107,12 @@ def parse(path, sha, text, size):
         return entry
     try:
         meta, body = split(text) if path.endswith('.md') else (None, text)
-        json.dumps(meta, allow_nan=False)
     except (ValueError, RecursionError):
         meta, body = None, text
     entry['summary'] = ((' — '.join(str(meta.get(k, '')) for k in ('title', 'summary') if meta.get(k)) if meta else '')
                         or header_summary(body, Path(path).suffix.lower()))[:240]
     if path.endswith('.md'):
         entry['headings'] = [v[:160] for v in re.findall(r'(?m)^#{1,6}\s+(.+)', body)[:24]]
-        # 승인 상태와 다중 D번호별 상태는 원문 그대로 보존한다.
-        entry['status'] = (meta or {}).get('status')
-        entry['statuses'] = (meta or {}).get('statuses')
     elif path.endswith('.py') and size <= MAX_BLOB:
         try:
             nodes = [n for n in ast.walk(ast.parse(text)) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
