@@ -94,7 +94,9 @@ class Delegation(unittest.TestCase):
                 self.assertIn('읽기 전용', flow_gate.delegation_denial(self.repo, event, {}, config, [], True) or '', prompt)
             for prompt in ('Purpose: research; read only; inspect x.py and report findings',
                            'Purpose: review; Read only: true; inspect x.py; do not edit files',
-                           'Purpose: research; 읽기 전용; x.py를 읽고 결과만 보고해'):
+                           'Purpose: research; 읽기 전용; x.py를 읽고 결과만 보고해',
+                           'Purpose: review; Read only: true; Task: K1; npm test를 실행하고 고치지 않고 보고만 한다',
+                           'Purpose: review; Read only: true; Task: K1; run npm test at the SHA, do not fix, report output'):
                 event['tool_input'] = {'message': prompt}
                 self.assertIsNone(flow_gate.delegation_denial(self.repo, event, {}, config, [], True), prompt)
         write = ['orca orchestration worker-start --run r --spec "Purpose: research; read only; edit x.py"']
