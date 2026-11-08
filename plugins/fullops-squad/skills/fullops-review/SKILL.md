@@ -35,12 +35,31 @@ UI 작업은 핸드오버의 디자인 정본·테마 토큰·공용 컴포넌�
 2. 레포의 `.fullops-squad/review/rule.json`을 확인한다. setup에서 제품별 테스트·문서·씬·셰이더 등의 include와 생성물 exclude를 구성한다. include는 whitelist가 아니며 사용자 규칙은 첫 매칭으로 기본 언어 규칙을 대체한다. 기존 `.opencodereview/rule.json`을 통합할 때 이 의미를 보존한다. 기본 exclude는 검증 증거의 이미지·영상·원시 로그·백업(`*.bak`), Jev 테스트의 `play/` 상태·행동 파일, `docs/evaluations/jev/**`, `handovers/logs/**`이다. 수백 개의 증거 파일이 대상에 들어가면 파일마다 skipped 사유를 적느라 리뷰 토큰이 늘어난다. `review.py prepare`는 하네스 자동 생성 기록(`qa-reports/`, `docs/evaluations/jev/`, `handovers/logs/`)과 `*.bak`을 skipped와 공통 사유로 미리 채운다. 레포 규칙이 `**/*.json`을 include해도 같다. OCR 대상인 `qa-reports/`의 `.md` 보고서, 요약(`manifest.json`·`result.json`), 검증 스크립트는 직접 검토한다. 이전 리뷰 폴더(`*-review/`)와 그 밖의 원시 JSON은 생략한다. 그 밖의 제외 파일은 지금처럼 직접 판단한다. 제외된 증거는 manifest·`result.json`·`report.md` 같은 요약 파일로 존재와 무결성을 확인하고 report.md에 확인 방법을 적는다. 레포에서 증거를 더 쌓는 경로가 있으면 같은 방식으로 exclude에 더한다. 전역 규칙은 변경하지 않는다.
 3. 이 스킬 기준 `../../scripts/review.py`를 사용해 `python3 <review.py> prepare --repo <루트> --key <리뷰 키> --from <기준 ref> --to <worker ref>`를 실행한다. `--lint`가 없으면 prepare가 등록된 모든 worktree의 `<git dir>/fullops-gate/lint-result.json` 중 같은 base·HEAD·기준 설정으로 통과한 결과를 찾아 `lint.json`으로 복사한다. 다른 경로의 결과는 `--lint <결과 JSON>`으로 지정한다(6번 기준). SHA를 고정한 preview·rules·result와 front matter가 채워진 report 템플릿이 `docs/evaluations/qa-reports/<키>-review/`에 생성된다. 기존 기록은 덮어쓰지 않으므로 재리뷰는 새 키를 사용한다. Windows npm `ocr.cmd`에서는 cmd.exe 메타문자(`& | < > ^ % "`)가 든 파일명을 OCR 규칙 조회에서 뺀다. 이 파일은 pending으로 남으며 직접 검토한다. OCR CLI가 없거나 JSON 명령이 실패하면 실패를 보고하고 이 스킬 기준 `../../scripts/deps.py --host <지금 CLI>`로 의존성 설치를 안내한다.
 4. preview의 merge_base와 head로 Git diff를 읽는다. rules는 그룹당 한 번 읽고 관련 파일을 적절한 배치로 검토한다. 내부 코드는 diff와 관련 파일을 직접 검색해 읽고, 외부 SDK 근거는 Context7을 사용한다. OCR 제외 파일도 직접 확인하거나 구체적인 생략 사유를 남긴다. 삭제·이름 변경 영향도 검토한다. 요구사항·문서 템플릿·테스트 실행은 FullOps 검토 범위에 포함한다.
-5. result.json의 모든 `(path,status)`에 `review_status: reviewed/skipped`와 `reason`을 기록한다. reviewer와 conclusion을 채운다. review_schema_version=2이면 independence의 implementer_session/reviewer_session에 서로 다른 실제 세션 ID, snapshot_path에 별도 detached snapshot 절대경로, snapshot_head에 고정 head, read_only=true를 기록한다. snapshot은 변경하지 않고 결과/보고서는 기록 체크아웃에 쓴다. read_only 기록과 clean 검사는 OS 쓰기 격리가 아니다. 호스트에 이미 제공된 읽기 전용 실행 환경을 사용할 수 있으면 적용한다. check는 snapshot head·detached·clean 상태를 검증한다. 전환 전 고정 리뷰 기록은 원본을 보존한다. findings에는 `path`, `content`, 필요 시 `start_line/end_line`, `severity: critical/high/medium/low`, `resolved: true/false`를 기록한다. report.md에 발견 사항·재현·검증·커버리지·생략 영향·수락 결론을 같은 톤으로 작성한다. AI가 판단한 결과이며 OCR의 자동 판정으로 보고하지 않는다.
+5. result.json의 모든 `(path,status)`에 `review_status: reviewed/skipped`와 `reason`을 기록한다. reviewer와 conclusion을 채운다. review_schema_version=2이면 independence의 implementer_session/reviewer_session에 서로 다른 실제 세션 ID, snapshot_path에 별도 detached snapshot 절대경로, snapshot_head에 고정 head, read_only=true를 기록한다. snapshot은 변경하지 않고 결과/보고서는 기록 체크아웃에 쓴다. read_only 기록과 clean 검사는 OS 쓰기 격리가 아니다. 호스트에 이미 제공된 읽기 전용 실행 환경을 사용할 수 있으면 적용한다. check는 snapshot head·detached·clean 상태를 검증한다. 전환 전 고정 리뷰 기록은 원본을 보존한다. findings에는 `path`, `content`, 필요 시 `start_line/end_line`, `severity: critical/high/medium/low`, `resolved: true/false`를 기록한다. `severity`·`content` 작성 기준은 `## 리뷰 정책`을 따른다. report.md에 발견 사항·재현·검증·커버리지·생략 영향·수락 결론을 같은 톤으로 작성한다. AI가 판단한 결과이며 OCR의 자동 판정으로 보고하지 않는다.
 6. 기존 lint 증거를 우선 확인한다. 구현자의 `<git dir>/fullops-gate/lint-result.json` 또는 `--out` 결과가 같은 base·HEAD·기준 설정·검사 범위이고 관련 환경·의존성이 유지됐으면 prepare에 `--lint <결과 JSON>`을 지정한다. 원본 바이트를 보존하며 명령을 재실행하지 않는다. 환경 동일성은 자동 판정하지 않으므로 report.md에 원본 경로·실행 조건·확인 근거를 기록한다. 확인할 수 없거나 새 실패·증거 결함이 있으면 해당 범위를 검증하고, 유효한 lint 결과가 없으면 worker 체크아웃의 깨끗한 고정 SHA에서 `python3 <lint.py> --repo <루트> --from <기준 ref> --out <리뷰 폴더>/lint.json`을 실행한다. ERROR는 수락하지 않는다. WARNING·실행 불가의 reason·영향과 SIZE-002·DEP-001의 근거는 report.md에서 판단한다. 역할 변경만으로 전체 테스트를 반복하지 않는다. 코드 파일 변경이 없으면 lint.py가 `required`가 아닌 `kind: test` 명령을 skipped와 고정 사유로 기록하고 check가 이를 허용한다.
    리뷰어는 고정 SHA snapshot과 기존 증거만 읽는다. lint.py·전체 테스트 재실행, 구현자 워크트리의 파일 생성·수정, 임시 테스트 작성, 컨테이너·벤더 코드 탐색을 하지 않는다. 증거가 부족하면 수정 요청 finding으로 남긴다.
 7. `python3 <review.py> check --repo <루트> --key <키> [--task-key <과제 키>] --from <현재 기준 ref> --to <현재 worker ref>`를 실행한다. 리뷰 키가 과제 키와 다르면 `--task-key`를 넘긴다. check는 이 키로 탐색 패킷 완료 검사와 find 지표를 확인한다. 실제 병합 ref를 전달해야 SHA 변경을 감지한다. 대상 누락, 규칙 변경, pending, 미해결 critical/high, lint 결과 누락·SHA 불일치·ERROR·사유 없는 실행 불가는 실패다. check 통과는 기록 검사이며 skipped의 수락 가능성과 테스트 결과는 검토자가 판단한다. 수정 커밋이 추가되면 새 SHA로 다시 리뷰한다.
 8. 과제의 code/documents find 결과가 있으면 check가 실제 변경 파일과의 교집합 지표를 리뷰 폴더에 각각 남긴다. 이 지표는 참고 문서나 호출자/테스트의 필수 읽기 정확도가 아니다. packet의 영향·문서 read/update 후보는 별도의 기대 목록과 실제 확인 기록으로 평가한다. 리뷰 키가 과제 키와 다르면 check에 `--task-key <과제 키>`를 넘긴다. 수락 판단에는 쓰지 않는다.
 9. 보고서·검증 근거를 완료 기록에 연결하고 미해결 사항은 PLANS.md에 남긴다. GitHub 댓글 게시·자동 병합은 실행하지 않는다. 병합 책임자는 최신 SHA에 대한 리뷰 수락과 허가된 병합 범위를 확인한다.
+
+## 리뷰 정책
+
+검토자의 판단 기준이다. `review.py check`는 이 절을 판정하지 않는다. 이 절은 check의 critical/high 차단 범위를 넓히거나 좁히지 않는다.
+
+한 세션에서 세 관점으로 읽는다. 관점마다 검토자를 따로 띄우지 않는다. findings의 `content` 앞에 `[버그]`·`[보안]`·`[준수]` 또는 `[nit]`을 붙인다.
+
+- 버그: 논리 오류, 경계 조건, 회귀.
+- 보안: `rules/common/security.md`.
+- 준수: 지시서의 완료 기준·`증명 방법`·`상위 의도`의 성공 기준, 요구사항·설계 정본, UI 디자인 정본을 diff와 대조한다. 인박스가 비었으면 `handovers/logs`의 보관본을 읽는다.
+
+심각도는 다음과 같다.
+
+- critical/high: 병합 전에 반드시 고쳐야 할 결함이다. 미해결이면 check가 실패한다.
+- medium: 결함이나 기준 미달이지만 병합 자체는 위험하지 않다. 미해결이면 결론에 처분(병합 전 수정, 후속 과제 키, 소유자 결정)을 적는다.
+- low: 수락을 막지 않는다. 실제 결함도 low일 수 있다. 미해결이면 PLANS.md 후속으로 남긴다.
+- nit: 동작에 영향이 없는 표기·명명·문구다. severity는 low로 적는다. 리뷰당 5건까지 findings에 적고 나머지는 report.md에 건수만 적는다. 결함과 준수 지적은 세지 않으며, 애매하면 nit으로 치지 않는다.
+
+완료 기준 미달은 medium 이상으로 적는다.
 
 ## 임시 리뷰 snapshot의 수명
 

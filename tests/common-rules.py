@@ -94,6 +94,8 @@ class CommonRulesTests(unittest.TestCase):
         self.assertIn('## 작업 검증\n', project)
         self.assertIn('## 자주 틀리는 것\n', project)
         self.assertIn('## 검증 하위 작업(verifier)\n', (ASSETS / 'rules/delegation.md').read_text(encoding='utf-8'))
+        self.assertIn('## 리뷰 정책\n', (PLUGIN / 'skills/fullops-review/SKILL.md').read_text(encoding='utf-8'))
+        self.assertIn('기준별 충족/미달', (ASSETS / 'review/_REPORT.md').read_text(encoding='utf-8'))
         for name in ('setup-fullops', 'fullops-work', 'fullops-review', 'fullops-orca'):
             self.assertIn('.fullops-squad/rules/common/README.md',
                           (PLUGIN / 'skills' / name / 'SKILL.md').read_text(encoding='utf-8'))
