@@ -23,6 +23,21 @@ setup에서 이 레포를 직접 확인하고 채운다. 원본 템플릿의 기
 개발 문서 기본 경로는 `.fullops-squad/docs/`다. 기존 정본이 있으면 이동·복제하지 말고 아래 매핑과 산출물 인덱스를 해당 경로로 갱신한다.
 외부 스킬의 `docs/agents/`는 이 레포에서 `.fullops-squad/docs/agents/`를 가리킨다.
 
+## 작업 검증
+
+변경이 동작하는지 보일 때 먼저 쓰는 명령이다. 지시서의 `증명 방법`이 따로 정하지 않으면 이 명령을 쓴다. 현재 `test_level`(lite)에서 실제로 도는 명령이다. 바뀐 경로에 해당하는 시험을 함께 실행한다. `npm test`는 `level: full`이라 lite에서 skipped된다.
+
+| 항목 | 값 |
+|---|---|
+| 명령과 실행 위치 | 커밋 뒤 레포 루트에서 `python3 plugins/fullops-squad/scripts/lint.py --repo . --from main` |
+| 기대 출력 | 종료코드 0, 마지막 줄의 `ERROR 0`과 `실행 불가 0`. 예: `head f86bb4aea2bb / 파일 14 / ERROR 0 / WARNING 0 / 실행 불가 0` |
+
+## 자주 틀리는 것
+
+같은 실수가 두 번째 나오면 `실수 → 올바른 방법 (근거 링크)` 한 줄을 여기에 추가한다. 첫 발생은 `contexts/<역할>.md`의 교훈으로 남기고, 두 번째인지는 거기서 판단한다. 정규식으로 잡을 수 있는 실수는 `lint/lint.json`의 `rules`로 옮기도록 제안한다.
+
+- Orca `task-list`·`worker-list`·`run-current`·`run-show`를 `--full` 없이 읽는다 → 기본 응답에는 `run`·`spec`·`count`·`page`가 없으므로 `--full`을 붙인다. 시험 대역도 실제 `--full` 응답 모양을 따른다 ([CLEANUP-FOLLOWUPS 1·2차 리뷰](docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md)).
+
 ## 공통 기준의 적용과 예외
 
 공통 규칙은 기존 정본이 없는 부분의 기본값이다. 언어 관례·아키텍처·테스트 종류·커버리지는 실제 프로젝트 기준에 연결하고 기존 요구 수준을 낮추지 않는다. 보안·권한·리뷰 수락 기준은 임의 완화하지 않는다.
