@@ -61,7 +61,7 @@ summary: 현재 작업
 - `sync`가 `--full` worker 목록 전체를 history에 쌓는다. 100행이면 호출당 약 200KB다(low). 재개 조건: 상태 파일 크기 문제 발생.
 - `flow_gate.task_listing`이 `integration.task_list`와 중복이다(low). 시험이 `flow_gate.orca`를 바꿔 끼우므로 함께 정리한다.
 - 3차 리뷰 low 5건: `integration.record`가 기본 `check` 메시지에 없는 `run_id`를 읽어 bound Run의 task 목록을 쓴다. 그 시험 대역이 이 차이를 숨긴다. `orca_wait.summarize`가 기본 메시지에 없는 `from_handle`·`created_at`을 읽는다(표시 전용). `nohup`으로 SIGHUP을 무시한 lint도 터미널 종료에 중단된다. reconcile의 worker-list 대역이 `--full`을 무시한다. 재개 조건: 다음 integration·lint 변경.
-- 하네스 충돌: 리뷰어 배정 게이트(`route_key_denial`)가 리뷰 키의 route 기록을 요구하는데, `jev_route.py`가 만든 route는 `requires_packet`을 켜서 dev 직접 작업 리뷰의 `review.py check`가 "탐색 패킷이 없습니다"로 실패한다. 이번에는 배정 뒤 커밋하지 않은 `CLEANUP-FOLLOWUPS-R3-route.json`을 지웠다. 그 분류(design → architecture)도 사실과 달랐다. 재개 조건: 다음 FullOps 하네스 수정.
+- 하네스 충돌: 리뷰어 배정 게이트(`route_key_denial`)가 리뷰 키의 route 기록을 요구하는데, `jev_route.py`가 만든 route는 `requires_packet`을 켜서 dev 직접 작업 리뷰의 `review.py check`가 "탐색 패킷이 없습니다"로 실패한다. `work.py finish`도 같은 이유로 실패한다. 이번에는 게이트 통과용으로 만든 `CLEANUP-FOLLOWUPS-route.json`(81002f2)과 커밋하지 않은 `CLEANUP-FOLLOWUPS-R3-route.json`을 지웠다. 두 분류(design → architecture)도 사실과 달랐다. 원본은 Git 이력에 남는다. 재개 조건: 다음 FullOps 하네스 수정.
 - 리뷰 뒤 기록 커밋을 더하면 done-gate의 `direct_check`가 HEAD와 리뷰 SHA가 달라 리뷰 기록이 없다고 막는다. main 병합 뒤에는 풀린다. 재개 조건: 다음 FullOps 하네스 수정.
 - 이전 coor의 bare `git push`, `gh issue comment 2`는 fencing을 통과한다(low). `complete`의 head SHA 확인으로 피해가 제한된다. 재개 조건: 실제 발생 또는 다음 이슈 모드 변경.
 - meter가 일시 읽기 실패로 얻은 경로를 60초 캐시한다(low). 표시 전용이다. 재개 조건: 다음 meter 변경.
