@@ -265,7 +265,8 @@ else:
         assert done.returncode == 2 and 'exists' in done.stderr, done.stderr
         assert plain.read_bytes() == previous
 
-        # Failures exit 1 with render.mjs's own message, not a crash that skips browser.close(), and leave no file.
+        # Failures exit 1 with render.mjs's own message, not a crash that skips browser.close(). These cases fail before
+        # ffmpeg writes, so no file is left; an ffmpeg that dies mid-encode can still leave a partial file.
         # The long --duration keeps frames coming after ffmpeg has already died.
         broken = root / 'broken.html'
         broken.write_text("<!doctype html><script>window.seek = t => { if (t >= 0.5) throw new Error('boom') }</script>", encoding='utf-8')
