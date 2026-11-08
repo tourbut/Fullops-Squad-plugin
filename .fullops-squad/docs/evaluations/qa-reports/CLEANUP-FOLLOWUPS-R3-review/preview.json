@@ -1,0 +1,582 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": "C:/Users/shin/orca/workspaces/Fullops-Squad-plugin/dev",
+  "from": "0cea3b8b990c2f40fc549a36772b1b6381a007f5",
+  "to": "5bc36e565a833a3da696db7fd137aa23166c3cde",
+  "merge_base": "0cea3b8b990c2f40fc549a36772b1b6381a007f5",
+  "total_files": 87,
+  "reviewable_count": 45,
+  "excluded_count": 42,
+  "total_insertions": 6029,
+  "total_deletions": 533,
+  "reviewable_files": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 19,
+      "deletions": 6
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-R2-review/lint.json",
+      "status": "added",
+      "insertions": 204,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-R2-review/preview.json",
+      "status": "added",
+      "insertions": 532,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-R2-review/report.md",
+      "status": "added",
+      "insertions": 181,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-R2-review/result.json",
+      "status": "added",
+      "insertions": 797,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-R2-review/rules.json",
+      "status": "added",
+      "insertions": 92,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-review/lint.json",
+      "status": "added",
+      "insertions": 197,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-review/preview.json",
+      "status": "added",
+      "insertions": 462,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-review/report.md",
+      "status": "added",
+      "insertions": 96,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-review/result.json",
+      "status": "added",
+      "insertions": 679,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-review/rules.json",
+      "status": "added",
+      "insertions": 77,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md",
+      "status": "added",
+      "insertions": 57,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "status": "modified",
+      "insertions": 90,
+      "deletions": 0
+    },
+    {
+      "path": "docs/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 19,
+      "deletions": 1
+    },
+    {
+      "path": "docs/search-index.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3
+    },
+    {
+      "path": "mods/fullops-meter/README.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "mods/fullops-meter/hooks/cache.test.ts",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 3
+    },
+    {
+      "path": "mods/fullops-meter/hooks/flow.test.ts",
+      "status": "modified",
+      "insertions": 29,
+      "deletions": 7
+    },
+    {
+      "path": "mods/fullops-meter/hooks/flow.ts",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 9
+    },
+    {
+      "path": "mods/fullops-meter/hooks/fullops.test.ts",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "mods/fullops-meter/hooks/fullops.ts",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "mods/fullops-meter/hooks/meter.test.ts",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 3
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.test.tsx",
+      "status": "added",
+      "insertions": 68,
+      "deletions": 0
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.tsx",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 39
+    },
+    {
+      "path": "mods/fullops-meter/types/index.d.ts",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 6
+    },
+    {
+      "path": "package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 47,
+      "deletions": 9
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 174,
+      "deletions": 59
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 75,
+      "deletions": 7
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 10
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/search_index.py",
+      "status": "modified",
+      "insertions": 63,
+      "deletions": 49
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-motion/render.mjs",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1
+    },
+    {
+      "path": "tests/flow-gate.py",
+      "status": "modified",
+      "insertions": 35,
+      "deletions": 3
+    },
+    {
+      "path": "tests/handover-rules.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 0
+    },
+    {
+      "path": "tests/integration-gate.py",
+      "status": "modified",
+      "insertions": 22,
+      "deletions": 0
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "status": "modified",
+      "insertions": 219,
+      "deletions": 9
+    },
+    {
+      "path": "tests/lint.py",
+      "status": "modified",
+      "insertions": 88,
+      "deletions": 0
+    },
+    {
+      "path": "tests/motion.py",
+      "status": "modified",
+      "insertions": 97,
+      "deletions": 6
+    },
+    {
+      "path": "tests/npm-installer.cjs",
+      "status": "modified",
+      "insertions": 153,
+      "deletions": 0
+    },
+    {
+      "path": "tests/review-check.py",
+      "status": "modified",
+      "insertions": 184,
+      "deletions": 1
+    },
+    {
+      "path": "tests/search-index.py",
+      "status": "modified",
+      "insertions": 32,
+      "deletions": 10
+    },
+    {
+      "path": "tests/setup-scope.py",
+      "status": "added",
+      "insertions": 86,
+      "deletions": 0
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/CLEANUP-FOLLOWUPS-R2-model-reviewer.json",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/CLEANUP-FOLLOWUPS-R2-route.json",
+      "status": "added",
+      "insertions": 62,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/CLEANUP-FOLLOWUPS-model-reviewer.json",
+      "status": "added",
+      "insertions": 13,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/jev/CLEANUP-FOLLOWUPS-route.json",
+      "status": "added",
+      "insertions": 60,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/design-docs/diagrams/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/active/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/completed/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/discarded/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/sprint-contracts/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/planning/meeting-logs/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 19,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 47,
+      "deletions": 9,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 174,
+      "deletions": 59,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 75,
+      "deletions": 7,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 10,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/search_index.py",
+      "status": "modified",
+      "insertions": 63,
+      "deletions": 49,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-motion/render.mjs",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/design-docs/diagrams/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/active/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/completed/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/discarded/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/sprint-contracts/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/planning/meeting-logs/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 19,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 47,
+      "deletions": 9,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 174,
+      "deletions": 59,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 75,
+      "deletions": 7,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 10,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/search_index.py",
+      "status": "modified",
+      "insertions": 63,
+      "deletions": 49,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-motion/render.mjs",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/design-docs/diagrams/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/active/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/completed/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/discarded/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/sprint-contracts/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/planning/meeting-logs/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted"
+    }
+  ],
+  "fullops_review_schema_version": 2
+}

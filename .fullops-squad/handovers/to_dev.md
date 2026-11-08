@@ -79,12 +79,12 @@ UI 작업이 아니라 디자인 기준은 해당 없음이다.
 
 ## 완료 보고
 
-- 브랜치 / 구현 SHA: `fullops/dev` / 7ef2723
+- 브랜치 / 구현 SHA: `fullops/dev` / 5bc36e565a83(3차 리뷰 수락 SHA)
 - 변경 이유: PR #126에서 후속으로 남긴 8개 묶음을 처리한다(결정 D014).
 - 판단: Workflow로 파일 소유권을 나눠 병렬 구현했다. 부모가 `deps.py` 패치, 시험 등록, 문서, dist를 맡고 결과를 대조했다. 캐시 status·statuses는 결정 D016으로 제거했다.
-- 검토 필요: `review.py need`는 ask다(결정 D015로 독립 리뷰). 1차는 수락 불가였고 7ef2723에서 고쳤다.
+- 검토: `review.py need`는 ask다(결정 D015). 1차·2차는 Orca `--full` 누락으로 수락 불가였다. 3차(CLEANUP-FOLLOWUPS-R3)가 수락했고 `review.py check`가 통과했다. 결정 D017로 CI 공백은 후속이다.
 - 검증한 것: `npm test` 통과, 실제 Orca 1.4.251 조회 확인, Linux 시험. 상세는 [report.md](../docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md)에 있다.
 - 못 한 것: 실제 GitHub·이슈 자동 모드 전체 흐름, macOS, 실제 agy 세션.
 - DEP-001: `package.json`은 test 스크립트만 바뀌었다. 의존성 변경은 없다.
 - SIZE-002: 8개 묶음을 한 과제에서 처리해 상한을 넘었다. 그룹별 커밋으로 나눴다.
-- 남은 일: 재리뷰, main 병합 승인. 리뷰 후속은 PLANS.md에 있다.
+- 남은 일: main 병합은 사용자 승인을 기다린다. 리뷰 후속과 하네스 충돌 2건은 PLANS.md에 있다.
