@@ -535,8 +535,9 @@ def main():
     parser.add_argument('--level', choices=policy.LEVELS, help='기준 test_level보다 높일 때만 쓴다(예: 통합 후보 full 회귀)')
     args = parser.parse_args()
     lock = None
-    if os.name != 'nt':  # 새 세션의 자식에게는 lint 프로세스 그룹의 SIGTERM이 닿지 않는다. 중단과 같게 정리한다
+    if os.name != 'nt':  # 새 세션의 자식에게는 lint 프로세스 그룹의 SIGTERM·SIGHUP이 닿지 않는다. 중단과 같게 정리한다
         signal.signal(signal.SIGTERM, signal.default_int_handler)
+        signal.signal(signal.SIGHUP, signal.default_int_handler)
     try:
         repo = active_repo(args.repo)
         lock = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-lint.lock'

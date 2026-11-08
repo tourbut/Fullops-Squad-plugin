@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/fullops-squad/scripts'
 
@@ -208,6 +209,27 @@ def concurrent_record():
             assert saved['key'] == f'K{n}' and saved['sha'] == f'abcdef{n}', saved
 
 
+def review_report_not_merged():
+    """리뷰어의 worker_done은 병합 대상이 아니다. Purpose는 task spec에 있고 spec은 --full일 때만 온다(Orca 1.4.251)."""
+    sys.path.insert(0, str(SCRIPTS))
+    import integration
+    with tempfile.TemporaryDirectory(prefix='fullops-review-report-') as tmp:
+        repo = Path(tmp)
+        subprocess.run(['git', 'init', '-q', tmp], check=True)
+        (repo / '.fullops-squad').mkdir()
+        (repo / '.fullops-squad/fullops.json').write_text('{}', encoding='utf-8')
+
+        def tasks(*args, **_):
+            spec = {'spec': 'Task key: K1; Purpose: review'} if '--full' in args else {'title': 'x'}
+            return {'tasks': [{'id': 'task_1', 'status': 'completed', **spec}]}
+        message = {'type': 'worker_done', 'id': 'm1', 'run_id': 'run_1', 'payload': {'taskId': 'task_1'},
+                   'body': '[완료] K1 | 브랜치 detached | SHA abcdef1'}
+        with patch.object(integration, 'orca', side_effect=tasks):
+            integration.record(repo, [message])
+        assert not list(integration.directory(repo).glob('*.json'))
+
+
 if __name__ == '__main__':
+    review_report_not_merged()
     concurrent_record()
     main()

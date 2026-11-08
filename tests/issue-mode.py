@@ -73,6 +73,17 @@ class Orca:
         return 'incarnation'
 
 
+def orca_answers(caller, pane, run='run'):
+    """Orca 1.4.251처럼 run은 --full일 때만 준다. 기본 응답은 runId뿐이다."""
+    def call(*args):
+        if args[0] == 'status':
+            return caller
+        if args[0] == 'terminal':
+            return pane
+        return {'run': {'id': run}} if '--full' in args else {'runId': run, 'objective': 'x'}
+    return call
+
+
 def issue(number, author=42, **changes):
     return {'id': 100 + number, 'repository_id': 7, 'number': number,
             'title': 'work ' + str(number), 'body': 'requirement', 'created_at': iso(time.time()),
@@ -277,17 +288,17 @@ def main():
     adapter = mode.Orca('orca')
     caller = {'caller': {'orcaSessionId': 'coor', 'live': True}}
     pane = {'terminal': {'handle': 'term', 'connected': True, 'incarnationId': 'incarnation'}}
-    with patch.object(adapter, 'call', side_effect=[caller, pane, {'run': {'id': 'run'}}]) as call:
+    with patch.object(adapter, 'call', side_effect=orca_answers(caller, pane)) as call:
         assert adapter.identity('coor', 'run', 'term') == 'incarnation'
         assert call.call_args_list[1].args == ('terminal', 'show', '--terminal', 'term')
-        assert call.call_args_list[2].args == ('orchestration', 'run-current', '--from', 'term')
+        assert call.call_args_list[2].args == ('orchestration', 'run-current', '--from', 'term', '--full')
     for status in ({}, {'caller': {'orcaSessionId': 'coor', 'live': False}}):
         with patch.object(adapter, 'call', return_value=status) as call:
             fails(lambda: adapter.identity('coor', 'run', 'term'), 'identity')
             assert call.call_count == 1
     native = {'provider_session': 'host', 'orca_terminal': 'term'}
     with patch.dict('os.environ', {'ORCA_TERMINAL_HANDLE': 'term', 'ORCA_AGENT_SESSION_ID': ''}):
-        with patch.object(adapter, 'call', side_effect=[{}, pane, {'run': {'id': 'run'}}]):
+        with patch.object(adapter, 'call', side_effect=orca_answers({}, pane)):
             assert adapter.identity('provider_session:host', 'run', 'term', 'host', native) == 'incarnation'
         for session, terminal, receipt in (('provider_session:other', 'term', native),
                                            ('provider_session:host', 'other', native),
@@ -597,7 +608,8 @@ def main():
                                            'git': {'remote': 'origin', 'base': 'main'}}))
         nested = ['orca', 'orchestration', 'worker-start', '--run', 'child-run', '--spec', resumed['task_key']]
         authority = {'run': {'id': 'child-run', 'coordinator_handle': 'worker-term'}}
-        with patch.object(mode.integration, 'orca', return_value=authority):
+        concise = {'runId': 'child-run', 'objective': 'x', 'removedWork': False}  # Orca 1.4.251: run은 --full일 때만 온다
+        with patch.object(mode.integration, 'orca', side_effect=lambda *args, **_: authority if '--full' in args else concise):
             assert mode.boundary(root, 'worker', ' '.join(nested), [], [nested], context) is None
             assert 'child-run' not in store.read()['jobs']['101'].get('child_runs', {})  # validation does not reserve
         # A fresh worker proof is saved after the reserve snapshot, then checked inside the writer.
@@ -670,6 +682,8 @@ def main():
                 child = 'child-run' in args
                 task_id = 'task_child' if child else 'task_auto'
                 status = self.child_status if child else 'completed'
+                if 'task-list' in args and '--full' not in args:  # Orca 1.4.251의 기본 응답
+                    return {'tasks': [{'id': task_id, 'status': status, 'title': 'x'}]}
                 if 'task-list' in args:
                     result = {'tasks': [{'id': task_id, 'status': status, 'spec': resumed['task_key']}],
                               'count': self.child_task_count if child else 1}
@@ -970,6 +984,8 @@ def main():
         class SettledOrca:
             def call(self, *args):
                 key = store.read()['jobs']['101']['task_key']
+                if 'task-list' in args and '--full' not in args:  # Orca 1.4.251의 기본 응답
+                    return {'tasks': [{'id': 'task', 'status': 'failed', 'title': 'x'}]}
                 if 'task-list' in args:
                     return {'tasks': [{'id': 'task', 'status': 'failed', 'spec': 'Task key: ' + key}]}
                 return {'workers': [{'taskId': 'task', 'projection': {'liveness': {'verdict': self.verdict}}}]}

@@ -93,9 +93,10 @@ def main():
 
         # task-create + worker-start --task: 과제 spec에서 키를 찾는다(가짜 Orca task-list)
         tl = repo / '.git/fake-tasks.py'
-        tl.write_text('import json\nprint(json.dumps({"ok": True, "result": {"tasks": ['
-                      '{"id": "task_ok", "spec": "Task key K1 follow-up"}, {"id": "task_bad", "spec": "Task key loose-check"}]}}))\n',
-                      encoding='utf-8')
+        tl.write_text('import json, sys\ntasks = ['  # Orca 1.4.251: spec은 --full일 때만 온다
+                      '{"id": "task_ok", "spec": "Task key K1 follow-up"}, {"id": "task_bad", "spec": "Task key loose-check"}]\n'
+                      'rows = tasks if "--full" in sys.argv else [{"id": t["id"], "status": "ready", "title": "x"} for t in tasks]\n'
+                      'print(json.dumps({"ok": True, "result": {"tasks": rows}}))\n', encoding='utf-8')
         tcli = repo / '.git' / ('fake-tasks.cmd' if os.name == 'nt' else 'fake-tasks')
         if os.name == 'nt':
             tcli.write_text(f'@"{sys.executable}" "{tl}" %*\n', encoding='utf-8')

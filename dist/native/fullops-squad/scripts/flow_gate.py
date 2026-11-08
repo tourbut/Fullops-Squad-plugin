@@ -116,7 +116,7 @@ def edited(root, name, content):
     return text
 
 
-ASSIGN =re.compile(r"""(?:^|(?<=[\s;&(]))(?:export\s+|\$)?([A-Za-z_]\w*)\s*=\s*(?:'([\w.-]+)'|"([\w.-]+)"|([\w.-]+)(?=[\s;&)]|$))""", re.M)
+ASSIGN = re.compile(r"""(?:^|(?<=[\s;&(]))(?:export\s+|\$)?([A-Za-z_]\w*)\s*=\s*(?:'([\w.-]+)'|"([\w.-]+)"|([\w.-]+)(?=[\s;&)]|$))""", re.M)
 
 
 def expand(command):

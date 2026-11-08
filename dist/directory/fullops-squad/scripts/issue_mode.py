@@ -255,7 +255,7 @@ class Orca:
         if not valid:
             raise ValueError('Orca가 현재 coor session identity를 증명하지 못합니다; 활성화 blocked')
         pane = self.call('terminal', 'show', '--terminal', terminal)['terminal']
-        info = self.call('orchestration', 'run-current', '--from', terminal).get('run') or {}
+        info = self.call('orchestration', 'run-current', '--from', terminal, '--full').get('run') or {}  # 기본 응답에는 run이 없다
         if (pane.get('handle') != terminal or info.get('id') != run or
                 not pane.get('connected') or pane.get('orphaned') or not pane.get('incarnationId')):
             raise ValueError('현재 Run 소유 coor와 살아 있는 같은 terminal을 확인하지 못했습니다')
@@ -1105,7 +1105,7 @@ def dispatch_run(store, state, session, context, job, words):
         raise ValueError('하위 worker는 부모 coor Run 대신 자신의 child Run으로 배정해야 합니다')
     receipt = hook_path(store.repo, session)
     native = json.loads(receipt.read_text(encoding='utf-8')) if receipt.is_file() else {}
-    authority = integration.orca('orchestration', 'run-show', '--id', run, cwd=store.repo)
+    authority = integration.orca('orchestration', 'run-show', '--id', run, '--full', cwd=store.repo)  # 기본 응답에는 run이 없다
     if (not context.get('dispatch') or not native.get('orca_terminal') or
             native.get('provider_session') != session or not authority or
             authority.get('run', {}).get('coordinator_handle') != native['orca_terminal']):

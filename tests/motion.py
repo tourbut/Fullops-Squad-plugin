@@ -127,7 +127,7 @@ with tempfile.TemporaryDirectory() as directory:
     # Optional real codec regression; the standard suite has no video-tool dependency.
     if shutil.which('ffmpeg') and shutil.which('ffprobe'):
         pcm = chirp(root / 'source.wav')
-        small ={**spec, 'width': 64, 'height': 64, 'fps': 10, 'duration': 2,
+        small = {**spec, 'width': 64, 'height': 64, 'fps': 10, 'duration': 2,
                  'assets': ['source.wav'], 'audio_clips': [{'path': 'source.wav', 'start': 0.5, 'duration': 1}],
                  'texts': [], 'text_policy': [{'start': 0, 'end': 2, 'allow': []}]}
         small_path = root / 'small.json'
@@ -281,7 +281,7 @@ else:
             assert not out.exists(), name
     print('PASS: real render.mjs stills, CFR video, subframes, audio mux, no-overwrite and failure exits')
 
-templates =(SKILL / 'templates.md').read_text(encoding='utf-8')
+templates = (SKILL / 'templates.md').read_text(encoding='utf-8')
 assert templates.count('](https://x.com/') == 17
 for phrase in ('go all out', 'world-class motion designer', 'Ask me for', 'ピクセル', '拆解万物', 'Before you build'):
     assert phrase not in templates, phrase
