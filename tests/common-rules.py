@@ -90,6 +90,10 @@ class CommonRulesTests(unittest.TestCase):
             self.assertNotRegex(content, r'ecc:|tdd-guide|security-reviewer|TodoWrite|~/.claude')
         for name in ('FULLOPS.md', 'project.md', 'handovers/_TEMPLATE.md'):
             self.assertIn('rules/common/README.md', (ASSETS / name).read_text(encoding='utf-8'))
+        project = (ASSETS / 'project.md').read_text(encoding='utf-8')
+        self.assertIn('## 작업 검증\n', project)
+        self.assertIn('## 자주 틀리는 것\n', project)
+        self.assertIn('## 검증 하위 작업(verifier)\n', (ASSETS / 'rules/delegation.md').read_text(encoding='utf-8'))
         for name in ('setup-fullops', 'fullops-work', 'fullops-review', 'fullops-orca'):
             self.assertIn('.fullops-squad/rules/common/README.md',
                           (PLUGIN / 'skills' / name / 'SKILL.md').read_text(encoding='utf-8'))

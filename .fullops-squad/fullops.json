@@ -6,10 +6,10 @@
   },
   "mode": "dev",
   "test_level": "lite",
-  "subagent_level": "off",
+  "subagent_level": "lite",
   "primary_role": "dev",
   "primary_branch": "main",
-  "plugin_version": "1.16.1",
+  "plugin_version": "1.17.0",
   "git": {
     "remote": "origin",
     "base": "main"
