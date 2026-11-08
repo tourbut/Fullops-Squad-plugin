@@ -21,6 +21,9 @@ from storage import write_json, atomic_write
 from done_gate import ancestor
 
 
+CMD_META = r'[&|<>^%"]'
+
+
 def ocr_command():
     return shutil.which('ocr') or 'ocr'  # Windows의 ocr.cmd
 
@@ -32,7 +35,16 @@ def sha(repo, ref):
 
 
 def rule_hash(rule):
-    return hashlib.sha256(rule.read_bytes()).hexdigest()
+    # autocrlf는 같은 커밋의 텍스트를 체크아웃마다 다른 줄끝으로 쓴다. LF로 맞춰 어느 체크아웃에서나 같은 해시를 남긴다. NUL이 있는 이진 파일은 원본 그대로다.
+    raw = rule.read_bytes()
+    return hashlib.sha256(raw if b'\0' in raw else raw.replace(b'\r\n', b'\n')).hexdigest()
+
+
+def hash_matches(recorded, path):
+    """이전 기록은 기록 당시 줄끝 그대로의 해시다. 줄끝 차이만 허용하고 내용이 바뀌면 거부한다."""
+    raw = path.read_bytes()
+    lf = raw.replace(b'\r\n', b'\n')
+    return recorded in [hashlib.sha256(form).hexdigest() for form in ([raw] if b'\0' in raw else [raw, lf, lf.replace(b'\n', b'\r\n')])]
 
 
 EVIDENCE = '.fullops-squad/docs/evaluations/qa-reports/'
@@ -138,6 +150,8 @@ def prepare(repo, key, base, head, lint_source=None):
     if destination.exists():
         raise ValueError('기존 리뷰는 보존합니다. 새로운 리뷰 키를 사용하세요')
     base, head = sha(repo, base), sha(repo, head)
+    if ocr_command().lower().endswith(('.cmd', '.bat')) and re.search(CMD_META, str(repo)):
+        raise ValueError(f'npm ocr.cmd는 cmd.exe를 거치므로 메타문자가 있는 레포 경로에서 실행하지 않습니다(명령 주입 방지): {repo}')
     digest = rule_hash(rule)
     env = dict(os.environ, OCR_NO_UPDATE='1')
     options = ['--repo', str(repo), '--from', base, '--to', head, '--rule', str(rule), '--format', 'json']
@@ -151,7 +165,7 @@ def prepare(repo, key, base, head, lint_source=None):
         raise ValueError('옵션과 혼동되는 파일명은 직접 검토하세요')
     if ocr_command().lower().endswith(('.cmd', '.bat')):
         # npm ocr.cmd는 cmd.exe를 거친다. 메타문자 파일명은 명령 주입을 막으려고 규칙 조회에서 빼고 pending으로 직접 검토한다
-        unsafe = [p for p in paths if re.search(r'[&|<>^%"]', p)]
+        unsafe = [p for p in paths if re.search(CMD_META, p)]
         if unsafe:
             print(f'cmd.exe 메타문자 파일명은 OCR 규칙 조회에서 제외합니다(직접 검토): {", ".join(unsafe)}')
         paths = [p for p in paths if p not in unsafe]
@@ -264,10 +278,16 @@ def evidence_hashes(repo, key):
             if p.is_file() and p.name != 'snapshot-cleanup.json'}
 
 
+def evidence_matches(repo, key, recorded):
+    folder = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review')
+    current = evidence_hashes(repo, key)
+    return isinstance(recorded, dict) and recorded.keys() == current.keys() and all(hash_matches(recorded[name], folder / name) for name in current)
+
+
 def historical(repo, key):
     receipt = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review/snapshot-cleanup.json')
     data = json.loads(receipt.read_text(encoding='utf-8'))
-    if data.get('state') != 'removed' or data.get('live_check') != 'passed' or data.get('evidence_sha256') != evidence_hashes(repo, key):
+    if data.get('state') != 'removed' or data.get('live_check') != 'passed' or not evidence_matches(repo, key, data.get('evidence_sha256')):
         raise ValueError('완료 후 보존 증거의 정체성이 다릅니다. live snapshot에서 다시 검증하세요')
     result = json.loads(receipt.with_name('result.json').read_text(encoding='utf-8'))
     if (data['base'], data['head']) != (result['base'], result['head']) or data.get('independence') != result.get('independence'):
@@ -355,8 +375,8 @@ def abandoned(repo, key):
     if not path.is_file():
         return False
     data = json.loads(path.read_text(encoding='utf-8'))
-    current = rule_hash(folder / 'result.json') if (folder / 'result.json').is_file() else None
-    return data.get('state') == 'abandoned' and data.get('result_sha256') == current
+    result = folder / 'result.json'
+    return data.get('state') == 'abandoned' and (hash_matches(data.get('result_sha256'), result) if result.is_file() else data.get('result_sha256') is None)
 
 
 def prune(repo):
@@ -396,7 +416,7 @@ def cleanup(repo, key, dispatch, finished=False):
         result_path = safe_file(repo, data['evidence'] + '/result.json')
         result = json.loads(result_path.read_text(encoding='utf-8'))
         independence = result.get('independence') or {}
-        if independence.get('snapshot_path') != str(path) or result['head'] != data['head'] or any(
+        if Path(independence.get('snapshot_path') or '').resolve() != path.resolve() or result['head'] != data['head'] or any(
                 independence.get(k) != data[k] for k in ('implementer_session', 'reviewer_session')):
             raise ValueError('생성 기록과 리뷰 정체성이 다릅니다')
         if dispatch and data.get('dispatch') and data['dispatch'] != dispatch:
@@ -406,7 +426,7 @@ def cleanup(repo, key, dispatch, finished=False):
             saved = json.loads(receipt.read_text(encoding='utf-8'))
             listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True, encoding='utf-8')
             registered = {Path(line[9:]).resolve() for line in listed.splitlines() if line.startswith('worktree ')}
-            if saved.get('live_check') != 'passed' or saved.get('evidence_sha256') != evidence_hashes(repo, key) or saved.get('independence') != independence or path.resolve() in registered:
+            if saved.get('live_check') != 'passed' or not evidence_matches(repo, key, saved.get('evidence_sha256')) or saved.get('independence') != independence or path.resolve() in registered:
                 raise ValueError('중단된 정리의 증거/등록 경로를 확인하세요')
             write_json(receipt, {**saved, 'state': 'removed'})
             write_json(record, {**data, 'state': 'removed'})
@@ -489,7 +509,7 @@ def check(repo, key, base, head, task_key=None):
         raise ValueError('base/head가 변경됐습니다. 새 리뷰를 준비하세요')
     if (preview['from'], preview['to']) != (result['base'], result['head']):
         raise ValueError('preview와 리뷰 SHA가 다릅니다')
-    if result['rule_sha256'] != rule_hash(safe_file(repo, '.fullops-squad/review/rule.json')):
+    if not hash_matches(result['rule_sha256'], safe_file(repo, '.fullops-squad/review/rule.json')):
         raise ValueError('리뷰 규칙이 변경됐습니다')
     expected = [(f['path'], f['status']) for f in preview['reviewable_files'] + preview['excluded_files']]
     actual = [(f['path'], f['status']) for f in result['files']]
@@ -571,8 +591,8 @@ def superseded_check(repo, key):
     replacement = receipt['replacement']
     if not KEY.fullmatch(replacement) or replacement == key or receipt.get('state') != 'superseded':
         raise ValueError('리뷰 대체 기록의 키·상태가 다릅니다')
-    if receipt.get('original_sha256') != rule_hash(folder / 'result.json') or receipt.get(
-            'replacement_evidence_sha256') != evidence_hashes(repo, replacement):
+    if not hash_matches(receipt.get('original_sha256'), folder / 'result.json') or not evidence_matches(
+            repo, replacement, receipt.get('replacement_evidence_sha256')):
         raise ValueError('리뷰 대체 후 원본·수락 증거가 바뀌었습니다')
     return True
 

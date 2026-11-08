@@ -146,7 +146,7 @@ describe('issue auto mode in the footer and pane', () => {
 
   test('an enabled mode with a live lease is on; paused, disabled or lapsed are not', () => {
     const mode = parseIssueMode(summary({}))!
-    expect(mode.job).toEqual({ number: 109, status: 'running', taskKey: 'GH-1-109-A2' })
+    expect(mode.job).toEqual({ number: 109, status: 'running' })
     expect(issueModeState(mode, 999_000)).toBe('on')
     expect(issueModeState(parseIssueMode(summary({ paused: true }))!, 999_000)).toBe('paused')
     expect(issueModeState(parseIssueMode(summary({ enabled: false, expires: 0 }))!, 999_000)).toBe('off')

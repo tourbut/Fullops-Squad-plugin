@@ -71,9 +71,12 @@ try {
       ...(opt.audio ? ['-c:a', 'aac'] : []), '-t', String(frames / fps), opt.out]
     const ffmpeg = spawn(opt.ffmpeg, args, { stdio: ['pipe', 'inherit', 'inherit'] })
     const done = new Promise((ok, no) => { ffmpeg.on('error', no); ffmpeg.on('close', code => (code === 0 ? ok() : no(new Error(`ffmpeg exited ${code}`)))) })
+    // A dead ffmpeg is reported by the awaits below; until one runs, neither signal may crash past browser.close().
+    done.catch(() => {})
+    ffmpeg.stdin.on('error', () => {})
     try {
       for (let n = 0; n < frames * subframes; n++) {
-        if (!ffmpeg.stdin.write(await shot(n / rate))) await new Promise(ok => ffmpeg.stdin.once('drain', ok))
+        if (!ffmpeg.stdin.write(await shot(n / rate))) await Promise.race([new Promise(ok => ffmpeg.stdin.once('drain', ok)), done])
       }
     } catch (error) {
       ffmpeg.kill() // a failed frame leaves ffmpeg waiting on stdin

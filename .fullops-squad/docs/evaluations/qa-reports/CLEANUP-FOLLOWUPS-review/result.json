@@ -1,0 +1,679 @@
+{
+  "base": "0cea3b8b990c2f40fc549a36772b1b6381a007f5",
+  "head": "37a3ba0020529ebf5b09a22ace082c572dabc511",
+  "rule_sha256": "34c8f6e8fc6b3173858399ed6415b38056c60c83f5aa93bb908b54ab6c588657",
+  "ocr_version": "open-code-review v1.13.6 (891df1b) windows/amd64\nbuilt at: 2026-11-05T11:38:31Z\nhttps://github.com/alibaba/open-code-review",
+  "prepared_at": "2026-11-07T15:17:21+00:00",
+  "reviewer": "Claude Code / claude-opus-5-5 (독립 리뷰어 세션)",
+  "conclusion": "수락 불가. 실제 Orca 1.4.251의 task-list 기본 JSON에는 spec·count가 없고 worker-list에는 page가 없다. 이 때문에 이슈 worker가 전부 무관한 worker로 판정·기록되어 범위 검사를 건너뛰고, sync와 reconcile --not-dispatched가 항상 실패해 대기열이 복구되지 않는다. 미해결 high 2건을 고친 뒤 새 SHA로 재리뷰한다.",
+  "files": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 6,
+      "review_status": "reviewed",
+      "reason": "diff 확인. 과제 진행 상태와 이전 과제의 병합 기록 갱신이며 코드 판단에 영향 없음."
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "완료 기준과 대조함. 체크 항목·완료 보고가 비어 있고 기대 산출물이 없다(finding)."
+    },
+    {
+      "path": "docs/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 17,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "구현과 대조함. 절차 서술은 코드와 맞으나 실제 Orca 1.4.251 응답과 맞지 않는다(high finding 참조)."
+    },
+    {
+      "path": "docs/search-index.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "제거 필드와 대조함. 28줄의 partial 서술이 남았다(finding)."
+    },
+    {
+      "path": "mods/fullops-meter/README.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "register.tsx·flow.ts 동작과 대조함. 링크 대상 docs/flow-graph.md 존재 확인."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/cache.test.ts",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "Sample 필드 제거에 맞춘 fixture 변경 확인."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/flow.test.ts",
+      "status": "modified",
+      "insertions": 29,
+      "deletions": 7,
+      "review_status": "reviewed",
+      "reason": "taskOf·flowRow 기대값을 flow_state.task_of와 대조함."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/flow.ts",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 9,
+      "review_status": "reviewed",
+      "reason": "taskOf를 flow_state.task_of와 대조함. 여러 리뷰·worker의 flag 계산 확인."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/fullops.test.ts",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "job.taskKey 제거에 맞춘 기대값 변경 확인."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/fullops.ts",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "parseIssueMode 필드 제거와 소비자 확인."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/meter.test.ts",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "Sample 필드 제거에 맞춘 fixture 변경 확인."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.test.tsx",
+      "status": "added",
+      "insertions": 68,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "읽기 횟수와 갱신 동작 검증을 읽음. CI·lint 등록 명령에 포함되지 않음(finding)."
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.tsx",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 39,
+      "review_status": "reviewed",
+      "reason": "locate·readRecords의 캐시 수명과 실패 경로 확인(low finding)."
+    },
+    {
+      "path": "mods/fullops-meter/types/index.d.ts",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 6,
+      "review_status": "reviewed",
+      "reason": "타입 변경과 사용처 확인."
+    },
+    {
+      "path": "package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "test 스크립트에 tests/setup-scope.py만 추가. 의존성 변경 없음."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "receipt·skill 경로·--no-refresh 분기와 호출자 확인. skills CLI 경로는 Context7 /vercel-labs/skills로 대조함."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 40,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "targets·hunk_edits·edited·inbox_denial과 run_hook 실패 경로 확인(low finding)."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 160,
+      "deletions": 50,
+      "review_status": "reviewed",
+      "reason": "파일 전체를 읽고 실제 Orca 1.4.251 응답과 대조함(high finding 2건, low 1건)."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 59,
+      "deletions": 5,
+      "review_status": "reviewed",
+      "reason": "Job Object·프로세스 그룹·gitlink 경로와 run_stages 병렬 경로 확인(medium finding)."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 10,
+      "review_status": "reviewed",
+      "reason": "해시 정규화와 비교 지점 전체를 grep으로 확인. 차단 결함 없음."
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/search_index.py",
+      "status": "modified",
+      "insertions": 63,
+      "deletions": 49,
+      "review_status": "reviewed",
+      "reason": "batch 스트림·복구·필드 제거와 jev_find 소비자 확인. 코드 결함 없음."
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "코드와 대조함. 절차 서술은 맞으나 실제 Orca 응답에서는 동작하지 않는다(high finding 참조)."
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-motion/render.mjs",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "stdin 오류·drain 경합 처리와 실패 경로 확인. 차단 결함 없음."
+    },
+    {
+      "path": "tests/flow-gate.py",
+      "status": "modified",
+      "insertions": 31,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "입력 형식별 인박스 시험을 읽음. 실제 hook 경로를 사용한다."
+    },
+    {
+      "path": "tests/handover-rules.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "기존 파일 정리와 생성의 구분 기대값 확인."
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "status": "modified",
+      "insertions": 188,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "handover 시험 전체를 읽음. SQLite·경계는 실제이나 Orca 대역이 현재 CLI 응답과 다르다(finding)."
+    },
+    {
+      "path": "tests/lint.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "실제 프로세스 트리와 gitlink를 쓰는 시험임을 확인. 병렬 중단 경로는 시험 없음."
+    },
+    {
+      "path": "tests/motion.py",
+      "status": "modified",
+      "insertions": 99,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "실제 렌더 시험을 읽음. 도구가 없으면 not_run으로 끝난다(finding)."
+    },
+    {
+      "path": "tests/npm-installer.cjs",
+      "status": "modified",
+      "insertions": 153,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "실제 launcher와 PATH 대역을 쓰는 Codex 분기 시험을 읽음. 대역은 외부 CLI 경계에 한정된다."
+    },
+    {
+      "path": "tests/review-check.py",
+      "status": "modified",
+      "insertions": 184,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "줄바꿈·변조 시험과 Windows 경로 시험을 읽음. Windows 시험은 CI에서 돌지 않는다(finding)."
+    },
+    {
+      "path": "tests/search-index.py",
+      "status": "modified",
+      "insertions": 32,
+      "deletions": 10,
+      "review_status": "reviewed",
+      "reason": "실제 손상 객체 복구와 스키마 재생성 시험을 읽음."
+    },
+    {
+      "path": "tests/setup-scope.py",
+      "status": "added",
+      "insertions": 86,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "실제 setup과 mock으로 격리한 install_host, 임시 home의 경로 시험을 읽음. package.json 등록 확인."
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/design-docs/diagrams/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/active/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/completed/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/discarded/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/sprint-contracts/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/docs/planning/meeting-logs/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 17,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 40,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 160,
+      "deletions": 50,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 59,
+      "deletions": 5,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 10,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/search_index.py",
+      "status": "modified",
+      "insertions": 63,
+      "deletions": 49,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-motion/render.mjs",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/design-docs/diagrams/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/active/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/completed/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/discarded/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/sprint-contracts/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/docs/planning/meeting-logs/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 17,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 40,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 160,
+      "deletions": 50,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 59,
+      "deletions": 5,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 10,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/search_index.py",
+      "status": "modified",
+      "insertions": 63,
+      "deletions": 49,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-motion/render.mjs",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물. 변경 30개 항목을 원본과 바이트 비교해 전부 같거나 함께 삭제됨을 확인했다. 파일별 검토는 원본 검토로 대체한다."
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/design-docs/diagrams/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted",
+      "review_status": "reviewed",
+      "reason": "빈 템플릿 폴더 삭제. plugins·scripts·docs·adapters에서 경로 참조가 없음을 grep으로 확인했고 setup-scope 시험이 기존 사용자 파일 보존을 다룬다."
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/active/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted",
+      "review_status": "reviewed",
+      "reason": "빈 템플릿 폴더 삭제. plugins·scripts·docs·adapters에서 경로 참조가 없음을 grep으로 확인했고 setup-scope 시험이 기존 사용자 파일 보존을 다룬다."
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/completed/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted",
+      "review_status": "reviewed",
+      "reason": "빈 템플릿 폴더 삭제. plugins·scripts·docs·adapters에서 경로 참조가 없음을 grep으로 확인했고 setup-scope 시험이 기존 사용자 파일 보존을 다룬다."
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/discarded/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted",
+      "review_status": "reviewed",
+      "reason": "빈 템플릿 폴더 삭제. plugins·scripts·docs·adapters에서 경로 참조가 없음을 grep으로 확인했고 setup-scope 시험이 기존 사용자 파일 보존을 다룬다."
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/exec-plans/sprint-contracts/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted",
+      "review_status": "reviewed",
+      "reason": "빈 템플릿 폴더 삭제. plugins·scripts·docs·adapters에서 경로 참조가 없음을 grep으로 확인했고 setup-scope 시험이 기존 사용자 파일 보존을 다룬다."
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/docs/planning/meeting-logs/.gitkeep",
+      "status": "deleted",
+      "insertions": 0,
+      "deletions": 0,
+      "exclude_reason": "deleted",
+      "review_status": "reviewed",
+      "reason": "빈 템플릿 폴더 삭제. plugins·scripts·docs·adapters에서 경로 참조가 없음을 grep으로 확인했고 setup-scope 시험이 기존 사용자 파일 보존을 다룬다."
+    }
+  ],
+  "findings": [
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "start_line": 1043,
+      "end_line": 1060,
+      "severity": "high",
+      "content": "worker_job이 `task-list --run`을 --full 없이 호출한다. Orca 1.4.251의 기본 JSON 행은 id·status·title·assignee·dispatchId뿐이고 spec이 없다(이 세션에서 실제 CLI로 확인). key_present가 항상 거짓이라 실제 이슈 worker도 jobs가 비어 무관한 worker가 되고, 이번 변경으로 unrelated_workers에 기록되어 attempt가 끝날 때까지 다시 묻지 않는다. boundary가 1179줄에서 None을 반환하므로 push 범위, 비밀 파일, gh 병합, 이전 epoch fencing 검사가 모두 빠진다. 조회 누락 자체는 기준 커밋에도 있으나 무인 자동화의 보안 경계가 무력화되는 경로이고, 새 기록은 부재의 증거 없이 음성 판정을 고정한다. 수정: --full 사용(구버전 대체는 fullops-meter register.tsx의 방식 참고), task를 찾았고 spec이 문자열이며 목록이 완전할 때만 기록. integration.py:107, flow_gate.py:418·454도 같은 조회라 함께 점검한다.",
+      "resolved": false
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "start_line": 799,
+      "end_line": 891,
+      "severity": "high",
+      "content": "full_run과 reconcile이 현재 Orca 응답 형식과 맞지 않는다. task-list 기본 JSON에는 count·spec이 없고, worker-list에는 page가 없다(도움말 기준 최대 100행, nextCursor 방식). 그래서 full_run은 804·814줄에서 항상 예외이고 reconcile --not-dispatched가 intent 경로에서 절대 성공하지 않는다. sync도 889~891줄에서 relevant가 비어 항상 예외다. worker-start를 쓴 attempt는 settled가 되지 못해 reviewing(576줄)과 complete(944줄)가 막히고, occupies가 참으로 남아 다른 이슈의 claim(487줄)도 막힌다. 이번 과제의 목표인 미시작 intent 복구가 실제로는 동작하지 않는다. 결과는 fail-closed라 중복 배정은 없다. 수정: 조회에 --full을 쓰고 worker-list 완전성은 nextCursor 부재로 판정한다.",
+      "resolved": false
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "start_line": 177,
+      "end_line": 205,
+      "severity": "medium",
+      "content": "Orca 대역이 spec·count·page를 항상 돌려줘 현재 CLI와 다른 계약을 검증한다. 그래서 위 high 2건이 lint 통과(issue-mode passed)에도 드러나지 않았다. 대역을 Orca 1.4.251 응답 형식(기본 행과 --full 행)으로 맞추고, --full 없는 호출이 실패하는 시험을 둔다.",
+      "resolved": false
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "severity": "medium",
+      "content": "리뷰 SHA에 완료 근거가 없다. 지시서의 증명 방법인 npm test 결과와 기대 산출물 CLEANUP-FOLLOWUPS-test/report.md가 snapshot과 dev 체크아웃 어디에도 없고, 체크 항목과 완료 보고가 비어 있다. lint.json은 issue-mode·flow-gate·lint-gate·packaging만 실행했고 full은 lite로 skipped다. 따라서 review-check, search-index, deps, setup-scope, motion, npm-installer, meter 시험의 통과를 이 SHA에서 확인할 수 없다. SIZE-002(추가 1430줄/상한 400)의 예상 규모·미분할 사유와 DEP-001 판단도 기록해야 한다.",
+      "resolved": false
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/lint.py",
+      "start_line": 335,
+      "end_line": 396,
+      "severity": "medium",
+      "content": "POSIX 동작 변화. start_new_session=True로 자식이 SIGINT를 받지 못하는데, 이를 보완하는 except BaseException(348줄)은 호출 thread의 예외에만 동작한다. 병렬 시험(396줄, 기본 경로)은 worker thread에서 돌아 Ctrl+C 뒤 ThreadPoolExecutor 종료 대기가 시험 종료까지 막힌다. 이 레포 설정이면 최대 timeout_seconds=1500초다. 호스트가 프로세스 그룹만 끝내면 시험 프로세스가 고아로 남는다. 코드 읽기 근거이며 실행 재현은 하지 않았다. Windows는 영향 없음. 수정: 살아 있는 프로세스 트리를 기록해 main thread 중단 시 함께 끝낸다.",
+      "resolved": false
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "start_line": 84,
+      "end_line": 88,
+      "severity": "medium",
+      "content": "Windows 전용으로 추가한 코드가 CI에서 실행되지 않는다. review-check.py의 windows_paths는 ubuntu에서 SKIP이고 portable 잡은 review-check.py와 lint.py를 돌리지 않아 Job Object 분기와 Windows 리뷰 경로 시험이 조용히 빠진다. tests/motion.py의 render 파이프라인은 Playwright·ffmpeg가 없으면 not_run으로 통과하는데 checks 잡은 npm ci --ignore-scripts만 하고 설치 단계가 없다(ffmpeg의 러너 기본 포함 여부는 미확인, 추정). mods/fullops-meter 시험은 CI·npm test에 없다. 수정: portable에 tests/lint.py를 더하고 windows_paths를 실행할 Windows 단계를 둔다.",
+      "resolved": false
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "start_line": 1148,
+      "end_line": 1155,
+      "severity": "low",
+      "content": "superseded는 명령 문자열에 이슈 브랜치·task key가 있을 때만 막는다. 이전 coor가 이슈 브랜치에서 bare `git push`나 `git push origin HEAD`, `gh pr create --fill`, `gh issue comment 2`를 쓰면 통과한다. complete가 PR head SHA를 확인하고 비강제 push라 피해는 제한적이다. git push는 현재 브랜치도 확인하면 막을 수 있다.",
+      "resolved": false
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "start_line": 104,
+      "end_line": 115,
+      "severity": "low",
+      "content": "edited가 list를 내부 편집 목록으로만 해석한다. 도구 입력의 content가 list이면 언패킹 예외가 나고, try 밖(521줄)이라 run_hook의 fail-open으로 이 호출의 boundary까지 건너뛴다. 현재 hook matcher의 도구에서 실제로 나오는 입력은 확인하지 못했다(추정). targets에서 문자열 content만 받으면 된다.",
+      "resolved": false
+    },
+    {
+      "path": "docs/search-index.md",
+      "start_line": 28,
+      "end_line": 28,
+      "severity": "low",
+      "content": "`잘린 원문은 partial이다.` 서술이 남았으나 캐시 항목의 partial 필드는 제거됐다. 문장을 삭제한다.",
+      "resolved": false
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.tsx",
+      "start_line": 303,
+      "end_line": 313,
+      "severity": "low",
+      "content": "locate가 .git·commondir 일시 읽기 실패로 얻은 추정 경로도 60초 캐시한다. 그 동안 Decisions·Flow가 잘못된 폴더를 읽어 비어 보일 수 있다(기존 15초에서 증가). 표시 전용이다. 읽기 실패는 캐시하지 않는다.",
+      "resolved": false
+    }
+  ],
+  "review_schema_version": 2,
+  "independence": {
+    "implementer_session": "4538e3cb-f445-4bf3-9324-31a61a7719d2",
+    "reviewer_session": "reviewer-20a9d4ce-2542-4e21-ba55-6530ab55e88d",
+    "snapshot_path": "C:\\Users\\shin\\orca\\workspaces\\Fullops-Squad-plugin\\.fullops-review-6c25899aeb1642b4b55a88a6bfbce049",
+    "snapshot_head": "37a3ba0020529ebf5b09a22ace082c572dabc511",
+    "read_only": true
+  }
+}

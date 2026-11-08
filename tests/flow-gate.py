@@ -93,9 +93,10 @@ def main():
 
         # task-create + worker-start --task: 과제 spec에서 키를 찾는다(가짜 Orca task-list)
         tl = repo / '.git/fake-tasks.py'
-        tl.write_text('import json\nprint(json.dumps({"ok": True, "result": {"tasks": ['
-                      '{"id": "task_ok", "spec": "Task key K1 follow-up"}, {"id": "task_bad", "spec": "Task key loose-check"}]}}))\n',
-                      encoding='utf-8')
+        tl.write_text('import json, sys\ntasks = ['  # Orca 1.4.251: spec은 --full일 때만 온다
+                      '{"id": "task_ok", "spec": "Task key K1 follow-up"}, {"id": "task_bad", "spec": "Task key loose-check"}]\n'
+                      'rows = tasks if "--full" in sys.argv else [{"id": t["id"], "status": "ready", "title": "x"} for t in tasks]\n'
+                      'print(json.dumps({"ok": True, "result": {"tasks": rows}}))\n', encoding='utf-8')
         tcli = repo / '.git' / ('fake-tasks.cmd' if os.name == 'nt' else 'fake-tasks')
         if os.name == 'nt':
             tcli.write_text(f'@"{sys.executable}" "{tl}" %*\n', encoding='utf-8')
@@ -129,6 +130,35 @@ def main():
                     toolInput={'file_path': '.fullops-squad/handovers/to_dev.md', 'content': '# K3 — 저장 형식\n'})
         assert '설계 역할' in denied(grok)
 
+        # 부분 편집도 적용한 결과로 인박스 규칙을 본다. 입력 형식: Claude Edit·MultiEdit, grok search_replace, Codex apply_patch(command)
+        inbox_name = '.fullops-squad/handovers/to_dev.md'
+        inbox_text = '---\ntitle: K1\n---\n\n# K1 — 점프 수치\n\n본문\n'
+        (repo / inbox_name).write_text(inbox_text, encoding='utf-8')
+        retitle = {'old_string': '# K1 — 점프 수치', 'new_string': '# K3 — 저장 형식'}
+        edit = lambda name, **tool: denied(hook('tool', session_id='c', tool_name=name, tool_input={'file_path': inbox_name, **tool}))
+        applied = lambda body: denied(hook('tool', session_id='c', tool_name='apply_patch',
+                                           tool_input={'command': f'*** Begin Patch\n{body}\n*** End Patch\n'}))
+        assert '덮어쓸 수 없' in edit('Edit', **retitle)
+        assert '덮어쓸 수 없' in edit('MultiEdit', edits=[retitle])
+        assert '덮어쓸 수 없' in edit('search_replace', **retitle, replace_all=False)
+        assert '비우지 마세요' in edit('Edit', old_string=inbox_text, new_string='')
+        assert not edit('search_replace', old_string='점프', new_string='낙하')  # 같은 과제의 수정
+        assert not edit('MultiEdit', edits=[retitle | {'old_string': '없는 줄'}, 'x'])  # 적용되지 않는 편집은 도구가 실패한다
+        assert '덮어쓸 수 없' in applied(f'*** Update File: {inbox_name}\n@@\n-# K1 — 점프 수치\n+# K3 — 저장 형식')
+        assert '비우지 마세요' in applied(f'*** Delete File: {inbox_name}')
+        assert '비우지 마세요' in applied(f'*** Add File: {inbox_name}')
+        assert '비우지 마세요' in applied(f'*** Update File: {inbox_name}\n*** Move to: docs/x.md')
+        whole = '\n'.join('-' + line for line in inbox_text.splitlines())
+        assert '비우지 마세요' in applied(f'*** Update File: {inbox_name}\n@@\n{whole}')
+        assert not applied(f'*** Update File: {inbox_name}\n@@\n 본문\n+## Step1 — 세부')  # 소제목은 다른 과제가 아니다
+        assert not applied(f'*** Update File: {inbox_name}\n@@\n+## Step1 — 세부')
+        (repo / '.fullops-squad/handovers/old.md').write_text('# OLD — 이전\n', encoding='utf-8')
+        assert not applied('*** Delete File: .fullops-squad/handovers/old.md')  # 과제명 파일 정리는 생성이 아니다
+        assert '역할 인박스' in applied('*** Add File: .fullops-squad/handovers/new.md\n+# K1 — 새 파일')
+        (repo / '.fullops-squad/handovers/old.md').unlink()
+        (repo / inbox_name).write_text('', encoding='utf-8')
+        assert '설계 역할' in edit('Edit', old_string='', new_string='# K3 — 저장 형식\n')  # 빈 인박스 채우기도 route를 본다
+
         git('worktree', 'remove', str(devtree))
         # 설계 역할
         git('checkout', '-q', '-B', roles['architecture'])
@@ -137,6 +167,8 @@ def main():
                                             tool_input={'file_path': f'{tmp}/src/save.py', 'content': 'x = 1\n'}))
         patch = '*** Begin Patch\n*** Update File: src/save.ts\n@@\n-a\n+b\n*** End Patch\n'
         assert '코드를 고치지' in denied(hook('tool', session_id='a', tool_name='apply_patch', tool_input={'command': patch}))
+        assert '코드를 고치지' in denied(hook('tool', session_id='a', tool_name='apply_patch', tool_input={
+            'command': '*** Begin Patch\n*** Delete File: src/save.ts\n*** End Patch\n'}))
         assert hook('tool', session_id='a', tool_name='Write',
                     tool_input={'file_path': '.fullops-squad/handovers/to_dev.md', 'content': '# K3 — 저장 형식\n'}) == {}
 

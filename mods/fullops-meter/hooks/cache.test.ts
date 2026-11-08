@@ -6,14 +6,11 @@ import { accountOf, adviseCache, decideTtl, hitRatio, keepSamples, missOf, obser
 const MIN = 60_000
 
 const sample = (startedAt: number, read: number, write: number, fresh: number, model = 'opus'): Sample => ({
-  turnId: 't',
-  index: 0,
   model,
   startedAt,
   read,
   write,
   fresh,
-  output: 10,
 })
 
 describe('lifetime rules', () => {

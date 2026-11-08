@@ -24,10 +24,11 @@ summary: 현재 작업
 | AUTONOMY-SHADOW | #125 1단계(섀도 판정기·이벤트·결정 형식)와 2단계의 이 레포 몫 | dev(직접) | 1·2단계 완료. PR #127 병합(0d28d99, 완료 SHA 4dc7797), 1.16.0 릴리스. review need: skip(코드 7개 파일 383줄), gate lint ERROR 0. 남은 일: 3단계(auto·delay 개방)는 섀도 결과를 검토한 뒤 사용자와 정한다. orca-helm·Grok Bot은 다른 저장소 몫 | https://github.com/tourbut/Fullops-Squad-plugin/issues/125 |
 | PSTACK-DEPENDENCY | #124 최종 결정(D010): Cursor 공식 pstack을 Claude Code 의존 플러그인으로 설치 | dev(직접) | PR #129, 기준 bf6fec1. lint ERROR 0(9f057e0), review need skip(코드 2개 파일 4줄). #124는 결정·근거 댓글로 완료 처리(D009). PR #129 병합(0f6599e), 1.16.1 릴리스. 이 PC의 Claude Code에도 설치 | https://github.com/tourbut/Fullops-Squad-plugin/pull/129 |
 | FULLOPS-UPDATE-1.16.1 | 레포 적용 버전을 1.11.0에서 1.16.1로 갱신하고 dev 작업 공간을 `fullops/dev` 워크트리로 옮김 | dev(직접) | 완료. 사용자 결정 D011로 PR #133 병합(0f918bb, 완료 SHA 80e7b41). review need: skip(코드 0개 파일). lint ERROR 0(적용 검사 없음), CI checks 통과. main 체크아웃과 `fullops/dev` 동기화 | https://github.com/tourbut/Fullops-Squad-plugin/pull/133 |
-| FLOW-STOP-WAIT | Claude Code coordinator가 Stop 훅에 포그라운드 대기로 묶이지 않게 수정 | dev(직접) | 구현·lint 완료(509b9bd, 기준 0f918bb). review need: skip(코드 2개 파일 52줄). lint ERROR 0, WARNING 2(SIZE-001). 보류: main 병합과 #112 종료, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/FLOW-STOP-WAIT-test/report.md` |
-| LINT-BATCH-READ | lint 파일 읽기를 `git cat-file --batch` 1회로 변경 | dev(직접) | 구현·lint 완료(241b7c4, 기준 0f918bb). 읽기 46.50초 → 1.69초. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/LINT-BATCH-READ-test/report.md` |
-| HOOK-SLIM | 저장소 위치 조회 통합, 이슈 상태 없을 때 import 생략, Stop `gh` 5분 재사용 | dev(직접) | 구현·lint 완료(d029a21, 기준 0f918bb). 도구 hook 약 1,000ms → 약 530ms, git 13~14개 → 5개, Stop 약 1,700ms → 약 730ms. `npm test` 통과. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/HOOK-SLIM-test/report.md` |
-| ISSUE112-SIDE | `record` 원자적 쓰기, `integration.py set-sha`, 배정 검사 안내 | dev(직접) | 구현·lint 완료(505d579, 기준 0f918bb). 인박스 검사 시점은 PreToolUse 한계로 안내만 고침. review need: skip(누적 코드 319줄, 기준 400줄). lint ERROR 0, WARNING 5(SIZE-001). 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/ISSUE112-SIDE-test/report.md` |
+| FLOW-STOP-WAIT | Claude Code coordinator가 Stop 훅에 포그라운드 대기로 묶이지 않게 수정 | dev(직접) | 구현·lint 완료(509b9bd, 기준 0f918bb). review need: skip(코드 2개 파일 52줄). lint ERROR 0, WARNING 2(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6), #112 종료(결정 D013) | `docs/evaluations/qa-reports/FLOW-STOP-WAIT-test/report.md` |
+| LINT-BATCH-READ | lint 파일 읽기를 `git cat-file --batch` 1회로 변경 | dev(직접) | 구현·lint 완료(241b7c4, 기준 0f918bb). 읽기 46.50초 → 1.69초. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/LINT-BATCH-READ-test/report.md` |
+| HOOK-SLIM | 저장소 위치 조회 통합, 이슈 상태 없을 때 import 생략, Stop `gh` 5분 재사용 | dev(직접) | 구현·lint 완료(d029a21, 기준 0f918bb). 도구 hook 약 1,000ms → 약 530ms, git 13~14개 → 5개, Stop 약 1,700ms → 약 730ms. `npm test` 통과. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/HOOK-SLIM-test/report.md` |
+| ISSUE112-SIDE | `record` 원자적 쓰기, `integration.py set-sha`, 배정 검사 안내 | dev(직접) | 구현·lint 완료(505d579, 기준 0f918bb). 인박스 검사 시점은 PreToolUse 한계로 안내만 고침. review need: skip(누적 코드 319줄, 기준 400줄). lint ERROR 0, WARNING 5(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/ISSUE112-SIDE-test/report.md` |
+| CLEANUP-FOLLOWUPS | PR #126 후속 8개 묶음을 Workflow로 병렬 구현(결정 D014) | dev(직접) | 구현·lint 완료(37a3ba0, 기준 0cea3b8). `npm test` 통과. review need: ask(코드 25개 파일 약 1,600줄) → 결정 D015로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`, run_88a80b39c65f, ctx_e532ea8c0ae8, snapshot `.fullops-review-6c25899aeb1642b4b55a88a6bfbce049`. 결정 D016: 캐시 status·statuses 제거. 1차 리뷰 수락 불가(high 2: Orca `--full` 누락) → 7ef2723 수정. 2차(CLEANUP-FOLLOWUPS-R2) 수락 불가(high 1: `run-current`·`run-show` `--full` 누락) → 267b1b1 수정. 3차(CLEANUP-FOLLOWUPS-R3, 5bc36e5) 수락: 미해결 critical·high·medium 0, low 5. `review.py check` 통과, 1·2차는 supersede·abandon, snapshot 3개 정리. 보류: main 병합, 담당 사용자, 재개 조건 사용자 승인 | `docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md` |
 
 ## 대기 목록
 
@@ -39,7 +40,7 @@ summary: 현재 작업
 | 2 | LINT-BATCH-READ | `lint.py`의 `blob()`을 `git cat-file --batch` 일괄 읽기로 변경. 측정 49.2초 → 0.9초 | 완료(위 표) | #132 선행 개선 |
 | 3 | HOOK-SLIM | hook 전체 시간을 먼저 재고, 관계없는 호출 조기 종료·import 지연·git 호출 통합 | 완료(위 표) | #132 선행 개선 |
 | 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
-| 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 4번 완료. 묶음이 크면 항목별 과제로 나눈다 | PR #126 "후속으로 남긴 것" |
+| 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 진행 중(`handovers/to_dev.md`). 사용자 결정 D014: 이슈 모드까지 전부 | PR #126 "후속으로 남긴 것" |
 | 6 | ROADMAP-82 | #82 체크 상태 갱신, P2–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 5번 완료. 단계별 사용자 확인 | #82 |
 | 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
 | 8 | STATUS-DIAGRAM | 현황판 PR 표시, D03 구조도 원천, 서비스 구조 섹션 | 사용자가 범위를 정할 때 | #59 |
@@ -51,7 +52,22 @@ summary: 현재 작업
 | 14 | DIRECTORY-LISTING | 플러그인 디렉터리 포털 리뷰 결과 확인 | 포털 결과 확인(사용자) | #34 |
 | 15 | GROK-WAKE-CHECK | grok이 백그라운드 완료로 세션을 깨우는지 확인. grok 1.0.70 문서에 auto-wake가 있어 스킬·flow-gate의 "깨우지 않는다"가 낡았을 수 있다 | 사용자가 시작할 때 | FLOW-STOP-WAIT 조사 |
 
+### CLEANUP-FOLLOWUPS 리뷰 후속
+
+1·2차 리뷰가 병합 뒤에 처리해도 된다고 판단한 항목이다. 담당은 dev다.
+
+- CI 공백(medium): Windows 전용 `windows_paths`, Windows의 `tests/lint.py`, render 파이프라인, meter 시험이 CI에서 돌지 않는다. 사용자 결정 D017로 후속 등재했다. 재개 조건: 사용자가 CI 비용과 Windows job 범위를 정할 때.
+- lint: 스레드가 `RUNNING`에 넣기 전의 중단은 그 프로세스를 timeout까지 남긴다(low). SIGINT가 무시된 채 상속되면 중단 시험이 60초 뒤 실패한다(low).
+- `sync`가 `--full` worker 목록 전체를 history에 쌓는다. 100행이면 호출당 약 200KB다(low). 재개 조건: 상태 파일 크기 문제 발생.
+- `flow_gate.task_listing`이 `integration.task_list`와 중복이다(low). 시험이 `flow_gate.orca`를 바꿔 끼우므로 함께 정리한다.
+- 3차 리뷰 low 5건: `integration.record`가 기본 `check` 메시지에 없는 `run_id`를 읽어 bound Run의 task 목록을 쓴다. 그 시험 대역이 이 차이를 숨긴다. `orca_wait.summarize`가 기본 메시지에 없는 `from_handle`·`created_at`을 읽는다(표시 전용). `nohup`으로 SIGHUP을 무시한 lint도 터미널 종료에 중단된다. reconcile의 worker-list 대역이 `--full`을 무시한다. 재개 조건: 다음 integration·lint 변경.
+- 하네스 충돌: 리뷰어 배정 게이트(`route_key_denial`)가 리뷰 키의 route 기록을 요구하는데, `jev_route.py`가 만든 route는 `requires_packet`을 켜서 dev 직접 작업 리뷰의 `review.py check`가 "탐색 패킷이 없습니다"로 실패한다. `work.py finish`도 같은 이유로 실패한다. 이번에는 게이트 통과용으로 만든 `CLEANUP-FOLLOWUPS-route.json`(81002f2)과 커밋하지 않은 `CLEANUP-FOLLOWUPS-R3-route.json`을 지웠다. 두 분류(design → architecture)도 사실과 달랐다. 원본은 Git 이력에 남는다. 재개 조건: 다음 FullOps 하네스 수정.
+- 리뷰 뒤 기록 커밋을 더하면 done-gate의 `direct_check`가 HEAD와 리뷰 SHA가 달라 리뷰 기록이 없다고 막는다. main 병합 뒤에는 풀린다. 재개 조건: 다음 FullOps 하네스 수정.
+- 이전 coor의 bare `git push`, `gh issue comment 2`는 fencing을 통과한다(low). `complete`의 head SHA 확인으로 피해가 제한된다. 재개 조건: 실제 발생 또는 다음 이슈 모드 변경.
+- meter가 일시 읽기 실패로 얻은 경로를 60초 캐시한다(low). 표시 전용이다. 재개 조건: 다음 meter 변경.
+- `issue_mode.py`(1401줄) 분할 검토. 재개 조건: 다음 이슈 모드 변경.
+- grok auto-wake 확인은 대기 목록 15번(GROK-WAKE-CHECK)에 있다.
+
 ### 사용자 결정 대기
 
 - `core.longpaths` 켜기(`FULLOPS-UPDATE-1.16.1.md` 보류 항목)
-- FLOW-STOP-WAIT·LINT-BATCH-READ·HOOK-SLIM·ISSUE112-SIDE의 main 병합과 #112 종료

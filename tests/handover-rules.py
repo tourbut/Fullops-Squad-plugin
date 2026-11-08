@@ -48,7 +48,11 @@ def main():
                                'Update File: .fullops-squad/handovers/K1.md').replace(
                                'Move to: .fullops-squad/handovers/K1.md',
                                'Move to: .fullops-squad/handovers/logs/K1.md')
+        assert '역할 인박스' in hook({'command': archive})  # 없는 과제명 파일은 정리 대상이 아니다
+        named = repo / '.fullops-squad/handovers/K1.md'
+        named.write_text('# K1 — 정리할 파일\n', encoding='utf-8')
         assert not hook({'command': archive})
+        named.unlink()
         assert not hook({'file_path': '.fullops-squad/handovers/pending/K2.md', 'content': '# K2 — 대기 자료\n'})
         assert not hook({'file_path': '.fullops-squad/handovers/logs/K0.md', 'content': '# K0 — 이전 기록\n'})
         assert not hook({'command': 'python3 work.py new --help'})

@@ -28,7 +28,7 @@ In a FullOps repository:
   - **Flow**: each task's stage in the lifecycle of [docs/flow-graph.md](../../docs/flow-graph.md), one block per task, newest first. The coordinator's own hook keeps the records (`flow_state.py`, `fullops-flow/<key>.json` in the git folder every checkout shares), so the tab reads them and never guesses. Each block has:
     - the task key (cut at 24 characters), a rail of nine marks for `intent → design → assign → build → report → review → merge → qa → done` (`✔` passed, `◉` current, `○` ahead), the current node's name and how long ago it moved
     - what holds the task, in words and colour together: `⚠ rounds 3/2` when its reopens and rounds passed the budget, `✖ review blocked · high` while a critical or high finding is open, and `⚠ needs you` or `✖ agent gone` from its worker
-    - its worker's inner stages under it, such as `dev ✔ explore ◉ build ○ verify ○ report`, when a worker is out for it. A round key (`K1-FIX`) counts as its task (`K1`).
+    - its worker's inner stages under it, such as `dev ✔ explore ◉ build ○ verify ○ report`, when a worker is out for it. A round key (`K1-FIX`) and a review key (`K1-DEV-REVIEW-R2`) count as their task (`K1`), as in `flow_state.py`.
 
     Merged tasks stay for 30 minutes. The intent, assign, qa and done nodes are not recorded automatically yet.
   - **Decisions** (bottom half): the open decisions the coordinator asked you for, which `decision.py` records in the git folder every checkout shares (`fullops-decisions/`). Each shows its id, task key and age, the question, numbered choices and what waits on it. A decision leaves when the coordinator records your answer. A new coordinator session in any checkout of the repository sees the same list.
@@ -39,7 +39,7 @@ In a FullOps repository:
 - **Spinner**: `… · 2 workers running · 1 review open` while the coordinator has work out.
 - **Notices**: a worker that finishes or fails (`dev K7 done`, `ops K3 failed: process_exited`), one that now waits on someone with its last words (`tester K2 waiting on you: Merge now?`), and one that has sat in a stage for 30 minutes (`dev K7 in build for 30m`), each told once from the 15-second poll.
 
-The mod reads repository files and runs these read-only `orca orchestration` commands: `run-current`, `worker-list`, `task-list` and `worker-read`. It sends nothing anywhere and changes no Orca state.
+The mod reads repository files and runs these read-only `orca orchestration` commands: `run-current`, `worker-list`, `task-list` and `worker-read`. It sends nothing anywhere and changes no Orca state. Each refresh reads `HEAD` and lists the record folders, but rereads a decision or flow record only when its size or time changed, and looks up where a checkout's git folder is at most once a minute.
 
 ## Install
 

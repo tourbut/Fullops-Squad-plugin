@@ -106,7 +106,8 @@ def missing_tools():
 
 def receipt_path(host):
     home = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) if host == 'codex' else \
-        Path(os.environ.get('CLAUDE_CONFIG_DIR', str(Path.home() / '.claude'))) if host == 'claude-code' else Path.home() / ('.' + host)
+        Path(os.environ.get('CLAUDE_CONFIG_DIR', str(Path.home() / '.claude'))) if host == 'claude-code' else \
+        Path(os.environ.get('GROK_HOME', '').strip() or Path.home() / '.grok') if host == 'grok' else Path.home() / ('.' + host)
     return home / 'fullops-deps.json'
 
 
@@ -120,6 +121,8 @@ def read_receipt(path):
 
 
 def skill_roots(host):
+    if host == 'agy':  # agy는 전역에서 ~/.agents/skills를 읽지 않는다. https://antigravity.google/docs/skills
+        return [Path.home() / '.gemini' / name for name in ('config/skills', 'antigravity-cli/skills', 'skills')]
     return [Path.home() / '.agents/skills', receipt_path(host).parent / 'skills']
 
 
@@ -313,7 +316,9 @@ def install_host(host, plan, plugin=None, refresh_shared=True):
     write_json(path, receipt)
     for command in plan:
         token = hashlib.sha256(json.dumps(command).encode()).hexdigest()
-        refresh = refresh_shared and (command[:3] == ['npm', 'install', '--global'] or command[0] == 'npx') or (
+        # 호스트 전용 스킬은 앞선 대상이 갱신하지 않았으므로 --no-refresh에서도 갱신한다
+        host_only = command[0] == 'npx' and any(command[4] == s['source'] for s in [*manifest()['codex']['skills'], *manifest()['portable_skills']])
+        refresh = host_only or refresh_shared and (command[:3] == ['npm', 'install', '--global'] or command[0] == 'npx') or (
             command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and command[3] in dependency_plugins(host))
         valid = not tool_problems() if command[:3] == ['npm', 'install', '--global'] else \
             not command_skill_problems(host, command) \

@@ -16,6 +16,17 @@ export const baseKey = (key: string): string => {
   return match !== null && match.index > 0 ? key.slice(0, match.index) : key
 }
 
+const REVIEW = /-REVIEW(?:-R\d+)?$/i
+
+/** The task a key counts toward: a review key (`K-DEV-REVIEW-R2`) is task K's review, as in flow_state.task_of, which files it there. */
+export const taskOf = (key: string, roles: readonly string[]): string => {
+  const match = REVIEW.exec(key)
+  if (match === null || match.index === 0) return baseKey(key)
+  const head = key.slice(0, match.index)
+  const role = roles.find(one => head.toUpperCase().endsWith(`-${one.toUpperCase()}`) && head.length > one.length + 1)
+  return baseKey(role === undefined ? head : head.slice(0, -role.length - 1))
+}
+
 /** One `fullops-flow/<key>.json` record, or null when it is not one. */
 export const parseFlow = (source: string): FlowTask | null => {
   let parsed: unknown
@@ -34,7 +45,6 @@ export const parseFlow = (source: string): FlowTask | null => {
     node,
     rounds: typeof record.rounds === 'number' ? record.rounds : 0,
     budget: typeof record.budget === 'number' ? record.budget : 2,
-    sha: text(record.sha),
     updated: Number.isNaN(updated) ? 0 : updated,
   }
 }
@@ -66,16 +76,17 @@ export type FlowRow = {
 }
 
 /** One task as the Flow tab draws it: the outer node rail, what holds it, and its worker's inner stages under it. */
-export const flowRow = (task: FlowTask, reviews: readonly Review[], workers: readonly Worker[], now: number): FlowRow => {
+export const flowRow = (task: FlowTask, reviews: readonly Review[], workers: readonly Worker[], roles: readonly string[], now: number): FlowRow => {
   const flags: Flag[] = []
   if (task.rounds > task.budget) flags.push({ text: `⚠ rounds ${task.rounds}/${task.budget}`, tone: 'warning' })
-  const review = reviews.find(one => baseKey(one.key) === task.key && one.state === 'recorded' && one.unresolved > 0)
-  if (review !== undefined && (review.worst === 'critical' || review.worst === 'high')) {
-    flags.push({ text: `✖ review blocked · ${review.worst}`, tone: 'error' })
-  }
-  const worker = workers.find(one => one.phase === 'active' && baseKey(one.key) === task.key)
-  if (worker?.needsAction === true) flags.push({ text: '⚠ needs you', tone: 'warning' })
-  if (worker !== undefined && !worker.isLive) flags.push({ text: '✖ agent gone', tone: 'error' })
+  // A task can hold several reviews and workers (a round, a review key), so any one of them can hold it.
+  const open = reviews.filter(one => taskOf(one.key, roles) === task.key && one.state === 'recorded' && one.unresolved > 0)
+  const worst = ['critical', 'high'].find(severity => open.some(one => one.worst === severity))
+  if (worst !== undefined) flags.push({ text: `✖ review blocked · ${worst}`, tone: 'error' })
+  const active = workers.filter(one => one.phase === 'active' && taskOf(one.key, roles) === task.key)
+  if (active.some(one => one.needsAction)) flags.push({ text: '⚠ needs you', tone: 'warning' })
+  if (active.some(one => !one.isLive)) flags.push({ text: '✖ agent gone', tone: 'error' })
+  const worker = active[0]
   const inner =
     worker === undefined
       ? ''

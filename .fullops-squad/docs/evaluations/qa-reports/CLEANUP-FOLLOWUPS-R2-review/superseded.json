@@ -1,0 +1,12 @@
+{
+  "state": "superseded",
+  "replacement": "CLEANUP-FOLLOWUPS-R3",
+  "original_sha256": "c40f19228091c1615cce2cefa88e58f80ec0e5f0b0e54f575145a699aebaaddf",
+  "replacement_evidence_sha256": {
+    "lint.json": "63a92bc635dc66bfe4c0c89e1e6b0b529d8b51ab04b256843e772fa0203421a9",
+    "preview.json": "8a06c4ef6ac79eb2ed638837bc2891449eafbbd3e47a8551d6c1c92f8d498247",
+    "report.md": "5e8301aceffa4d2d6beed521d6e1069d6268dc254bde9112aa91dacabd767189",
+    "result.json": "4fb118e72538b5126bf3105db62fae590ec77afb53b77a953d99a9eb60873be1",
+    "rules.json": "c01045b543956a582816bfdf87f5a70ce4af3798948182c5bed553caa97201ad"
+  }
+}

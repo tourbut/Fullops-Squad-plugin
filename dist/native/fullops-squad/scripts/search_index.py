@@ -13,7 +13,7 @@ from jev_observe import digest, git_env, local_file, safe_text
 from lint import CONFIG, DEFAULT, header_summary, matches, stale
 from storage import write_json
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 PARSER_VERSION = 'search-map-v1'
 MAX_BLOB = 65536
 # 하네스 폴더는 코드 지도에서 뺀다. 지시서가 이 경로를 많이 적어 디렉터리 선택이 매번 여기로 끌려가고(erden recall 0~0.14),
@@ -27,20 +27,43 @@ def git(repo, *args):
                                    encoding='utf-8', errors='strict', stderr=subprocess.DEVNULL).strip()
 
 
-def prefix_blob(repo, sha, size):
-    """큰 Git blob도 처음 MAX_BLOB 바이트만 읽는다. 불완전한 마지막 UTF-8 문자만 제외한다."""
-    with subprocess.Popen(['git', '-C', str(repo), 'cat-file', 'blob', sha], stdout=subprocess.PIPE,
-                          stderr=subprocess.DEVNULL, env=git_env()) as process:
-        data = process.stdout.read(min(size, MAX_BLOB))
-        process.stdout.close()
-        if size > MAX_BLOB:
-            process.terminate()
-        code = process.wait()
-    if code and size <= MAX_BLOB:
-        raise OSError('Git blob unavailable locally')
+def blob_reader(repo):
+    return subprocess.Popen(['git', '-C', str(repo), 'cat-file', '--batch'], stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=git_env())
+
+
+def close_reader(process):
+    try:
+        with process:
+            pass
+    except OSError:  # 이미 죽은 git의 stdin을 닫으면 Windows는 EINVAL을 낸다
+        pass
+
+
+def prefix_blob(process, sha):
+    """열린 `cat-file --batch`에서 (크기, 앞 MAX_BLOB 바이트의 텍스트)를 얻는다. 불완전한 마지막 UTF-8 문자만 제외한다.
+
+    한 번에 하나만 요청하고 응답을 끝까지 읽으므로 stdin과 stdout이 서로 막히지 않는다.
+    없는 객체는 ValueError이고 스트림은 유효하다. git이 죽으면 OSError이고 새 프로세스가 필요하다."""
+    process.stdin.write(f'{sha}\n'.encode())
+    process.stdin.flush()
+    fields = process.stdout.readline().split()
+    if not fields:
+        raise OSError('git cat-file exited')
+    if len(fields) != 3:
+        raise ValueError('Git blob unavailable locally')
+    size = int(fields[2])
+    data = process.stdout.read(min(size, MAX_BLOB))
+    # shortcut: 초대형 blob도 git이 끝까지 풀어 보내는 시간을 쓴다(메모리는 쓰지 않는다), 실측으로 느려지면 끊고 새 프로세스를 띄운다
+    rest = size - len(data) + 1  # 내용 뒤의 LF까지 읽어야 다음 응답과 맞는다
+    while rest:
+        chunk = process.stdout.read(min(rest, MAX_BLOB))
+        if not chunk:
+            raise OSError('git cat-file exited')
+        rest -= len(chunk)
     if b'\0' in data[:8000]:
-        return ''
-    return codecs.getincrementaldecoder('utf-8')().decode(data, final=size <= MAX_BLOB)
+        return size, ''
+    return size, codecs.getincrementaldecoder('utf-8')().decode(data, final=size <= MAX_BLOB)
 
 
 def configuration(repo, head, scope):
@@ -75,9 +98,7 @@ def blobs(repo, head, config):
 
 def parse(path, sha, text, size):
     """지원하지 않는 언어·불완전한 Python은 헤더로 돌아간다. 정의는 최대 24개만 저장한다."""
-    entry = {'path': path, 'blob_oid': sha, 'kind': 'document' if path.endswith('.md') else 'code',
-             'title': '', 'summary': '', 'definitions': [], 'headings': [], 'links': [],
-             'parser': 'header', 'partial': size > MAX_BLOB, 'searchable': False}
+    entry = {'path': path, 'blob_oid': sha, 'summary': '', 'definitions': [], 'headings': [], 'searchable': False}
     if not text.strip():
         return entry
     try:
@@ -86,31 +107,18 @@ def parse(path, sha, text, size):
         return entry
     try:
         meta, body = split(text) if path.endswith('.md') else (None, text)
-        json.dumps(meta, allow_nan=False)
     except (ValueError, RecursionError):
-        meta, body, entry['partial'] = None, text, True
-    entry['title'] = str((meta or {}).get('title', ''))[:240]
+        meta, body = None, text
     entry['summary'] = ((' — '.join(str(meta.get(k, '')) for k in ('title', 'summary') if meta.get(k)) if meta else '')
                         or header_summary(body, Path(path).suffix.lower()))[:240]
     if path.endswith('.md'):
-        entry['headings'] = re.findall(r'(?m)^#{1,6}\s+(.+)', body)[:24]
-        entry['links'] = re.findall(r'\]\(([^)\s]+)\)', body)[:24]
-        entry['headings'] = [v[:160] for v in entry['headings']]
-        entry['links'] = [v[:240] for v in entry['links'] if not re.match(r'[a-z]+:|#', v)]
-        # 승인 상태와 다중 D번호별 상태는 원문 그대로 보존한다.
-        entry['status'] = (meta or {}).get('status')
-        entry['statuses'] = (meta or {}).get('statuses')
-        entry['id'] = (meta or {}).get('id')
-        entry['parser'] = 'markdown'
-    elif path.endswith('.py') and not entry['partial']:
+        entry['headings'] = [v[:160] for v in re.findall(r'(?m)^#{1,6}\s+(.+)', body)[:24]]
+    elif path.endswith('.py') and size <= MAX_BLOB:
         try:
             nodes = [n for n in ast.walk(ast.parse(text)) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
-            entry['partial'] = len(nodes) > 24
             for node in nodes[:24]:
                 signature = node.name if isinstance(node, ast.ClassDef) else f'{node.name}({ast.unparse(node.args)})'
-                entry['definitions'].append({'name': node.name, 'kind': 'class' if isinstance(node, ast.ClassDef) else 'function',
-                    'line_start': node.lineno, 'signature': signature[:240], 'docstring': (ast.get_docstring(node) or '')[:160]})
-            entry['parser'] = 'python-ast'
+                entry['definitions'].append({'signature': signature[:240], 'docstring': (ast.get_docstring(node) or '')[:160]})
         except (SyntaxError, ValueError, RecursionError):
             pass
     entry['searchable'] = True
@@ -139,7 +147,7 @@ def load(path, config_hash):
             if any(not isinstance(heading, str) for heading in item['headings']):
                 return {}
             for definition in item['definitions']:
-                if not isinstance(definition, dict) or any(not isinstance(definition.get(k), str) for k in ('name', 'kind', 'signature', 'docstring')) or type(definition.get('line_start')) is not int:
+                if not isinstance(definition, dict) or any(not isinstance(definition.get(k), str) for k in ('signature', 'docstring')):
                     return {}
             if not re.fullmatch(r'[0-9a-f]{40,64}', item.get('blob_oid', '')):
                 return {}
@@ -150,19 +158,25 @@ def load(path, config_hash):
 
 
 def build(repo, rows, previous):
-    sizes = subprocess.check_output(['git', '-C', str(repo), 'cat-file', '--batch-check=%(objectsize)'],
-        input=''.join(f'{sha}\n' for _, sha in rows).encode(), env=git_env()).splitlines()
-    entries = []
-    for (path, sha), size in zip(rows, sizes):
-        old = previous.get(path)
-        if old and old['blob_oid'] == sha and not old.get('read_error'):
-            entries.append(old)
-            continue
-        try:
-            size = int(size)
-            entries.append(parse(path, sha, prefix_blob(repo, sha, size), size))
-        except (OSError, ValueError, UnicodeError):
-            entries.append({**parse(path, sha, '', 0), 'read_error': 'blob unavailable or invalid; inspect locally'})
+    entries, reader = [], None
+    try:
+        for path, sha in rows:
+            old = previous.get(path)
+            if old and old['blob_oid'] == sha and not old.get('read_error'):
+                entries.append(old)
+                continue
+            try:
+                reader = reader or blob_reader(repo)
+                size, text = prefix_blob(reader, sha)
+                entries.append(parse(path, sha, text, size))
+            except (OSError, ValueError, UnicodeError) as error:
+                entries.append({**parse(path, sha, '', 0), 'read_error': 'blob unavailable or invalid; inspect locally'})
+                if isinstance(error, OSError) and reader:  # 손상 blob에서 git이 죽는다. 나머지 파일이 함께 실패하지 않게 새로 띄운다
+                    close_reader(reader)
+                    reader = None
+    finally:
+        if reader:
+            close_reader(reader)
     return entries
 
 
@@ -190,7 +204,7 @@ def metadata(repo, head, scope='code', use_cache=True):
         previous = load(path, config_hash)
         entries = build(repo, rows, {item['path']: item for item in previous.get('files', [])})
         value = {'schema_version': SCHEMA_VERSION, 'parser_version': PARSER_VERSION,
-                 'config_hash': config_hash, 'head': head, 'files': entries,
+                 'config_hash': config_hash, 'files': entries,
                  'files_sha256': digest(json.dumps(entries, sort_keys=True, ensure_ascii=False).encode())}
         if value == previous:
             return entries

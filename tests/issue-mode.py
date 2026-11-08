@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -72,6 +73,17 @@ class Orca:
         return 'incarnation'
 
 
+def orca_answers(caller, pane, run='run'):
+    """Orca 1.4.251처럼 run은 --full일 때만 준다. 기본 응답은 runId뿐이다."""
+    def call(*args):
+        if args[0] == 'status':
+            return caller
+        if args[0] == 'terminal':
+            return pane
+        return {'run': {'id': run}} if '--full' in args else {'runId': run, 'objective': 'x'}
+    return call
+
+
 def issue(number, author=42, **changes):
     return {'id': 100 + number, 'repository_id': 7, 'number': number,
             'title': 'work ' + str(number), 'body': 'requirement', 'created_at': iso(time.time()),
@@ -79,22 +91,214 @@ def issue(number, author=42, **changes):
             'user': {'id': author, 'login': 'author'}, 'edit_verified': True, **changes}
 
 
+def handover():
+    """인계 뒤 fencing, 잠금 밖 GitHub 조회, 시작되지 않은 dispatch intent, 무관한 worker의 Orca 조회."""
+    with tempfile.TemporaryDirectory(prefix='fullops-issue-') as temporary:
+        root = Path(temporary)
+        subprocess.run(['git', 'init', '-q', '-b', 'main', str(root)], check=True)
+        subprocess.run(['git', '-C', str(root), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
+        (root / '.fullops-squad').mkdir()
+        (root / '.fullops-squad/fullops.json').write_text(json.dumps({'git': {'remote': 'origin', 'base': 'main'}}))
+        store, api = mode.Store(root), API()
+        mode.configure(store, api, 'owner/service', ['author'], interval=60, approved=True)
+        for session in ('first', 'second', 'third'):
+            receipt = mode.hook_path(root, session)
+            receipt.parent.mkdir(exist_ok=True)
+            receipt.write_text(json.dumps({'provider_session': session}))
+        token = mode.activate(store, Orca(), 'coor', 'run', 'term', 'first')['token']
+        api.issues = [issue(1), issue(2)]
+        mode.poll(store, api, token)
+        assert mode.claim(store, api, token)['issue_id'] == '101'
+        mode.checkpoint(store, api, token, 101, 'running', received=True)
+        post = api.comment
+
+        def set_status(identifier, status):
+            with store.edit() as state:
+                state['jobs'][identifier]['status'] = status
+
+        def unlocked(call):
+            def wrapped(*args, **kwargs):  # GitHub 응답을 기다리는 동안 hook이 쓸 수 있어야 한다.
+                db = sqlite3.connect(store.path, timeout=0)
+                try:
+                    db.execute('BEGIN IMMEDIATE')
+                finally:
+                    db.close()
+                return call(*args, **kwargs)
+            return wrapped
+
+        # 게시 직전 조회 중 취소되면 예전 판단으로 게시하지 않는다.
+        def cancelled(path, cache):
+            set_status('101', 'cancelled')
+            return [], {}
+        with patch.object(api, 'pages', side_effect=cancelled):
+            fails(lambda: mode.question(store, api, token, 101, '크기는?'), '게시')
+        assert api.posts == 0
+        set_status('101', 'running')
+
+        # 답변 확인 조회는 잠금 밖에서 하고, 조회 뒤 바뀐 상태를 덮어쓰지 않는다.
+        mode.question(store, api, token, 101, '크기는?')
+        api.comments.append({'id': 1001, 'body': '128px', 'user': {'id': 42, 'login': 'author'}, 'html_url': 'https://github.com/answer',
+                             'created_at': iso(time.time()), 'updated_at': iso(time.time())})
+        mode.poll_answers(store, api, token)
+        assert mode.answer_delivery(store, token)['issue_id'] == '101'
+        def edited(path, cache):
+            set_status('101', 'changed')
+            return deepcopy(api.comments), {}
+        with patch.object(api, 'pages', side_effect=edited):
+            fails(lambda: mode.resolve_answers(store, api, token, 101, 'sufficient', '규격 확정'), 'claimed')
+        assert store.read()['jobs']['101']['status'] == 'changed'
+        set_status('101', 'claimed')
+        with patch.object(api, 'issue', side_effect=unlocked(api.issue)), patch.object(api, 'pages', side_effect=unlocked(api.pages)):
+            assert mode.resolve_answers(store, api, token, 101, 'sufficient', '규격 확정') == 'queued'
+
+        # 완료 직전 재확인도 잠금 밖에서 한다.
+        assert mode.claim(store, api, token)['attempt'] == 2
+        mode.checkpoint(store, api, token, 101, 'running', received=True)
+        mode.checkpoint(store, api, token, 101, 'reviewing', received=True)
+        subprocess.run(['git', '-C', str(root), 'add', '.fullops-squad'], check=True)
+        subprocess.run(['git', '-C', str(root), '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'setup'], check=True)
+        head = mode.integration.git(root, 'rev-parse', 'HEAD')
+        api.pr = {'draft': True, 'state': 'open', 'merged': False, 'html_url': 'https://github.com/owner/service/pull/1',
+                  'head': {'sha': head, 'ref': 'fullops/issue-1-a2', 'repo': {'id': 7}}, 'base': {'ref': 'main', 'repo': {'id': 7}}}
+        rechecks = []
+        real_issue = api.issue
+        def flip(*args):
+            rechecks.append(args)
+            if len(rechecks) == 2:
+                set_status('101', 'changed')
+            return real_issue(*args)
+        with patch('review.check'):
+            with patch.object(api, 'issue', side_effect=flip):
+                fails(lambda: mode.complete(store, api, token, 101, root, 'key', head, head, 1), 'attempt')
+            assert store.read()['jobs']['101']['status'] == 'changed'
+            set_status('101', 'reviewing')
+            with patch.object(api, 'issue', side_effect=unlocked(real_issue)):
+                mode.complete(store, api, token, 101, root, 'key', head, head, 1)
+        assert store.read()['jobs']['101']['status'] == 'completed'
+
+        # 끝난 이슈만 남으면 worker hook은 Orca를 부르지 않는다.
+        build = ['python3', 'build.py']
+        context = {'dispatch': 'other', 'task': 'other-task'}
+        with patch.object(mode.integration, 'orca', side_effect=AssertionError('Orca queried')):
+            assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context) is None
+        work = mode.claim(store, api, token)
+        assert work['issue_id'] == '102'
+        mode.checkpoint(store, api, token, 102, 'running', received=True)
+        # 진행 중 이슈가 있어도 무관한 worker는 한 번만 확인한다.
+        show = {'dispatchId': 'other', 'taskId': 'other-task', 'runId': 'other-run', 'terminal': 'x', 'workspace': 'repo::' + str(root)}
+        unrelated = {'tasks': [{'id': 'other-task', 'spec': 'unrelated'}]}
+        with patch.object(mode.integration, 'orca', side_effect=[show]) as lookup:  # 이슈의 Run이 아니면 task를 읽지 않는다
+            assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context) is None
+        assert lookup.call_count == 1
+        with patch.object(mode.integration, 'orca', side_effect=AssertionError('Orca queried again')):
+            assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context) is None
+        # 그 Run이 이슈의 하위 Run으로 등록되면 생략 기록을 믿지 않고 다시 확인한다.
+        with store.edit() as state:
+            state['jobs']['102']['child_runs'] = {'other-run': {'task_key': work['task_key'], 'epoch': state['owner']['epoch']}}
+        with patch.object(mode.integration, 'orca', side_effect=[show, unrelated]):
+            assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        # 이슈의 Run에서 spec을 읽지 못하면(--full 없는 Orca 기본 응답) 무관한 worker로 기록하지 않고 막는다.
+        concise = {'tasks': [{'id': 'other-task', 'status': 'ready', 'title': 'x'}]}
+        with patch.object(mode.integration, 'orca', side_effect=[show, concise]) as lookup:
+            assert 'task spec' in mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        assert '--full' in lookup.call_args_list[1].args
+        with patch.object(mode.integration, 'orca', side_effect=[show, concise]) as again:  # 생략 기록을 남기지 않아 다시 묻는다
+            assert mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        assert again.call_count == 2
+        with store.edit() as state:
+            state['jobs']['102'].pop('child_runs')
+
+        # worker-start가 실행되지 않은 intent는 큐를 영구히 막지 않고, 같은 task key로 재배정하지도 않는다.
+        start = ['orca', 'orchestration', 'worker-start', '--run', 'run', '--spec', work['task_key']]
+        mode.reserve_dispatch(root, 'first', [start])
+        class Listing(Orca):
+            tasks, page = [{'id': 'other', 'spec': 'unrelated'}], {'hasMore': False}
+            def call(self, *args):  # Orca 1.4.251: spec·count·page는 --full일 때만 온다
+                if '--full' not in args:
+                    return {'tasks': [{'id': t['id'], 'status': 'ready', 'title': 'x'} for t in self.tasks]} if 'task-list' in args else {'scope': 'run', 'workers': []}
+                if 'task-list' in args:
+                    return {'tasks': self.tasks, 'count': len(self.tasks), 'page': self.page}
+                return {'workers': [], 'page': {'total': 0, 'hasMore': False}}
+        runtime = Listing()
+        fails(lambda: mode.reconcile(store, runtime, token, 102, '부재 확인', syncing=True), '부재')
+        fails(lambda: mode.reconcile(store, runtime, token, 102, '방금 예약', not_dispatched=True), '유예')
+        with store.edit() as state:
+            state['jobs']['102']['dispatch_intents'][-1]['at'] = iso(time.time() - mode.INTENT_GRACE - 1)
+        runtime.page = {'hasMore': True}
+        fails(lambda: mode.reconcile(store, runtime, token, 102, '잘린 목록', not_dispatched=True), '전체')
+        runtime.page = {'hasMore': False}
+        runtime.tasks = [{'id': 'task', 'spec': 'Task key: ' + work['task_key']}]
+        fails(lambda: mode.reconcile(store, runtime, token, 102, '실제 시작됨', not_dispatched=True), 'sync')
+        assert not store.read()['jobs']['102']['settled']
+        runtime.tasks = [{'id': 'other', 'spec': 'unrelated'}]
+        mode.reconcile(store, runtime, token, 102, 'worker-start 실패를 터미널에서 확인', not_dispatched=True)
+        stuck = store.read()['jobs']['102']
+        assert stuck['status'] == 'held' and stuck['settled'] and not mode.occupies(stuck)
+        assert mode.checkpoint(store, api, token, 102, 'queued', reason='worker-start 미실행') == 'queued'
+        retry = mode.claim(store, api, token)
+        assert retry['attempt'] == 2 and retry['task_key'] != work['task_key']
+        mode.checkpoint(store, api, token, 102, 'running', received=True)
+
+        # POST 중 lease가 넘어가면 게시 사실만 남기고 작업 상태는 새 소유자에게 둔다.
+        taken = []
+        def takeover(*args):
+            with store.edit() as state:
+                state['owner']['expires'] = 0
+            taken.append(mode.activate(store, Orca(), 'new-coor', 'new-run', 'term', 'second'))
+            return post(*args)
+        posts = api.posts
+        with patch.object(api, 'comment', side_effect=takeover):
+            fails(lambda: mode.question(store, api, token, 102, '높이는?'), 'lease')
+        saved = store.read()
+        sent = next(e for e in saved['outbox'].values() if e['issue_id'] == '102')
+        assert sent['status'] == 'sent' and sent['comment_id'] and api.posts == posts + 1
+        assert saved['jobs']['102']['status'] == 'reconciling' and sent['question_id'] in saved['jobs']['102']['questions']
+        api.comments.append({'id': 1002, 'body': '64px', 'user': {'id': 42, 'login': 'author'}, 'html_url': 'https://github.com/answer',
+                             'created_at': iso(time.time()), 'updated_at': iso(time.time())})
+        mode.poll_answers(store, api, taken[0]['token'])
+        assert [a['comment_id'] for a in store.read()['jobs']['102']['answers']] == [1002]
+        # 이전 coor의 진행 중 턴은 현재 소유자의 이슈에 외부 효과를 내지 못한다. 이슈 밖 작업은 그대로다.
+        late = ['orca', 'orchestration', 'worker-start', '--run', 'run', '--spec', retry['task_key']]
+        for words in (late, ['git', 'push', 'origin', 'HEAD:refs/heads/fullops/issue-2-a2'],
+                      ['gh', 'pr', 'create', '--draft', '--head', 'fullops/issue-2-a2']):
+            assert '인계' in mode.boundary(root, 'first', ' '.join(words), [], [words]), words
+        for words in (build, ['gh', 'issue', 'list'], ['git', 'push', 'origin', 'other']):
+            assert mode.boundary(root, 'first', ' '.join(words), [], [words]) is None, words
+        # 이전 attempt의 intent만 남은 채 배정 전에 인계된 작업도 reconciling에 갇히지 않는다.
+        mode.reconcile(store, runtime, taken[0]['token'], 102, '현재 attempt는 배정 전 인계', not_dispatched=True)
+        assert store.read()['jobs']['102']['status'] == 'held'
+        mode.stop(store, 'second')
+        assert mode.boundary(root, 'first', ' '.join(late), [], [late]) is None  # 소유 lease가 없으면 직접 운영
+        # 거부된 POST의 결과도 outbox에 남아 새 coor가 다시 보낼 수 있다.
+        third = mode.activate(store, Orca(), 'third-coor', 'third-run', 'term', 'third')
+        with store.edit() as state:
+            state['jobs']['102'].update(status='running', epoch=third['epoch'])
+        def denied(*args):
+            with store.edit() as state:
+                state['owner']['expires'] = 0
+            raise APIError(403)
+        with patch.object(api, 'comment', side_effect=denied):
+            fails(lambda: mode.question(store, api, third['token'], 102, '권한은?'))
+        saved = store.read()
+        assert list(saved['outbox'].values())[-1]['status'] == 'failed' and saved['jobs']['102']['status'] == 'running'
+
+
 def main():
     # 화면에서 선택된 다른 pane은 소유 identity 검증에 사용하지 않는다.
     adapter = mode.Orca('orca')
     caller = {'caller': {'orcaSessionId': 'coor', 'live': True}}
     pane = {'terminal': {'handle': 'term', 'connected': True, 'incarnationId': 'incarnation'}}
-    with patch.object(adapter, 'call', side_effect=[caller, pane, {'run': {'id': 'run'}}]) as call:
+    with patch.object(adapter, 'call', side_effect=orca_answers(caller, pane)) as call:
         assert adapter.identity('coor', 'run', 'term') == 'incarnation'
         assert call.call_args_list[1].args == ('terminal', 'show', '--terminal', 'term')
-        assert call.call_args_list[2].args == ('orchestration', 'run-current', '--from', 'term')
+        assert call.call_args_list[2].args == ('orchestration', 'run-current', '--from', 'term', '--full')
     for status in ({}, {'caller': {'orcaSessionId': 'coor', 'live': False}}):
         with patch.object(adapter, 'call', return_value=status) as call:
             fails(lambda: adapter.identity('coor', 'run', 'term'), 'identity')
             assert call.call_count == 1
     native = {'provider_session': 'host', 'orca_terminal': 'term'}
     with patch.dict('os.environ', {'ORCA_TERMINAL_HANDLE': 'term', 'ORCA_AGENT_SESSION_ID': ''}):
-        with patch.object(adapter, 'call', side_effect=[{}, pane, {'run': {'id': 'run'}}]):
+        with patch.object(adapter, 'call', side_effect=orca_answers({}, pane)):
             assert adapter.identity('provider_session:host', 'run', 'term', 'host', native) == 'incarnation'
         for session, terminal, receipt in (('provider_session:other', 'term', native),
                                            ('provider_session:host', 'other', native),
@@ -404,7 +608,8 @@ def main():
                                            'git': {'remote': 'origin', 'base': 'main'}}))
         nested = ['orca', 'orchestration', 'worker-start', '--run', 'child-run', '--spec', resumed['task_key']]
         authority = {'run': {'id': 'child-run', 'coordinator_handle': 'worker-term'}}
-        with patch.object(mode.integration, 'orca', return_value=authority):
+        concise = {'runId': 'child-run', 'objective': 'x', 'removedWork': False}  # Orca 1.4.251: run은 --full일 때만 온다
+        with patch.object(mode.integration, 'orca', side_effect=lambda *args, **_: authority if '--full' in args else concise):
             assert mode.boundary(root, 'worker', ' '.join(nested), [], [nested], context) is None
             assert 'child-run' not in store.read()['jobs']['101'].get('child_runs', {})  # validation does not reserve
         # A fresh worker proof is saved after the reserve snapshot, then checked inside the writer.
@@ -474,9 +679,11 @@ def main():
             child_task_page = None
             extra_worker = False
             def call(self, *args):
-                child = args[-1] == 'child-run'
+                child = 'child-run' in args
                 task_id = 'task_child' if child else 'task_auto'
                 status = self.child_status if child else 'completed'
+                if 'task-list' in args and '--full' not in args:  # Orca 1.4.251의 기본 응답
+                    return {'tasks': [{'id': task_id, 'status': status, 'title': 'x'}]}
                 if 'task-list' in args:
                     result = {'tasks': [{'id': task_id, 'status': status, 'spec': resumed['task_key']}],
                               'count': self.child_task_count if child else 1}
@@ -504,17 +711,17 @@ def main():
         for count, page in ((2, None), (None, None), (1, {'hasMore': True, 'total': 2}),
                             (1, {'hasMore': False, 'total': 2})):
             nested_runtime.child_task_count, nested_runtime.child_task_page = count, page
-            fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'truncated child tasks', syncing=True), '하위')
+            fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'truncated child tasks', syncing=True), '전체')
             assert not store.read()['jobs']['101']['settled']
         nested_runtime.child_task_count, nested_runtime.child_task_page = 1, {'hasMore': False, 'total': 1}
         nested_runtime.extra_worker = True
         nested_runtime.child_page = {'total': 2, 'hasMore': False}
-        fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'worker started after task listing', syncing=True), '하위')
+        fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'worker started after task listing', syncing=True), '전체')
         assert not store.read()['jobs']['101']['settled']
         nested_runtime.extra_worker = False
         for page in ({}, {'total': 1, 'hasMore': True}, {'total': 2, 'hasMore': False}):
             nested_runtime.child_page = page
-            fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'unknown child fleet', syncing=True), '하위')
+            fails(lambda: mode.reconcile(store, nested_runtime, token, 101, 'unknown child fleet', syncing=True), '전체')
         assert not store.read()['jobs']['101']['settled']
         nested_runtime.child_page = {'total': 1, 'hasMore': False}
         mode.reconcile(store, nested_runtime, token, 101, 'all exited', syncing=True)
@@ -777,6 +984,8 @@ def main():
         class SettledOrca:
             def call(self, *args):
                 key = store.read()['jobs']['101']['task_key']
+                if 'task-list' in args and '--full' not in args:  # Orca 1.4.251의 기본 응답
+                    return {'tasks': [{'id': 'task', 'status': 'failed', 'title': 'x'}]}
                 if 'task-list' in args:
                     return {'tasks': [{'id': 'task', 'status': 'failed', 'spec': 'Task key: ' + key}]}
                 return {'workers': [{'taskId': 'task', 'projection': {'liveness': {'verdict': self.verdict}}}]}
@@ -821,7 +1030,8 @@ def main():
     missing = {'data': {'repository': {'databaseId': 7, 'issue': None}}, 'errors': [{'type': 'NOT_FOUND'}]}
     with patch.object(client, 'request', return_value=(200, {}, missing)):
         assert client.issue('o/r', 1) is None
-    print('PASS: issue-mode atomic FIFO/lease, author IDs, API recovery/304, question outbox, same-author answers, boundaries and review failure')
+    handover()
+    print('PASS: issue-mode atomic FIFO/lease, author IDs, API recovery/304, question outbox, same-author answers, boundaries, review failure and handover fencing')
 
 
 if __name__ == '__main__':

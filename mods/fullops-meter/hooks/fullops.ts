@@ -230,7 +230,7 @@ export const parseIssueMode = (source: string): IssueMode | null => {
     enabled: record.enabled === true,
     paused: record.paused === true,
     expiresAt: typeof record.expires === 'number' ? record.expires * 1000 : 0,
-    job: typeof job.number === 'number' ? { number: job.number, status: text(job.status), taskKey: text(job.task_key) } : null,
+    job: typeof job.number === 'number' ? { number: job.number, status: text(job.status) } : null,
   }
 }
 

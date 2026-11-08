@@ -30,6 +30,24 @@ completed → draft PR 실패 check·허용 작성자 수정 요청 리뷰 → q
 
 credential 문자열이 포함된 API 페이지는 ETag 캐시를 저장하지 않고 다음 주기에 재조회한다. 안전한 페이지의 304/Link 캐시는 유지한다. 종료 확인은 Orca의 `taskId`와 `projection.liveness.verdict=exited`를 사용하며, 관련 task마다 worker 증거가 있어야 한다.
 
+## 인계 뒤 fencing과 미시작 dispatch
+
+상태 쓰기는 모두 쓰기 잠금 안에서 fencing token을 다시 확인한다. GitHub 호출은 잠금 밖에서 하고, 호출 뒤 잠금 안에서 상태·attempt·digest를 다시 확인한다. 응답을 기다리는 동안 hook의 쓰기를 막지 않기 위해서다.
+
+- 질문 POST: 게시 직전에 소유자·상태·attempt를 다시 확인한다. POST 도중 lease가 넘어가면 outbox에 결과와 질문 ID만 남기고 작업 상태는 바꾸지 않는다. 재게시와 답변 유실을 막기 위해서다. `question_sent_after_fence` event로 알 수 있고, 새 coor는 필요하면 `checkpoint --phase awaiting_author`로 답변 대기로 옮긴다. 게시 직전 확인과 POST 사이의 짧은 구간은 GitHub 쪽 조건부 쓰기가 없어 막을 수 없다.
+- 이전 coor: 다른 host 세션의 새 coor가 lease를 받은 뒤, 이전 coor 세션의 worker-start·push·GitHub 변경 중 미종료 이슈의 task key나 이슈 브랜치를 가리키는 명령은 막는다. 이슈 밖 작업은 막지 않고, 현재 lease가 유효하지 않으면 제한하지 않는다.
+
+`reserve_dispatch`의 intent는 worker-start 실행 전에 남는다. 명령이 거부되거나 프로세스가 죽으면 task가 없어 `sync`로 종료를 증명할 수 없고, 다른 이슈의 claim도 계속 막힌다. 실제로 시작되지 않았음을 coor가 확인했으면 `reconcile --not-dispatched --reason <근거>`로 닫는다. 이 명령은 다음을 모두 확인한다.
+
+- 마지막 intent 뒤 10분이 지났다. 그보다 최근이면 worker-start가 진행 중일 수 있다.
+- 관련 Run의 task·worker 목록이 잘리지 않았고, 현재 task key를 가진 task가 없다. 있으면 `sync`로 확인한다.
+
+결과는 held이며 자동으로 닫거나 다시 배정하지 않는다. `checkpoint --phase queued`로 재시도하면 새 attempt와 새 task key를 받으므로, 닫힌 시도는 재시도 한도에 포함된다. 권한 프롬프트가 10분 뒤에 승인되면 늦게 시작한 worker는 막지 못한다.
+
+이슈 모드는 Orca 1.4.246 이상의 `--full` 응답을 읽는다. 기본 응답에는 `run`·`spec`·`count`·`page`가 없다. 더 낮은 버전에서는 조회 실패로 막힌다.
+
+이슈와 무관한 worker의 hook은 Orca를 매번 조회하지 않는다. 진행 중이거나 종료가 확인되지 않은 attempt가 없으면 조회하지 않고, 있으면 한 번 확인한 결과를 attempt·Run 구성이 바뀔 때까지 재사용한다.
+
 ## 호스트 승인과 lease 파일
 
 `enable` 결과 JSON은 현재 coor 작업 공간 안의 Git 제외 파일에 저장한다. 예: `.fullops-squad/.env.issue-mode-lease.json` (`.env*` 제외 규칙 확인, POSIX에서는 현재 사용자 소유의 0600 파일을 미리 준비). 이후 `wait`, `claim`, `checkpoint`, `question`, `answers`, `sync`, `reconcile`, `complete`, `poll`에는 `--token-file <그 JSON 경로>`를 사용한다. CLI가 파일에서 token을 읽고 기존 lease/현재 coor 검증을 수행한다. token 값을 argv·모델 입력·보고서에 복사하거나 인라인 interpreter로 전달할 필요가 없다. 기존 `--token` 입력은 호환을 위해 유지한다.
@@ -49,7 +67,7 @@ KnowsLink(10/12)와 erden-godot(10/09)에서 자동 모드가 첫 이슈에서 �
 
 ## 실행한 검증
 
-- `python3 tests/issue-mode.py`: 격리 Git 저장소, 결정적 GitHub/Orca 대역. 기본 OFF와 범위 선택, 60초 경계, remote/push 권한, stable ID, PR/과거/close 제외, FIFO/동시 claim, 네트워크 실패 cursor 보존, 질문 응답 유실 조정, 같은 계정의 질문 제외, 타인/중복 답변 제외, 충분성 판단과 새 attempt, 댓글 삭제/본문 변경 보류, native session 종료, 새 owner fencing/인계, scope/review 실패, 304 Link/외부 redirect 차단.
+- `python3 tests/issue-mode.py`: 격리 Git 저장소, 결정적 GitHub/Orca 대역. 기본 OFF와 범위 선택, 60초 경계, remote/push 권한, stable ID, PR/과거/close 제외, FIFO/동시 claim, 네트워크 실패 cursor 보존, 질문 응답 유실 조정, 같은 계정의 질문 제외, 타인/중복 답변 제외, 충분성 판단과 새 attempt, 댓글 삭제/본문 변경 보류, native session 종료, 새 owner fencing/인계, scope/review 실패, 304 Link/외부 redirect 차단, POST 중 인계, GitHub 조회 중 쓰기 잠금 미점유, 미시작 dispatch intent 복구, 무관한 worker의 Orca 조회 생략.
 - 실제 read-only GitHub: 저장소/계정 stable ID, issue #10의 GraphQL `editor`/`lastEditedAt` 조회 성공. 실제 질문/상태 댓글은 전송하지 않았다.
 - 실제 Windows Orca 1.4.222: 현재 대화는 `ORCA_TERMINAL_HANDLE`이 있는 Codex TUI terminal agent이다. 설치된 CLI의 `status-caller.js`는 structured session에서만 caller를 반환하며 terminal agent에는 Orca session ID가 아직 없다고 명시한다. 따라서 TUI는 native provider session/terminal binding으로 검증한다. `terminal show` 기본값은 실제 coor와 다른 pane을 반환했으므로 소유 handle을 명시해 조회하고, 같은 handle로 run-current를 확인한다. 현재 대화는 FullOps setup/native SessionStart receipt가 없어 활성화 blocked이며 새 플러그인으로 시작한 coor 세션이 필요하다. 실환경 질문·답변 검증은 아직 미완료다.
 - 실제 Windows native Codex 0.160.1: 별도 QA `CODEX_HOME`에 로컬 빌드 1.1.0을 설치하고 app-server의 `hooks/list`에서 SessionEnd 포함 9개 hook, warnings 0/errors 0을 확인했다. native 종료 이벤트 발생 자체나 실제 coor wake 검증으로 취급하지 않는다. 종료 처리 로직은 위 격리 테스트의 실제 subprocess/stdin 경로로 검증했다.
