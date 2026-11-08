@@ -28,7 +28,7 @@ summary: 현재 작업
 | LINT-BATCH-READ | lint 파일 읽기를 `git cat-file --batch` 1회로 변경 | dev(직접) | 구현·lint 완료(241b7c4, 기준 0f918bb). 읽기 46.50초 → 1.69초. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/LINT-BATCH-READ-test/report.md` |
 | HOOK-SLIM | 저장소 위치 조회 통합, 이슈 상태 없을 때 import 생략, Stop `gh` 5분 재사용 | dev(직접) | 구현·lint 완료(d029a21, 기준 0f918bb). 도구 hook 약 1,000ms → 약 530ms, git 13~14개 → 5개, Stop 약 1,700ms → 약 730ms. `npm test` 통과. review need: skip. lint ERROR 0, WARNING 4(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/HOOK-SLIM-test/report.md` |
 | ISSUE112-SIDE | `record` 원자적 쓰기, `integration.py set-sha`, 배정 검사 안내 | dev(직접) | 구현·lint 완료(505d579, 기준 0f918bb). 인박스 검사 시점은 PreToolUse 한계로 안내만 고침. review need: skip(누적 코드 319줄, 기준 400줄). lint ERROR 0, WARNING 5(SIZE-001). PR #134 병합(0cea3b8, 완료 SHA ff165f6) | `docs/evaluations/qa-reports/ISSUE112-SIDE-test/report.md` |
-| CLEANUP-FOLLOWUPS | PR #126 후속 8개 묶음을 Workflow로 병렬 구현(결정 D014) | dev(직접) | 구현·lint 완료(37a3ba0, 기준 0cea3b8). `npm test` 통과. review need: ask(코드 25개 파일 약 1,600줄) → 결정 D015로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`, run_88a80b39c65f, ctx_e532ea8c0ae8, snapshot `.fullops-review-6c25899aeb1642b4b55a88a6bfbce049`. 결정 D016: 캐시 status·statuses 제거. 1차 리뷰 수락 불가(high 2: Orca `--full` 누락) → 7ef2723에서 수정, 재리뷰 키 CLEANUP-FOLLOWUPS-R2 | `docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md` |
+| CLEANUP-FOLLOWUPS | PR #126 후속 8개 묶음을 Workflow로 병렬 구현(결정 D014) | dev(직접) | 구현·lint 완료(37a3ba0, 기준 0cea3b8). `npm test` 통과. review need: ask(코드 25개 파일 약 1,600줄) → 결정 D015로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`, run_88a80b39c65f, ctx_e532ea8c0ae8, snapshot `.fullops-review-6c25899aeb1642b4b55a88a6bfbce049`. 결정 D016: 캐시 status·statuses 제거. 1차 리뷰 수락 불가(high 2: Orca `--full` 누락) → 7ef2723 수정. 2차(CLEANUP-FOLLOWUPS-R2) 수락 불가(high 1: `run-current`·`run-show` `--full` 누락) → 수정 뒤 3차(CLEANUP-FOLLOWUPS-R3) | `docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md` |
 
 ## 대기 목록
 
@@ -54,9 +54,12 @@ summary: 현재 작업
 
 ### CLEANUP-FOLLOWUPS 리뷰 후속
 
-1차 리뷰가 후속으로 넘겨도 된다고 판단한 항목이다. 담당은 dev다.
+1·2차 리뷰가 병합 뒤에 처리해도 된다고 판단한 항목이다. 담당은 dev다.
 
-- CI 공백(medium): Windows 전용 `windows_paths`, Windows의 `tests/lint.py`, render 파이프라인, meter 시험이 CI에서 돌지 않는다. 재개 조건: 사용자가 CI 비용을 정할 때.
+- CI 공백(medium): Windows 전용 `windows_paths`, Windows의 `tests/lint.py`, render 파이프라인, meter 시험이 CI에서 돌지 않는다. 사용자 결정 D017로 후속 등재했다. 재개 조건: 사용자가 CI 비용과 Windows job 범위를 정할 때.
+- lint: 스레드가 `RUNNING`에 넣기 전의 중단은 그 프로세스를 timeout까지 남긴다(low). SIGINT가 무시된 채 상속되면 중단 시험이 60초 뒤 실패한다(low).
+- `sync`가 `--full` worker 목록 전체를 history에 쌓는다. 100행이면 호출당 약 200KB다(low). 재개 조건: 상태 파일 크기 문제 발생.
+- `flow_gate.task_listing`이 `integration.task_list`와 중복이다(low). 시험이 `flow_gate.orca`를 바꿔 끼우므로 함께 정리한다.
 - 이전 coor의 bare `git push`, `gh issue comment 2`는 fencing을 통과한다(low). `complete`의 head SHA 확인으로 피해가 제한된다. 재개 조건: 실제 발생 또는 다음 이슈 모드 변경.
 - meter가 일시 읽기 실패로 얻은 경로를 60초 캐시한다(low). 표시 전용이다. 재개 조건: 다음 meter 변경.
 - `issue_mode.py`(1401줄) 분할 검토. 재개 조건: 다음 이슈 모드 변경.

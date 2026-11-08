@@ -45,3 +45,13 @@ summary: "PR #126 후속 8개 묶음의 검사 결과, 실패 확인, 측정, �
 - agy 경로 중 `~/.gemini/config/skills`는 공식 문서와 skills CLI 소스로만 확인했다. 실제 agy 세션은 실행하지 않았다.
 - SIZE-002(추가 약 1,450줄): 사용자 결정 D014로 8개 묶음을 한 과제에서 처리했다. 그룹별 커밋으로 나눠 되돌리기 쉽게 했다.
 - DEP-001(`package.json`): test 스크립트에 시험 1개를 더했다. 의존성 변경은 없다.
+
+## 2차 리뷰 뒤 수정
+
+2차 리뷰(`CLEANUP-FOLLOWUPS-R2`, 8b32dde)도 수락하지 않았다. 같은 원인이 `run-current`(신원 확인)와 `run-show`(하위 Run 권한)에 남아 있었다. 이번에는 스크립트의 Orca 호출 전체를 실제 1.4.251 응답과 대조했다. 이 두 곳 외에 읽는 필드가 어긋난 호출은 없었다.
+
+- 시험 대역은 `--full`이 없으면 실제 CLI처럼 `run`·`spec`을 빼고 돌려준다.
+- `--full` 6곳을 하나씩 빼면 시험이 모두 실패한다(issue-mode 4곳, flow-gate 1곳, integration-gate 1곳).
+- 실제 Orca 1.4.251에서 coordinator 터미널로 `Orca.identity`와 `run-show --full`의 coordinator 일치를 확인했다.
+- `claude plugin test mods/fullops-meter`: 81개 통과, 종료코드 0.
+- CI 공백은 사용자 결정 D017로 PLANS.md 후속에 등재했다.
