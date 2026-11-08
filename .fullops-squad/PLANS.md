@@ -31,6 +31,8 @@ summary: 현재 작업
 | CLEANUP-FOLLOWUPS | PR #126 후속 8개 묶음을 Workflow로 병렬 구현(결정 D014) | dev(직접) | 구현·lint 완료(37a3ba0, 기준 0cea3b8). `npm test` 통과. review need: ask(코드 25개 파일 약 1,600줄) → 결정 D015로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`, run_88a80b39c65f, ctx_e532ea8c0ae8, snapshot `.fullops-review-6c25899aeb1642b4b55a88a6bfbce049`. 결정 D016: 캐시 status·statuses 제거. 1차 리뷰 수락 불가(high 2: Orca `--full` 누락) → 7ef2723 수정. 2차(CLEANUP-FOLLOWUPS-R2) 수락 불가(high 1: `run-current`·`run-show` `--full` 누락) → 267b1b1 수정. 3차(CLEANUP-FOLLOWUPS-R3, 5bc36e5) 수락: 미해결 critical·high·medium 0, low 5. `review.py check` 통과, 1·2차는 supersede·abandon, snapshot 3개 정리. 결정 D018로 PR #135 병합(e7acaee, 완료 SHA fe07f01) | `docs/evaluations/qa-reports/CLEANUP-FOLLOWUPS-test/report.md` |
 | RELEASE-1.17.0 | 1.17.0 릴리스(#134·#135), fullops-meter 0.12.0 | dev(직접) | 사용자 지시로 진행. 릴리스 노트는 Workflow로 사실 추출(5개 영역)과 반박 검증(정확성·누락·실행 가능성)을 거쳤다. 검증이 찾은 문서 결함 2건(fullops-orca 스킬 Stop 문구, issue-auto-mode 최소 Orca 문장)을 고쳤다. PR #136 병합(20d2c96, 완료 SHA 8b572c6), 태그·GitHub 릴리스 v1.17.0 게시. review need: skip, lint ERROR 0, npm test·플러그인 검증·CI 통과 | `docs/releases/1.17.0.md` |
 | FULLOPS-UPDATE-1.17.0 | 이 PC 설치와 레포 적용 버전을 1.17.0으로 갱신 | dev(직접) | 사용자 지시로 진행. 플러그인 1.17.0·meter 0.12.0 설치, `deps.py` 설치·검사 통과. 레포 적용: `.gitkeep`만 있는 setup 폴더 6개 삭제, 나머지 4건 해당 없음. `update.py --verify` 통과, `plugin_version` 1.17.0. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.17.0.md` |
+| ISSUE-CLOSEOUT-1.17.0 | 1.17.0 뒤 이슈 정리 | dev(직접) | 사용자 지시. #82 체크박스에 P0·P1을 표시했다(#81·#84 병합 확인). #132에 선행 개선 2건 반영 댓글을 남겼다. #132·#82는 본 작업이 남아 열어 둔다 | #82, #132 |
+| ROADMAP-82-P2 | #82 P2: `작업 검증`·`자주 틀리는 것`, 완료 보고 출력 발췌, verifier 절 | dev(직접) | 구현·lint 완료(f86bb4a, 기준 20d2c96). 결정 D019(standard 이상 기본, lite는 지시서 지정), D020(릴리스에서 필수 적용), D021(이 레포 subagent_level lite, `--local-only`로 원격 브랜치 생성을 피함). review need: skip(코드 2개 파일 8줄). `npm test` 통과, verifier 실제 1회 실행. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P2-test/report.md` |
 
 ## 대기 목록
 
@@ -43,7 +45,7 @@ summary: 현재 작업
 | 3 | HOOK-SLIM | hook 전체 시간을 먼저 재고, 관계없는 호출 조기 종료·import 지연·git 호출 통합 | 완료(위 표) | #132 선행 개선 |
 | 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
 | 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 완료(위 표, PR #135) | PR #126 "후속으로 남긴 것" |
-| 6 | ROADMAP-82 | #82 체크 상태 갱신, P2–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 5번 완료. 단계별 사용자 확인 | #82 |
+| 6 | ROADMAP-82 | 체크 상태 갱신·P2 구현 완료(위 표). 남은 일: P2 병합·릴리스, P3–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 단계별 사용자 확인 | #82 |
 | 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
 | 8 | STATUS-DIAGRAM | 현황판 PR 표시, D03 구조도 원천, 서비스 구조 섹션 | 사용자가 범위를 정할 때 | #59 |
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
@@ -69,6 +71,15 @@ summary: 현재 작업
 - meter가 일시 읽기 실패로 얻은 경로를 60초 캐시한다(low). 표시 전용이다. 재개 조건: 다음 meter 변경.
 - `issue_mode.py`(1401줄) 분할 검토. 재개 조건: 다음 이슈 모드 변경.
 - grok auto-wake 확인은 대기 목록 15번(GROK-WAKE-CHECK)에 있다.
+
+### ROADMAP-82-P2 후속
+
+담당은 dev다. 재개 조건은 PR 병합과 릴리스의 사용자 승인이다.
+
+- 다음 릴리스 노트의 `## 필수 적용`에 3줄을 넣는다(결정 D020): `.fullops-squad/project.md`의 `## 작업 검증`·`## 자주 틀리는 것`, `.fullops-squad/rules/delegation.md`의 `검증 하위 작업`.
+- `기존 레포 적용`에 적을 것: 두 절 병합과 `작업 검증` 채우기, delegation.md 절 병합, `_TEMPLATE.md` 줄 2개, `lint/README.md` 문구, `FULLOPS.md` 지도 행.
+- 릴리스 뒤 이 레포에 같은 항목을 적용하고, 병합 뒤 #82의 P2를 체크한다.
+- `setup.py`를 `--local-only` 없이 실행하면 원격에 `fullops/architecture` 브랜치를 만든다. 이 레포에서 역할을 정리할지는 사용자 결정이다.
 
 ### 사용자 결정 대기
 
