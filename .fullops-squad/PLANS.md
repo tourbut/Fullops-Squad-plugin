@@ -64,7 +64,7 @@ summary: 현재 작업
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
 | 10 | ULTRACODE-REVIEW | 울트라코드 하위 에이전트 관리 상세 검토 | 사용자가 시작할 때 | #131 |
 | 11 | RUST-MIGRATION | Python·npm 없는 Rust 전환 검토 | 사용자가 시작할 때 | #132 |
-| 12 | HERDR-HOST | Herdr 호스트 어댑터 | 사용자가 시작할 때 | #115 |
+| 12 | HERDR-HOST | Herdr 호스트 어댑터. 사용자 결정으로 기각(2026-11-10), 이슈 종료 | 없음(진행 안 함) | #115 |
 | 13 | ORCA-PLUGIN | Orca 플러그인 전환 재검토 | 이슈의 재검토 조건 충족 | #120 |
 | 14 | DIRECTORY-LISTING | 플러그인 디렉터리 포털 리뷰 결과 확인 | 포털 결과 확인(사용자) | #34 |
 | 15 | GROK-WAKE-CHECK | grok이 백그라운드 완료로 세션을 깨우는지 확인. grok 1.0.70 문서에 auto-wake가 있어 스킬·flow-gate의 "깨우지 않는다"가 낡았을 수 있다 | 사용자가 시작할 때 | FLOW-STOP-WAIT 조사 |
@@ -103,7 +103,8 @@ summary: 현재 작업
 
 담당은 dev다.
 
-- `hook_runtime.package_files`가 Claude Code의 `.in_use/<pid>` 표지까지 내용 비교에 넣는다. 표지가 바뀌면 hook은 정상인데 `deps.py --check`가 실패한다. `.in_use`를 빼면 된다. 재개 조건: 사용자 승인(코드 변경·릴리스).
+- `hook_runtime.package_files`의 `.in_use` 표지 오탐: PR에 수정을 올렸다. 재개 조건: 사용자의 병합·릴리스 승인.
+- Orca 프로필의 `fullops-deps.json`이 `~/.claude` 사본으로 덮어써져 `home` 값이 달라지고 `deps.py --check`가 `host dependency installation incomplete`로 실패한다. `--host`로 고친 뒤 되돌아간 일이 1회 있었다(2026-11-10 00:13:02). 복사 주체는 확인되지 않았다. 재개 조건: 사용자가 `home` 비교를 고칠지 정할 때.
 - #104 절감량: `.fullops-squad/local/outputs/trim.jsonl`로 잰다. 이 워크트리의 앞 2줄은 일부러 만든 시험 출력이라 뺀다. 재개 조건: 실제 작업이 쌓였을 때.
 
 ### ROADMAP-82-P5 후속

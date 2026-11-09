@@ -22,6 +22,7 @@ summary: "ShinPC 설치와 이 레포의 FullOps 적용 버전을 1.21.0에서 1
 - `claude plugin marketplace update fullops-squad`, `claude plugin update fullops-squad@fullops-squad`: 1.21.0 → 1.22.0.
 - `deps.py --host claude-code`: 종료코드 0.
 - `deps.py --check --host claude-code`: 처음에 실패했다(`hook runtime missing or outdated`). 원인은 실행 중인 Claude Code가 설치 폴더에 만든 `.in_use/36020` 표지다. 이 파일 말고 런타임과 설치본의 내용 차이는 없었다. `deps.py --runtime-only` 뒤 통과했다. 표지는 지우지 않았다.
+- 2026-11-10 재검사: `--check`가 다시 실패했다. 런타임 쪽은 `.in_use` 표지가 바뀐 탓이다. 수신 기록 쪽은 프로필의 `fullops-deps.json`이 `~/.claude` 사본과 바이트까지 같았고 `home` 값만 현재 설정 폴더와 달랐다. `manifest_sha256`은 같았다. `deps.py --host`로 고쳤지만 00:13:02에 다시 덮어써졌고, 다시 실행한 00:18:52에는 `--check`가 통과했다. 복사 주체는 확인하지 못했다. `claude --version`과 `claude plugin list`는 덮어쓰지 않았다.
 - 실제 동작: 이 세션의 Bash에서 1,000줄 출력이 줄어든 것을 확인했다(`/reload-plugins` 전).
 - `/reload-plugins`: 사용자 실행 대기.
 
