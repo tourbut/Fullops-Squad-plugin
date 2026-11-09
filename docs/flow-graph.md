@@ -13,7 +13,7 @@ FullOps 과제 생명주기의 노드·엣지·게이트 명세다. 의도: [FLO
 | worker_done | 브랜치·SHA·검증 결과를 coordinator에게 보낸다 | worker |
 | 리뷰 | 고정 SHA를 다른 세션이 독립 리뷰한다 | 리뷰 세션 |
 | 병합 | 리뷰한 SHA를 기본 브랜치에 병합·push하고 worktree를 동기화한다 | coordinator |
-| 검수 | 묶음 의도의 성공 기준으로 `project.md` `주요 흐름`의 세트를 판정한다 | tester·coordinator |
+| 검수 | 묶음 의도의 성공 기준(없으면 지시서의 기대 결과)으로 `project.md` `주요 흐름`의 세트를 판정한다 | tester·coordinator |
 | 완료 | 완료 보고를 로그에 보존하고 PLANS·현황판을 갱신한다 | coordinator |
 
 ```mermaid
@@ -41,7 +41,7 @@ flowchart LR
 | E10 | 리뷰 → 병합 | 기록 검사 통과, 독립 세션, critical/high 미해결 없음 | `qa-reports/<키>-review/result.json` | `review.py:check`, `review.py:check_independence`, `review.py:direct_check` | 차단 |
 | E11 | 병합 SHA | 병합하는 SHA가 리뷰한 SHA와 같다 | 병합 커밋 | `integration.py:merge_drift` | 알림 |
 | E12 | 병합 → 다음 배정 | 완료 결과가 기본 브랜치에 통합됐거나 hold 사유가 있다 | 기본 브랜치 SHA | `integration.py:denial` | 차단 |
-| E13 | 병합 → 검수 | 묶음의 과제가 모두 병합됐다. 묶음이 없으면 제품 변경을 포함한 단계가 끝났다 | intent 성공 기준, `project.md` `주요 흐름` | 비어 있음(`testing.md`·`fullops-orca` 지침 문장만 있다. #82 P4는 게이트를 넣지 않았다) | |
+| E13 | 병합 → 검수 | 묶음의 구현 과제가 모두 병합됐다. 묶음이 없으면 제품 변경을 포함한 단계가 끝났다 | intent 성공 기준(없으면 지시서의 기대 결과), `project.md` `주요 흐름` | 비어 있음(`testing.md`·`fullops-orca` 지침 문장만 있다. #82 P4는 게이트를 넣지 않았다) | |
 | E14 | 리뷰·검수 → 구현(수정·재검증) | 같은 과제 키로 다시 연다. 보고서는 기존 폴더에 덧붙인다 | 기존 지시서·report.md | `work.py:new`, `harness_gate.py:round_folder` | 차단 |
 | E15 | 반복 예산 | 같은 과제의 수정·재검증이 2회를 넘으면 사람에게 올린다 | 반복 횟수·같은 실패 항목 | `harness_gate.py:repeat_budget` | 알림 |
 | E16 | 검수·병합 → 완료 | 완료 보고 전문을 로그에 보존한 뒤 인박스를 비운다. PLANS가 바뀌면 현황판 단계도 고친다 | `handovers/logs/`, `board/board.json` | `work.py:finish`, `flow_gate.py:board_reminder`, `board.py:write` | 차단 |
