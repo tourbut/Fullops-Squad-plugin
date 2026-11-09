@@ -9,14 +9,14 @@ summary: "#82 P3(리뷰 정책)의 검사 결과, 과거 지적 재분류 결과
 
 # ROADMAP-82-P3 검증 보고
 
-대상은 `fullops/dev` ee124c6이다. 기준은 main b315e2c다. 테스트 레벨은 lite다.
+대상은 `fullops/dev` ee124c6이다. 기준은 origin/main b315e2c다. 이 체크아웃의 로컬 `main`은 뒤처져 있어 쓰지 않았다. 테스트 레벨은 lite다.
 
 ## 통과한 검사
 
-- `lint.py --from main`, ee124c6: 종료코드 0, `head ee124c6ac21f / 파일 24 / ERROR 0 / WARNING 0 / 실행 불가 0`.
+- `lint.py --from origin/main`, 860223e(ee124c6 뒤 기록 커밋): 종료코드 0, `head 860223e1b621 / 파일 11 / ERROR 0 / WARNING 0 / 실행 불가 0`.
 - `npm test`, ee124c6: 종료코드 0.
-- `review.py need`: skip(코드 2개 파일 10줄).
-- `plugins/fullops-squad/scripts`·`mods`의 main 대비 diff: 없음.
+- `review.py need --from origin/main`: skip(코드 1개 파일 2줄).
+- `plugins/fullops-squad/scripts`·`mods`의 origin/main 대비 diff: 없음.
 
 ## 과거 지적 재분류
 

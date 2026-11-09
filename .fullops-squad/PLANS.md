@@ -35,7 +35,7 @@ summary: 현재 작업
 | ROADMAP-82-P2 | #82 P2: `작업 검증`·`자주 틀리는 것`, 완료 보고 출력 발췌, verifier 절 | dev(직접) | 구현·lint 완료(f86bb4a, 기준 20d2c96). 결정 D019(standard 이상 기본, lite는 지시서 지정), D020(릴리스에서 필수 적용), D021(이 레포 subagent_level lite, `--local-only`로 원격 브랜치 생성을 피함). review need: skip(코드 2개 파일 8줄). `npm test` 통과, verifier 실제 1회 실행. PR #137 병합(b315e2c, 완료 SHA c6c8866) | `docs/evaluations/qa-reports/ROADMAP-82-P2-test/report.md` |
 | RELEASE-1.18.0 | 1.18.0 릴리스(#82 P2) | dev(직접) | 사용자 지시로 진행. 릴리스 노트는 Workflow로 반박 검증(정확성·누락·실행 가능성)해 지적 8건을 반영했다. PR #137(b315e2c)에 함께 넣었고 태그·GitHub 릴리스 v1.18.0을 게시했다. `npm test`·플러그인 검증·CI 통과 | `docs/releases/1.18.0.md` |
 | FULLOPS-UPDATE-1.18.0 | 이 PC 설치와 레포 적용 버전을 1.18.0으로 갱신 | dev(직접) | 필수 적용 3건 적용, `update.py --verify` 통과, `plugin_version` 1.18.0. #82의 P2를 체크했다. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.18.0.md` |
-| ROADMAP-82-P3 | #82 P3: `fullops-review` `## 리뷰 정책`, 리뷰 보고서 템플릿 3곳 | dev(직접) | 구현·lint 완료(ee124c6, 기준 b315e2c). 결정 D022(nit 상한 한 문장), D023(high는 지금 쓰임), D024(완료 기준 미달 medium 이상과 처분), D025(수락 기준 대체는 제외). review need: skip(코드 2개 파일 10줄). `npm test` 통과, 과거 low 32건 재분류 통과. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P3-test/report.md` |
+| ROADMAP-82-P3 | #82 P3: `fullops-review` `## 리뷰 정책`, 리뷰 보고서 템플릿 3곳 | dev(직접) | 구현·lint 완료(ee124c6, 기준 b315e2c). 결정 D022(nit 상한 한 문장), D023(high는 지금 쓰임), D024(완료 기준 미달 medium 이상과 처분), D025(수락 기준 대체는 제외). review need: skip(코드 1개 파일 2줄). `npm test` 통과, 과거 low 32건 재분류 통과. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P3-test/report.md` |
 
 ## 대기 목록
 
