@@ -9,7 +9,7 @@
   "subagent_level": "lite",
   "primary_role": "dev",
   "primary_branch": "main",
-  "plugin_version": "1.20.0",
+  "plugin_version": "1.21.0",
   "git": {
     "remote": "origin",
     "base": "main"
