@@ -46,6 +46,7 @@ summary: 현재 작업
 | OUTPUT-HISTORY-A | #104 후보 A: 긴 Bash 출력 줄이기(`output_trim.py`) | dev(직접) | 병합(#145, 6b6eae0). 절감량 실측은 남았다 | `docs/evaluations/qa-reports/OUTPUT-HISTORY-A-test/report.md` |
 | RELEASE-1.22.0 | 1.22.0 릴리스(#104 후보 A) | dev(직접) | 사용자 지시로 진행. 태그·GitHub 릴리스 v1.22.0 게시. 병합 f8363f7 | `docs/releases/1.22.0.md` |
 | FULLOPS-UPDATE-1.22.0 | ShinPC 설치와 레포 적용 버전을 1.22.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, `plugin_version` 1.22.0. `deps.py --check`는 `.in_use` 표지 때문에 한 번 실패했고 `--runtime-only` 뒤 통과. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.22.0.md` |
+| RELEASE-1.22.1 | 1.22.1 릴리스(`.in_use` 표지 오탐 수정) | dev(직접) | 사용자 지시로 진행. 수정 병합(#149, d1f8797). 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.22.1을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.22.1.md` |
 
 ## 대기 목록
 
@@ -103,7 +104,7 @@ summary: 현재 작업
 
 담당은 dev다.
 
-- `hook_runtime.package_files`의 `.in_use` 표지 오탐: PR에 수정을 올렸다. 재개 조건: 사용자의 병합·릴리스 승인.
+- `hook_runtime.package_files`의 `.in_use` 표지 오탐: 1.22.1로 릴리스한다(RELEASE-1.22.1). 이 PC 적용은 재개 조건: 사용자의 업데이트 지시.
 - Orca 프로필의 `fullops-deps.json`이 `~/.claude` 사본으로 덮어써져 `home` 값이 달라지고 `deps.py --check`가 `host dependency installation incomplete`로 실패한다. `--host`로 고친 뒤 되돌아간 일이 1회 있었다(2026-11-10 00:13:02). 복사 주체는 확인되지 않았다. 재개 조건: 사용자가 `home` 비교를 고칠지 정할 때.
 - #104 절감량: `.fullops-squad/local/outputs/trim.jsonl`로 잰다. 이 워크트리의 앞 2줄은 일부러 만든 시험 출력이라 뺀다. 재개 조건: 실제 작업이 쌓였을 때.
 
