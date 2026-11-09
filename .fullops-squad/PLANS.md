@@ -64,7 +64,7 @@ summary: 현재 작업
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
 | 10 | ULTRACODE-REVIEW | 울트라코드 하위 에이전트 관리 상세 검토 | 사용자가 시작할 때 | #131 |
 | 11 | RUST-MIGRATION | Python·npm 없는 Rust 전환 검토 | 사용자가 시작할 때 | #132 |
-| 12 | HERDR-HOST | Herdr 호스트 어댑터 | 사용자가 시작할 때 | #115 |
+| 12 | HERDR-HOST | Herdr 호스트 어댑터. 사용자 결정으로 기각(2026-11-10), 이슈 종료 | 없음(진행 안 함) | #115 |
 | 13 | ORCA-PLUGIN | Orca 플러그인 전환 재검토 | 이슈의 재검토 조건 충족 | #120 |
 | 14 | DIRECTORY-LISTING | 플러그인 디렉터리 포털 리뷰 결과 확인 | 포털 결과 확인(사용자) | #34 |
 | 15 | GROK-WAKE-CHECK | grok이 백그라운드 완료로 세션을 깨우는지 확인. grok 1.0.70 문서에 auto-wake가 있어 스킬·flow-gate의 "깨우지 않는다"가 낡았을 수 있다 | 사용자가 시작할 때 | FLOW-STOP-WAIT 조사 |
