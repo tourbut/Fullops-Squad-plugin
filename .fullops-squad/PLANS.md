@@ -35,7 +35,9 @@ summary: 현재 작업
 | ROADMAP-82-P2 | #82 P2: `작업 검증`·`자주 틀리는 것`, 완료 보고 출력 발췌, verifier 절 | dev(직접) | 구현·lint 완료(f86bb4a, 기준 20d2c96). 결정 D019(standard 이상 기본, lite는 지시서 지정), D020(릴리스에서 필수 적용), D021(이 레포 subagent_level lite, `--local-only`로 원격 브랜치 생성을 피함). review need: skip(코드 2개 파일 8줄). `npm test` 통과, verifier 실제 1회 실행. PR #137 병합(b315e2c, 완료 SHA c6c8866) | `docs/evaluations/qa-reports/ROADMAP-82-P2-test/report.md` |
 | RELEASE-1.18.0 | 1.18.0 릴리스(#82 P2) | dev(직접) | 사용자 지시로 진행. 릴리스 노트는 Workflow로 반박 검증(정확성·누락·실행 가능성)해 지적 8건을 반영했다. PR #137(b315e2c)에 함께 넣었고 태그·GitHub 릴리스 v1.18.0을 게시했다. `npm test`·플러그인 검증·CI 통과 | `docs/releases/1.18.0.md` |
 | FULLOPS-UPDATE-1.18.0 | 이 PC 설치와 레포 적용 버전을 1.18.0으로 갱신 | dev(직접) | 필수 적용 3건 적용, `update.py --verify` 통과, `plugin_version` 1.18.0. #82의 P2를 체크했다. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.18.0.md` |
-| ROADMAP-82-P3 | #82 P3: `fullops-review` `## 리뷰 정책`, 리뷰 보고서 템플릿 3곳 | dev(직접) | 구현·lint 완료(ee124c6, 기준 b315e2c). 결정 D022(nit 상한 한 문장), D023(high는 지금 쓰임), D024(완료 기준 미달 medium 이상과 처분), D025(수락 기준 대체는 제외). review need: skip(코드 1개 파일 2줄). `npm test` 통과, 과거 low 32건 재분류 통과. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P3-test/report.md` |
+| ROADMAP-82-P3 | #82 P3: `fullops-review` `## 리뷰 정책`, 리뷰 보고서 템플릿 3곳 | dev(직접) | 구현·lint 완료(ee124c6, 기준 b315e2c). 결정 D022(nit 상한 한 문장), D023(high는 지금 쓰임), D024(완료 기준 미달 medium 이상과 처분), D025(수락 기준 대체는 제외). review need: skip(코드 1개 파일 2줄). `npm test` 통과, 과거 low 32건 재분류 통과. PR #138 병합(8344743, 완료 SHA 4eea9ef) | `docs/evaluations/qa-reports/ROADMAP-82-P3-test/report.md` |
+| RELEASE-1.19.0 | 1.19.0 릴리스(#82 P3) | dev(직접) | 사용자 지시로 진행. PR #138(8344743)에 함께 넣었고 태그·GitHub 릴리스 v1.19.0을 게시했다. `npm test`·CI 통과 | `docs/releases/1.19.0.md` |
+| FULLOPS-UPDATE-1.19.0 | 이 PC 설치와 레포 적용 버전을 1.19.0으로 갱신 | dev(직접) | 필수 적용 없음, `update.py --verify` 통과, `plugin_version` 1.19.0. #82의 P3를 체크했다. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.19.0.md` |
 
 ## 대기 목록
 
@@ -48,7 +50,7 @@ summary: 현재 작업
 | 3 | HOOK-SLIM | hook 전체 시간을 먼저 재고, 관계없는 호출 조기 종료·import 지연·git 호출 통합 | 완료(위 표) | #132 선행 개선 |
 | 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
 | 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 완료(위 표, PR #135) | PR #126 "후속으로 남긴 것" |
-| 6 | ROADMAP-82 | 체크 상태 갱신·P2 릴리스·P3 구현 완료(위 표). 남은 일: P3 병합·릴리스, P4–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 단계별 사용자 확인 | #82 |
+| 6 | ROADMAP-82 | 체크 상태 갱신·P2·P3 릴리스 완료(위 표). 남은 일: P4–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 단계별 사용자 확인 | #82 |
 | 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
 | 8 | STATUS-DIAGRAM | 현황판 PR 표시, D03 구조도 원천, 서비스 구조 섹션 | 사용자가 범위를 정할 때 | #59 |
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
