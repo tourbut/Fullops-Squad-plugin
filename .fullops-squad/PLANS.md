@@ -42,9 +42,10 @@ summary: 현재 작업
 | RELEASE-1.20.0 | 1.20.0 릴리스(#82 P4) | dev(직접) | 사용자 지시로 진행. PR #140(30a8837)에 함께 넣었고 태그·GitHub 릴리스 v1.20.0을 게시했다. `checks`·`claude-review` 통과, 리뷰 지적 없음 | `docs/releases/1.20.0.md` |
 | FULLOPS-UPDATE-1.20.0 | 이 PC 설치와 레포 적용 버전을 1.20.0으로 갱신 | dev(직접) | 필수 적용 3건 적용, `update.py --verify` 3/3, `plugin_version` 1.20.0. #82의 P4를 체크하고 eval 미반영을 댓글로 적었다 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.20.0.md` |
 | ROADMAP-82-P5 | #82 P5: 현황판 `작업 지표`(첫 시도 완료, 재작업, 리뷰 소요), 발견의 intent 재진입 문구 | dev(직접) | 병합(#142, 66a481c)과 1.21.0 릴리스(#143, a43d19e) 완료, #82의 P5 체크. review need: skip(코드 4개 파일 119줄) | `docs/evaluations/qa-reports/ROADMAP-82-P5-test/report.md` |
-| FULLOPS-UPDATE-1.21.0 | 이 PC 설치와 레포 적용 버전을 1.21.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, intent 템플릿 문장 동기화, `plugin_version` 1.21.0. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.21.0.md` |
+| FULLOPS-UPDATE-1.21.0 | 이 PC 설치와 레포 적용 버전을 1.21.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, intent 템플릿 문장 동기화, `plugin_version` 1.21.0. `/reload-plugins` 사용자 실행, 오류 없음 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.21.0.md` |
 | OUTPUT-HISTORY-A | #104 후보 A: 긴 Bash 출력 줄이기(`output_trim.py`) | dev(직접) | 병합(#145, 6b6eae0). 절감량 실측은 남았다 | `docs/evaluations/qa-reports/OUTPUT-HISTORY-A-test/report.md` |
-| RELEASE-1.22.0 | 1.22.0 릴리스(#104 후보 A) | dev(직접) | 사용자 지시로 진행. 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.22.0을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.22.0.md` |
+| RELEASE-1.22.0 | 1.22.0 릴리스(#104 후보 A) | dev(직접) | 사용자 지시로 진행. 태그·GitHub 릴리스 v1.22.0 게시. 병합 f8363f7 | `docs/releases/1.22.0.md` |
+| FULLOPS-UPDATE-1.22.0 | ShinPC 설치와 레포 적용 버전을 1.22.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, `plugin_version` 1.22.0. `deps.py --check`는 `.in_use` 표지 때문에 한 번 실패했고 `--runtime-only` 뒤 통과. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.22.0.md` |
 
 ## 대기 목록
 
@@ -97,6 +98,13 @@ summary: 현재 작업
 
 - 리뷰 보고서도 `REPORT_LINES`(40줄) 안내에 걸린다(`harness_gate.py:145-149`). 템플릿만으로 44줄이다(low, 이전부터 있던 문제). 재개 조건: 다음 `harness_gate.py` 변경.
 - 수락 기준을 coordinator가 바꾸는 문제(jevpet UX2-ART)는 결정 D025로 P3에서 뺐다. 재개 조건: 같은 일이 다시 나올 때.
+
+### FULLOPS-UPDATE-1.22.0 후속
+
+담당은 dev다.
+
+- `hook_runtime.package_files`가 Claude Code의 `.in_use/<pid>` 표지까지 내용 비교에 넣는다. 표지가 바뀌면 hook은 정상인데 `deps.py --check`가 실패한다. `.in_use`를 빼면 된다. 재개 조건: 사용자 승인(코드 변경·릴리스).
+- #104 절감량: `.fullops-squad/local/outputs/trim.jsonl`로 잰다. 이 워크트리의 앞 2줄은 일부러 만든 시험 출력이라 뺀다. 재개 조건: 실제 작업이 쌓였을 때.
 
 ### ROADMAP-82-P5 후속
 

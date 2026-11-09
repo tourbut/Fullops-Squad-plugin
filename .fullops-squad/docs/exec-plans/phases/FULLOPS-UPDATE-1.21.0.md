@@ -21,7 +21,7 @@ summary: "이 PC 설치와 이 레포의 FullOps 적용 버전을 1.20.0에서 1
 
 - `claude plugin marketplace update fullops-squad`, `claude plugin update fullops-squad@fullops-squad`: 1.20.0 → 1.21.0.
 - `deps.py --host claude-code`, `deps.py --check --host claude-code`: 통과.
-- `/reload-plugins`: 사용자 실행 대기. 에이전트가 실행할 수 없어, 레포 적용은 새 패키지의 스크립트 경로를 직접 지정해 먼저 진행했다.
+- `/reload-plugins`: 레포 적용 뒤 사용자가 실행했고 오류가 없다. 에이전트가 실행할 수 없어, 레포 적용은 새 패키지의 스크립트 경로를 직접 지정해 먼저 진행했다.
 
 ## 릴리스별 판정
 
