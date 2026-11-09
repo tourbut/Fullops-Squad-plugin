@@ -26,7 +26,6 @@ with tempfile.TemporaryDirectory(prefix='fullops-trim-') as tmp:
     assert output_trim.replacement(tmp, event(LONG, tool='PowerShell')) is None
     assert output_trim.replacement(tmp, event(LONG, hook='PostToolUseFailure')) is None
     assert output_trim.replacement(tmp, event(LONG, interrupted=True)) is None
-    assert output_trim.replacement(tmp, event(LONG, persistedOutputPath='x')) is None
     assert output_trim.replacement(tmp, {'hook_event_name': 'PostToolUse', 'tool_name': 'Bash', 'tool_response': LONG}) is None
     assert not (Path(tmp) / '.fullops-squad').exists()
 

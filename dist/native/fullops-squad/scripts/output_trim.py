@@ -37,8 +37,8 @@ def replacement(root, event):
     if event.get('hook_event_name') != 'PostToolUse' or event.get('tool_name') != 'Bash' or not isinstance(response, dict):
         return None
     stdout, stderr = response.get('stdout'), response.get('stderr')
-    # 형식이 다른 값은 Claude Code가 무시하므로 같은 필드를 유지한다. 이미 파일로 빠진 출력은 건드리지 않는다
-    if not isinstance(stdout, str) or not isinstance(stderr, str) or response.get('interrupted') or response.get('isImage') or response.get('persistedOutputPath'):
+    # 형식이 다른 값은 Claude Code가 무시하므로 같은 필드를 유지한다
+    if not isinstance(stdout, str) or not isinstance(stderr, str) or response.get('interrupted') or response.get('isImage'):
         return None
     if len(stdout.splitlines()) <= LIMIT and len(stderr.splitlines()) <= LIMIT:
         return None
