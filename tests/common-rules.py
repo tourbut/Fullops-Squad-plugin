@@ -75,7 +75,7 @@ class CommonRulesTests(unittest.TestCase):
         directory = ASSETS / 'rules/common'
         self.assertEqual({p.name for p in directory.iterdir()}, BUNDLE_NAMES)
         readme = (directory / 'README.md').read_text(encoding='utf-8')
-        self.assertIn('fullops-common-0.3.6', readme)
+        self.assertIn('fullops-common-0.3.7', readme)
         self.assertIn('934195f955cf0da847d59fcd6f68856bce112d8b', readme)
         license_text = (directory / 'ECC-LICENSE.txt').read_text(encoding='utf-8')
         self.assertIn('Copyright (c) 2026 Affaan Mustafa', license_text)
@@ -93,6 +93,7 @@ class CommonRulesTests(unittest.TestCase):
         project = (ASSETS / 'project.md').read_text(encoding='utf-8')
         self.assertIn('## 작업 검증\n', project)
         self.assertIn('## 자주 틀리는 것\n', project)
+        self.assertIn('## 주요 흐름\n', project)
         self.assertIn('## 검증 하위 작업(verifier)\n', (ASSETS / 'rules/delegation.md').read_text(encoding='utf-8'))
         self.assertIn('## 리뷰 정책\n', (PLUGIN / 'skills/fullops-review/SKILL.md').read_text(encoding='utf-8'))
         self.assertIn('기준별 충족/미달', (ASSETS / 'review/_REPORT.md').read_text(encoding='utf-8'))
