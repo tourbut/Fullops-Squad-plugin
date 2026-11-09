@@ -213,6 +213,21 @@ def rework(root, base):
     return reopens + len(ids), budget, reopens, ids, rounds
 
 
+def rework_counts(root, bases):
+    """과제마다 rework()의 반복 횟수. 파일을 한 번만 읽어 Stop hook에서 과제 수만큼 느려지지 않는다. 완료 과제용이라 보고 전 인박스 attempt는 세지 않는다"""
+    handovers = root / '.fullops-squad/handovers'
+    attempts, ids = {}, {}
+    for path in [*handovers.glob('logs/*.md'), *handovers.glob('to_*.md')]:
+        for key, attempt in REPORTED.findall(path.read_text(encoding='utf-8', errors='replace')):
+            attempts.setdefault(key, set()).add(attempt)
+    for path in (root / '.fullops-squad/docs/evaluations/jev').glob('*-route.json'):
+        key = path.name[:-len('-route.json')]
+        base = base_key(key)
+        if base != key:
+            ids.setdefault(base, set()).add('-'.join(m.upper() for m in ROUND_ID.findall(key[len(base):])))
+    return {b: max(0, len(attempts.get(b, ())) - 1) + len(ids.get(b, ())) for b in bases}
+
+
 def repeat_budget(root, commands):
     """같은 과제의 수정·재검증이 예산을 넘으면 사람에게 올리라는 문장(docs/flow-graph.md E15)"""
     for words in commands:

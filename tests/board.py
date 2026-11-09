@@ -1,6 +1,7 @@
 """임시 레포에서 현황판 데이터 수집·JS 출력·변경 없을 때 재작성 생략·coordinator Stop hook 자동 갱신·git 무시를 확인한다."""
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -12,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 from board_documents import documents, markdown
-from board import issues, recent_issues, write
+from board import build, issues, metrics, recent_issues, write
+import harness_gate
 
 
 def issue_checks():
@@ -269,8 +271,63 @@ def main():
           'shows board.json errors, refreshes on coordinator Stop, stays git-ignored')
 
 
+def metric_checks():
+    with tempfile.TemporaryDirectory(prefix='fullops-board-metrics-') as tmp:
+        repo = Path(tmp)
+
+        def git(*args, when=None):
+            dates = {'GIT_AUTHOR_DATE': when, 'GIT_COMMITTER_DATE': when} if when else {}
+            return subprocess.run(['git', '-C', tmp, '-c', 'user.name=t', '-c', 'user.email=t@t', *args], check=True, capture_output=True,
+                                  text=True, encoding='utf-8', env={**os.environ, **dates}).stdout.strip()
+
+        def review(key, head):
+            folder = fo / f'docs/evaluations/qa-reports/{key}-review'
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / 'result.json').write_text(json.dumps({'head': head}), encoding='utf-8')
+
+        git('init', '-q', '-b', 'main')
+        fo = repo / '.fullops-squad'
+        (fo / 'handovers/logs').mkdir(parents=True)
+        (fo / 'docs/evaluations/jev').mkdir(parents=True)
+        (fo / 'fullops.json').write_text('{}', encoding='utf-8')
+        assert build(repo)['metrics']['all'] == {'tasks': 0, 'first_try': 0, 'rework': 0, 'reviews': 0, 'review_minutes': None}
+
+        # CLEAN은 첫 시도 완료, REOPEN은 재오픈 1회, ROUND는 차수 키 2개다. 로그에 없는 NOLOG는 세지 않는다
+        (fo / 'handovers/logs/2026-11_to_dev.md').write_text(
+            '## CLEAN — 2026-11-03\n\n<!-- fullops-attempt: CLEAN a1 -->\n\n'
+            '## REOPEN — 2026-11-02\n\n<!-- fullops-attempt: REOPEN a1 -->\n\n<!-- fullops-attempt: REOPEN a2 -->\n\n'
+            '## ROUND-FIX-2 — 2026-11-01\n\n', encoding='utf-8')
+        for key in ('CLEAN', 'NOLOG', 'ROUND-FIX', 'ROUND-FIX-2-DEV'):
+            (fo / f'docs/evaluations/jev/{key}-route.json').write_text('{}', encoding='utf-8')
+        keys = ['CLEAN', 'REOPEN', 'ROUND', 'NOLOG']
+        assert harness_gate.rework_counts(repo, keys) == {k: harness_gate.rework(repo, k)[0] for k in keys} == {
+            'CLEAN': 0, 'REOPEN': 1, 'ROUND': 2, 'NOLOG': 0}
+
+        # 리뷰 소요 10분과 30분의 중앙값
+        git('commit', '-q', '--allow-empty', '-m', 'impl', when='2026-11-01T00:00:00+00:00')
+        impl = git('rev-parse', 'HEAD')
+        for key, when in (('CLEAN', '2026-11-01T00:10:00+00:00'), ('REOPEN', '2026-11-01T00:30:00+00:00')):
+            review(key, impl)
+            git('add', '.fullops-squad/docs/evaluations/qa-reports')
+            git('commit', '-q', '-m', key, when=when)
+        assert build(repo)['metrics']['all'] == {'tasks': 3, 'first_try': 1, 'rework': 3, 'reviews': 2, 'review_minutes': 20}
+
+        # 찾을 수 없는 커밋과, 리뷰 기록보다 나중인 커밋은 소요에서 뺀다
+        git('commit', '-q', '--allow-empty', '-m', 'later', when='2026-11-01T01:00:00+00:00')
+        review('CLEAN', 'f' * 40)
+        assert build(repo)['metrics']['all']['reviews'] == 1
+        review('REOPEN', git('rev-parse', 'HEAD'))
+        assert build(repo)['metrics']['all']['reviews'] == 0
+
+        # 최근 구간은 앞쪽 N개만 센다
+        rows = metrics(repo, [{'key': 'CLEAN'}, {'key': 'REOPEN'}, {'key': 'ROUND-FIX'}, {'key': 'ROUND-R1'}], [], recent=1)
+        assert (rows['recent']['tasks'], rows['recent']['first_try'], rows['all']['tasks'], rows['recent_limit']) == (1, 1, 3, 1)
+    print('PASS: board metrics count first-try tasks, rework and median review time from repo records')
+
+
 if __name__ == '__main__':
     issue_checks()
     main()
+    metric_checks()
     document_checks()
     print('PASS: document bodies, multiple sources, folders, missing/empty/unreadable files, path guards, escaped Markdown')

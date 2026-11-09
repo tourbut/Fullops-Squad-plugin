@@ -293,6 +293,20 @@
     h.push('</tbody></table></div></section>');
   }
 
+  var metrics = B.metrics;
+  if (metrics && metrics.all.tasks) {
+    var spans = metrics.all.tasks > metrics.recent_limit ? [['최근 ' + metrics.recent_limit + '개', metrics.recent], ['전체', metrics.all]] : [['전체', metrics.all]];
+    h.push('<section><div class="head"><h2>작업 지표</h2><span class="count">완료 과제 ' + metrics.all.tasks + '개</span></div>');
+    h.push('<div class="scroll"><table><thead><tr><th>구간</th><th>첫 시도 완료</th><th>재작업</th><th>리뷰 소요 중앙값</th></tr></thead><tbody>');
+    spans.forEach(function (s) {
+      var m = s[1], minutes = m.review_minutes;
+      h.push('<tr><td>' + esc(s[0]) + '</td><td class="num">' + Math.round(m.first_try / m.tasks * 100) + '%<span class="soft"> · ' + m.first_try + ' / ' + m.tasks + '</span></td>' +
+             '<td class="num">' + m.rework + '회</td>' +
+             '<td class="num">' + (minutes == null ? '-' : (minutes < 120 ? minutes + '분' : Math.round(minutes / 60) + '시간') + '<span class="soft"> · 리뷰 ' + m.reviews + '건</span>') + '</td></tr>');
+    });
+    h.push('</tbody></table></div><p class="empty">추세를 보는 참고값이다. 재작업은 재오픈과 차수 키를 더한 횟수이고, 리뷰 소요는 리뷰한 커밋부터 리뷰 기록 커밋까지의 시간이다.</p></section>');
+  }
+
   var hist = B.history || [], deliv = B.deliverables || [];
   var approved = deliv.filter(function (d) { return delivClass(d.status) === 'is-done'; }).length;
   var inScope = deliv.filter(function (d) { return delivClass(d.status) !== 'is-skip'; }).length;
