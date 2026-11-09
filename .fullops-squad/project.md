@@ -15,7 +15,7 @@ setup에서 이 레포를 직접 확인하고 채운다. 원본 템플릿의 기
 | 제품 목적 | Codex·Claude Code·grok용 FullOps Squad 플러그인 (README.md) |
 | 기본 브랜치 | main (origin = github.com/tourbut/Fullops-Squad-plugin, 공개) |
 | 기술 스택·아키텍처 정본 | Python 3 스크립트·Markdown 스킬, Node 설치기. 정본 [AGENTS.md](../AGENTS.md), [docs/development.md](../docs/development.md). `plugins/fullops-squad/`·`adapters/`만 편집하고 `python3 scripts/build.py`로 `dist/` 재생성 |
-| 공통 개발 기준 | [rules/common/README.md](rules/common/README.md) — `fullops-common-0.3.6` |
+| 공통 개발 기준 | [rules/common/README.md](rules/common/README.md) — `fullops-common-0.3.7` |
 | 보안·코딩 규칙 | 공통 규칙. dist는 손으로 고치지 않는다 |
 | 테스트·린트·빌드 명령 | 루트에서 `npm test`(PYTHONUTF8=1, 약 10분+), 변경 경로별 `python3 tests/<이름>.py`. 빌드 `python3 scripts/build.py` 후 CRLF 전용 dist 차이 복구. lint 명령은 `lint/lint.json` |
 | 문서 언어 | 한국어 |
@@ -31,6 +31,13 @@ setup에서 이 레포를 직접 확인하고 채운다. 원본 템플릿의 기
 |---|---|
 | 명령과 실행 위치 | 커밋 뒤 레포 루트에서 `python3 plugins/fullops-squad/scripts/lint.py --repo . --from main` |
 | 기대 출력 | 종료코드 0, 마지막 줄의 `ERROR 0`과 `실행 불가 0`. 예: `head f86bb4aea2bb / 파일 14 / ERROR 0 / WARNING 0 / 실행 불가 0` |
+
+## 주요 흐름
+
+통합 후보마다 다시 돌리는 고정 세트다. 사용자가 처음부터 끝까지 거치는 핵심 흐름과 결함에서 온 재현 흐름을 적고, 실제로 돌려 본 흐름만 올린다. `실행 수단`은 명령, 시나리오 경로, 재실행 절차 문서 경로 중 하나다. 10개를 넘으면 담당이 빼거나 합칠 흐름을 개선 목록에 적는다.
+
+| 흐름 | 실행 수단 |
+|---|---|
 
 ## 자주 틀리는 것
 
