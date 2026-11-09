@@ -32,7 +32,10 @@ summary: 현재 작업
 | RELEASE-1.17.0 | 1.17.0 릴리스(#134·#135), fullops-meter 0.12.0 | dev(직접) | 사용자 지시로 진행. 릴리스 노트는 Workflow로 사실 추출(5개 영역)과 반박 검증(정확성·누락·실행 가능성)을 거쳤다. 검증이 찾은 문서 결함 2건(fullops-orca 스킬 Stop 문구, issue-auto-mode 최소 Orca 문장)을 고쳤다. PR #136 병합(20d2c96, 완료 SHA 8b572c6), 태그·GitHub 릴리스 v1.17.0 게시. review need: skip, lint ERROR 0, npm test·플러그인 검증·CI 통과 | `docs/releases/1.17.0.md` |
 | FULLOPS-UPDATE-1.17.0 | 이 PC 설치와 레포 적용 버전을 1.17.0으로 갱신 | dev(직접) | 사용자 지시로 진행. 플러그인 1.17.0·meter 0.12.0 설치, `deps.py` 설치·검사 통과. 레포 적용: `.gitkeep`만 있는 setup 폴더 6개 삭제, 나머지 4건 해당 없음. `update.py --verify` 통과, `plugin_version` 1.17.0. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.17.0.md` |
 | ISSUE-CLOSEOUT-1.17.0 | 1.17.0 뒤 이슈 정리 | dev(직접) | 사용자 지시. #82 체크박스에 P0·P1을 표시했다(#81·#84 병합 확인). #132에 선행 개선 2건 반영 댓글을 남겼다. #132·#82는 본 작업이 남아 열어 둔다 | #82, #132 |
-| ROADMAP-82-P2 | #82 P2: `작업 검증`·`자주 틀리는 것`, 완료 보고 출력 발췌, verifier 절 | dev(직접) | 구현·lint 완료(f86bb4a, 기준 20d2c96). 결정 D019(standard 이상 기본, lite는 지시서 지정), D020(릴리스에서 필수 적용), D021(이 레포 subagent_level lite, `--local-only`로 원격 브랜치 생성을 피함). review need: skip(코드 2개 파일 8줄). `npm test` 통과, verifier 실제 1회 실행. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P2-test/report.md` |
+| ROADMAP-82-P2 | #82 P2: `작업 검증`·`자주 틀리는 것`, 완료 보고 출력 발췌, verifier 절 | dev(직접) | 구현·lint 완료(f86bb4a, 기준 20d2c96). 결정 D019(standard 이상 기본, lite는 지시서 지정), D020(릴리스에서 필수 적용), D021(이 레포 subagent_level lite, `--local-only`로 원격 브랜치 생성을 피함). review need: skip(코드 2개 파일 8줄). `npm test` 통과, verifier 실제 1회 실행. PR #137 병합(b315e2c, 완료 SHA c6c8866) | `docs/evaluations/qa-reports/ROADMAP-82-P2-test/report.md` |
+| RELEASE-1.18.0 | 1.18.0 릴리스(#82 P2) | dev(직접) | 사용자 지시로 진행. 릴리스 노트는 Workflow로 반박 검증(정확성·누락·실행 가능성)해 지적 8건을 반영했다. PR #137(b315e2c)에 함께 넣었고 태그·GitHub 릴리스 v1.18.0을 게시했다. `npm test`·플러그인 검증·CI 통과 | `docs/releases/1.18.0.md` |
+| FULLOPS-UPDATE-1.18.0 | 이 PC 설치와 레포 적용 버전을 1.18.0으로 갱신 | dev(직접) | 필수 적용 3건 적용, `update.py --verify` 통과, `plugin_version` 1.18.0. #82의 P2를 체크했다. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.18.0.md` |
+| ROADMAP-82-P3 | #82 P3: `fullops-review` `## 리뷰 정책`, 리뷰 보고서 템플릿 3곳 | dev(직접) | 구현·lint 완료(ee124c6, 기준 b315e2c). 결정 D022(nit 상한 한 문장), D023(high는 지금 쓰임), D024(완료 기준 미달 medium 이상과 처분), D025(수락 기준 대체는 제외). review need: skip(코드 1개 파일 2줄). `npm test` 통과, 과거 low 32건 재분류 통과. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P3-test/report.md` |
 
 ## 대기 목록
 
@@ -45,7 +48,7 @@ summary: 현재 작업
 | 3 | HOOK-SLIM | hook 전체 시간을 먼저 재고, 관계없는 호출 조기 종료·import 지연·git 호출 통합 | 완료(위 표) | #132 선행 개선 |
 | 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
 | 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 완료(위 표, PR #135) | PR #126 "후속으로 남긴 것" |
-| 6 | ROADMAP-82 | 체크 상태 갱신·P2 구현 완료(위 표). 남은 일: P2 병합·릴리스, P3–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 단계별 사용자 확인 | #82 |
+| 6 | ROADMAP-82 | 체크 상태 갱신·P2 릴리스·P3 구현 완료(위 표). 남은 일: P3 병합·릴리스, P4–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 단계별 사용자 확인 | #82 |
 | 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
 | 8 | STATUS-DIAGRAM | 현황판 PR 표시, D03 구조도 원천, 서비스 구조 섹션 | 사용자가 범위를 정할 때 | #59 |
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
@@ -74,12 +77,17 @@ summary: 현재 작업
 
 ### ROADMAP-82-P2 후속
 
-담당은 dev다. 재개 조건은 PR 병합과 릴리스의 사용자 승인이다.
+담당은 dev다.
 
-- 다음 릴리스 노트의 `## 필수 적용`에 3줄을 넣는다(결정 D020): `.fullops-squad/project.md`의 `## 작업 검증`·`## 자주 틀리는 것`, `.fullops-squad/rules/delegation.md`의 `검증 하위 작업`.
-- `기존 레포 적용`에 적을 것: 두 절 병합과 `작업 검증` 채우기, delegation.md 절 병합, `_TEMPLATE.md` 줄 2개, `lint/README.md` 문구, `FULLOPS.md` 지도 행.
-- 릴리스 뒤 이 레포에 같은 항목을 적용하고, 병합 뒤 #82의 P2를 체크한다.
 - `setup.py`를 `--local-only` 없이 실행하면 원격에 `fullops/architecture` 브랜치를 만든다. 이 레포에서 역할을 정리할지는 사용자 결정이다.
+- `lint-result.json`의 `head`는 lint 뒤 기록 커밋이 있으면 완료 SHA보다 오래될 수 있는데 `fullops-work`에 적지 않았다(low). 재개 조건: 다음 `fullops-work` 변경.
+
+### ROADMAP-82-P3 후속
+
+담당은 dev다.
+
+- 리뷰 보고서도 `REPORT_LINES`(40줄) 안내에 걸린다(`harness_gate.py:145-149`). 템플릿만으로 44줄이다(low, 이전부터 있던 문제). 재개 조건: 다음 `harness_gate.py` 변경.
+- 수락 기준을 coordinator가 바꾸는 문제(jevpet UX2-ART)는 결정 D025로 P3에서 뺐다. 재개 조건: 같은 일이 다시 나올 때.
 
 ### 사용자 결정 대기
 
