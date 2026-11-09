@@ -38,6 +38,7 @@ summary: 현재 작업
 | ROADMAP-82-P3 | #82 P3: `fullops-review` `## 리뷰 정책`, 리뷰 보고서 템플릿 3곳 | dev(직접) | 구현·lint 완료(ee124c6, 기준 b315e2c). 결정 D022(nit 상한 한 문장), D023(high는 지금 쓰임), D024(완료 기준 미달 medium 이상과 처분), D025(수락 기준 대체는 제외). review need: skip(코드 1개 파일 2줄). `npm test` 통과, 과거 low 32건 재분류 통과. PR #138 병합(8344743, 완료 SHA 4eea9ef) | `docs/evaluations/qa-reports/ROADMAP-82-P3-test/report.md` |
 | RELEASE-1.19.0 | 1.19.0 릴리스(#82 P3) | dev(직접) | 사용자 지시로 진행. PR #138(8344743)에 함께 넣었고 태그·GitHub 릴리스 v1.19.0을 게시했다. `npm test`·CI 통과 | `docs/releases/1.19.0.md` |
 | FULLOPS-UPDATE-1.19.0 | 이 PC 설치와 레포 적용 버전을 1.19.0으로 갱신 | dev(직접) | 필수 적용 없음, `update.py --verify` 통과, `plugin_version` 1.19.0. #82의 P3를 체크했다. 보류: `/reload-plugins`(사용자) | `docs/exec-plans/phases/FULLOPS-UPDATE-1.19.0.md` |
+| ROADMAP-82-P4 | #82 P4: `project.md` `주요 흐름` 표, 통합 후보 기본값, 세트에 넣을 결함 범위, `--level full --from` | dev(직접) | 구현·lint 완료(7cf3736, 기준 fb48669). 결정 D026(세트 정본은 표), D027(소프트 상한 10), D028(흐름·재발 결함만), D029(플레이북 eval 미반영 명시). review need: skip(코드 2개 파일 5줄). `npm test` d8c6f60 통과, 반박 검증 2회 반영. PR 미생성 | `docs/evaluations/qa-reports/ROADMAP-82-P4-test/report.md` |
 
 ## 대기 목록
 
@@ -50,7 +51,7 @@ summary: 현재 작업
 | 3 | HOOK-SLIM | hook 전체 시간을 먼저 재고, 관계없는 호출 조기 종료·import 지연·git 호출 통합 | 완료(위 표) | #132 선행 개선 |
 | 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
 | 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 완료(위 표, PR #135) | PR #126 "후속으로 남긴 것" |
-| 6 | ROADMAP-82 | 체크 상태 갱신·P2·P3 릴리스 완료(위 표). 남은 일: P4–P5, 비어 있는 전환 E1·E2·E9·E13, KnowsLink S7 측정 | 단계별 사용자 확인 | #82 |
+| 6 | ROADMAP-82 | 체크 상태 갱신·P2·P3 릴리스, P4 구현 완료(위 표). 남은 일: P4 병합·릴리스, P5, 비어 있는 전환 E1·E2·E9, KnowsLink S7 측정. E13은 D026 이후 게이트 없이 지침 문장으로 둔다 | 단계별 사용자 확인 | #82 |
 | 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
 | 8 | STATUS-DIAGRAM | 현황판 PR 표시, D03 구조도 원천, 서비스 구조 섹션 | 사용자가 범위를 정할 때 | #59 |
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
@@ -90,6 +91,15 @@ summary: 현재 작업
 
 - 리뷰 보고서도 `REPORT_LINES`(40줄) 안내에 걸린다(`harness_gate.py:145-149`). 템플릿만으로 44줄이다(low, 이전부터 있던 문제). 재개 조건: 다음 `harness_gate.py` 변경.
 - 수락 기준을 coordinator가 바꾸는 문제(jevpet UX2-ART)는 결정 D025로 P3에서 뺐다. 재개 조건: 같은 일이 다시 나올 때.
+
+### ROADMAP-82-P4 후속
+
+담당은 dev다.
+
+- 고정 세트의 효과는 입증되지 않았다. 재개 조건: 1.20.0을 적용한 KnowsLink 또는 jevpet에서 큰 틀 검수 2회를 본다. 표가 비어 있거나 재실행이 없으면 표를 intent 방식으로 되돌릴지 사용자에게 묻는다.
+- 세트 재실행의 커밋 범위(실행마다 3개 파일)는 바꾸지 않았다(사용자에게 고지). 재개 조건: 세트가 실제로 쌓일 때.
+- `minimal`에서 `lint.json`에 `level: full` 명령이 있을 때 통합 후보 full 실행의 예외, 묶음 시작 SHA를 기록하는 칸은 넣지 않았다(low). 재개 조건: 실제로 막힌 사례.
+- 플레이북 eval 원뜻(에이전트 구성 회귀)은 반영하지 않았다(D029). 재개 조건: 사용자 결정.
 
 ### 사용자 결정 대기
 
