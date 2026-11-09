@@ -29,7 +29,7 @@ flowchart LR
 
 | ID | 전환 | 조건 | 넘기는 산출물 | 게이트 | 강도 |
 |---|---|---|---|---|---|
-| E1 | 요청 → 의도 | 과제 2개 이상이나 역할 2개 이상에 걸친다 | `docs/planning/intents/<묶음 키>.md` | 비어 있음(coordinator 지침 문장만 있다. #82) | |
+| E1 | 요청·발견 → 의도 | 요청이나 발견(이슈·검수·운영 측정·지표)이 과제 2개 이상이나 역할 2개 이상에 걸친다 | `docs/planning/intents/<묶음 키>.md` | 비어 있음(coordinator 지침 문장만 있다. #82) | |
 | E2 | 의도 → 설계 | intent `status: approved` | 승인된 intent | 비어 있음(승인 전 배정 확인. #82) | |
 | E3 | 설계 → 배정 | route 기록이 있고 지시서 첫 줄이 `# <과제 키> — <목표>` | `handovers/to_<역할>.md`, `<키>-route.json` | `flow_gate.py:handover_denial`, `flow_gate.py:inbox_denial` | 차단 |
 | E4 | 배정 → 구현 | 분류된 과제 키, 역할 인박스, 최신 기본 브랜치를 가진 등록 worktree, 남은 통합 없음 | dispatch spec(지시서 경로·기준 SHA) | `flow_gate.py:route_key_denial`, `flow_gate.py:dispatch_inbox_denial`, `integration.py:baseline_denial`, `integration.py:denial`, `flow_gate.py:delegation_denial` | 차단 |

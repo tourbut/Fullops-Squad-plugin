@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import statistics
 import subprocess
 import time
 
@@ -128,7 +129,7 @@ def notes(root, limit=5):
     return result[:limit]
 
 
-def history(root, limit=30):
+def history(root):
     entries = []
     for log in sorted((root / 'handovers/logs').glob('*_to_*.md')):
         role = log.stem.split('_to_', 1)[-1]
@@ -139,7 +140,7 @@ def history(root, limit=30):
                 entries.append({'key': head.group(1), 'date': head.group(2), 'role': role,
                                 'goal': goal.group(2) if goal else ''})
     entries.sort(key=lambda e: e['date'], reverse=True)
-    return entries[:limit]
+    return entries
 
 
 def routes(root):
@@ -205,7 +206,7 @@ def review_times(repo):
     return times
 
 
-def reviews(repo, root, limit=12):
+def reviews(repo, root):
     result, times = [], review_times(repo)
     for path in (root / 'docs/evaluations/qa-reports').glob('*-review/result.json'):
         data = load(path) or {}
@@ -220,7 +221,23 @@ def reviews(repo, root, limit=12):
                        'lint_warnings': summary.get('warnings') if isinstance(summary.get('warnings'), int) else None,
                        'date': datetime.fromtimestamp(stamp).strftime('%Y-%m-%d'), 'time': stamp})
     result.sort(key=lambda r: r['time'], reverse=True)
-    return result[:limit]
+    return result
+
+
+def metrics(repo, entries, rows, recent=30):
+    """완료 과제와 리뷰 기록으로 재는 지표(#82 P5). 모델·네트워크를 쓰지 않는다. CI는 Stop마다 조회하지 않아 넣지 않는다."""
+    from harness_gate import base_key, rework_counts  # 도구 호출마다 도는 hook이 board.read만 쓸 때 불러오지 않는다
+
+    tasks = list(dict.fromkeys(base_key(e['key']) for e in entries))  # 최근 완료 순
+    counts = rework_counts(Path(repo), tasks)
+    commits = {sha[:12]: int(stamp) for sha, stamp in (line.split() for line in git(repo, 'log', '--all', '--format=%H %ct').splitlines())}
+    # 리뷰 소요: 리뷰한 커밋부터 리뷰 폴더의 마지막 커밋까지. 재리뷰나 늦은 기록 커밋이 있으면 길어져 중앙값만 쓴다
+    gaps = [g for g in (r['time'] - commits[r['head']] for r in rows if r['head'] in commits) if g >= 0]
+
+    def summary(keys, seconds):
+        return {'tasks': len(keys), 'first_try': sum(1 for k in keys if not counts[k]), 'rework': sum(counts[k] for k in keys),
+                'reviews': len(seconds), 'review_minutes': round(statistics.median(seconds) / 60) if seconds else None}
+    return {'recent_limit': recent, 'recent': summary(tasks[:recent], gaps[:recent]), 'all': summary(tasks, gaps)}
 
 
 def deliverables(root):
@@ -300,6 +317,7 @@ def build(repo, reuse_issues=False):
     board = load(root / 'board/board.json')
     error = None if isinstance(board, dict) else 'board/board.json을 읽을 수 없습니다'
     board = board if isinstance(board, dict) else {}
+    entries, rows = history(root), reviews(repo, root)
     return {
         'version': 1,
         'updated_at': datetime.now().astimezone().isoformat(timespec='seconds'),
@@ -313,10 +331,11 @@ def build(repo, reuse_issues=False):
         'roles': roles(root, config),
         'notes': notes(root),
         'plans': plans(root),
-        'history': history(root),
+        'history': entries[:30],
         'routes': routes(root),
         'models': models(root),
-        'reviews': reviews(repo, root),
+        'reviews': rows[:12],
+        'metrics': metrics(repo, entries, rows),
         'tests': tests(root),
         'deliverables': deliverables(root),
         'issues': recent_issues(Path(repo) / BOARD / 'board-data.js', repo, config) if reuse_issues else issues(repo, config),
