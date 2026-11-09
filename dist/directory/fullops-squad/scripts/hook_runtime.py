@@ -17,7 +17,8 @@ def runtime_root():
 
 def package_files(package):
     files = {p.relative_to(package).as_posix(): p.read_bytes() for p in package.rglob('*')
-             if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}
+             # .in_use: Claude Code가 실행 중인 세션마다 설치 폴더에 두는 표지라 패키지 내용이 아니다
+             if p.is_file() and not {'__pycache__', '.in_use'} & set(p.relative_to(package).parts) and p.suffix != '.pyc'}
     if 'dependencies.json' not in files:
         files['dependencies.json'] = (package.parents[1] / 'dependencies.json').read_bytes()
     return files

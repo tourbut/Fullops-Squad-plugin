@@ -107,6 +107,16 @@ def main():
             with patch.object(deps, 'tool_problems', side_effect=[['tool missing'], [], []]):
                 deps.install_host('codex', plan, refresh_shared=False)
             assert ran == plan + plan[:1], ran
+    with tempfile.TemporaryDirectory() as tmp:  # 실행 중인 세션의 사용 표지는 패키지 내용이 아니다
+        package = Path(tmp) / 'pkg'
+        package.mkdir()
+        (package / 'dependencies.json').write_text('{}', encoding='utf-8')
+        before = deps.hook_runtime.content_key(deps.hook_runtime.package_files(package))
+        (package / '.in_use').mkdir()
+        (package / '.in_use/123').write_text('{}', encoding='utf-8')
+        assert deps.hook_runtime.content_key(deps.hook_runtime.package_files(package)) == before
+        (package / 'real.txt').write_text('x', encoding='utf-8')
+        assert deps.hook_runtime.content_key(deps.hook_runtime.package_files(package)) != before
     print('PASS: deps plan excludes fullops itself, skips registered marketplaces, --check, dry-run, SessionStart hint, shared refresh once')
 
 
