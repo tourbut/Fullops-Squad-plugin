@@ -41,7 +41,7 @@ The Jev keys are not plugin options, because Claude Code passes plugin options o
   - `SessionStart`: `caveman_start` (optional terse-voice hint), `done_gate start` (records the session baseline), `flow_gate start` (role and routing brief).
   - `UserPromptSubmit`: `flow_gate prompt` (routing reminders).
   - `PreToolUse` on shell, edit, and agent tools: `flow_gate tool`. It can block an action that breaks the repository's role, routing, or integration rules.
-  - `PostToolUse` on shell and edit tools, and `PostToolUseFailure` on shell tools: `flow_gate post`. It confirms a dispatched worker's `worker_done` delivery, records task flow state, and adds one-time notices.
+  - `PostToolUse` on shell and edit tools, and `PostToolUseFailure` on shell tools: `flow_gate post`. It confirms a dispatched worker's `worker_done` delivery, records task flow state, and adds one-time notices. It also shortens successful Bash output longer than 400 lines before Claude sees it, keeping the start, the end and error lines, and saves the original under `.fullops-squad/local/outputs/` (git-ignored).
   - `Stop`: `done_gate stop` (lint and review gate) and `flow_gate stop` (pending-integration gate, board refresh, which may call `gh issue list`).
   - `SessionEnd`: `issue_mode session-end`. It releases an issue-mode lease.
 

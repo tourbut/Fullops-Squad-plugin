@@ -787,6 +787,13 @@ def main(event=None):
         if notes:  # 같은 지적은 세션에 한 번만 알린다
             state['advised'] = state.get('advised', []) + [hashlib.sha256(n.encode()).hexdigest()[:16] for n in notes]
             output = {'hookSpecificOutput': {'hookEventName': field(event, 'hook_event_name') or 'PostToolUse', 'additionalContext': 'FullOps: ' + ' '.join(notes)}}
+        try:  # 실패해도 원래 출력이 그대로 간다
+            import output_trim
+            updated = output_trim.replacement(root, event)
+        except Exception:  # noqa: BLE001
+            updated = None
+        if updated:
+            output.setdefault('hookSpecificOutput', {'hookEventName': 'PostToolUse'})['updatedToolOutput'] = updated
     if mode in ('tool', 'post', 'prompt') and issue_state_exists(root):
         import issue_mode
         try:  # lease 갱신 실패는 90초 뒤 만료로 끝난다. 이미 정한 판정을 지우지 않는다
