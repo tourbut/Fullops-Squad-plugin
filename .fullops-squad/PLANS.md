@@ -104,7 +104,7 @@ summary: 현재 작업
 담당은 dev다.
 
 - `hook_runtime.package_files`의 `.in_use` 표지 오탐: PR에 수정을 올렸다. 재개 조건: 사용자의 병합·릴리스 승인.
-- Orca 프로필의 `fullops-deps.json`이 `~/.claude` 사본으로 덮어써져 `home` 값이 달라지고 `deps.py --check`가 `host dependency installation incomplete`로 실패한다. `--host`로 고쳐도 몇 분 안에 되돌아간다. 복사 주체는 확인되지 않았다. 재개 조건: 사용자가 `home` 비교를 고칠지 정할 때.
+- Orca 프로필의 `fullops-deps.json`이 `~/.claude` 사본으로 덮어써져 `home` 값이 달라지고 `deps.py --check`가 `host dependency installation incomplete`로 실패한다. `--host`로 고친 뒤 되돌아간 일이 1회 있었다(2026-11-10 00:13:02). 복사 주체는 확인되지 않았다. 재개 조건: 사용자가 `home` 비교를 고칠지 정할 때.
 - #104 절감량: `.fullops-squad/local/outputs/trim.jsonl`로 잰다. 이 워크트리의 앞 2줄은 일부러 만든 시험 출력이라 뺀다. 재개 조건: 실제 작업이 쌓였을 때.
 
 ### ROADMAP-82-P5 후속
