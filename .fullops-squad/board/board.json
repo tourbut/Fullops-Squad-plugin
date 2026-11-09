@@ -1,12 +1,12 @@
 {
   "title": "FullOps Squad 플러그인",
-  "summary": "v1.18.0 운영 중. 이 레포에 FullOps를 적용해 개발하며 이슈 자동 모드를 실사용 검증한다.",
+  "summary": "v1.19.0 운영 중. 이 레포에 FullOps를 적용해 개발하며 이슈 자동 모드를 실사용 검증한다.",
   "phases": [
     {
       "name": "구현",
       "status": "doing",
       "deliverables": [],
-      "note": "1.18.0: 작업 검증 명령, 자주 틀리는 것, verifier 절차(#82 P2)"
+      "note": "1.19.0: 리뷰 정책, 심각도 정의, nit 상한(#82 P3)"
     },
     {
       "name": "QA",
