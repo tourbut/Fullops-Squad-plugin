@@ -9,7 +9,7 @@ import subprocess
 LEVELS = ('minimal', 'lite', 'standard', 'full', 'exhaustive')
 SUBAGENT_LEVELS = ('off', 'lite', 'standard', 'full')
 TEST_BRIEF = {
-    'minimal': '기동과 변경 경로의 스모크 검사만 수행한다. 별도 tester·designer 검수 차수를 만들지 않는다. 개발 과제는 lint와 변경 동작 테스트로 검증하고 보고용 캡처를 만들지 않는다.',
+    'minimal': '기동과 변경 경로의 스모크 검사만 수행한다. 통합 후보의 주요 흐름은 `testing.md`의 `담당과 반복 범위`대로 한 번 돌린다. 별도 tester·designer 검수 차수를 만들지 않는다. 개발 과제는 lint와 변경 동작 테스트로 검증하고 보고용 캡처를 만들지 않는다.',
     'lite': '변경한 핵심 동작과 필요한 실패 경계만 짧게 검증한다. 사소한 문구 변경에는 새 테스트를 만들지 않는다. 개발 과제는 lint와 변경 동작 테스트로 검증하고 보고용 캡처를 만들지 않는다. tester 독립 QA·designer 시각 검수는 새 화면·새 흐름·통합 후보에서만 배정한다.',
     'standard': '변경 동작·실패 경계와 영향을 받는 연동의 회귀를 검증한다.',
     'full': '안정된 통합 후보에서 전체 자동 회귀와 필요한 통합·수락 검사를 담당자별로 한 번 수행한다.',
