@@ -25,7 +25,7 @@ dev 주 담당자는 제품 범위 판단을 사용자/기획 담당과 확인�
 | 작업 | 먼저 읽을 문서 (`.fullops-squad/` 기준) |
 |---|---|
 | 공통 코딩·테스트·보안 기준과 우선순위 | [rules/common/README.md](rules/common/README.md) 및 연결된 세 규칙 |
-| 기술 기준·검증 명령·자주 틀리는 것·문서 정본 | `project.md` |
+| 기술 기준·검증 명령·주요 흐름·자주 틀리는 것·문서 정본 | `project.md` |
 | 역할·워크트리·에이전트 배정 | `orca-agents.md` |
 | 선택형 하위 에이전트 활용·결과 취합 | [rules/delegation.md](rules/delegation.md) |
 | FullOps update 요청과 릴리스별 레포 적용 | `update-fullops` 스킬 |
