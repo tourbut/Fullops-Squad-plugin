@@ -43,6 +43,8 @@ summary: 현재 작업
 | FULLOPS-UPDATE-1.20.0 | 이 PC 설치와 레포 적용 버전을 1.20.0으로 갱신 | dev(직접) | 필수 적용 3건 적용, `update.py --verify` 3/3, `plugin_version` 1.20.0. #82의 P4를 체크하고 eval 미반영을 댓글로 적었다 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.20.0.md` |
 | ROADMAP-82-P5 | #82 P5: 현황판 `작업 지표`(첫 시도 완료, 재작업, 리뷰 소요), 발견의 intent 재진입 문구 | dev(직접) | 병합(#142, 66a481c)과 1.21.0 릴리스(#143, a43d19e) 완료, #82의 P5 체크. review need: skip(코드 4개 파일 119줄) | `docs/evaluations/qa-reports/ROADMAP-82-P5-test/report.md` |
 | FULLOPS-UPDATE-1.21.0 | 이 PC 설치와 레포 적용 버전을 1.21.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, intent 템플릿 문장 동기화, `plugin_version` 1.21.0. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.21.0.md` |
+| OUTPUT-HISTORY-A | #104 후보 A: 긴 Bash 출력 줄이기(`output_trim.py`) | dev(직접) | 병합(#145, 6b6eae0). 절감량 실측은 남았다 | `docs/evaluations/qa-reports/OUTPUT-HISTORY-A-test/report.md` |
+| RELEASE-1.22.0 | 1.22.0 릴리스(#104 후보 A) | dev(직접) | 사용자 지시로 진행. 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.22.0을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.22.0.md` |
 
 ## 대기 목록
 
@@ -56,7 +58,7 @@ summary: 현재 작업
 | 4 | ISSUE112-SIDE | `orca_wait --ack` 동시 실행 JSON 오류, 인박스 첫 줄 검사 시점, `worker_done` 형식 처리 | 완료(위 표) | #112 "함께 본 작은 문제" |
 | 5 | CLEANUP-FOLLOWUPS | #126 후속: lint 서브모듈·Windows timeout, 리뷰 해시 autocrlf, Jev 콜드 메타데이터, 이슈 모드 fencing·잠금·intent·조회 비용, flow-gate 내용 해석, setup 범위·스킬 경로·빈 폴더, fullops-meter 정리, 큰 테스트 3건 | 완료(위 표, PR #135) | PR #126 "후속으로 남긴 것" |
 | 6 | ROADMAP-82 | 체크 상태 갱신·P2·P3·P4·P5 릴리스 완료(위 표). 남은 일: 비어 있는 전환 E1·E2·E9, 이 레포 자체 기록의 S7 측정. E13은 D026 이후 게이트 없이 지침 문장으로 둔다 | 단계별 사용자 확인 | #82 |
-| 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축), B(작업 이력 색인). C는 보류 | 사용자가 순서를 정할 때 | #104 |
+| 7 | OUTPUT-HISTORY | #104 후보 A(Bash 출력 압축)는 구현(위 표), B(작업 이력 색인)는 A의 절감량을 잰 뒤, C는 보류 | A 릴리스 뒤 `trim.jsonl` 실측 | #104 |
 | 8 | STATUS-DIAGRAM | 현황판 PR 표시, D03 구조도 원천, 서비스 구조 섹션 | 사용자가 범위를 정할 때 | #59 |
 | 9 | AUTONOMY-STAGE3 | 섀도 판정과 실제 결정 비교, `auto`·`delay` 개방 결정 | 섀도 판정이 쌓이고 사용자가 결정할 때 | #125 |
 | 10 | ULTRACODE-REVIEW | 울트라코드 하위 에이전트 관리 상세 검토 | 사용자가 시작할 때 | #131 |
