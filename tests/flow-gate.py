@@ -64,6 +64,34 @@ def main():
         assert hook('stop', session_id='b') == {}  # board.json도 고쳤으면 묻지 않는다
         git('checkout', '-q', '--', '.fullops-squad/PLANS.md', '.fullops-squad/board/board.json')
 
+        # 준비된 대기 과제: lead Stop은 한 번 막고 두 번째는 통과한다. 새 lead 세션 안내에 대기 과제와 위임 범위를 넣는다
+        plans.write_text(plans.read_text(encoding='utf-8').replace('|---|---|---|---|---|\n', '|---|---|---|---|---|\n'
+                         '| R-OK | 준비됨 | dev | 대기. 선행: R-PRE | 2026-11-10 사용자 지시 |\n'
+                         '| R-DEPLOY | 배포 | dev | 대기(사람: 배포) | 2026-11-10 사용자 지시 |\n', 1)
+                         + '\n2026-11-10 사용자: R 묶음은 묻지 않고 이어 간다. 배포 전까지.\n', encoding='utf-8')  # 템플릿 `## 위임 범위` 절 끝
+        flow = repo / '.git/fullops-flow'
+        flow.mkdir(parents=True, exist_ok=True)
+        (flow / 'R-PRE.json').write_text(json.dumps({'key': 'R-PRE', 'node': 'report'}), encoding='utf-8')
+        blocked = hook('stop', session_id='rd')
+        assert blocked.get('decision') == 'block' and 'R-OK' in blocked['reason'] and 'R-DEPLOY' not in blocked['reason'], blocked
+        assert 'R-OK' in hook('stop', session_id='rd', stop_hook_active=True)['systemMessage']  # 두 번째는 통과
+        inbox = repo / '.fullops-squad/handovers/to_dev.md'
+        inbox.write_text('# R-RUN — 진행 중 과제\n\n- 상태: running\n', encoding='utf-8')
+        assert hook('stop', session_id='rd2') == {}  # 담당 인박스가 차 있으면 배정할 수 없어 막지 않는다
+        inbox.unlink()
+        started = hook('start', session_id='rs', source='startup')['hookSpecificOutput']['additionalContext']
+        assert 'R-OK(준비됨)' in started and 'R 묶음은 묻지 않고 이어 간다. 배포 전까지.' in started, started
+        assert '운영 배포' in started and 'R-DEPLOY' not in started and '사용자가 묻지 않고 이어 가도 된다고 한' not in started  # 템플릿 안내는 뺀다
+        hook('prompt', session_id='rw', prompt='Task t-r ... --task-id t-r --dispatch-id d-r ...')
+        sent = {'command': 'orca orchestration send --from w --type worker_done --task-id t-r --dispatch-id d-r --outcome succeeded'}
+        hook('tool', session_id='rw', tool_name='Bash', tool_input=sent, tool_use_id='u-r')
+        hook('post', session_id='rw', tool_name='Bash', tool_input=sent, tool_use_id='u-r',
+             tool_response={'exit_code': 0, 'stdout': json.dumps({'ok': True, 'result': {'message': {'id': 'msg-r'}}})})
+        assert hook('stop', session_id='rw') == {}  # worker_done을 보낸 dispatch worker는 대기 과제로 막지 않는다
+        (flow / 'R-PRE.json').unlink()
+        git('checkout', '-q', '--', '.fullops-squad/PLANS.md')
+        assert '대기 과제' not in hook('start', session_id='rs2', source='startup')['hookSpecificOutput']['additionalContext']
+
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
         # 이전 세션의 열린 사용자 결정을 새 coordinator 세션이 이어받고, 닫힌 결정은 빠진다
@@ -74,6 +102,27 @@ def main():
         assert f"{asked['id']}(K9): Postgres로 바꿀까요? [예 / 아니오]" in started and '사용자 결정 대기 1건' in started
         decision.close(repo, asked['id'], 'answered', answer='예', decided_by='user')
         assert '사용자 결정 대기' not in hook('start', session_id='c3', source='startup')['hookSpecificOutput']['additionalContext']
+        # 사람 턴 기록: lead의 사람 프롬프트만 원문 없이 한 줄 남긴다. 기계 알림·dispatch 프롬프트는 남기지 않는다
+        turns = repo / '.git/fullops-flow/human-turns.jsonl'
+        hook('prompt', session_id='c3', prompt='비밀 요청 문구')
+        for notice in ('You have 2 unread orchestration messages', 'x <task-notification>done</task-notification>'):
+            hook('prompt', session_id='c3', prompt=notice)
+        hook('prompt', session_id='cd', prompt='Task t-9 ... --task-id t-9 --dispatch-id d-9 ...')
+        hook('prompt', session_id='cd', prompt='계속')  # dispatch를 받은 세션은 lead가 아니다
+        lines = turns.read_text(encoding='utf-8').splitlines()
+        assert len(lines) == 1 and json.loads(lines[0])['session'] == 'c3' and '비밀' not in lines[0], lines
+        # SessionStart: 사라진 worktree의 리뷰 snapshot 기록을 닫고, 레포 적용 버전이 설치 버전과 다르면 한 번 알린다
+        snapshot = repo / '.git/fullops-snapshots/K7.json'
+        snapshot.parent.mkdir(parents=True, exist_ok=True)
+        snapshot.write_text(json.dumps({'managed': True, 'state': 'active', 'path': str(repo / 'gone'), 'key': 'K7', 'head': 'x'}), encoding='utf-8')
+        marker = repo / '.fullops-squad/fullops.json'
+        saved_marker = marker.read_text(encoding='utf-8')
+        marker.write_text(json.dumps({**json.loads(saved_marker), 'plugin_version': '0.0.1'}), encoding='utf-8')
+        started = hook('start', session_id='c4', source='startup')['hookSpecificOutput']['additionalContext']
+        assert 'K7' in started and json.loads(snapshot.read_text(encoding='utf-8'))['state'] == 'missing', started
+        assert '레포 적용 FullOps 버전은 0.0.1' in started and '묻지 않는다' in started, started
+        marker.write_text(saved_marker, encoding='utf-8')
+        assert '레포 적용 FullOps 버전' not in hook('start', session_id='c5', source='startup')['hookSpecificOutput']['additionalContext']
         native_env = {'ORCA_TERMINAL_HANDLE': 'term-native-test'}
         for host_session in ('native-first', 'native-next'):
             hook('start', native_env=native_env, session_id=host_session)
@@ -212,6 +261,19 @@ def main():
              'orca orchestration send --from w --type worker_done --task-id t-1 --dispatch-id d-1 --outcome succeeded'},
              toolResponse={'exit_code': 0, 'stdout': json.dumps({'ok': True, 'result': {'message': {'id': 'msg1'}}})})
         assert hook('stop', sessionId='g') == {}
+        # StopFailure: 정산 전 worker만 coordinator에 escalation을 한 번 보낸다. lead·정산된 worker는 보내지 않는다
+        sends, recorder = repo / '.git/failure-sends.jsonl', repo / '.git/failure-orca.py'
+        recorder.write_text('import json, os, sys\n'
+                            'open(os.environ["FAKE_SEND_LOG"], "a", encoding="utf-8").write(json.dumps(sys.argv[1:]) + "\\n")\n'
+                            'print(json.dumps({"ok": True, "result": {}}))\n', encoding='utf-8')
+        failing = {'FULLOPS_ORCA_CLI': str(fake_cli('failure-orca', recorder)), 'FAKE_SEND_LOG': str(sends)}
+        for session in ('w', 'w', 'g', 'lead'):
+            assert hook('failure', native_env=failing, session_id=session, hook_event_name='StopFailure', error='rate_limit',
+                        last_assistant_message="You've hit your session limit") == {}
+        sent = [json.loads(line) for line in sends.read_text(encoding='utf-8').splitlines()]
+        assert len(sent) == 1 and sent[0][:4] == ['orchestration', 'send', '--type', 'escalation'], sent
+        assert {'d-1', 't-1'} <= set(sent[0]) and 'rate_limit' in ' '.join(sent[0]), sent
+        assert hook('stop', session_id='w')['decision'] == 'block'  # escalation은 정산이 아니다
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'git status'}) == {}
         # 분류만 하고 배정하지 않은 과제는 종료를 한 번 막는다(대화 요약 뒤 배정을 잊는 경우)
         route_cmd = 'python3 C:/plugins/fullops-squad/scripts/jev_route.py --repo . --key WIN-1 --request "Windows 점검"'

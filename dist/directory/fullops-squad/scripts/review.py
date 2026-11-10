@@ -147,7 +147,9 @@ def worker_lint(repo, result):
 def prepare(repo, key, base, head, lint_source=None):
     rule = safe_file(repo, '.fullops-squad/review/rule.json')
     destination = safe_file(repo, f'.fullops-squad/docs/evaluations/qa-reports/{key}-review')
-    if destination.exists():
+    # prepare가 쓰다 멈춘 앞 두 파일만 있는 폴더는 같은 키로 다시 준비한다. result.json·중단·리뷰어 기록이 있으면 보존한다.
+    if destination.exists() and not (destination.is_dir() and all(
+            p.is_file() and p.name in ('preview.json', 'rules.json') for p in destination.iterdir())):
         raise ValueError('기존 리뷰는 보존합니다. 새로운 리뷰 키를 사용하세요')
     base, head = sha(repo, base), sha(repo, head)
     if ocr_command().lower().endswith(('.cmd', '.bat')) and re.search(CMD_META, str(repo)):
@@ -204,7 +206,7 @@ def prepare(repo, key, base, head, lint_source=None):
         lint_source, lint_raw = worker_lint(repo, result)
         if lint_raw is not None:
             print(f'lint 증거 재사용(재실행 금지): {lint_source}')
-    destination.mkdir(parents=True)
+    destination.mkdir(parents=True, exist_ok=True)
     for name, data in [('preview', preview), ('rules', rules), ('result', result)]:
         (destination / f'{name}.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
     template = Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/review/_REPORT.md'
@@ -251,7 +253,13 @@ def snapshot(repo, key, head, implementer, reviewer, owner):
         raise ValueError('독립 세션 두 개와 정리 담당을 지정하세요')
     record = snapshot_record(repo, key)
     if record.exists():
-        raise ValueError('기존 snapshot 기록을 보존합니다. 새 리뷰 키를 사용하세요')
+        # worktree add가 실패해 경로·Git 등록 없이 creating으로 남은 키만 다시 만든다. 다른 상태는 리뷰 이력을 가린다.
+        data = json.loads(record.read_text(encoding='utf-8'))
+        if data.get('state') != 'creating' or not data.get('path') or Path(data['path']).exists():
+            raise ValueError('기존 snapshot 기록을 보존합니다. 새 리뷰 키를 사용하세요')
+        listed = subprocess.check_output(['git', '-C', str(repo), 'worktree', 'list', '--porcelain'], text=True, encoding='utf-8')
+        if Path(data['path']).resolve() in {Path(line[9:]).resolve() for line in listed.splitlines() if line.startswith('worktree ')}:
+            raise ValueError('기존 snapshot 기록을 보존합니다. 새 리뷰 키를 사용하세요')
     head = sha(repo, head)
     path = Path(repo).parent / f'.fullops-review-{uuid.uuid4().hex}'
     data = {'schema_version': 1, 'kind': 'git-worktree', 'managed': True, 'purpose': 'review',
@@ -498,6 +506,28 @@ def check_lint(repo, result, lint):
         raise ValueError('등록되지 않은 검사 실행 증거가 있습니다')
 
 
+def check_packets(repo, packet_key, head):
+    """리뷰한 SHA에 커밋된 과제 탐색 패킷이 있거나 요구되면 완료 조건을 확인한다."""
+    packet_path = jev_find.result_path(repo, packet_key, 'packet')
+    committed = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{packet_path.relative_to(repo).as_posix()}'], capture_output=True, text=True, encoding='utf-8')
+    route_path = jev_find.result_path(repo, packet_key, 'route')
+    if packet_path.is_file() or committed.returncode == 0 or (route_path.is_file() and json.loads(route_path.read_text(encoding='utf-8')).get('requires_packet')):
+        from jev_packet import check as check_packet
+        if committed.returncode != 0:
+            raise ValueError('리뷰할 SHA에 탐색 패킷이 없습니다')
+        packet = json.loads(committed.stdout)
+        role = packet['role']
+        content = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:.fullops-squad/handovers/to_{role}.md'], text=True, encoding='utf-8')
+        if not content.strip():
+            token = f'<!-- fullops-attempt: {packet_key} {packet["attempt"]} -->'
+            for path in subprocess.check_output(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', head, '--', '.fullops-squad/handovers/logs'], text=True, encoding='utf-8').splitlines():
+                log = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:{path}'], text=True, encoding='utf-8')
+                if token in log:
+                    content = archived(log, token).strip()
+                    break
+        check_packet(repo, role, packet_key, completion=True, required=True, head=head, text=content)
+
+
 def check(repo, key, base, head, task_key=None):
     directory = f'.fullops-squad/docs/evaluations/qa-reports/{key}-review'
     def read(name):
@@ -529,24 +559,7 @@ def check(repo, key, base, head, task_key=None):
     lint = read('lint')
     check_lint(repo, result, lint)
     packet_key = task_key or key
-    packet_path = jev_find.result_path(repo, packet_key, 'packet')
-    committed = subprocess.run(['git', '-C', str(repo), 'show', f'{head}:{packet_path.relative_to(repo).as_posix()}'], capture_output=True, text=True, encoding='utf-8')
-    route_path = jev_find.result_path(repo, packet_key, 'route')
-    if packet_path.is_file() or committed.returncode == 0 or (route_path.is_file() and json.loads(route_path.read_text(encoding='utf-8')).get('requires_packet')):
-        from jev_packet import check as check_packet
-        if committed.returncode != 0:
-            raise ValueError('리뷰할 SHA에 탐색 패킷이 없습니다')
-        packet = json.loads(committed.stdout)
-        role = packet['role']
-        content = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:.fullops-squad/handovers/to_{role}.md'], text=True, encoding='utf-8')
-        if not content.strip():
-            token = f'<!-- fullops-attempt: {packet_key} {packet["attempt"]} -->'
-            for path in subprocess.check_output(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', head, '--', '.fullops-squad/handovers/logs'], text=True, encoding='utf-8').splitlines():
-                log = subprocess.check_output(['git', '-C', str(repo), 'show', f'{head}:{path}'], text=True, encoding='utf-8')
-                if token in log:
-                    content = archived(log, token).strip()
-                    break
-        check_packet(repo, role, packet_key, completion=True, required=True, head=head, text=content)
+    check_packets(repo, packet_key, head)
     record_find_score(repo, directory, packet_key, result['base'], result['head'])
     reviewed = sum(f['review_status'] == 'reviewed' for f in result['files'])
     print(f'기록 검사 통과: reviewed={reviewed}, skipped={len(actual)-reviewed}, total={len(actual)}, '

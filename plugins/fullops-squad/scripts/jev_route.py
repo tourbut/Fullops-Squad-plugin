@@ -154,7 +154,6 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
     result['model'] = chosen if result.get('role') else None
     head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True, encoding='utf-8', env=git_env())
     result['head'] = head.stdout.strip() if head.returncode == 0 else None
-    result['requires_packet'] = True
     if result.get('role'):
         try:
             result.update(input_identity(repo, result['role'], key, {'policy': 'route-v4'}))
@@ -275,7 +274,7 @@ def main():
                 raise ValueError('route의 과제/역할/SHA가 다릅니다. 먼저 재분류하세요')
             if result.get('attempt') and any(result.get(k) != identity[k] for k in ('attempt', 'instruction_sha256')):
                 raise ValueError('이미 다른 시도/지시에 연결된 route입니다. --force로 재분류하세요')
-            save_result(output, {**result, **identity, 'requires_packet': True})
+            save_result(output, {**result, **identity})  # 패킷은 선택이다. 기존 requires_packet 값은 그대로 둔다
             print(output.relative_to(repo))
             return
         if args.model_only and (not args.role or not args.agent or args.request):

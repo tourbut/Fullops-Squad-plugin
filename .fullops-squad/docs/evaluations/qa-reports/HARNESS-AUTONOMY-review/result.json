@@ -1,0 +1,756 @@
+{
+  "base": "6a71d41e552a65fe5454635a465942e0d4a1f75d",
+  "head": "8f11810da055ae4d8f6e44fe82ed69b911b29a88",
+  "rule_sha256": "34c8f6e8fc6b3173858399ed6415b38056c60c83f5aa93bb908b54ab6c588657",
+  "ocr_version": "open-code-review v1.13.6 (891df1b) windows/amd64\nbuilt at: 2026-11-05T11:38:31Z\nhttps://github.com/alibaba/open-code-review",
+  "prepared_at": "2026-11-10T12:30:37+00:00",
+  "reviewer": "claude / claude-opus-5-5 / effort high (reviewer session reviewer-d3dce76a-0463-49da-aecc-30fdfae7c9a6, AI 판단)",
+  "conclusion": "수락 가능. critical 0, high 0, medium 0, low 5(nit 1 포함). 사용자 결정에 어긋나는 완화, 세션을 가두거나 오류로 작업을 막는 hook 경로, 병합되지 않은 SHA의 hold 해제, lead Stop 대기 행 오판을 찾지 못함",
+  "files": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "과제 행 추가와 RELEASE-1.23.0 행 갱신. 사용자 결정·검증·need 기록이 to_dev.md·test report와 일치함을 대조"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/HARNESS-AUTONOMY-test/report.md",
+      "status": "added",
+      "insertions": 45,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "검증 보고. lint.json·커밋 범위·시험 diff와 대조. 줄 수(741)는 lint head 3979644 기준이라 8f11810의 745와 차이(기록 커밋)"
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "status": "modified",
+      "insertions": 81,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "요구 원천. 사용자 결정·완료 기준·승인 범위를 diff와 대조. 완료 보고 절은 비어 있음(low finding)"
+    },
+    {
+      "path": "README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "현황판 지표 두 개 설명 한 줄. 코드 동작(board.autonomy)과 일치"
+    },
+    {
+      "path": "adapters/claude-directory/README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "StopFailure hook 설명 한 줄. hooks.json·flow_gate failure 모드와 일치"
+    },
+    {
+      "path": "docs/flow-graph.md",
+      "status": "modified",
+      "insertions": 58,
+      "deletions": 58,
+      "review_status": "reviewed",
+      "reason": "노드/게이트 문서 교체. 패킷 선택화·다음 배정·hold 자동 해제 서술이 코드와 일치하는지 확인"
+    },
+    {
+      "path": "docs/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "OFF일 때 현재 이슈 비움 한 줄. issue_mode.publish 변경과 일치"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/.gitignore",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "jev history·prior 사본 무시 두 줄. 읽는 코드 없음을 grep으로 확인"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 6,
+      "review_status": "reviewed",
+      "reason": "상태 어휘(대기/대기(사람)/보류)·위임 범위 절 추가. board.ready·delegation 파서와 일치. 운영 작업 비위임 문장 유지. PLANS 행을 파일 끝에 덧붙이는 스크립트 없음 확인"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "자율 진행 표 렌더. esc 사용·null 처리 확인"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/handovers/_TEMPLATE.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "되돌릴 수 있는 선택 자율·완료 보고 항목 추가. 추가 승인 행위 문장 유지 확인"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/testing.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "포트 안내·제품 규칙/범위만 사용자 질문. 기존 기준 완화 없음 확인"
+    },
+    {
+      "path": "plugins/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "StopFailure 등록(timeout 20). 기존 이벤트 변경 없음. codex.json은 build.py가 제외"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/board.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "ready/delegation/autonomy 검토. 사람 대기·보류·원천 없음·인박스 점유·선행 미완료·배정됨 제외 판정 확인. 운영 행 내용 판정 없음(low finding)"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "결정 대기 brief 문구. 막힌 작업만 멈춤. 결정 기록 로직 변경 없음"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "SessionStart brief(대기·위임·prune·버전), 사람 턴 기록, StopFailure escalation 1회, lead Stop 대기 행 1회 차단 검토. 새 경로는 예외를 삼켜 작업을 막지 않음. 두 번째 Stop(stop_hook_active·같은 목록)은 통과해 세션을 가두지 않음. prune 경합·기계 알림 추정 목록은 low finding"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_state.py",
+      "status": "modified",
+      "insertions": 28,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "events 기록·task_of·observe(released_hold 제외, SHA 없는 review 노드 병합 판정) 검토"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 61,
+      "deletions": 10,
+      "review_status": "reviewed",
+      "reason": "integrated/release_holds/pending/settle 검토. 해제 조건은 원격 기본 브랜치(없으면 로컬 기본 브랜치)의 조상인 SHA뿐이라 병합되지 않은 SHA는 풀리지 않음. 로컬만 병합·미push는 push 대상으로 남음. 패킷 선택화 후 worker 워크트리 패킷도 검사"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "OFF fencing 해제는 enabled=false·비점유(ACTIVE/미정산 dispatch_intents 아님)·묶이지 않은 세션에 한정됨 확인. complete의 historical 경로는 cleanup live check 통과 영수증·증거 hash·base/head·rule hash·패킷 검사를 요구해 수락 조건 유지"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "새 route에 requires_packet 미설정. 기존 값 보존. 패킷 존재 시 검사 유지(stabilization 시험)"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 21,
+      "review_status": "reviewed",
+      "reason": "prepare 재시도(preview/rules만 있는 폴더), snapshot 재시도(creating·경로/등록 없음), check_packets 추출 검토. 기존 리뷰 기록 보존 조건 유지"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/work.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "followups 분할 정규식(괄호 안 구분자 보존)과 먼저 나온 역할 선택 검토"
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "OFF fencing 문장. 코드 조건과 일치"
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "다음 배정·hold 자동 해제·한도 재배정 2회·운영 작업 항상 승인 문장 검토. 사용자 결정과 일치"
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-review/SKILL.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "패킷 있을 때만 검사·prepare/snapshot 재시도 문장. 수락 조건 완화 없음"
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-work/SKILL.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 7,
+      "review_status": "reviewed",
+      "reason": "대기 어휘·선택 기록·패킷 선택 문장 검토"
+    },
+    {
+      "path": "scripts/build.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "codex.json에서 StopFailure 제외. dist hooks에 반영 확인"
+    },
+    {
+      "path": "tests/board.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "autonomy·ready·delegation 시험 검토"
+    },
+    {
+      "path": "tests/caveman-start.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "기대 문구 갱신 검토"
+    },
+    {
+      "path": "tests/check.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "기대값 1줄 갱신 검토"
+    },
+    {
+      "path": "tests/flow-gate.py",
+      "status": "modified",
+      "insertions": 62,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "대기 행 Stop 1회 차단·통과, 인박스 점유, worker 비대상, 사람 턴, prune, 버전 알림, StopFailure 1회 시험 검토"
+    },
+    {
+      "path": "tests/flow-state.py",
+      "status": "modified",
+      "insertions": 56,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "events·observe 시험 검토"
+    },
+    {
+      "path": "tests/integration-gate.py",
+      "status": "modified",
+      "insertions": 55,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "원격 ref hold 해제·미병합 SHA 유지·HOLD_CAP 순환·settle·워크트리 거부 문구 시험 검토"
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "status": "modified",
+      "insertions": 56,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "historical complete(규칙 변경 거부 포함)·OFF inert(점유 job·ON은 계속 조회) 시험 검토"
+    },
+    {
+      "path": "tests/jev-packet.py",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "패킷 선택 시험 검토"
+    },
+    {
+      "path": "tests/jev-route.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "requires_packet 미설정 시험 검토"
+    },
+    {
+      "path": "tests/product-routing.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "기대 brief 문구 갱신 검토"
+    },
+    {
+      "path": "tests/review-check.py",
+      "status": "modified",
+      "insertions": 25,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "snapshot·prepare 재시도와 abandoned 보존 시험 검토"
+    },
+    {
+      "path": "tests/stabilization.py",
+      "status": "modified",
+      "insertions": 21,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "패킷 선택·패킷 있으면 계약 유지 시험 검토"
+    },
+    {
+      "path": "dist/directory/fullops-squad/INSTALL.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "reviewed",
+      "reason": "build.py 생성 문서. 추가 줄이 README·adapter README 원본 문장과 같음을 diff로 확인"
+    },
+    {
+      "path": "dist/directory/fullops-squad/README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "reviewed",
+      "reason": "build.py 생성 문서. 추가 줄이 README·adapter README 원본 문장과 같음을 diff로 확인"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/.gitignore",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 6,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/handovers/_TEMPLATE.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/rules/common/testing.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "reviewed",
+      "reason": "build.py 생성물. 명령을 run.sh 형식으로 바꾸는 기존 변환 외에는 원본과 같고 StopFailure가 flow_gate failure로 등록됨 확인"
+    },
+    {
+      "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/board.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_state.py",
+      "status": "modified",
+      "insertions": 28,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 61,
+      "deletions": 10,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 21,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/work.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-review/SKILL.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-work/SKILL.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 7,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/INSTALL.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "reviewed",
+      "reason": "build.py 생성 문서. 추가 줄이 README·adapter README 원본 문장과 같음을 diff로 확인"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/.gitignore",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 6,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/handovers/_TEMPLATE.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/rules/common/testing.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 0,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/board.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_state.py",
+      "status": "modified",
+      "insertions": 28,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 61,
+      "deletions": 10,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 21,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/work.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-review/SKILL.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-work/SKILL.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 7,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "build.py 생성 사본. HEAD에서 원본(plugins/fullops-squad 또는 docs/issue-auto-mode.md)과 blob 해시가 같음을 확인했고 원본을 검토함. lint packaging 통과"
+    }
+  ],
+  "findings": [
+    {
+      "path": "plugins/fullops-squad/scripts/board.py",
+      "start_line": 124,
+      "end_line": 145,
+      "severity": "low",
+      "resolved": false,
+      "content": "[준수] board.ready는 상태 칸 어휘만 본다. 운영 배포·부하 테스트·backfill·데이터 정리 행을 `대기(사람: …)`가 아닌 `대기`로 적으면 준비된 행이 되고, flow_gate Stop 차단 문구(flow_gate.py:935)는 \"계속할지 사용자에게 묻지 말고 배정하세요\"만 말하고 운영 작업 승인 예외를 다시 적지 않는다. 승인 규칙은 SessionStart brief와 fullops-orca 스킬에 남아 있고 배정 자체가 배포를 실행하지는 않는다. 후속: 차단 문구에 운영 작업 승인 예외 한 줄 추가"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "start_line": 750,
+      "end_line": 756,
+      "severity": "low",
+      "resolved": false,
+      "content": "[버그] lead SessionStart가 review.prune을 자동 실행한다. 다른 세션의 review.py snapshot이 creating 기록을 쓰고 git worktree add를 끝내기 전이면 prune이 그 기록을 missing으로 닫는다. add가 성공하면 active로 덮어써 회복되지만, add가 실패하면 상태가 creating이 아니어서 같은 키 재시도가 거부되고 새 키가 필요하다. 경합 창이 좁아 영향이 작다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "start_line": 43,
+      "end_line": 43,
+      "severity": "low",
+      "resolved": false,
+      "content": "[버그] MACHINE_PROMPTS는 기계 알림을 가리는 추정 목록이다(shortcut 주석 있음). Orca가 coordinator를 깨우는 다른 형식의 알림은 사람 턴으로 기록되어 `과제당 사람 턴`이 부풀 수 있다. 작업을 막지 않는 지표 오차다. 실제 세션 확인 뒤 목록 보정을 후속으로 남긴다"
+    },
+    {
+      "path": "tests/stabilization.py",
+      "severity": "low",
+      "resolved": false,
+      "content": "[버그] 검증 보고서에 stabilization.py가 1회 실패하고 원인을 찾지 못했다고 적혀 있다(같은 트리에서 2회 재통과). 간헐 실패 원인이 남아 있다. 후속으로 재현 조건을 기록한다"
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "severity": "low",
+      "resolved": false,
+      "content": "[nit] 지시서의 부모 체크 항목이 미체크이고 `## 완료 보고` 절이 비어 있다. 검증 보고서의 lint 줄 수(741, head 3979644)와 PLANS(744)·lint.json(745, head 8f11810) 수치가 다르다. 기록 커밋 차이라 판정에는 영향이 없다. work.py finish 때 완료 보고를 채운다"
+    }
+  ],
+  "review_schema_version": 2,
+  "independence": {
+    "implementer_session": "f0726204-9981-4e4d-9372-476f2ff7eca3",
+    "reviewer_session": "reviewer-d3dce76a-0463-49da-aecc-30fdfae7c9a6",
+    "snapshot_path": "C:\\Users\\shin\\orca\\workspaces\\Fullops-Squad-plugin\\.fullops-review-aef1847ba6e847f3bc3beb4dba0a21b2",
+    "snapshot_head": "8f11810da055ae4d8f6e44fe82ed69b911b29a88",
+    "read_only": true
+  }
+}

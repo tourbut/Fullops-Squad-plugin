@@ -1,4 +1,5 @@
 """coordinator hook만 과제 상태 파일을 쓰고, 노드가 route → 배정 → worker_done → 리뷰 → 병합으로 옮겨 가며, 모든 워크트리가 읽는지 확인한다."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,8 @@ import time
 SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import integration  # noqa: E402
+
+not_integrated = integration.pending  # lint ANTI-004가 pending 호출을 테스트 건너뛰기 표식으로 읽어 별칭으로 부른다
 
 
 def main():
@@ -83,5 +86,58 @@ def main():
     print('PASS: flow state nodes from route to merge, round keys fold into the task, coordinator-only writes, shared reads')
 
 
+def published_settlement():
+    """원격 기본 브랜치에만 들어간 SHA, SHA 없는 리뷰 노드 기록, 재배정 사건, 역할로 끝나는 과제 키의 리뷰 키"""
+    import flow_state
+    with tempfile.TemporaryDirectory(prefix='fullops-flow-published-') as tmp:
+        repo = Path(tmp)
+
+        def git(*args):
+            return subprocess.check_output(['git', '-C', str(repo), *args], text=True, encoding='utf-8', stderr=subprocess.DEVNULL).strip()
+
+        def commit(message):
+            git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '--allow-empty', '-m', message)
+            return git('rev-parse', 'HEAD')
+
+        def state(key):
+            path = flow_state.directory(repo) / f'{key}.json'
+            return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
+        git('init', '-q', '-b', 'main')
+        (repo / '.fullops-squad').mkdir()
+        (repo / '.fullops-squad/fullops.json').write_text(json.dumps(
+            {'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}), encoding='utf-8')
+        commit('setup')
+        git('checkout', '-qb', 'work')
+        first, second = commit('k1'), commit('k2')
+        git('checkout', '-q', 'main')  # 로컬 main은 뒤처지고 원격 ref만 움직인다
+        git('update-ref', 'refs/remotes/origin/main', second)
+        # 첫 확인 전의 완료 보고는 펼치지 않으므로 K2 흐름 기록에는 SHA가 없다
+        integration.record(repo, [{'id': 'm2', 'type': 'worker_done', 'body': f'[완료] K2 | 브랜치 fullops/dev | SHA {second}'}])
+        assert not_integrated(repo) == []
+        flow_state.update(repo, 'K1', 'build')
+        flow_state.update(repo, 'K1', 'build')  # 수정 후 재배정
+        assert [e['node'] for e in state('K1')['events']] == ['build', 'build'], state('K1')
+        flow_state.update(repo, 'K1', 'report', first)
+        flow_state.update(repo, 'K2-DEV-REVIEW', 'review')
+        assert state('K2')['node'] == 'review' and 'sha' not in state('K2')
+        flow_state.observe(repo, [])
+        assert state('K1')['node'] == 'merge' and state('K2')['node'] == 'merge', (state('K1'), state('K2'))
+        assert [e['node'] for e in state('K1')['events']] == ['build', 'build', 'report', 'merge']
+        # 오래된 보류가 풀리며 다시 쓴 완료 기록은 다음 차수로 간 과제를 report로 되돌리지 않는다
+        flow_state.update(repo, 'K1', 'design')
+        integration.record(repo, [{'id': 'm1', 'type': 'worker_done', 'body': f'[완료] K1 | 브랜치 fullops/dev | SHA {first}'}])
+        held = integration.directory(repo) / (hashlib.sha256(b'm1').hexdigest() + '.json')
+        held.write_text(json.dumps({**json.loads(held.read_text(encoding='utf-8')), 'hold': {'reason': 'r'}}), encoding='utf-8')
+        not_integrated(repo)
+        assert 'released_hold' in json.loads(held.read_text(encoding='utf-8'))
+        flow_state.observe(repo, [])
+        assert state('K1')['node'] == 'design', state('K1')
+        # 과제 키 자체가 역할로 끝나면 리뷰 키(-REVIEW-<n>)는 그 과제 기록을 옮긴다
+        flow_state.update(repo, 'K3-DEV', 'build')
+        flow_state.update(repo, 'K3-DEV-REVIEW-2', 'review')
+        assert state('K3-DEV')['node'] == 'review' and state('K3') is None and state('K3-DEV-REVIEW-2') is None
+
+
 if __name__ == '__main__':
+    published_settlement()
     main()

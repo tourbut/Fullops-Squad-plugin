@@ -43,6 +43,7 @@ The Jev keys are not plugin options, because Claude Code passes plugin options o
   - `PreToolUse` on shell, edit, and agent tools: `flow_gate tool`. It can block an action that breaks the repository's role, routing, or integration rules.
   - `PostToolUse` on shell and edit tools, and `PostToolUseFailure` on shell tools: `flow_gate post`. It confirms a dispatched worker's `worker_done` delivery, records task flow state, and adds one-time notices. It also shortens successful Bash output longer than 400 lines before Claude sees it, keeping the start, the end and error lines, and saves the original under `.fullops-squad/local/outputs/` (git-ignored).
   - `Stop`: `done_gate stop` (lint and review gate) and `flow_gate stop` (pending-integration gate, board refresh, which may call `gh issue list`).
+  - `StopFailure`: `flow_gate failure`. When a dispatched worker's turn ends on an API error such as a usage limit, it sends one Orca escalation message to that worker's coordinator.
   - `SessionEnd`: `issue_mode session-end`. It releases an issue-mode lease.
 
 ## Where it works

@@ -1,0 +1,553 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": "C:/Users/shin/orca/workspaces/Fullops-Squad-plugin/dev",
+  "from": "6a71d41e552a65fe5454635a465942e0d4a1f75d",
+  "to": "8f11810da055ae4d8f6e44fe82ed69b911b29a88",
+  "merge_base": "6a71d41e552a65fe5454635a465942e0d4a1f75d",
+  "total_files": 82,
+  "reviewable_count": 39,
+  "excluded_count": 43,
+  "total_insertions": 1684,
+  "total_deletions": 332,
+  "reviewable_files": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 1
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/HARNESS-AUTONOMY-test/report.md",
+      "status": "added",
+      "insertions": 45,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "status": "modified",
+      "insertions": 81,
+      "deletions": 0
+    },
+    {
+      "path": "README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0
+    },
+    {
+      "path": "adapters/claude-directory/README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0
+    },
+    {
+      "path": "docs/flow-graph.md",
+      "status": "modified",
+      "insertions": 58,
+      "deletions": 58
+    },
+    {
+      "path": "docs/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/.gitignore",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 0
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 6
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 0
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/handovers/_TEMPLATE.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/rules/common/testing.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 0
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/board.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 3
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_state.py",
+      "status": "modified",
+      "insertions": 28,
+      "deletions": 8
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 61,
+      "deletions": 10
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 3
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 21
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/work.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 8
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-review/SKILL.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 4
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-work/SKILL.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 7
+    },
+    {
+      "path": "scripts/build.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "tests/board.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 4
+    },
+    {
+      "path": "tests/caveman-start.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1
+    },
+    {
+      "path": "tests/check.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "tests/flow-gate.py",
+      "status": "modified",
+      "insertions": 62,
+      "deletions": 0
+    },
+    {
+      "path": "tests/flow-state.py",
+      "status": "modified",
+      "insertions": 56,
+      "deletions": 0
+    },
+    {
+      "path": "tests/integration-gate.py",
+      "status": "modified",
+      "insertions": 55,
+      "deletions": 0
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "status": "modified",
+      "insertions": 56,
+      "deletions": 1
+    },
+    {
+      "path": "tests/jev-packet.py",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 0
+    },
+    {
+      "path": "tests/jev-route.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 0
+    },
+    {
+      "path": "tests/product-routing.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 2
+    },
+    {
+      "path": "tests/review-check.py",
+      "status": "modified",
+      "insertions": 25,
+      "deletions": 0
+    },
+    {
+      "path": "tests/stabilization.py",
+      "status": "modified",
+      "insertions": 21,
+      "deletions": 1
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "dist/directory/fullops-squad/INSTALL.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/README.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/.gitignore",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 6,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/handovers/_TEMPLATE.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/rules/common/testing.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/board.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_state.py",
+      "status": "modified",
+      "insertions": 28,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 61,
+      "deletions": 10,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 21,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/work.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-review/SKILL.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-work/SKILL.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 7,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/INSTALL.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/.gitignore",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 16,
+      "deletions": 6,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/board/index.html",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/handovers/_TEMPLATE.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/rules/common/testing.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 11,
+      "deletions": 0,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/issue-auto-mode.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/board.py",
+      "status": "modified",
+      "insertions": 85,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 69,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_state.py",
+      "status": "modified",
+      "insertions": 28,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/integration.py",
+      "status": "modified",
+      "insertions": 61,
+      "deletions": 10,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 34,
+      "deletions": 21,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/work.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-issues/SKILL.md",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 18,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-review/SKILL.md",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-work/SKILL.md",
+      "status": "modified",
+      "insertions": 7,
+      "deletions": 7,
+      "exclude_reason": "user_exclude"
+    }
+  ],
+  "fullops_review_schema_version": 2
+}

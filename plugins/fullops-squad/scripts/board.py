@@ -5,7 +5,7 @@ HTML을 파일로 열면 fetch로 JSON을 읽을 수 없어서 `window.FULLOPS_B
 모델을 쓰지 않는 결정론적 스크립트라 Stop hook에서 매번 실행해도 비용이 없다.
 """
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -110,11 +110,47 @@ def plans(root):
         key, status = column(header, r'과제|키'), column(header, r'상태')
         if key is None or status is None:
             continue
-        goal, owner = column(header, r'목표|결과|다음|내용'), column(header, r'담당|책임')
+        goal, owner, source = column(header, r'목표|결과|다음|내용'), column(header, r'담당|책임'), column(header, r'지시서|원천')
         groups.append([{'key': plain(r[key]), 'goal': plain(r[goal]) if goal is not None else '',
                         'owner': plain(r[owner]) if owner is not None else '', 'status': plain(r[status]),
-                        'group': heading} for r in rows if r[key].strip()])
+                        'source': plain(r[source]) if source is not None else '', 'group': heading} for r in rows if r[key].strip()])
     return [item for items in reversed(groups) for item in items]
+
+
+WAITING = re.compile(r'대기(?!\s*[(（])')  # `대기(사람: …)`처럼 괄호가 붙은 대기는 사람을 기다린다. 표기가 달라도 자동 배정하지 않는다
+AFTER = re.compile(r'선행\s*:\s*([A-Za-z0-9._,\s-]*)')
+
+
+def ready(repo):
+    """PLANS.md 과제 표에서 지금 배정할 대기 행. 사람 대기·보류·원천 없는 행·담당 인박스가 찬 행·선행 미완료·이미 배정한 행은 뺀다."""
+    root = Path(repo) / '.fullops-squad'
+
+    def free(owner):  # 담당 역할 인박스에 과제가 있으면 비울 때까지 배정할 수 없다(fullops-work 역할 인박스 규칙)
+        role = re.match(r'[A-Za-z0-9_-]+', owner)
+        return not (role and TITLE.search(read(root / f'handovers/to_{role.group(0)}.md')))
+    rows = [p for p in plans(root) if WAITING.match(p['status']) and p['source'] and free(p['owner'])]
+    if not rows:
+        return []
+    import flow_state  # Stop마다 도는 경로라 후보가 있을 때만 흐름 기록을 읽는다
+    from harness_gate import base_key
+    order = flow_state.NODES
+    nodes = {s.get('key'): order.index(s['node']) for s in flow_state.read(repo) if s.get('node') in order}
+
+    def node(key):
+        return nodes.get(base_key(key), -1)
+
+    def after(row):
+        found = AFTER.search(row['status'])
+        return [k.rstrip('.') for k in re.split(r'[,\s]+', found.group(1)) if k.rstrip('.')] if found else []
+    return [p for p in rows if node(p['key']) < order.index('build')
+            and all(node(k) >= order.index('report') for k in after(p))]
+
+
+def delegation(root, limit=10):
+    """PLANS.md `## 위임 범위` 절 본문(사용자 원문) 줄. 템플릿 안내 문장은 뺀다. 없으면 빈 목록."""
+    template = set(read(Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/PLANS.md').splitlines())
+    found = re.search(r'^##\s+위임 범위\s*$(.*?)(?=^#{1,2}\s|\Z)', read(Path(root) / 'PLANS.md'), re.M | re.S)
+    return [line.strip() for line in found.group(1).splitlines() if line.strip() and line not in template][:limit] if found else []
 
 
 def notes(root, limit=5):
@@ -237,7 +273,52 @@ def metrics(repo, entries, rows, recent=30):
     def summary(keys, seconds):
         return {'tasks': len(keys), 'first_try': sum(1 for k in keys if not counts[k]), 'rework': sum(counts[k] for k in keys),
                 'reviews': len(seconds), 'review_minutes': round(statistics.median(seconds) / 60) if seconds else None}
-    return {'recent_limit': recent, 'recent': summary(tasks[:recent], gaps[:recent]), 'all': summary(tasks, gaps)}
+    try:  # 흐름 기록 폴더는 git 공용 디렉터리에 있다. 찾지 못하면 기록 없음으로 본다
+        import flow_state
+        folder = flow_state.directory(repo)
+        records = flow_state.read(repo)
+    except Exception:  # noqa: BLE001
+        folder, records = None, []
+    turns = []
+    for line in read(folder / 'human-turns.jsonl').splitlines() if folder else []:
+        try:
+            turns.append(int(json.loads(line)['at']))
+        except (ValueError, KeyError, TypeError):
+            continue
+    return {'recent_limit': recent, 'recent': summary(tasks[:recent], gaps[:recent]), 'all': summary(tasks, gaps),
+            'autonomy': autonomy(turns, records, entries)}
+
+
+def autonomy(turns, records, entries):
+    """과제당 사람 턴과 사람 없이 이어진 배정 수. 첫 사람 턴 기록 뒤만 세어 기록 전 과제가 값을 묽히지 않게 한다."""
+    from harness_gate import base_key
+
+    since = min(turns) if turns else None
+    result = {'since': None, 'human_turns': len(turns), 'tasks': 0, 'human_turns_per_task': None, 'dispatched': 0, 'continued': 0}
+    if since is None:
+        return result
+    result['since'] = datetime.fromtimestamp(since, timezone.utc).isoformat(timespec='seconds')
+    # shortcut: 완료 기록은 날짜만 있어 첫 사람 턴과 같은 날 그 전에 끝난 과제도 센다. 완료 시각을 남기면 시각으로 비교한다
+    day = datetime.fromtimestamp(since).strftime('%Y-%m-%d')
+    result['tasks'] = len({base_key(e['key']) for e in entries if e.get('date', '') >= day})
+    if result['tasks']:
+        result['human_turns_per_task'] = round(len(turns) / result['tasks'], 2)
+    events = []
+    for record in records:
+        for event in record.get('events') or [] if isinstance(record, dict) else []:
+            try:
+                at = datetime.fromisoformat(event['at']).timestamp()
+            except (ValueError, KeyError, TypeError):
+                continue
+            if event.get('node') in ('build', 'report') and at >= since:
+                events.append((at, event['node']))
+    events.sort()
+    # 첫 이벤트는 앞선 build·report가 없어 이어졌는지 알 수 없으므로 어느 쪽에도 세지 않는다
+    for (before, _), (at, node) in zip(events, events[1:]):
+        if node == 'build':
+            result['dispatched'] += 1
+            result['continued'] += not any(before < turn <= at for turn in turns)
+    return result
 
 
 def deliverables(root):

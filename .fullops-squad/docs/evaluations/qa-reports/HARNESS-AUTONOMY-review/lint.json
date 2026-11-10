@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "attempt": "94193b34f7bf4379820669bbffdda547",
+  "base": "6a71d41e552a65fe5454635a465942e0d4a1f75d",
+  "merge_base": "6a71d41e552a65fe5454635a465942e0d4a1f75d",
+  "head": "8f11810da055ae4d8f6e44fe82ed69b911b29a88",
+  "config_sha256": "63a6e3b5e19a163fa16882ce58b655d615382ad2ec2a2c056d64da6d04f0f3db",
+  "test_level": "lite",
+  "policy_sha256": "8b8a153c424886496b90c343ba3013485417f84622d418743fba4273f3d66e94",
+  "commands": [
+    {
+      "name": "issue-mode",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/issue-mode.py"
+      ],
+      "cwd": ".",
+      "reason": "",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 13.4,
+      "output_tail": "PASS: issue-mode atomic FIFO/lease, author IDs, API recovery/304, question outbox, same-author answers, boundaries, review failure and handover fencing",
+      "log": "D:\\workspace\\Fullops-Squad-plugin\\.git\\worktrees\\dev\\fullops-gate\\logs\\issue-mode.log"
+    },
+    {
+      "name": "jev-route",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/jev-route.py"
+      ],
+      "cwd": ".",
+      "reason": "",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 5.5,
+      "output_tail": "PASS: jev route guide state, simple/design thresholds, designer fallback, secret refusal, CLI record",
+      "log": "D:\\workspace\\Fullops-Squad-plugin\\.git\\worktrees\\dev\\fullops-gate\\logs\\jev-route.log"
+    },
+    {
+      "name": "flow-gate",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/flow-gate.py"
+      ],
+      "cwd": ".",
+      "reason": "",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 87.6,
+      "output_tail": "PASS: flow-gate roles, inject/run/route denials, handover route check, designer code block, worker_done stop gate, grok input\nwarning: in the working copy of '.fullops-squad/.env.example', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/.gitignore', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/FULLOPS.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/PLANS.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/board/.gitignore', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/board/board.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/board/index.html', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/contexts/architecture.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/contexts/art.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/contexts/dev.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/agents/document-writing.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/agents/domain.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/agents/frontend.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/agents/issue-tracker.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/agents/triage-labels.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/deliverables/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/evaluations/qa-reports/.gitignore', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/evaluations/scenarios/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/docs/planning/intents/_TEMPLATE.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/fullops.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/handovers/_TEMPLATE.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/lint/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/lint/lint.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/orca-agents.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/project.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/review/_REPORT.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/review/rule.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/rules/common/ECC-LICENSE.txt', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/rules/common/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/rules/common/coding-style.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/rules/common/security.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/rules/common/testing.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.fullops-squad/rules/delegation.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'AGENTS.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'CLAUDE.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'GEMINI.md', LF will be replaced by CRLF the next time Git touches it",
+      "log": "D:\\workspace\\Fullops-Squad-plugin\\.git\\worktrees\\dev\\fullops-gate\\logs\\flow-gate.log"
+    },
+    {
+      "name": "lint-gate",
+      "kind": "test",
+      "run": [
+        "python3",
+        "tests/lint.py"
+      ],
+      "paths": [
+        "plugins/fullops-squad/scripts/lint.py",
+        "plugins/fullops-squad/scripts/lint_tune.py",
+        "tests/lint.py"
+      ],
+      "status": "skipped",
+      "reason": "바뀐 파일이 명령의 paths와 맞지 않음"
+    },
+    {
+      "name": "packaging",
+      "kind": "test",
+      "run": [
+        "node",
+        "tests/standard.cjs"
+      ],
+      "cwd": ".",
+      "reason": "",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.3,
+      "output_tail": "PASS: Agent Plugins 1.0.0 schemas, package containment, 10 skill entry points",
+      "log": "D:\\workspace\\Fullops-Squad-plugin\\.git\\worktrees\\dev\\fullops-gate\\logs\\packaging.log"
+    },
+    {
+      "name": "full",
+      "kind": "test",
+      "level": "full",
+      "run": [
+        "npm",
+        "test"
+      ],
+      "status": "skipped",
+      "reason": "기준 설정 test_level=lite, 명령 최소 level=full"
+    }
+  ],
+  "violations": [
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "389줄(이전 384, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/board/index.html"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "362줄(이전 298, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "plugins/fullops-squad/scripts/board.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "839줄(이전 775, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "plugins/fullops-squad/scripts/flow_gate.py"
+    },
+    {
+      "code": "SLOP-003",
+      "severity": "WARNING",
+      "line": 745,
+      "message": "광범위한 예외를 pass로 숨김. 구체적 예외를 처리하거나 의도적 무시의 근거를 기록한다",
+      "path": "plugins/fullops-squad/scripts/flow_gate.py"
+    },
+    {
+      "code": "SLOP-003",
+      "severity": "WARNING",
+      "line": 749,
+      "message": "광범위한 예외를 pass로 숨김. 구체적 예외를 처리하거나 의도적 무시의 근거를 기록한다",
+      "path": "plugins/fullops-squad/scripts/flow_gate.py"
+    },
+    {
+      "code": "SLOP-003",
+      "severity": "WARNING",
+      "line": 756,
+      "message": "광범위한 예외를 pass로 숨김. 구체적 예외를 처리하거나 의도적 무시의 근거를 기록한다",
+      "path": "plugins/fullops-squad/scripts/flow_gate.py"
+    },
+    {
+      "code": "SLOP-003",
+      "severity": "WARNING",
+      "line": 809,
+      "message": "광범위한 예외를 pass로 숨김. 구체적 예외를 처리하거나 의도적 무시의 근거를 기록한다",
+      "path": "plugins/fullops-squad/scripts/flow_gate.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "396줄(이전 356, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "plugins/fullops-squad/scripts/integration.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "1409줄(이전 1398, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "plugins/fullops-squad/scripts/issue_mode.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "607줄(이전 599, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "plugins/fullops-squad/scripts/review.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "345줄(이전 289, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "tests/board.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "397줄(이전 340, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "tests/flow-gate.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "993줄(이전 943, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "tests/issue-mode.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "339줄(이전 316, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "tests/review-check.py"
+    },
+    {
+      "code": "SIZE-001",
+      "severity": "WARNING",
+      "line": null,
+      "message": "888줄(이전 869, 상한 300). ① 삭제 → ② 압축 → ③ 분할 순으로 처리하고 docstring·헤더를 깎지 않는다",
+      "path": "tests/stabilization.py"
+    },
+    {
+      "code": "SIZE-002",
+      "severity": "WARNING",
+      "line": null,
+      "path": "",
+      "message": "변경 추가 745줄 > 상한 400줄. 지시서의 예상 변경 규모와 차이·분할하지 않은 이유를 검토하세요"
+    }
+  ],
+  "summary": {
+    "files": 37,
+    "added_lines": 745,
+    "errors": 0,
+    "warnings": 16,
+    "unavailable": 0
+  }
+}

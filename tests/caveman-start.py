@@ -29,7 +29,7 @@ for host in ('codex', 'claude'):
     # Claude Code는 hooks/hooks.json을 자동으로 읽으므로 manifest에 중복 선언하지 않는다.
     config = json.loads((PACKAGE / manifest.get('hooks', './hooks/hooks.json')).read_text(encoding='utf-8'))
     assert set(config['hooks']) == {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd'} | (
-        {'PostToolUseFailure'} if host == 'claude' else set())  # 종료코드가 0이 아닌 배정 명령도 기록한다
+        {'PostToolUseFailure', 'StopFailure'} if host == 'claude' else set())  # 실패한 배정 명령·API 오류 종료도 기록한다
     group, gate, flow = config['hooks']['SessionStart']
     assert group['matcher'] == 'startup|clear'  # Resume/compact must preserve an opt-out.
     hook, = group['hooks']
@@ -41,6 +41,9 @@ for host in ('codex', 'claude'):
     stop, flow_stop = config['hooks']['Stop']
     assert target(stop['hooks'][0]['command']) == ['done_gate', 'stop']
     assert target(flow_stop['hooks'][0]['command']) == ['flow_gate', 'stop']
+    if host == 'claude':
+        failure, = config['hooks']['StopFailure']
+        assert target(failure['hooks'][0]['command']) == ['flow_gate', 'failure']
     for event, mode in (('UserPromptSubmit', 'prompt'), ('PreToolUse', 'tool'), ('PostToolUse', 'post')):
         entry, = config['hooks'][event]
         assert target(entry['hooks'][0]['command']) == ['flow_gate', mode]

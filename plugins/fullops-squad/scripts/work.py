@@ -148,9 +148,12 @@ def followups(repo, role, key, report):
         return []
     rest = found.group(1).split('\n## ')[0].split('\n\n')[0]  # 한 줄 항목이나 다음 빈 줄까지의 목록
     lines = []
-    for part in re.split(r'[,;·\n]', rest):
+    # 괄호 안 구분자는 한 항목의 부연이다. 거기서 자르면 역할명 없는 조각이 조용히 버려진다
+    for part in re.split(r'[,;·\n](?![^()]*\))', rest):
         part = part.strip(' :：-*\t.')
-        hit = next((r for r in roles if re.search(rf'\b{re.escape(r)}\b', part, re.I | re.A)), None)
+        # 한 조각에 역할이 둘이면 fullops.json 순서가 아니라 글에서 먼저 나온 역할이 받는다
+        hits = [(m.start(), r) for r in roles if (m := re.search(rf'\b{re.escape(r)}\b', part, re.I | re.A))]
+        hit = min(hits)[1] if hits else None
         if hit and part:
             lines.append(f'- [ ] {key} → {hit}: {part} (완료 보고 자동 등재 {date.today()})')
     return lines

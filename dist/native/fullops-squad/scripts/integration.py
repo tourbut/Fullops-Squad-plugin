@@ -264,23 +264,68 @@ def references(root, settings):
     return branch, None
 
 
+HOLD_CAP = 5  # hook 시간 제한: 한 호출에 보류 기록은 5개까지만 git으로 다시 본다. 나머지는 다음 호출이나 settle이 처리한다
+
+
+def integrated(root, sha, base, published):
+    """coordinator는 역할 워크트리에서 병합해 원격 기본 브랜치로 push하므로 원본 체크아웃의 로컬 기본 브랜치는 뒤처진다.
+    원격 반영 ref가 있으면 그 ref에, 로컬 전용이면 로컬 기본 브랜치에 들어간 SHA를 통합으로 본다"""
+    return ancestor(root, sha, published or base)
+
+
+def release_holds(root, base, published, held=None, cap=None):
+    """이미 통합된 SHA의 보류를 integrated로 옮기고 사유는 released_hold에 남긴다. 푼 개수를 반환한다.
+    held는 (mtime, 경로, 기록)이다. cap이 있으면 지난 호출 다음 기록부터 오래된 순서로 순환해 병합 전 보류가 나머지를 막지 않는다"""
+    if held is None:
+        held = []
+        for path in directory(root).glob('*.json'):
+            item = json.loads(path.read_text(encoding='utf-8'))
+            if item.get('hold') and item.get('sha') and not item.get('integrated'):
+                held.append((path.stat().st_mtime, path, item))
+    held = sorted(held, key=lambda entry: entry[0])
+    cursor = directory(root) / 'hold-cursor'
+    if cap:
+        try:
+            after = float(cursor.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            after = 0.0
+        held = ([entry for entry in held if entry[0] > after] + [entry for entry in held if entry[0] <= after])[:cap]
+    released = 0
+    for _, path, item in held:
+        if integrated(root, item['sha'], base, published):
+            item['released_hold'] = item.pop('hold')
+            write_json(path, {**item, 'integrated': True})
+            released += 1
+    if cap and held:
+        try:
+            cursor.write_text(repr(held[-1][0]), encoding='utf-8')
+        except OSError:  # 순환 위치를 못 남기면 다음 호출이 처음부터 다시 본다
+            pass
+    return released
+
+
 def pending(root):
     settings = config(root)
     if settings is None:
         return []
     base, published = references(root, settings)
-    result = []
+    result, held = [], []
     for path in sorted(directory(root).glob('*.json')):
         item = json.loads(path.read_text(encoding='utf-8'))
-        if item.get('hold') or item.get('integrated'):
+        if item.get('integrated'):
             continue
         sha = item.get('sha')
-        if not sha or not ancestor(root, sha, base):
-            result.append({**item, 'action': '병합', 'base': base})
-        elif published and not ancestor(root, sha, published):
-            result.append({**item, 'action': 'push', 'base': base})
-        else:  # 통합을 마친 기록은 git으로 다시 검사하지 않는다(hook 시간 제한)
+        if item.get('hold'):
+            if sha:
+                held.append((path.stat().st_mtime, path, item))
+            continue
+        if sha and integrated(root, sha, base, published):  # 통합을 마친 기록은 git으로 다시 검사하지 않는다(hook 시간 제한)
             write_json(path, {**item, 'integrated': True})
+        elif sha and published and ancestor(root, sha, base):
+            result.append({**item, 'action': 'push', 'base': base})
+        else:
+            result.append({**item, 'action': '병합', 'base': base})
+    release_holds(root, base, published, held, HOLD_CAP)
     return result
 
 
@@ -340,7 +385,8 @@ def baseline_denial(root, command):
             return f'리뷰 snapshot 정체성 확인 실패: {error}'
         return None
     if branch not in settings.get('roles', {}).values():
-        return 'implementation은 등록 역할 브랜치의 기존 워크트리를 사용하세요. 리뷰는 Purpose: review와 고정 SHA·독립 세션을 선언하세요.'
+        return ('implementation은 등록 역할 브랜치의 기존 워크트리를 사용하세요. 리뷰는 Purpose: review와 고정 SHA·독립 세션을 선언하세요. '
+                '구현은 등록 역할 워크트리에만 배정합니다. 병렬로 시작하려고 별도 워크트리를 만들지 마세요.')
     if directory(worker) != directory(root):
         return '등록 역할의 워크트리가 현재 레포와 다릅니다. 실제 워크트리 경로를 확인하세요.'
     try:
@@ -349,7 +395,8 @@ def baseline_denial(root, command):
         if route and settings['roles'].get(route['role']) != branch:
             return 'route 담당 역할과 worker 브랜치가 다릅니다. 기존 역할 경로를 선택하거나 근거를 남겨 재분류하세요.'
         packet = Path(root) / f'.fullops-squad/docs/evaluations/jev/{dispatch_key(command)}-packet.json'
-        if packet.is_file() or (route and route.get('requires_packet')):
+        # 패킷은 선택이다. coordinator 쪽이나 worker 워크트리에 패킷이 있거나 route가 요구할 때만 검사한다
+        if packet.is_file() or (worker.resolve() / packet.relative_to(root)).is_file() or (route and route.get('requires_packet')):
             from jev_packet import check
             check(worker.resolve(), route['role'], dispatch_key(command), required=True)
     except (OSError, ValueError, KeyError, TypeError) as error:
@@ -368,7 +415,7 @@ def baseline_denial(root, command):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', default='.')
-    parser.add_argument('action', choices=['status', 'hold', 'resume', 'set-sha'])
+    parser.add_argument('action', choices=['status', 'hold', 'resume', 'set-sha', 'settle'])
     parser.add_argument('--message')
     parser.add_argument('--sha', help='set-sha: 본문에서 읽지 못한 완료 SHA')
     parser.add_argument('--key', help='set-sha: 본문에서 읽지 못한 과제 키')
@@ -379,6 +426,10 @@ def main():
     parser.add_argument('--terminal', help='완료 메시지를 받은 coordinator 터미널')
     args = parser.parse_args()
     root = Path(git(args.repo, 'rev-parse', '--show-toplevel'))
+    if args.action == 'settle':  # hook은 호출마다 HOLD_CAP개씩만 푼다. 쌓인 보류를 한 번에 정리한다
+        settings = config(root)
+        print(json.dumps({'released': release_holds(root, *references(root, settings)) if settings else 0}))
+        return
     if args.action != 'status':
         if not args.message:
             parser.error('--message가 필요합니다')

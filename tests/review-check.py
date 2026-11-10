@@ -113,6 +113,30 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
         assert legacy['independence']['reviewer_session'] == 'reviewer-legacy'
     finally:
         git('worktree', 'remove', managed_path)
+    # worktree add 전에 실패해 경로 없이 creating만 남은 키는 같은 키로 다시 만든다. 다른 상태는 계속 거부한다.
+    def snapshot_refused(key):
+        try:
+            review.snapshot(repo, key, 'HEAD', 'author-r', 'reviewer-r', 'coordinator')
+        except ValueError:
+            return True
+        return False
+    record = review.snapshot_record(repo, 'RETRY')
+    record.write_text(json.dumps({'state': 'creating', 'path': str(Path(snapshots) / 'never-made'), 'key': 'RETRY'}))
+    with patch('builtins.print'):
+        retried = review.snapshot(repo, 'RETRY', 'HEAD', 'author-r', 'reviewer-r', 'coordinator')
+    git('worktree', 'remove', str(retried))
+    assert json.loads(record.read_text())['state'] == 'active' and snapshot_refused('RETRY')
+    review.snapshot_record(repo, 'GAVE-UP').write_text(json.dumps({'state': 'abandoned', 'path': str(Path(snapshots) / 'gone')}))
+    assert snapshot_refused('GAVE-UP')
+    # prepare가 앞 파일만 쓰고 멈춘 폴더는 다시 준비한다. 중단 기록이 있는 폴더는 보존한다(result.json 폴더는 위에서 거부).
+    qa = repo / '.fullops-squad/docs/evaluations/qa-reports'
+    (qa / 'PARTIAL-review').mkdir()
+    (qa / 'PARTIAL-review/preview.json').write_text('{}')
+    partial = run('prepare', 'PARTIAL')
+    assert partial.returncode == 0 and (qa / 'PARTIAL-review/result.json').is_file(), partial.stderr
+    (qa / 'GAVE-UP-review').mkdir()
+    (qa / 'GAVE-UP-review/abandoned.json').write_text(json.dumps({'state': 'abandoned', 'result_sha256': None}))
+    assert '보존' in run('prepare', 'GAVE-UP').stderr
     agents = repo / '.fullops-squad/orca-agents.md'
     agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
                       '- 설계 역할: `designer`\n- 제품 기획 역할: `designer`\n- 기술 계획 역할: `implementer`'), encoding='utf-8')
@@ -169,6 +193,7 @@ with tempfile.TemporaryDirectory(prefix='fullops-delegate-') as tmp, tempfile.Te
     print('PASS: real OCR prepare, document/test inclusion, record preservation, pending/missing/high/rule/SHA/lint gates')
     print('PASS: independent sessions, schema preservation, separate clean detached snapshot, fixed SHA')
     print('PASS: managed snapshot prepare records independent identity in legacy coor configuration')
+    print('PASS: empty-failure review keys retry in place; abandoned and used keys stay refused')
 
 
 def hashed(data):

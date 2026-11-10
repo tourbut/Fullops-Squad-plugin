@@ -1,5 +1,5 @@
 """임시 레포에서 현황판 데이터 수집·JS 출력·변경 없을 때 재작성 생략·coordinator Stop hook 자동 갱신·git 무시를 확인한다."""
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 from board_documents import documents, markdown
-from board import build, issues, metrics, recent_issues, write
+from board import build, delegation, issues, metrics, ready, recent_issues, write
 import harness_gate
 
 
@@ -189,8 +189,8 @@ def main():
             'tasks: [JUMP-1, JUMP-2]\ndownstream: [D02, D03]\nsummary: 1차 빌드 범위와 일정\n---\n\n# 사업계획서\n', encoding='utf-8')
         plans = fo / 'PLANS.md'
         text = plans.read_text(encoding='utf-8').replace('# 현재 작업\n', '# 현재 작업\n\n최신 착수: **JUMP-1** [지시서](handovers/to_dev.md)\n', 1)
-        plans.write_text(text + '| JUMP-1 | 점프 높이 조정 | dev | 진행 중 | handovers/to_dev.md |\n'
-                         '\n## 후속 — 2026-09-24\n\n| 과제 키 | 다음 확인 | 예정 책임 | 상태 |\n|---|---|---|---|\n| ART-9 | 배경 교체 | art | 예정 |\n',
+        text = text.replace('|---|---|---|---|---|\n', '|---|---|---|---|---|\n| JUMP-1 | 점프 높이 조정 | dev | 진행 중 | handovers/to_dev.md |\n', 1)
+        plans.write_text(text + '\n## 후속 — 2026-09-24\n\n| 과제 키 | 다음 확인 | 예정 책임 | 상태 |\n|---|---|---|---|\n| ART-9 | 배경 교체 | art | 예정 |\n',
                          encoding='utf-8')
 
         run()
@@ -322,12 +322,77 @@ def metric_checks():
         # 최근 구간은 앞쪽 N개만 센다
         rows = metrics(repo, [{'key': 'CLEAN'}, {'key': 'REOPEN'}, {'key': 'ROUND-FIX'}, {'key': 'ROUND-R1'}], [], recent=1)
         assert (rows['recent']['tasks'], rows['recent']['first_try'], rows['all']['tasks'], rows['recent_limit']) == (1, 1, 3, 1)
+
+        # 자율 진행: 기록이 없으면 비운다. 첫 사람 턴 뒤 이벤트만 세고, 첫 이벤트는 세지 않는다
+        assert rows['autonomy'] == {'since': None, 'human_turns': 0, 'tasks': 0, 'human_turns_per_task': None, 'dispatched': 0, 'continued': 0}
+        flow = repo / '.git/fullops-flow'
+        flow.mkdir()
+        start = int(datetime(2026, 11, 5, 12).timestamp())
+        (flow / 'human-turns.jsonl').write_text(''.join(json.dumps({'at': start + t, 'session': 's'}) + '\n' for t in (0, 250)), encoding='utf-8')
+
+        def at(offset):
+            return datetime.fromtimestamp(start + offset, timezone.utc).isoformat(timespec='seconds')
+        # A build(첫 이벤트) → A report → B build(사이 사람 턴 없음: 이어짐) → B report → C build(사이에 250초 사람 턴: 끊김)
+        (flow / 'A.json').write_text(json.dumps({'key': 'A', 'events': [{'node': 'build', 'at': at(100)}, {'node': 'report', 'at': at(200)}]}), encoding='utf-8')
+        (flow / 'B.json').write_text(json.dumps({'key': 'B', 'events': [{'node': 'build', 'at': at(220)}, {'node': 'review', 'at': at(230)},
+                                                                          {'node': 'report', 'at': at(240)}]}), encoding='utf-8')
+        (flow / 'C.json').write_text(json.dumps({'key': 'C', 'events': [{'node': 'build', 'at': at(-50)}, {'node': 'build', 'at': at(300)}]}), encoding='utf-8')
+        (flow / 'OLD.json').write_text(json.dumps({'key': 'OLD', 'node': 'build'}), encoding='utf-8')  # events 없는 기록은 무시
+        done = [{'key': 'A', 'date': '2026-11-06'}, {'key': 'B-R1', 'date': '2026-11-05'}, {'key': 'PRE', 'date': '2026-11-04'}]
+        assert metrics(repo, done, [])['autonomy'] == {'since': at(0), 'human_turns': 2, 'tasks': 2, 'human_turns_per_task': 1.0,
+                                                        'dispatched': 2, 'continued': 1}
     print('PASS: board metrics count first-try tasks, rework and median review time from repo records')
+
+
+READY_PLANS = ('''# 현재 작업
+
+| 과제 키 | 목표 | 담당 | 상태 | 지시서·원천 링크 |
+|---|---|---|---|---|
+| R-OK | 준비됨 | dev | 대기. 선행: R-PRE, R-DONE | 2026-11-10 사용자 지시 |
+| R-FREE | 선행 없음 | dev | 대기 | `docs/planning/intents/R.md` |
+| R-DEPLOY | 배포 | dev | 대기(사람: 배포) | 2026-11-10 사용자 지시 |
+| R-DEPLOY2 | 배포 승인 | dev | 대기（배포 승인） | 2026-11-10 사용자 지시 |
+| R-PARK | 보류 | dev | 보류(시안 없음) | 2026-11-10 사용자 지시 |
+| R-NOSRC | 원천 없음 | dev | 대기 |  |
+| R-WAIT | 선행 미완료 | dev | 대기, 선행: R-OPEN | 2026-11-10 사용자 지시 |
+| R-SENT | 이미 배정 | dev | 대기 | 2026-11-10 사용자 지시 |
+
+## 위임 범위
+
+2026-11-10 사용자: R 묶음은 묻지 않고 이어 간다. 배포 전까지.
+
+## 다른 절
+''')
+
+
+def ready_checks():
+    with tempfile.TemporaryDirectory(prefix='fullops-board-ready-') as tmp:
+        repo = Path(tmp)
+        subprocess.run(['git', '-C', tmp, 'init', '-q', '-b', 'main'], check=True)
+        fo = repo / '.fullops-squad'
+        fo.mkdir()
+        (fo / 'fullops.json').write_text('{}', encoding='utf-8')
+        assert ready(repo) == [] and delegation(fo) == []  # PLANS.md가 없다
+        (fo / 'PLANS.md').write_text(READY_PLANS, encoding='utf-8')
+        flow = repo / '.git/fullops-flow'
+        flow.mkdir()
+        for key, node in (('R-PRE', 'report'), ('R-DONE', 'done'), ('R-OPEN', 'build'), ('R-SENT', 'build')):
+            (flow / f'{key}.json').write_text(json.dumps({'key': key, 'node': node}), encoding='utf-8')
+        # 사람 대기·보류·원천 없음·선행 미완료·이미 배정한 행은 준비되지 않았다
+        assert [p['key'] for p in ready(repo)] == ['R-OK', 'R-FREE'], ready(repo)
+        (flow / 'R-PRE.json').write_text(json.dumps({'key': 'R-PRE', 'node': 'build'}), encoding='utf-8')
+        assert [p['key'] for p in ready(repo)] == ['R-FREE']  # 선행이 report 전이면 기다린다
+        (fo / 'handovers').mkdir()
+        (fo / 'handovers/to_dev.md').write_text('# R-RUN — 진행 중\n', encoding='utf-8')
+        assert ready(repo) == []  # 담당 역할 인박스가 차 있으면 비울 때까지 기다린다
+        assert delegation(fo) == ['2026-11-10 사용자: R 묶음은 묻지 않고 이어 간다. 배포 전까지.']
+    print('PASS: board ready rows skip human waits, parked, sourceless, unfinished-prerequisite and dispatched rows; reads delegation scope')
 
 
 if __name__ == '__main__':
     issue_checks()
     main()
     metric_checks()
+    ready_checks()
     document_checks()
     print('PASS: document bodies, multiple sources, folders, missing/empty/unreadable files, path guards, escaped Markdown')

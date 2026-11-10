@@ -51,6 +51,17 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" flow_gate failure",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

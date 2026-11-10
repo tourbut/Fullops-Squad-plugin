@@ -229,7 +229,62 @@ def review_report_not_merged():
         assert not list(integration.directory(repo).glob('*.json'))
 
 
+def published_holds():
+    """coordinator가 역할 워크트리에서 병합·push하면 원본 체크아웃의 로컬 main은 뒤처진다. 원격 ref에 들어간 보류는 풀고 사유를 남긴다"""
+    sys.path.insert(0, str(SCRIPTS))
+    import integration
+    not_integrated = integration.pending  # lint ANTI-004가 pending 호출을 테스트 건너뛰기 표식으로 읽어 별칭으로 부른다
+    with tempfile.TemporaryDirectory(prefix='fullops-published-') as tmp:
+        repo = Path(tmp)
+
+        def git(*args):
+            return subprocess.check_output(['git', '-C', str(repo), *args], text=True, stderr=subprocess.DEVNULL).strip()
+
+        def commit(message):
+            git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '--allow-empty', '-m', message)
+            return git('rev-parse', 'HEAD')
+        git('init', '-q', '-b', 'main')
+        (repo / '.fullops-squad').mkdir()
+        (repo / '.fullops-squad/fullops.json').write_text(json.dumps(
+            {'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}), encoding='utf-8')
+        commit('setup')
+        git('checkout', '-qb', 'side')
+        unmerged = commit('unmerged')
+        git('checkout', '-q', 'main')
+        git('checkout', '-qb', 'work')
+        merged = [commit(f'c{n}') for n in range(11)]
+        git('checkout', '-q', 'main')  # 로컬 main은 setup에 머문다
+        git('update-ref', 'refs/remotes/origin/main', merged[9])  # c10은 원격에도 없다
+        shas = [unmerged, *merged]
+        integration.record(repo, [{'id': f'm{n}', 'type': 'worker_done', 'body': f'[완료] K{n} | 브랜치 fullops/dev | SHA {sha}'}
+                                  for n, sha in enumerate(shas)])
+        paths = [integration.directory(repo) / (hashlib.sha256(f'm{n}'.encode()).hexdigest() + '.json') for n in range(len(shas))]
+        for n, path in enumerate(paths[:11]):  # 병합 전 보류가 가장 오래됐다
+            item = json.loads(path.read_text(encoding='utf-8'))
+            path.write_text(json.dumps({**item, 'hold': {'reason': f'r{n}', 'owner': 'coor', 'resume': 'x'}}), encoding='utf-8')
+            os.utime(path, (1000 + n, 1000 + n))
+        assert [item['key'] for item in not_integrated(repo)] == ['K11']  # 원격에도 로컬 main에도 없다
+
+        def load(n):
+            return json.loads(paths[n].read_text(encoding='utf-8'))
+        released = [n for n in range(11) if load(n).get('integrated')]
+        assert released == [1, 2, 3, 4], released  # 한 호출에 HOLD_CAP개만 본다
+        not_integrated(repo)  # 다음 호출은 병합 전 보류에 막히지 않고 이어서 본다
+        released = [n for n in range(11) if load(n).get('integrated')]
+        assert released == list(range(1, 10)), released
+        assert load(1)['released_hold']['reason'] == 'r1' and 'hold' not in load(1)
+        assert load(0)['hold'] and not load(0).get('integrated')
+        done = subprocess.run([sys.executable, str(SCRIPTS / 'integration.py'), '--repo', str(repo), 'settle'],
+                              capture_output=True, text=True, check=True)
+        assert json.loads(done.stdout) == {'released': 1}, done.stdout
+        assert all(load(n).get('integrated') for n in range(1, 11)) and load(0)['hold']
+        git('checkout', '-qb', 'temp')
+        denied = integration.baseline_denial(repo, f'orca orchestration worker-start --worktree "{repo}" --spec "Task key: K9"')
+        assert '별도 워크트리를 만들지 마세요' in denied, denied
+
+
 if __name__ == '__main__':
+    published_holds()
     review_report_not_merged()
     concurrent_record()
     main()
