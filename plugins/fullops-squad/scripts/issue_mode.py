@@ -149,7 +149,8 @@ def publish(path, state):
         owner, config = state.get('owner') or {}, state.get('config') or {}
         # 진행 중 → 답변 대기 → 그 밖의 미완료 → 종료 순으로, 같은 순위면 최근 수집한 이슈를 보인다.
         rank = lambda j: 0 if j.get('status') in ACTIVE else 1 if j.get('status') == 'awaiting_author' else 3 if j.get('status') in FINAL else 2
-        job = min(reversed(list((state.get('jobs') or {}).values())), key=rank, default=None)
+        # 꺼진 모드의 보류 이슈를 계속 보이면 사람 대기가 부풀려진다. 표시만 비우고 job 상태·fencing은 그대로 둔다.
+        job = min(reversed(list((state.get('jobs') or {}).values())), key=rank, default=None) if owner.get('enabled') else None
         write_json(path, {
             'repository': config.get('repository'), 'enabled': bool(owner.get('enabled')),
             'paused': bool(owner.get('paused')), 'expires': owner.get('expires', 0),

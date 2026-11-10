@@ -15,6 +15,7 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 
 import board
 import decision
@@ -38,6 +39,8 @@ ORCA = ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev')  # 실행 파일
 PYTHON = re.compile(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', re.I)
 REVIEW = re.compile(r'\bPurpose\s*[:=]\s*review\b', re.I)
 ROUTED = re.compile(r'\bjev_route\.py\b.*?--key[ =]+["\']?([A-Za-z0-9][A-Za-z0-9._-]*)', re.S)
+# shortcut: 사람이 친 프롬프트가 아닌 기계 알림을 가리는 추정 목록이다. 실제 세션에서 확인되면 고친다
+MACHINE_PROMPTS = (re.compile(r'^\s*You have\b.*\borchestration message', re.S), re.compile(r'<task-notification>'))
 
 
 def context(root):
@@ -729,6 +732,21 @@ def main(event=None):
                 brief += decision.brief(root)
             except Exception:  # noqa: BLE001
                 pass
+            try:  # worktree가 이미 사라진 리뷰 snapshot 기록을 닫는다. 실패해도 세션을 막지 않는다
+                import review
+                closed = review.prune(root)['missing']
+                if closed:
+                    brief += f" worktree가 사라진 리뷰 snapshot 기록 {', '.join(closed)}을 닫았다."
+            except Exception:  # noqa: BLE001
+                pass
+            try:  # 레포 적용 버전과 설치 버전이 다르면 알린다. 읽지 못하면 알리지 않는다
+                applied = json.loads((root / '.fullops-squad/fullops.json').read_text(encoding='utf-8')).get('plugin_version')
+                installed = json.loads((Path(__file__).resolve().parents[1] / 'plugin.json').read_text(encoding='utf-8')).get('version')
+                if applied and installed and applied != installed:
+                    brief += (f' 레포 적용 FullOps 버전은 {applied}, 설치 버전은 {installed}이다. 사용자가 update-fullops를 요청하면 '
+                              '적용할 수 있다. 이 버전 차이를 사용자에게 묻지 않는다.')
+            except Exception:  # noqa: BLE001
+                pass
         try:  # 워크트리에 빠진 .fullops-squad/.env*를 연결한다. 실패해도 세션을 막지 않는다
             linked = env_link.link(root)
         except Exception:  # noqa: BLE001
@@ -763,6 +781,17 @@ def main(event=None):
                 output = {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
                           'additionalContext': brief + ' ' + policy.test_brief(config['test_level']) +
                           ' ' + policy.subagent_brief(config['subagent_level'])}}
+        prompt = str(field(event, 'prompt') or '')
+        if not match and not state.get('dispatch') and not any(p.search(prompt) for p in MACHINE_PROMPTS):
+            try:  # 과제당 사람 턴 지표용 기록. 프롬프트 원문은 남기지 않는다. 실패해도 작업을 막지 않는다
+                if primary(root, state):
+                    import flow_state
+                    folder = flow_state.directory(root)
+                    folder.mkdir(parents=True, exist_ok=True)
+                    with open(folder / 'human-turns.jsonl', 'a', encoding='utf-8', newline='\n') as turns:
+                        turns.write(json.dumps({'at': int(time.time()), 'session': str(field(event, 'session_id') or '')}) + '\n')
+            except Exception:  # noqa: BLE001
+                pass
     elif mode == 'tool':
         denial = tool_denial(root, event, state)
         if denial:

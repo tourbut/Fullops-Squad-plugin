@@ -74,6 +74,27 @@ def main():
         assert f"{asked['id']}(K9): Postgres로 바꿀까요? [예 / 아니오]" in started and '사용자 결정 대기 1건' in started
         decision.close(repo, asked['id'], 'answered', answer='예', decided_by='user')
         assert '사용자 결정 대기' not in hook('start', session_id='c3', source='startup')['hookSpecificOutput']['additionalContext']
+        # 사람 턴 기록: lead의 사람 프롬프트만 원문 없이 한 줄 남긴다. 기계 알림·dispatch 프롬프트는 남기지 않는다
+        turns = repo / '.git/fullops-flow/human-turns.jsonl'
+        hook('prompt', session_id='c3', prompt='비밀 요청 문구')
+        for notice in ('You have 2 unread orchestration messages', 'x <task-notification>done</task-notification>'):
+            hook('prompt', session_id='c3', prompt=notice)
+        hook('prompt', session_id='cd', prompt='Task t-9 ... --task-id t-9 --dispatch-id d-9 ...')
+        hook('prompt', session_id='cd', prompt='계속')  # dispatch를 받은 세션은 lead가 아니다
+        lines = turns.read_text(encoding='utf-8').splitlines()
+        assert len(lines) == 1 and json.loads(lines[0])['session'] == 'c3' and '비밀' not in lines[0], lines
+        # SessionStart: 사라진 worktree의 리뷰 snapshot 기록을 닫고, 레포 적용 버전이 설치 버전과 다르면 한 번 알린다
+        snapshot = repo / '.git/fullops-snapshots/K7.json'
+        snapshot.parent.mkdir(parents=True, exist_ok=True)
+        snapshot.write_text(json.dumps({'managed': True, 'state': 'active', 'path': str(repo / 'gone'), 'key': 'K7', 'head': 'x'}), encoding='utf-8')
+        marker = repo / '.fullops-squad/fullops.json'
+        saved_marker = marker.read_text(encoding='utf-8')
+        marker.write_text(json.dumps({**json.loads(saved_marker), 'plugin_version': '0.0.1'}), encoding='utf-8')
+        started = hook('start', session_id='c4', source='startup')['hookSpecificOutput']['additionalContext']
+        assert 'K7' in started and json.loads(snapshot.read_text(encoding='utf-8'))['state'] == 'missing', started
+        assert '레포 적용 FullOps 버전은 0.0.1' in started and '묻지 않는다' in started, started
+        marker.write_text(saved_marker, encoding='utf-8')
+        assert '레포 적용 FullOps 버전' not in hook('start', session_id='c5', source='startup')['hookSpecificOutput']['additionalContext']
         native_env = {'ORCA_TERMINAL_HANDLE': 'term-native-test'}
         for host_session in ('native-first', 'native-next'):
             hook('start', native_env=native_env, session_id=host_session)

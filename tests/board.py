@@ -1,5 +1,5 @@
 """임시 레포에서 현황판 데이터 수집·JS 출력·변경 없을 때 재작성 생략·coordinator Stop hook 자동 갱신·git 무시를 확인한다."""
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -322,6 +322,25 @@ def metric_checks():
         # 최근 구간은 앞쪽 N개만 센다
         rows = metrics(repo, [{'key': 'CLEAN'}, {'key': 'REOPEN'}, {'key': 'ROUND-FIX'}, {'key': 'ROUND-R1'}], [], recent=1)
         assert (rows['recent']['tasks'], rows['recent']['first_try'], rows['all']['tasks'], rows['recent_limit']) == (1, 1, 3, 1)
+
+        # 자율 진행: 기록이 없으면 비운다. 첫 사람 턴 뒤 이벤트만 세고, 첫 이벤트는 세지 않는다
+        assert rows['autonomy'] == {'since': None, 'human_turns': 0, 'tasks': 0, 'human_turns_per_task': None, 'dispatched': 0, 'continued': 0}
+        flow = repo / '.git/fullops-flow'
+        flow.mkdir()
+        start = int(datetime(2026, 11, 5, 12).timestamp())
+        (flow / 'human-turns.jsonl').write_text(''.join(json.dumps({'at': start + t, 'session': 's'}) + '\n' for t in (0, 250)), encoding='utf-8')
+
+        def at(offset):
+            return datetime.fromtimestamp(start + offset, timezone.utc).isoformat(timespec='seconds')
+        # A build(첫 이벤트) → A report → B build(사이 사람 턴 없음: 이어짐) → B report → C build(사이에 250초 사람 턴: 끊김)
+        (flow / 'A.json').write_text(json.dumps({'key': 'A', 'events': [{'node': 'build', 'at': at(100)}, {'node': 'report', 'at': at(200)}]}), encoding='utf-8')
+        (flow / 'B.json').write_text(json.dumps({'key': 'B', 'events': [{'node': 'build', 'at': at(220)}, {'node': 'review', 'at': at(230)},
+                                                                          {'node': 'report', 'at': at(240)}]}), encoding='utf-8')
+        (flow / 'C.json').write_text(json.dumps({'key': 'C', 'events': [{'node': 'build', 'at': at(-50)}, {'node': 'build', 'at': at(300)}]}), encoding='utf-8')
+        (flow / 'OLD.json').write_text(json.dumps({'key': 'OLD', 'node': 'build'}), encoding='utf-8')  # events 없는 기록은 무시
+        done = [{'key': 'A', 'date': '2026-11-06'}, {'key': 'B-R1', 'date': '2026-11-05'}, {'key': 'PRE', 'date': '2026-11-04'}]
+        assert metrics(repo, done, [])['autonomy'] == {'since': at(0), 'human_turns': 2, 'tasks': 2, 'human_turns_per_task': 1.0,
+                                                        'dispatched': 2, 'continued': 1}
     print('PASS: board metrics count first-try tasks, rework and median review time from repo records')
 
 

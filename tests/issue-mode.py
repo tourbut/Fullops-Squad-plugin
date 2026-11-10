@@ -902,6 +902,8 @@ def main():
         assert max(deadlines) > bowner['expires'] + 60, 'busy coor must retain its lease without a foreground wait'
         assert bstore.read()['jobs']['120']['attempt'] == 0 and bapi.posts == 0
         assert not json.loads(summary_path.read_text(encoding='utf-8'))['enabled'], 'stop must show OFF in the sidebar'
+        # 꺼진 모드는 남은 이슈를 현재 작업으로 보이지 않는다. SQLite 상태는 그대로다.
+        assert json.loads(summary_path.read_text(encoding='utf-8'))['job'] is None and bstore.read()['jobs']['120']['status'] == 'queued'
         # 최초 backlog 수집 전에 신규 이슈 전용으로 바꾸면 과거 이슈를 실행하지 않는다.
         new_only = repository(root / 'new-only')
         nstore, napi = mode.Store(new_only), API()

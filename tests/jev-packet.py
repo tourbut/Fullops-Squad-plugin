@@ -104,6 +104,14 @@ def main():
         assert work.followups(repo, 'dev', KEY, guide) == [], '남겨 둔 템플릿 안내 문장은 후속 요청이 아니다'
         assert len(work.followups(repo, 'dev', KEY, guide + '\n- **남은 일**: tester 회귀 확인\n')) == 1
         assert (repo / '.fullops-squad/PLANS.md').read_text(encoding='utf-8').count('시나리오 S1') == 1, '같은 요청은 한 번만 등재한다'
+        # 괄호 안 구분자로 자르지 않고, 역할이 둘이면 fullops.json 순서(coor 먼저)가 아니라 글에서 먼저 나온 역할이 받는다.
+        config = repo / '.fullops-squad/fullops.json'
+        data = json.loads(config.read_text(encoding='utf-8'))
+        data['roles'] = {'coor': 'fullops/coor', **data['roles']}
+        config.write_text(json.dumps(data), encoding='utf-8')
+        assert [line.split(' (완료 보고')[0] for line in work.followups(
+            repo, 'dev', KEY, '남은 일: tester 독립 QA(S5·S6 측정, 390px 확인) coor가 배정; 문서 정리')] == [
+            f'- [ ] {KEY} → tester: tester 독립 QA(S5·S6 측정, 390px 확인) coor가 배정']
     print('PASS: delivered subset, noise filters, recover, completion contract, followup queue')
 
 

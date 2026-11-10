@@ -5,7 +5,7 @@ HTML을 파일로 열면 fetch로 JSON을 읽을 수 없어서 `window.FULLOPS_B
 모델을 쓰지 않는 결정론적 스크립트라 Stop hook에서 매번 실행해도 비용이 없다.
 """
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -237,7 +237,52 @@ def metrics(repo, entries, rows, recent=30):
     def summary(keys, seconds):
         return {'tasks': len(keys), 'first_try': sum(1 for k in keys if not counts[k]), 'rework': sum(counts[k] for k in keys),
                 'reviews': len(seconds), 'review_minutes': round(statistics.median(seconds) / 60) if seconds else None}
-    return {'recent_limit': recent, 'recent': summary(tasks[:recent], gaps[:recent]), 'all': summary(tasks, gaps)}
+    try:  # 흐름 기록 폴더는 git 공용 디렉터리에 있다. 찾지 못하면 기록 없음으로 본다
+        import flow_state
+        folder = flow_state.directory(repo)
+        records = flow_state.read(repo)
+    except Exception:  # noqa: BLE001
+        folder, records = None, []
+    turns = []
+    for line in read(folder / 'human-turns.jsonl').splitlines() if folder else []:
+        try:
+            turns.append(int(json.loads(line)['at']))
+        except (ValueError, KeyError, TypeError):
+            continue
+    return {'recent_limit': recent, 'recent': summary(tasks[:recent], gaps[:recent]), 'all': summary(tasks, gaps),
+            'autonomy': autonomy(turns, records, entries)}
+
+
+def autonomy(turns, records, entries):
+    """과제당 사람 턴과 사람 없이 이어진 배정 수. 첫 사람 턴 기록 뒤만 세어 기록 전 과제가 값을 묽히지 않게 한다."""
+    from harness_gate import base_key
+
+    since = min(turns) if turns else None
+    result = {'since': None, 'human_turns': len(turns), 'tasks': 0, 'human_turns_per_task': None, 'dispatched': 0, 'continued': 0}
+    if since is None:
+        return result
+    result['since'] = datetime.fromtimestamp(since, timezone.utc).isoformat(timespec='seconds')
+    # shortcut: 완료 기록은 날짜만 있어 첫 사람 턴과 같은 날 그 전에 끝난 과제도 센다. 완료 시각을 남기면 시각으로 비교한다
+    day = datetime.fromtimestamp(since).strftime('%Y-%m-%d')
+    result['tasks'] = len({base_key(e['key']) for e in entries if e.get('date', '') >= day})
+    if result['tasks']:
+        result['human_turns_per_task'] = round(len(turns) / result['tasks'], 2)
+    events = []
+    for record in records:
+        for event in record.get('events') or [] if isinstance(record, dict) else []:
+            try:
+                at = datetime.fromisoformat(event['at']).timestamp()
+            except (ValueError, KeyError, TypeError):
+                continue
+            if event.get('node') in ('build', 'report') and at >= since:
+                events.append((at, event['node']))
+    events.sort()
+    # 첫 이벤트는 앞선 build·report가 없어 이어졌는지 알 수 없으므로 어느 쪽에도 세지 않는다
+    for (before, _), (at, node) in zip(events, events[1:]):
+        if node == 'build':
+            result['dispatched'] += 1
+            result['continued'] += not any(before < turn <= at for turn in turns)
+    return result
 
 
 def deliverables(root):

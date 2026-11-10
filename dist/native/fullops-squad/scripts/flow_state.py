@@ -14,7 +14,7 @@ from work import KEY
 
 # 노드 ID(docs/flow-graph.md 노드: 의도·설계·배정·구현·worker_done·리뷰·병합·검수·완료)와 그 노드에 들어올 때 지난 게이트
 NODES = ('intent', 'design', 'assign', 'build', 'report', 'review', 'merge', 'qa', 'done')
-REVIEW = re.compile(r'-REVIEW(?:-R\d+)?$', re.I)
+REVIEW = re.compile(r'-REVIEW(?:-R?\d+)?$', re.I)
 GATES = {'design': 'route', 'build': 'dispatch', 'report': 'worker_done', 'review': 'review', 'merge': 'merge'}
 
 
@@ -44,6 +44,8 @@ def task_of(root, key):
     except (OSError, ValueError):
         roles = {}
     role = next((r for r in roles if key.upper().endswith('-' + r.upper()) and len(key) > len(r) + 1), None)
+    if role and (directory(root) / f'{harness_gate.base_key(key)}.json').is_file():
+        return key  # 과제 키 자체가 역할로 끝나면(K-DEV) 그 과제 기록에 묶는다
     return key[:-len(role) - 1] if role else key
 
 
@@ -56,13 +58,17 @@ def update(root, key, node, sha=None):
         state = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError):
         state = {'key': base, 'gates': []}
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     if state.get('node') == node and (sha is None or state.get('sha') == sha):
+        if node == 'build':  # 수정 후 재배정은 노드가 같아도 지표용 배정 사건으로 남긴다
+            state['events'] = (state.get('events', []) + [{'node': node, 'at': now}])[-30:]
+            write_json(path, state)
         return
     if node == 'report' and sha == state.get('sha') and NODES.index(state.get('node', 'intent')) > NODES.index('report'):
         return  # 다시 쓴 같은 완료 보고는 뒤 노드를 되돌리지 않는다
     count, budget = harness_gate.rework(root, base)[:2]
-    state.update(node=node, rounds=count, budget=budget,
-                 updated=datetime.now(timezone.utc).isoformat(timespec='seconds'))
+    state.update(node=node, rounds=count, budget=budget, updated=now,
+                 events=(state.get('events', []) + [{'node': node, 'at': now}])[-30:])
     if sha:
         state['sha'] = sha
     if GATES[node] not in state['gates']:
@@ -96,14 +102,28 @@ def observe(root, commands):
             item = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError):
             continue
-        if item.get('key') and item.get('sha'):
+        # 오래된 보류를 풀며 다시 쓴 기록은 새 완료 보고가 아니다. 다음 차수에 들어간 과제를 report로 되돌리지 않는다
+        if item.get('key') and item.get('sha') and 'released_hold' not in item:
             update(root, item['key'], 'report', item['sha'])
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
-    settings = integration.config(root)
-    base = integration.references(root, settings)[0]
-    for state in read(root):
-        if state.get('node') in ('report', 'review') and state.get('sha') and integration.ancestor(root, state['sha'], base):
+    states = [state for state in read(root) if state.get('node') in ('report', 'review')]
+    if not states:
+        return
+    base, published = integration.references(root, integration.config(root))
+    # 리뷰 노드 기록에는 SHA가 없다. 같은 과제의 완료 보고가 통합되면 병합으로 본다
+    # 훅마다 도는 경로라 SHA 없는 기록이 있을 때만 완료 보고 파일을 연다
+    merged = set()
+    for path in folder.glob('*.json') if folder.is_dir() and any(not s.get('sha') for s in states) else []:
+        try:
+            item = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        if item.get('integrated') and item.get('key'):
+            merged.add(harness_gate.base_key(task_of(root, item['key'])))
+    for state in states:
+        sha = state.get('sha')
+        if integration.integrated(root, sha, base, published) if sha else state['key'] in merged:
             update(root, state['key'], 'merge')
 
 
