@@ -1,0 +1,33 @@
+{
+  "base": "6a71d41e552a65fe5454635a465942e0d4a1f75d",
+  "head": "8f11810da055ae4d8f6e44fe82ed69b911b29a88",
+  "independence": {
+    "implementer_session": "f0726204-9981-4e4d-9372-476f2ff7eca3",
+    "reviewer_session": "reviewer-d3dce76a-0463-49da-aecc-30fdfae7c9a6",
+    "snapshot_path": "C:\\Users\\shin\\orca\\workspaces\\Fullops-Squad-plugin\\.fullops-review-aef1847ba6e847f3bc3beb4dba0a21b2",
+    "snapshot_head": "8f11810da055ae4d8f6e44fe82ed69b911b29a88",
+    "read_only": true
+  },
+  "live_check": "passed",
+  "evidence_sha256": {
+    "lint.json": "3f99aa439a44cb47faa6f2f5b2275614929d82b2c3e84cdd0f4a7a4a8cc6d826",
+    "preview.json": "bfc5e4672d4bb8ce70f19f64eaaa06dc1bb9102e8a3074ede4534dd63a81ab4d",
+    "report.md": "d562a7f4a84a333236ae21b132ade8ed7c1886fcb45f0796ca166e0f5950a481",
+    "result.json": "72d36b227d4e75072b8c3325e4213594651097cc5999eff0ea68cb5a4c728951",
+    "rules.json": "45bc4c01d448b7e629bf58fc29e49c5fa57b4e58f3d4ee25edda6cb8066413d3"
+  },
+  "released_dispatch": "ctx_1571c8a51128",
+  "release_observation": {
+    "terminals": 0,
+    "dispatch": "ctx_1571c8a51128",
+    "workspace": null,
+    "resource": {
+      "state": "owned",
+      "id": "wtr_8cd535dc7b7e",
+      "ownerDispatchId": "ctx_1571c8a51128",
+      "releaseState": "not_requested",
+      "terminalState": "reclaimable"
+    }
+  },
+  "state": "validated"
+}
