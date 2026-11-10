@@ -77,10 +77,7 @@ summary: 현재 작업
 - CI 공백(medium): Windows 전용 `windows_paths`, Windows의 `tests/lint.py`, render 파이프라인, meter 시험이 CI에서 돌지 않는다. 사용자 결정 D017로 후속 등재했다. 재개 조건: 사용자가 CI 비용과 Windows job 범위를 정할 때.
 - lint: 스레드가 `RUNNING`에 넣기 전의 중단은 그 프로세스를 timeout까지 남긴다(low). SIGINT가 무시된 채 상속되면 중단 시험이 60초 뒤 실패한다(low).
 - `sync`가 `--full` worker 목록 전체를 history에 쌓는다. 100행이면 호출당 약 200KB다(low). 재개 조건: 상태 파일 크기 문제 발생.
-- `flow_gate.task_listing`이 `integration.task_list`와 중복이다(low). 시험이 `flow_gate.orca`를 바꿔 끼우므로 함께 정리한다.
 - 3차 리뷰 low 5건: `integration.record`가 기본 `check` 메시지에 없는 `run_id`를 읽어 bound Run의 task 목록을 쓴다. 그 시험 대역이 이 차이를 숨긴다. `orca_wait.summarize`가 기본 메시지에 없는 `from_handle`·`created_at`을 읽는다(표시 전용). `nohup`으로 SIGHUP을 무시한 lint도 터미널 종료에 중단된다. reconcile의 worker-list 대역이 `--full`을 무시한다. 재개 조건: 다음 integration·lint 변경.
-- 하네스 충돌: 리뷰어 배정 게이트(`route_key_denial`)가 리뷰 키의 route 기록을 요구하는데, `jev_route.py`가 만든 route는 `requires_packet`을 켜서 dev 직접 작업 리뷰의 `review.py check`가 "탐색 패킷이 없습니다"로 실패한다. `work.py finish`도 같은 이유로 실패한다. 이번에는 게이트 통과용으로 만든 `CLEANUP-FOLLOWUPS-route.json`(81002f2)과 커밋하지 않은 `CLEANUP-FOLLOWUPS-R3-route.json`을 지웠다. 두 분류(design → architecture)도 사실과 달랐다. 원본은 Git 이력에 남는다. 재개 조건: 다음 FullOps 하네스 수정.
-- 리뷰 뒤 기록 커밋을 더하면 done-gate의 `direct_check`가 HEAD와 리뷰 SHA가 달라 리뷰 기록이 없다고 막는다. main 병합 뒤에는 풀린다. 재개 조건: 다음 FullOps 하네스 수정.
 - 이전 coor의 bare `git push`, `gh issue comment 2`는 fencing을 통과한다(low). `complete`의 head SHA 확인으로 피해가 제한된다. 재개 조건: 실제 발생 또는 다음 이슈 모드 변경.
 - meter가 일시 읽기 실패로 얻은 경로를 60초 캐시한다(low). 표시 전용이다. 재개 조건: 다음 meter 변경.
 - `issue_mode.py`(1401줄) 분할 검토. 재개 조건: 다음 이슈 모드 변경.
@@ -97,7 +94,6 @@ summary: 현재 작업
 
 담당은 dev다.
 
-- 리뷰 보고서도 `REPORT_LINES`(40줄) 안내에 걸린다(`harness_gate.py:145-149`). 템플릿만으로 44줄이다(low, 이전부터 있던 문제). 재개 조건: 다음 `harness_gate.py` 변경.
 - 수락 기준을 coordinator가 바꾸는 문제(jevpet UX2-ART)는 결정 D025로 P3에서 뺐다. 재개 조건: 같은 일이 다시 나올 때.
 
 ### FULLOPS-UPDATE-1.22.0 후속
@@ -106,7 +102,7 @@ summary: 현재 작업
 
 - `hook_runtime.package_files`의 `.in_use` 표지 오탐: 1.22.1로 릴리스한다(RELEASE-1.22.1). 이 PC 적용은 재개 조건: 사용자의 업데이트 지시.
 - Orca 프로필의 `fullops-deps.json`이 `~/.claude` 사본으로 덮어써져 `home` 값이 달라지고 `deps.py --check`가 `host dependency installation incomplete`로 실패한다. `--host`로 고친 뒤 되돌아간 일이 1회 있었다(2026-11-10 00:13:02). 복사 주체는 확인되지 않았다. 재개 조건: 사용자가 `home` 비교를 고칠지 정할 때.
-- #104 절감량: `.fullops-squad/local/outputs/trim.jsonl`로 잰다. 이 워크트리의 앞 2줄은 일부러 만든 시험 출력이라 뺀다. 재개 조건: 실제 작업이 쌓였을 때.
+- #104 절감량: `.fullops-squad/local/outputs/trim.jsonl`로 잰다. 이 워크트리의 앞 2줄은 일부러 만든 시험 출력이라 뺀다. 재개 조건: 실제 작업이 쌓였을 때. REPO-SWEEP부터 각 줄에 `command`(실행 파일 이름)가 기록된다. 그 전의 줄에는 없다.
 
 ### ROADMAP-82-P5 후속
 
@@ -129,3 +125,14 @@ summary: 현재 작업
 ### 사용자 결정 대기
 
 - `core.longpaths` 켜기(`FULLOPS-UPDATE-1.16.1.md` 보류 항목)
+
+### REPO-SWEEP 후속
+
+담당은 dev다. 감사 전문은 `.fullops-squad/local/REPO-SWEEP-audit.json`(gitignore)이고 요약은 [보고서](docs/evaluations/qa-reports/REPO-SWEEP-test/report.md)에 있다.
+
+- 사용자 결정이 필요한 16건은 구현하지 않았다. 릴리스 노트가 유지를 약속한 CLI 옵션 4건(`checkpoint --receipt`, `--token`, `env_link.py --worktree`, `frontend.py --dry-run`), 문서화된 설정·옵션 2건(`autonomy_policy.delay_minutes`·`approval_hours`, `--handover`), 삭제 후보 3건(`tests/handover-audit.py`, find의 `rerank`·`hierarchical`, observe의 claims 경로 약 300줄), 정책 4건(런타임 스냅샷 정리, 이 레포 `lint.json`의 issue-mode·packaging 경로, 리뷰 워크플로 경로), 성능 1건(coor 세션 hook마다 이슈 상태 재기록), meter의 구버전 Orca `--full` 재시도 1건. 재개 조건: 사용자 결정.
+- 이 레포 모델 후보(`orca-agents.md`)를 `claude-fable-5-2`로 바꿀지. 재개 조건: 사용자 결정.
+- JevPlay 0.1.4(`Nearest`의 24개 상한 제거)는 Unity에서 컴파일·실행하지 않았다. 재개 조건: Unity 레포에서 `unity_bridge.py install` 뒤 확인.
+- grok `spawn_subagent` matcher는 실제 grok 세션에서 확인하지 않았다. 재개 조건: GROK-WAKE-CHECK와 함께.
+- `integration.pending()`은 읽지 못하는 기록에서 여전히 예외를 낸다. 호출자(`orca_wait.py`, `issue_mode.py wait`)가 묶음을 잃지 않게 막았다. 건너뛰게 하면 깨진 기록이 Stop 게이트를 조용히 풀 수 있어 그대로 뒀다(low).
+- `flow_gate.settlement_command`는 따옴표 없는 역슬래시 경로와 PowerShell `& "...orca.exe"` 형식을 여전히 읽지 못한다. Stop의 `settled_in_runtime`이 보완한다(low).
