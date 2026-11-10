@@ -102,13 +102,16 @@ worker는 리뷰·병합이 끝날 때까지 retain한다. 병합 후 다음 과
 - 분류(`jev_route.py`)한 과제는 같은 세션에서 배정하거나 PLANS.md에 보류 사유를 적는다. flow-gate Stop hook이 배정되지 않은 route를 한 번 막는다. 대화가 요약된 뒤에는 route 기록을 다시 읽고 이어서 진행한다.
 - 설정 주기 뒤의 `idle_timeout`은 실패가 아니다. 반환된 `check_minutes`가 이번 확인 주기다. `absorbed.heartbeats`로 생존을 확인하고, 없으면 `worker-list`로 상태를 확인한 뒤 다시 대기한다. task 목록 조회는 배정·재개·완료 상태 파악에 사용한다. `error`면 `pending_ack`를 보존하고 오류를 보고한다.
 - orchestration을 쓰지 않는 터미널 전달은 `terminal wait`을 긴 타임아웃으로 백그라운드에서 한 번 건다.
-- 착수를 한 번 확인한 뒤 정상 작업 중에는 완료 메시지를 기다린다. 장시간 진행 확인이 필요해도 `worker-read`·`terminal read`는 worker별 마지막 착수·로그 확인에서 설정 주기(기본 60분)가 지난 뒤에만 필요한 최근 출력으로 제한한다. 오류·질문·escalation·실패 상태를 받거나 사용자가 진단을 요청하면 즉시 필요한 근거를 확인한다. 그 사이 `worker_done`이 오면 주기와 관계없이 결과를 처리한다. 성공 결과는 아래 `merge` 절차를 즉시 수행한 뒤 ack하고 다음 독립 과제를 배정한다. 검수·수정·충돌·원격 오류·사용자 제한으로 막히면 명시적 보류를 기록한다. 그다음 과제 키·결과·브랜치·SHA·검증 요약·남은 일로 다음 배정을 결정해 PLANS.md에 기록한다. 매 완료마다 전체 작업 로그·QA 전문을 읽거나 lint·테스트를 재실행하지 않는다. 보고가 빠졌거나 서로 충돌하거나 실패했을 때만 근거를 더 확인한다. 수락·병합 게이트는 아래 `merge` 절차에서 한 번 확인한다. 로그 조회는 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 한정한다.
+- 착수를 한 번 확인한 뒤 정상 작업 중에는 완료 메시지를 기다린다. 장시간 진행 확인이 필요해도 `worker-read`·`terminal read`는 worker별 마지막 착수·로그 확인에서 설정 주기(기본 60분)가 지난 뒤에만 필요한 최근 출력으로 제한한다. 오류·질문·escalation·실패 상태를 받거나 사용자가 진단을 요청하면 즉시 필요한 근거를 확인한다. 그 사이 `worker_done`이 오면 주기와 관계없이 결과를 처리한다. 성공 결과는 아래 `merge` 절차를 즉시 수행한 뒤 ack하고 아래 `다음 배정`대로 다음 과제를 배정한다. 검수·수정·충돌·원격 오류·사용자 제한으로 막히면 명시적 보류를 기록한다. 그다음 과제 키·결과·브랜치·SHA·검증 요약·남은 일로 다음 배정을 결정해 PLANS.md에 기록한다. 매 완료마다 전체 작업 로그·QA 전문을 읽거나 lint·테스트를 재실행하지 않는다. 보고가 빠졌거나 서로 충돌하거나 실패했을 때만 근거를 더 확인한다. 수락·병합 게이트는 아래 `merge` 절차에서 한 번 확인한다. 로그 조회는 실제 버전의 범위 옵션(예: `--limit`, `--cursor`)으로 한정한다.
 
 ## 질문 — coordinator가 전달
 
 - worker의 `question`이 경로·핸들·순서·재시도 같은 운영 문제면 coordinator가 `reply`로 직접 답한다.
 - legacy 구조에서 설계·범위·공유 계약·지시서 해석 문제면 설계 역할에게 넘긴다. 제품/기술 책임 분리 구조에서는 제품 규칙·범위·공유 제품 기준 질문만 기획자에게 전달하고 기술 질문은 구현 담당자에게 돌려준다. 세션은 `후속 작업` 규칙으로 정한다(조건이 맞으면 retain한 설계 역할 세션, 아니면 새 세션). spec에는 질문 원문, message id, 지시서 경로를 넣는다. 설계 역할은 답을 `worker_done` body에 쓴다. 지시서를 바꿨으면 커밋하고 경로와 SHA를 함께 적는다.
 - coordinator는 그 답을 줄이거나 해석하지 않고 원래 질문의 message id로 `reply`한다. 답이 지시서 변경을 포함하면 worker에게 해당 SHA를 반영하라고 적는다.
+- 되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 설계 역할이 추천안으로 정한다. worker 자기 과제 안의 선택은 worker가 정한다. 사람이 대화에 있어도 같다. 산출물이나 완료 보고에 고른 안과 되돌리는 방법을 적는다. 사용자 결정으로 등록하지 않고 뒤 과제를 기다리게 하지 않는다.
+- 사용자에게 가는 것은 제품 규칙·범위·공유 제품 기준, 운영 배포, 운영 부하 테스트, 기존 데이터 backfill, 운영 데이터 정리, 프로젝트가 정한 사용자 선검토(예: 병합 전 ART 시안 검토)다. 운영 배포와 위 운영 작업은 위임 범위와 관계없이 매번 따로 사용자 승인을 받는다.
+- 설계 지시서에 결정 질문 개수를 요구하지 않는다.
 - 설계 역할도 판단할 수 없는 사용자 결정은 사용자에게 묻는다. 답을 받을 때까지 worker의 질문은 열어 둔다.
 
 ## 사용자 결정 기록
@@ -123,7 +126,7 @@ worker는 리뷰·병합이 끝날 때까지 retain한다. 병합 후 다음 과
 ## 메시지 — worker
 
 - 지시서 범위 안의 비파괴 작업은 묻지 않고 완료 기준까지 진행한다. 진행 확인을 받으려고 멈추지 않는다.
-- 제품/기술 책임 분리 구조에서는 기술 분석·계획·수정 방법을 같은 작업에서 해결하고 제품 규칙 변경·범위 확대·공유 제품 기준 불명확성만 preamble의 `ask`로 묻는다. legacy 구조에서는 기존 설계·범위·공유 계약 질문 규칙을 따른다. 질문에는 과제 키, 막힌 지점, 선택지와 각각의 영향을 적는다. 답은 설계 역할이 하지만 경로는 항상 coordinator다. 형제 worker에게 직접 보내지 않는다. timeout이 나면 같은 message id로 다시 기다린다.
+- 제품/기술 책임 분리 구조에서는 기술 분석·계획·수정 방법을 같은 작업에서 해결하고 제품 규칙 변경·범위 확대·공유 제품 기준 불명확성만 preamble의 `ask`로 묻는다. legacy 구조에서는 기존 설계·범위·공유 계약 질문 규칙을 따른다. 어느 구조든 되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 묻지 않고 추천안으로 진행해 완료 보고에 적는다. 질문에는 과제 키, 막힌 지점, 선택지와 각각의 영향을 적는다. 답은 설계 역할이 하지만 경로는 항상 coordinator다. 형제 worker에게 직접 보내지 않는다. timeout이 나면 같은 message id로 다시 기다린다.
 - coordinator에게는 `worker_done`, 결정이 필요한 `question`(`ask`), 막힘을 알리는 `escalation`만 보낸다. 진행 상황은 완료 보고와 산출물에 남기고, 진행 알림용 status는 보내지 않는다. `send`는 `--type`을 생략하면 status가 되므로 항상 타입을 명시한다.
 - heartbeat는 preamble이 정한 주기를 따른다. coordinator 쪽 `orca_wait.py`가 흡수하므로 줄이려고 규칙을 어기지 않는다.
 - coordinator도 worker에게 보내는 지시는 모아서 보낸다. idle worker에게 보내는 메시지는 그 세션을 깨운다.
@@ -142,7 +145,7 @@ preamble이 없으면 오케스트레이션 없이 착수한 것이다. `worker_
 
 사람이 진행 상황을 눈으로 보는 `.fullops-squad/board/index.html`은 플러그인이 제공하는 고정 양식이다. 고치지 않는다. 플러그인이 양식을 바꾸면 board.py가 현황판을 갱신할 때 새 양식으로 맞추니, 그 변경은 board.json과 함께 커밋한다.
 coordinator는 `.fullops-squad/board/board.json`만 관리한다. `title`·`summary`와 `phases`(각 항목 `name`, `status`: done/active/blocked/todo, `deliverables`: D01–D13 ID 목록, `note`)를 적는다. `note`는 지금 상태를 80자 이내 한 줄로 적고 경위·근거는 PLANS.md에 둔다. 길면 현황판 카드에 표시된다. 세션에서 PLANS.md를 바꾸고 board.json을 그대로 두면 flow-gate Stop hook이 한 번 확인을 요청한다. 프로젝트 단계가 시작·완료·추가되면 바로 고치고 기본 브랜치에 커밋한다. 산출물 상태는 `docs/deliverables/README.md`에서 읽으므로 board.json에 중복해서 적지 않는다.
-역할별 과제, PLANS.md, 완료 이력, route, 리뷰 결과, 작업 지표, 산출물은 이 스킬 기준 `../../scripts/board.py`가 레포 기록에서 모아 `board/board-data.js`를 만든다. 작업 지표(첫 시도 완료, 재작업, 리뷰 소요)는 추세를 보는 참고값이고 배정·병합 기준이 아니다. coordinator 세션이 끝날 때 flow-gate hook이 자동으로 실행하고, 즉시 보려면 `python3 <board.py> --repo <레포 루트>`를 실행한다. board-data.js는 커밋하지 않는다.
+역할별 과제, PLANS.md, 완료 이력, route, 리뷰 결과, 작업 지표, 산출물은 이 스킬 기준 `../../scripts/board.py`가 레포 기록에서 모아 `board/board-data.js`를 만든다. 작업 지표(첫 시도 완료, 재작업, 리뷰 소요, 과제당 사람 턴, 사람 없이 이어진 배정)는 추세를 보는 참고값이고 배정·병합 기준이 아니다. 사람의 입력은 시각만 세고 내용은 기록하지 않는다. coordinator 세션이 끝날 때 flow-gate hook이 자동으로 실행하고, 즉시 보려면 `python3 <board.py> --repo <레포 루트>`를 실행한다. board-data.js는 커밋하지 않는다.
 
 ## merge — 병합 책임자
 
@@ -159,10 +162,16 @@ need 판정 뒤 이 스킬 기준 `../../scripts/autonomy.py judge --repo <루�
 3. 검토한 고정 SHA를 기본 브랜치에 merge한다. fast-forward로 SHA가 같으면 worker lint 결과를 재사용하고 다시 실행하지 않는다. fast-forward가 아니면(worker 기준 이후 기본 브랜치가 움직였거나 충돌을 해결한 경우) push 전에 병합 결과에서 이 스킬 기준 `../../scripts/lint.py --repo <기본 브랜치 체크아웃> --from <병합 전 기본 브랜치 SHA>`를 한 번 실행한다. 다른 worker 변경과 맞물린 의미 충돌을 테스트로 잡기 위한 검사이며 LLM 리뷰를 더하지 않는다. 실패하면 push하지 않고 `git reset --keep <병합 전 기본 브랜치 SHA>`로 push 전 로컬 병합만 되돌린 뒤, 실패 결과를 원래 worker에게 수정 배정하거나 보류로 처리한다. 충돌이 나면 현재 결과부터 해결한다. 완료 커밋에 인박스·아카이브가 포함됐는지 확인하고 중복 기록하지 않는다. 누적 역할 브랜치 전체를 한꺼번에 수락하지 않는다. 기본 경로는 SHA를 보존하는 merge이며 squash나 cherry-pick으로 완료 SHA의 조상 관계를 없애지 않는다.
 4. 원격 연결이면 검증한 기본 브랜치를 해당 원격의 기본 브랜치로 일반 push한다. 역할 브랜치 push만으로 통합을 완료했다고 기록하지 않는다. push 실패는 미완료다. 원격 갱신을 fetch로 확인하고, 완료 SHA가 로컬·원격 기본 브랜치의 조상인지 확인한다. force push는 사용하지 않는다.
 5. 병합할 때마다 모든 등록 역할의 워크트리를 조회한다. coordinator 역할 워크트리도 포함한다. Orca의 worker 상태를 확인하고, 쉬고 있으며 작업 트리가 깨끗한 워크트리에 최신 기본 브랜치를 merge 또는 fast-forward로 반영한다. 깨끗하다는 이유만으로 실행 중 worker를 바꾸지 않는다. 작업 중·미커밋 변경·동기화 충돌이 있으면 해당 역할과 최신 기본 SHA를 PLANS.md에 기록하고 동기화를 예약한다. worker가 완료 보고한 뒤 다음 dispatch 전에 예약을 처리한다. 진행 중 worker에게 기준 SHA와 동기화 예약을 coordinator가 알린다. 강제 reset이나 작업 삭제를 사용하지 않는다.
-6. PLANS.md와 현황판에 과제 키·완료 SHA·기본 브랜치 병합 SHA·통합 검증(fast-forward 재사용 또는 병합 SHA의 lint 결과)·원격 반영·역할별 동기화 결과를 기록한다. 완료 보고의 `남은 일`에서 `work.py finish`가 PLANS.md `## 완료 보고 후속 요청`에 등재한 역할 요청(tester 독립 QA 등)을 배정하거나 보류 사유·재개 조건을 적는다. 등재된 항목을 처리 없이 지우지 않는다. 묶음의 마지막 구현 과제를 병합했거나, 묶음이 없고 이번 병합으로 제품 변경을 포함한 현황판 단계가 끝났으면 `testing.md`의 큰 틀 검수를 담당에게 배정한다. 검수 결과의 병합은 여기에 해당하지 않는다. `minimal`은 배정하지 않고 `testing.md`의 `minimal` 문장대로 흐름만 직접 돌린다. 통합 뒤 위 세션 선택으로 다음 과제의 retain 조건과 교체·release 시점을 결정한다. 완료 delivery를 ack한다. 리뷰 snapshot은 검증·증거 보존·reviewer release를 확인하고 fullops-review의 cleanup을 실행한다. 리뷰어의 `worker_done`(spec `Purpose: review`)은 병합 대상이 아니므로 integration에 기록되지 않는다. `integration.py hold`를 따로 호출하지 않는다. 이후 독립 과제를 배정한다.
+6. PLANS.md와 현황판에 과제 키·완료 SHA·기본 브랜치 병합 SHA·통합 검증(fast-forward 재사용 또는 병합 SHA의 lint 결과)·원격 반영·역할별 동기화 결과를 기록한다. 완료 보고의 `남은 일`에서 `work.py finish`가 PLANS.md `## 완료 보고 후속 요청`에 등재한 역할 요청(tester 독립 QA 등)은 과제 표의 행으로 옮겨 배정하거나 보류 사유·재개 조건을 적는다. 등재된 항목을 처리 없이 지우지 않는다. 묶음의 마지막 구현 과제를 병합했거나, 묶음이 없고 이번 병합으로 제품 변경을 포함한 현황판 단계가 끝났으면 `testing.md`의 큰 틀 검수를 담당에게 배정한다. 검수 결과의 병합은 여기에 해당하지 않는다. `minimal`은 배정하지 않고 `testing.md`의 `minimal` 문장대로 흐름만 직접 돌린다. 통합 뒤 위 세션 선택으로 다음 과제의 retain 조건과 교체·release 시점을 결정한다. 완료 delivery를 ack한다. 리뷰 snapshot은 검증·증거 보존·reviewer release를 확인하고 fullops-review의 cleanup을 실행한다. 리뷰어의 `worker_done`(spec `Purpose: review`)은 병합 대상이 아니므로 integration에 기록되지 않는다. `integration.py hold`를 따로 호출하지 않는다. 이후 아래 `다음 배정`을 따른다.
 
-`orca_wait.py`는 ACK 전에 완료 보고를 Git 공용 디렉터리의 `fullops-integration/`에 저장한다. coordinator가 직접 `orchestration check`를 사용하면 flow-gate도 peek에서 완료 보고를 저장한다. 세션이 바뀌어도 같은 저장소를 사용한다. 미통합 결과가 있으면 flow-gate가 coordinator 종료와 독립 과제 배정을 차단한다. 같은 과제 키의 리뷰·수정 배정은 허용한다. `worker-start --task`의 spec에도 같은 과제 키를 넣는다. 최신 기본 브랜치를 받지 않은 등록 역할의 배정도 차단한다. 확인은 이 스킬 기준 `../../scripts/integration.py --repo <레포 루트> status`로 한다. 본문에서 SHA를 읽지 못한 완료 보고는 worker에게 확인한 뒤 `integration.py --repo <레포 루트> set-sha --message <완료 메시지 ID> --sha <SHA> [--key <과제 키>]`로 기록한다. hold를 거치지 않는다.
+`orca_wait.py`는 ACK 전에 완료 보고를 Git 공용 디렉터리의 `fullops-integration/`에 저장한다. coordinator가 직접 `orchestration check`를 사용하면 flow-gate도 peek에서 완료 보고를 저장한다. 세션이 바뀌어도 같은 저장소를 사용한다. 미통합 결과가 있으면 flow-gate가 coordinator 종료와 독립 과제 배정을 차단한다. 같은 과제 키의 리뷰·수정 배정은 허용한다. `worker-start --task`의 spec에도 같은 과제 키를 넣는다. 최신 기본 브랜치를 받지 않은 등록 역할의 배정도 차단한다. 확인은 이 스킬 기준 `../../scripts/integration.py --repo <레포 루트> status`로 한다. 통합 여부는 원격 기본 브랜치 ref로 판정한다. 로컬 전용 setup은 로컬 기본 브랜치로 판정한다. 이미 원격 기본 브랜치에 들어간 SHA의 보류는 자동으로 풀리고 사유는 `released_hold`에 남는다. 쌓인 기록은 `integration.py --repo <레포 루트> settle`로 한 번 정리한다. 본문에서 SHA를 읽지 못한 완료 보고는 worker에게 확인한 뒤 `integration.py --repo <레포 루트> set-sha --message <완료 메시지 ID> --sha <SHA> [--key <과제 키>]`로 기록한다. hold를 거치지 않는다.
 
 flow-gate의 배정 검사는 명령 실행 전 파일을 본다. 인박스 작성과 `worker-start`를 한 명령으로 묶으면 이전 인박스로 판정해 실패한다. 인박스를 먼저 쓰고 `worker-start`를 다음 명령으로 실행한다.
 
-검수 대기·실패·충돌·원격 오류·사용자의 병합/push 제한은 보류로 처리한다. PLANS.md에 과제 키·메시지 ID·SHA·사유·담당·재개 조건을 기록한다. 같은 내용을 `integration.py --repo <레포 루트> hold --message <완료 메시지 ID> --reason <사유> --owner <담당> --resume <재개 조건>`으로 남긴 뒤 ack한다. 단순히 전체 제품 수락이 아직 없다는 이유로 검토가 끝난 독립 문서 결과까지 모아 두지 않는다. 재개 조건이 충족되면 `integration.py --repo <레포 루트> resume --message <완료 메시지 ID>`를 실행하고 위 절차를 이어서 수행한다. 보류는 병합 완료가 아니며 PLANS.md에서 계속 추적한다. 사용자의 명시적 제한은 이 기본 정책보다 우선한다.
+검수 대기·실패·충돌·원격 오류·사용자의 병합/push 제한은 보류로 처리한다. PLANS.md에 과제 키·메시지 ID·SHA·사유·담당·재개 조건을 기록한다. 같은 내용을 `integration.py --repo <레포 루트> hold --message <완료 메시지 ID> --reason <사유> --owner <담당> --resume <재개 조건>`으로 남긴 뒤 ack한다. 단순히 전체 제품 수락이 아직 없다는 이유로 검토가 끝난 독립 문서 결과까지 모아 두지 않는다. 재개 조건이 충족되면 `integration.py --repo <레포 루트> resume --message <완료 메시지 ID>`를 실행하고 위 절차를 이어서 수행한다. 작업을 병합하고 push까지 마친 보류는 resume 없이 풀린다. 보류는 병합 완료가 아니며 PLANS.md에서 계속 추적한다. 사용자의 명시적 제한은 이 기본 정책보다 우선한다.
+
+## 다음 배정 — coordinator
+
+병합 뒤 사용자에게 계속할지 묻지 않는다. PLANS.md 과제 표에서 준비된 행을 표 순서대로 배정한다. 준비된 행은 네 조건을 모두 채운다. 상태 칸이 `대기`로 시작하고 `대기(사람: …)`가 아니다. 지시서·원천 링크 칸이 비어 있지 않다. 상태 칸 `선행:`의 과제가 모두 report 노드 이상이다(`flow_state.py`). 자기 흐름 기록이 없거나 build 전 노드다.
+
+`대기(사람: …)` 행은 자동 배정하지 않고 뒤 행을 막지 않는다. `## 완료 보고 후속 요청`의 항목은 coordinator가 담당·원천 링크를 채운 표의 행으로 옮긴 뒤에 준비된 행이 된다. 원천 링크에는 사용자 지시와 날짜, 승인된 의도, `## 위임 범위`의 사용자 원문 중 하나를 적는다. 위임 범위는 그 날짜·끝 조건 안에서만 근거가 된다. 준비된 행을 남기고 coordinator가 멈추려 하면 flow-gate Stop hook이 한 번 막는다. 그 행을 배정하거나 상태 칸을 `보류(<사유>)`나 `대기(사람: …)`로 바꾼다. 새 coordinator 세션은 SessionStart 문맥으로 준비된 행과 위임 범위를 받는다.

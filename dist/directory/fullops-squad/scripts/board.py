@@ -110,11 +110,47 @@ def plans(root):
         key, status = column(header, r'과제|키'), column(header, r'상태')
         if key is None or status is None:
             continue
-        goal, owner = column(header, r'목표|결과|다음|내용'), column(header, r'담당|책임')
+        goal, owner, source = column(header, r'목표|결과|다음|내용'), column(header, r'담당|책임'), column(header, r'지시서|원천')
         groups.append([{'key': plain(r[key]), 'goal': plain(r[goal]) if goal is not None else '',
                         'owner': plain(r[owner]) if owner is not None else '', 'status': plain(r[status]),
-                        'group': heading} for r in rows if r[key].strip()])
+                        'source': plain(r[source]) if source is not None else '', 'group': heading} for r in rows if r[key].strip()])
     return [item for items in reversed(groups) for item in items]
+
+
+WAITING = re.compile(r'대기(?!\s*[(（])')  # `대기(사람: …)`처럼 괄호가 붙은 대기는 사람을 기다린다. 표기가 달라도 자동 배정하지 않는다
+AFTER = re.compile(r'선행\s*:\s*([A-Za-z0-9._,\s-]*)')
+
+
+def ready(repo):
+    """PLANS.md 과제 표에서 지금 배정할 대기 행. 사람 대기·보류·원천 없는 행·담당 인박스가 찬 행·선행 미완료·이미 배정한 행은 뺀다."""
+    root = Path(repo) / '.fullops-squad'
+
+    def free(owner):  # 담당 역할 인박스에 과제가 있으면 비울 때까지 배정할 수 없다(fullops-work 역할 인박스 규칙)
+        role = re.match(r'[A-Za-z0-9_-]+', owner)
+        return not (role and TITLE.search(read(root / f'handovers/to_{role.group(0)}.md')))
+    rows = [p for p in plans(root) if WAITING.match(p['status']) and p['source'] and free(p['owner'])]
+    if not rows:
+        return []
+    import flow_state  # Stop마다 도는 경로라 후보가 있을 때만 흐름 기록을 읽는다
+    from harness_gate import base_key
+    order = flow_state.NODES
+    nodes = {s.get('key'): order.index(s['node']) for s in flow_state.read(repo) if s.get('node') in order}
+
+    def node(key):
+        return nodes.get(base_key(key), -1)
+
+    def after(row):
+        found = AFTER.search(row['status'])
+        return [k.rstrip('.') for k in re.split(r'[,\s]+', found.group(1)) if k.rstrip('.')] if found else []
+    return [p for p in rows if node(p['key']) < order.index('build')
+            and all(node(k) >= order.index('report') for k in after(p))]
+
+
+def delegation(root, limit=10):
+    """PLANS.md `## 위임 범위` 절 본문(사용자 원문) 줄. 템플릿 안내 문장은 뺀다. 없으면 빈 목록."""
+    template = set(read(Path(__file__).resolve().parents[1] / 'assets/repository/.fullops-squad/PLANS.md').splitlines())
+    found = re.search(r'^##\s+위임 범위\s*$(.*?)(?=^#{1,2}\s|\Z)', read(Path(root) / 'PLANS.md'), re.M | re.S)
+    return [line.strip() for line in found.group(1).splitlines() if line.strip() and line not in template][:limit] if found else []
 
 
 def notes(root, limit=5):

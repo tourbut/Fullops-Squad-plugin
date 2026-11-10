@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 from board_documents import documents, markdown
-from board import build, issues, metrics, recent_issues, write
+from board import build, delegation, issues, metrics, ready, recent_issues, write
 import harness_gate
 
 
@@ -189,8 +189,8 @@ def main():
             'tasks: [JUMP-1, JUMP-2]\ndownstream: [D02, D03]\nsummary: 1차 빌드 범위와 일정\n---\n\n# 사업계획서\n', encoding='utf-8')
         plans = fo / 'PLANS.md'
         text = plans.read_text(encoding='utf-8').replace('# 현재 작업\n', '# 현재 작업\n\n최신 착수: **JUMP-1** [지시서](handovers/to_dev.md)\n', 1)
-        plans.write_text(text + '| JUMP-1 | 점프 높이 조정 | dev | 진행 중 | handovers/to_dev.md |\n'
-                         '\n## 후속 — 2026-09-24\n\n| 과제 키 | 다음 확인 | 예정 책임 | 상태 |\n|---|---|---|---|\n| ART-9 | 배경 교체 | art | 예정 |\n',
+        text = text.replace('|---|---|---|---|---|\n', '|---|---|---|---|---|\n| JUMP-1 | 점프 높이 조정 | dev | 진행 중 | handovers/to_dev.md |\n', 1)
+        plans.write_text(text + '\n## 후속 — 2026-09-24\n\n| 과제 키 | 다음 확인 | 예정 책임 | 상태 |\n|---|---|---|---|\n| ART-9 | 배경 교체 | art | 예정 |\n',
                          encoding='utf-8')
 
         run()
@@ -344,9 +344,55 @@ def metric_checks():
     print('PASS: board metrics count first-try tasks, rework and median review time from repo records')
 
 
+READY_PLANS = ('''# 현재 작업
+
+| 과제 키 | 목표 | 담당 | 상태 | 지시서·원천 링크 |
+|---|---|---|---|---|
+| R-OK | 준비됨 | dev | 대기. 선행: R-PRE, R-DONE | 2026-11-10 사용자 지시 |
+| R-FREE | 선행 없음 | dev | 대기 | `docs/planning/intents/R.md` |
+| R-DEPLOY | 배포 | dev | 대기(사람: 배포) | 2026-11-10 사용자 지시 |
+| R-DEPLOY2 | 배포 승인 | dev | 대기（배포 승인） | 2026-11-10 사용자 지시 |
+| R-PARK | 보류 | dev | 보류(시안 없음) | 2026-11-10 사용자 지시 |
+| R-NOSRC | 원천 없음 | dev | 대기 |  |
+| R-WAIT | 선행 미완료 | dev | 대기, 선행: R-OPEN | 2026-11-10 사용자 지시 |
+| R-SENT | 이미 배정 | dev | 대기 | 2026-11-10 사용자 지시 |
+
+## 위임 범위
+
+2026-11-10 사용자: R 묶음은 묻지 않고 이어 간다. 배포 전까지.
+
+## 다른 절
+''')
+
+
+def ready_checks():
+    with tempfile.TemporaryDirectory(prefix='fullops-board-ready-') as tmp:
+        repo = Path(tmp)
+        subprocess.run(['git', '-C', tmp, 'init', '-q', '-b', 'main'], check=True)
+        fo = repo / '.fullops-squad'
+        fo.mkdir()
+        (fo / 'fullops.json').write_text('{}', encoding='utf-8')
+        assert ready(repo) == [] and delegation(fo) == []  # PLANS.md가 없다
+        (fo / 'PLANS.md').write_text(READY_PLANS, encoding='utf-8')
+        flow = repo / '.git/fullops-flow'
+        flow.mkdir()
+        for key, node in (('R-PRE', 'report'), ('R-DONE', 'done'), ('R-OPEN', 'build'), ('R-SENT', 'build')):
+            (flow / f'{key}.json').write_text(json.dumps({'key': key, 'node': node}), encoding='utf-8')
+        # 사람 대기·보류·원천 없음·선행 미완료·이미 배정한 행은 준비되지 않았다
+        assert [p['key'] for p in ready(repo)] == ['R-OK', 'R-FREE'], ready(repo)
+        (flow / 'R-PRE.json').write_text(json.dumps({'key': 'R-PRE', 'node': 'build'}), encoding='utf-8')
+        assert [p['key'] for p in ready(repo)] == ['R-FREE']  # 선행이 report 전이면 기다린다
+        (fo / 'handovers').mkdir()
+        (fo / 'handovers/to_dev.md').write_text('# R-RUN — 진행 중\n', encoding='utf-8')
+        assert ready(repo) == []  # 담당 역할 인박스가 차 있으면 비울 때까지 기다린다
+        assert delegation(fo) == ['2026-11-10 사용자: R 묶음은 묻지 않고 이어 간다. 배포 전까지.']
+    print('PASS: board ready rows skip human waits, parked, sourceless, unfinished-prerequisite and dispatched rows; reads delegation scope')
+
+
 if __name__ == '__main__':
     issue_checks()
     main()
     metric_checks()
+    ready_checks()
     document_checks()
     print('PASS: document bodies, multiple sources, folders, missing/empty/unreadable files, path guards, escaped Markdown')

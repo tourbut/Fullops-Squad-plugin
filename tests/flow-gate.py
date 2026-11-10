@@ -64,6 +64,34 @@ def main():
         assert hook('stop', session_id='b') == {}  # board.json도 고쳤으면 묻지 않는다
         git('checkout', '-q', '--', '.fullops-squad/PLANS.md', '.fullops-squad/board/board.json')
 
+        # 준비된 대기 과제: lead Stop은 한 번 막고 두 번째는 통과한다. 새 lead 세션 안내에 대기 과제와 위임 범위를 넣는다
+        plans.write_text(plans.read_text(encoding='utf-8').replace('|---|---|---|---|---|\n', '|---|---|---|---|---|\n'
+                         '| R-OK | 준비됨 | dev | 대기. 선행: R-PRE | 2026-11-10 사용자 지시 |\n'
+                         '| R-DEPLOY | 배포 | dev | 대기(사람: 배포) | 2026-11-10 사용자 지시 |\n', 1)
+                         + '\n2026-11-10 사용자: R 묶음은 묻지 않고 이어 간다. 배포 전까지.\n', encoding='utf-8')  # 템플릿 `## 위임 범위` 절 끝
+        flow = repo / '.git/fullops-flow'
+        flow.mkdir(parents=True, exist_ok=True)
+        (flow / 'R-PRE.json').write_text(json.dumps({'key': 'R-PRE', 'node': 'report'}), encoding='utf-8')
+        blocked = hook('stop', session_id='rd')
+        assert blocked.get('decision') == 'block' and 'R-OK' in blocked['reason'] and 'R-DEPLOY' not in blocked['reason'], blocked
+        assert 'R-OK' in hook('stop', session_id='rd', stop_hook_active=True)['systemMessage']  # 두 번째는 통과
+        inbox = repo / '.fullops-squad/handovers/to_dev.md'
+        inbox.write_text('# R-RUN — 진행 중 과제\n\n- 상태: running\n', encoding='utf-8')
+        assert hook('stop', session_id='rd2') == {}  # 담당 인박스가 차 있으면 배정할 수 없어 막지 않는다
+        inbox.unlink()
+        started = hook('start', session_id='rs', source='startup')['hookSpecificOutput']['additionalContext']
+        assert 'R-OK(준비됨)' in started and 'R 묶음은 묻지 않고 이어 간다. 배포 전까지.' in started, started
+        assert '운영 배포' in started and 'R-DEPLOY' not in started and '사용자가 묻지 않고 이어 가도 된다고 한' not in started  # 템플릿 안내는 뺀다
+        hook('prompt', session_id='rw', prompt='Task t-r ... --task-id t-r --dispatch-id d-r ...')
+        sent = {'command': 'orca orchestration send --from w --type worker_done --task-id t-r --dispatch-id d-r --outcome succeeded'}
+        hook('tool', session_id='rw', tool_name='Bash', tool_input=sent, tool_use_id='u-r')
+        hook('post', session_id='rw', tool_name='Bash', tool_input=sent, tool_use_id='u-r',
+             tool_response={'exit_code': 0, 'stdout': json.dumps({'ok': True, 'result': {'message': {'id': 'msg-r'}}})})
+        assert hook('stop', session_id='rw') == {}  # worker_done을 보낸 dispatch worker는 대기 과제로 막지 않는다
+        (flow / 'R-PRE.json').unlink()
+        git('checkout', '-q', '--', '.fullops-squad/PLANS.md')
+        assert '대기 과제' not in hook('start', session_id='rs2', source='startup')['hookSpecificOutput']['additionalContext']
+
         # coordinator (역할 브랜치가 아닌 main)
         assert 'jev_route.py' in hook('start', session_id='c', source='startup')['hookSpecificOutput']['additionalContext']
         # 이전 세션의 열린 사용자 결정을 새 coordinator 세션이 이어받고, 닫힌 결정은 빠진다

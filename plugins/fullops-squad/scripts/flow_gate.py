@@ -649,12 +649,14 @@ BRIEF = {
                     'design이면 설계 역할을 `worker-start --run`으로 띄운다. 설계·범위 질문은 직접 답하지 않고 설계 역할에게 넘긴다. '
                     '프로젝트 단계가 바뀌거나 늘면 .fullops-squad/board/board.json을 고친다. 이 규칙은 hook이 강제하고, 세션이 끝나면 현황판이 갱신된다. '
                     '여러 과제·역할에 걸치는 묶음 작업은 docs/planning/intents/<묶음 키>.md를 쓰고 사용자 승인 뒤 배정한다. 병합하는 SHA는 독립 리뷰한 SHA다.'),
-    'designer': ('FullOps 설계 역할: 설계 문서와 역할별 지시서만 쓰고 코드는 고치지 않는다. 끝나면 preamble의 `worker_done`으로 '
+    'designer': ('FullOps 설계 역할: 설계 문서와 역할별 지시서만 쓰고 코드는 고치지 않는다. 되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 직접 정하고 '
+                 '산출물에 선택과 되돌리는 방법을 적는다. 사용자 결정 질문으로 올리지 않는다. 끝나면 preamble의 `worker_done`으로 '
                  '`[설계] <과제 키> | 지시서: … | 역할: … | SHA …`를 보낸다.'),
     'tester': ('FullOps tester: 동작 검증을 맡는다. 제품 코드는 고치지 않고 테스트 코드·시나리오·검증 증거만 만든다. '
                '검증은 `fullops-test` 스킬의 도구와 순서를 따르고, 결과는 `qa-reports/<과제 키>-test/`에 남긴다. '
                '실패는 재현 절차와 증거로 보고하고 직접 고치지 않는다. 끝나면 preamble의 `worker_done`을 한 번 보낸다.'),
-    'worker': ('FullOps worker: 설계·범위 판단이 필요하면 preamble의 `ask`로 묻고 추측하지 않는다. 끝나면 preamble의 '
+    'worker': ('FullOps worker: 되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 묻지 않는다. 추천안으로 진행하고 완료 보고에 선택과 '
+               '되돌리는 방법을 적는다. 그 밖의 설계·범위·공유 계약·되돌릴 수 없는 일은 preamble의 `ask`로 묻고 추측하지 않는다. 끝나면 preamble의 '
                '`worker_done`을 한 번 보낸다. 보내지 않고 끝내면 hook이 한 번 막는다.'),
 }
 
@@ -664,9 +666,11 @@ PRODUCT_BRIEF = {
                     '정상 worker는 worker_done 중심으로 기다리고 로그 재독은 설정된 간격을 따른다. 운영 작업은 직접 처리하고 PLANS/board 상태를 함께 갱신한다. '
                     '여러 과제·역할에 걸치는 묶음 작업은 docs/planning/intents/<묶음 키>.md를 쓰고 사용자 승인 뒤 배정한다. 병합하는 SHA는 독립 리뷰한 SHA다.'),
     'designer': ('FullOps 제품 기획자: 플레이/제품 목표·규칙/수치·화면/아트 방향·우선순위·사용자 완료 조건과 모호한 공유 제품 기준을 결정한다. '
-                 '기술 계획·구조/API·버그 수정 방법은 DEV 책임이다. 제품 코드는 고치지 않는다. 완료하면 preamble의 worker_done으로 고정 SHA·결정·인계 링크를 보낸다.'),
+                 '기술 계획·구조/API·버그 수정 방법은 DEV 책임이다. 되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 직접 정하고 산출물에 선택과 되돌리는 방법을 적는다. '
+                 '사용자 결정 질문으로 올리지 않는다. 제품 코드는 고치지 않는다. 완료하면 preamble의 worker_done으로 고정 SHA·결정·인계 링크를 보낸다.'),
     'worker': ('FullOps worker: 기존 요구 안의 코드 파악→짧은 기술 계획→구현→테스트·기술 문서 갱신을 같은 과제에서 수행한다. '
                '기술 판단은 직접 해결하고 제품 규칙 변경·범위 확대·공유 제품 기준 불명확성만 coordinator에게 ask한다. '
+               '되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 묻지 않고 추천안으로 진행하며 완료 보고에 선택과 되돌리는 방법을 적는다. '
                '좁은 DEV/ART 규격은 담당자끼리 coordinator 경유 조율한다. 완료하면 preamble의 worker_done을 보낸다. 독립 코드 리뷰·직접 시각 검수·미해결 high 차단은 유지한다.'),
 }
 
@@ -728,6 +732,18 @@ def main(event=None):
             brief += (' 완료 보고마다 현재 SHA의 리뷰·기본 브랜치 병합·원격 push·하위 워크트리 동기화를 '
                       '바로 처리한다. 절차는 fullops-orca의 merge 절을 따른다. coordinator 역할 브랜치만 push하지 않는다.')
             brief += ' 자동 이슈 과제 GH-<저장소 ID>-<번호>-A<attempt>는 예외로 draft PR과 integration hold까지만 처리하고 main 병합은 사용자 판단을 기다린다.'
+            brief += (' 운영 배포·운영 부하 테스트·backfill·운영 데이터 정리는 항상 사용자 승인을 먼저 받는다. '
+                      '되돌릴 수 있는 디자인·연출·문구·배치 선택과 버그 수정 여부는 사용자에게 올리지 않는다.')
+            try:  # 준비된 대기 과제와 위임 범위를 이어받는다. 실패해도 세션을 막지 않는다
+                rows = board.ready(root)[:10]
+                if rows:
+                    brief += (' 지금 배정할 대기 과제: ' + '; '.join(f"{p['key']}({p['goal'][:60]})" for p in rows)
+                              + '. 계속할지 사용자에게 묻지 않고 배정한다.')
+                scope = board.delegation(root / '.fullops-squad')
+                if scope:
+                    brief += ' PLANS.md 위임 범위(사용자 원문): ' + ' / '.join(scope) + ' 이 범위 안의 일은 다시 묻지 않는다.'
+            except Exception:  # noqa: BLE001
+                pass
             try:  # 이전 세션이 요청한 사용자 결정을 이어받는다. 실패해도 세션을 막지 않는다
                 brief += decision.brief(root)
             except Exception:  # noqa: BLE001
@@ -897,6 +913,19 @@ def main(event=None):
             reminder = None if 'decision' in output else board_reminder(root, state, field(event, 'stop_hook_active'))
             if reminder:
                 output = {'decision': 'block', 'reason': reminder}
+            if not output:
+                try:  # PLANS.md의 준비된 대기 과제. 실패해도 종료를 막지 않는다
+                    waiting = [p['key'] for p in board.ready(root)]
+                except Exception:  # noqa: BLE001
+                    waiting = []
+                if waiting and field(event, 'stop_hook_active') and state.get('ready_blocked') == waiting:
+                    output = {'systemMessage': f"FullOps: 배정하지 않은 대기 과제가 있습니다: {', '.join(waiting[:3])}"}
+                elif waiting:
+                    state['ready_blocked'] = waiting
+                    output = {'decision': 'block', 'reason':
+                              f"FullOps: PLANS.md에 지금 배정할 대기 과제가 있습니다: {', '.join(waiting[:3])}. "
+                              '계속할지 사용자에게 묻지 말고 평소대로 배정하세요(route·지시서·dispatch). '
+                              '기다려야 하면 그 행의 상태 칸을 `보류(<사유>)`나 `대기(사람: …)`로 바꾸세요.'}
             try:
                 board.write(root, reuse_issues=True)  # 현황판 데이터 갱신. 실패해도 종료를 막지 않는다
             except Exception:  # noqa: BLE001

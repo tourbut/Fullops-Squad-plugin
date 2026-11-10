@@ -104,7 +104,7 @@ def brief(root):
         return ''
     lines = '; '.join(f"{i['id']}{'(' + i['key'] + ')' if i.get('key') else ''}: {i['question']}"
                       + (f" [{' / '.join(i['options'])}]" if i.get('options') else '') for i in waiting)
-    return (f' 사용자 결정 대기 {len(waiting)}건: {lines}. 이 결정에 걸린 작업은 진행하지 말고 사용자에게 먼저 다시 묻는다. '
+    return (f' 사용자 결정 대기 {len(waiting)}건: {lines}. 이 결정이 막는 작업만 멈추고 그 작업 전에 사용자에게 다시 묻는다. 막히지 않은 작업은 계속한다. '
             '답을 받으면 decision.py answer로 닫고, 필요 없어진 결정은 drop한다.')
 
 

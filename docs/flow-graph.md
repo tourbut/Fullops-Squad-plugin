@@ -40,7 +40,7 @@ flowchart LR
 | E9 | 리뷰 판정 기록 | 모든 병합에 리뷰 필요성 판정 또는 면제 기록이 남는다 | `review.py need` 결과·`waive` 기록 | 비어 있음(KnowsLink 병합 193건 중 149건 기록 없음. #82) | |
 | E10 | 리뷰 → 병합 | 기록 검사 통과, 독립 세션, critical/high 미해결 없음 | `qa-reports/<키>-review/result.json` | `review.py:check`, `review.py:check_independence`, `review.py:direct_check` | 차단 |
 | E11 | 병합 SHA | 병합하는 SHA가 리뷰한 SHA와 같다 | 병합 커밋 | `integration.py:merge_drift` | 알림 |
-| E12 | 병합 → 다음 배정 | 완료 결과가 기본 브랜치에 통합됐거나 hold 사유가 있다 | 기본 브랜치 SHA | `integration.py:denial` | 차단 |
+| E12 | 병합 → 다음 배정 | 완료 결과가 기본 브랜치에 통합됐거나 hold 사유가 있다. PLANS.md의 준비된 대기 행은 배정하거나 상태 칸을 `보류(<사유>)`·`대기(사람: …)`로 바꾼다. 이 Stop 확인은 한 번만 막는다 | 기본 브랜치 SHA | `integration.py:denial`, `flow_gate.py:main`(`board.py:ready`, 상태 키 `ready_blocked`) | 차단 |
 | E13 | 병합 → 검수 | 묶음의 구현 과제가 모두 병합됐다. 묶음이 없으면 제품 변경을 포함한 단계가 끝났다 | intent 성공 기준(없으면 지시서의 기대 결과), `project.md` `주요 흐름` | 비어 있음(`testing.md`·`fullops-orca` 지침 문장만 있다. #82 P4는 게이트를 넣지 않았다) | |
 | E14 | 리뷰·검수 → 구현(수정·재검증) | 같은 과제 키로 다시 연다. 보고서는 기존 폴더에 덧붙인다 | 기존 지시서·report.md | `work.py:new`, `harness_gate.py:round_folder` | 차단 |
 | E15 | 반복 예산 | 같은 과제의 수정·재검증이 2회를 넘으면 사람에게 올린다 | 반복 횟수·같은 실패 항목 | `harness_gate.py:repeat_budget` | 알림 |
@@ -53,6 +53,6 @@ flowchart LR
 
 과제마다 상태 파일 하나를 Git 공용 디렉터리 `fullops-flow/<과제 키>.json`에 둔다(`flow_state.py`, S5). 필드는 `node`(위 노드 순서대로 `intent`·`design`·`assign`·`build`·`report`·`review`·`merge`·`qa`·`done`), `rounds`·`budget`(반복 횟수와 예산), `sha`(마지막 완료 보고 SHA), `gates`(지나온 게이트), `updated`(UTC)다. 차수 키는 원래 과제 키의 파일로 모인다.
 
-- 쓰기: coordinator 세션의 PostToolUse hook만 쓴다. `jev_route.py --key` → design, `worker-start` → build(Purpose: review면 review), 새 완료 보고 기록 → report, `review.py prepare|check --key` → review, 기본 브랜치에 들어간 SHA → merge.
+- 쓰기: coordinator 세션의 PostToolUse hook만 쓴다. `jev_route.py --key` → design, `worker-start` → build(Purpose: review면 review), 새 완료 보고 기록 → report, `review.py prepare|check --key` → review, 원격 기본 브랜치 ref(로컬 전용 setup은 로컬 기본 브랜치)에 들어간 SHA → merge. SHA가 없는 review 기록은 같은 과제의 통합 기록으로 merge를 정한다.
 - 읽기: 모든 워크트리에서 `flow_state.py --repo <경로>`나 파일을 직접 읽는다.
 - 의도·검수·완료 노드는 아직 자동으로 옮기지 않는다(E1·E2·E13). 배정 노드도 기록하지 않는다. `worker-start`는 과제를 설계에서 구현으로 바로 옮긴다.
