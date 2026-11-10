@@ -48,7 +48,8 @@ summary: 현재 작업
 | FULLOPS-UPDATE-1.22.0 | ShinPC 설치와 레포 적용 버전을 1.22.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, `plugin_version` 1.22.0. `deps.py --check`는 `.in_use` 표지 때문에 한 번 실패했고 `--runtime-only` 뒤 통과. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.22.0.md` |
 | RELEASE-1.22.1 | 1.22.1 릴리스(`.in_use` 표지 오탐 수정) | dev(직접) | 사용자 지시로 진행. 수정 병합(#149, d1f8797). 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.22.1을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.22.1.md` |
 | REPO-SWEEP | 감사로 확정한 정리 47건과 하네스 후속 개선 6건 | dev(직접) | 구현 eaed03d(기준 10c0695). 감사 Workflow 77건 중 확정 47, 반박 14, 사용자 결정 16. 구현 Workflow의 반박 리뷰 5개는 주간 사용량 한도로 실패해 주 담당이 diff를 직접 읽었다. `npm test` 종료코드 0, lint ERROR 0. review need: required/ask(코드 46개 파일 745줄) → 사용자 결정(2026-11-10)으로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`(launch.effective 동일), run_4dd66e077d5f, task_0e0d2cdc8c3a, ctx_9115bd97e54d, 리뷰 SHA 95f0edb. 결과 수락: critical·high·medium 0, low 1(PLANS 모델 후보 줄, 이 커밋에서 정리). `review.py check` 통과(reviewed 59, skipped 53). 게이트 통과용 오프라인 route는 배정 뒤 지웠고 커밋하지 않았다. 같은 날 결정: 모델 후보 변경, 결정 16건은 병합 뒤 항목별로 정한다. PR #151 병합(c2ec335, 완료 SHA 1e154d8). 리뷰 SHA 95f0edb 뒤의 커밋 2개는 기록만 바꿨다(PLANS·핸드오버 로그·리뷰 폴더). CI `checks`·`claude-review` 통과, snapshot 정리, main 체크아웃과 `fullops/dev` 동기화. 릴리스는 하지 않았다 | `docs/evaluations/qa-reports/REPO-SWEEP-test/report.md` |
-| SWEEP-DECISIONS | REPO-SWEEP 감사의 사용자 결정 8건 반영 | dev(직접) | 구현 eb8f6f4(기준 c2ec335). 사용자 결정(2026-11-10): 진행 8건, 유지 5건, 보류 2건. 해당 시험 15개 통과, lint ERROR 0, WARNING 3. review need: skip(코드 11개 파일 143줄). PR #152 | `docs/evaluations/qa-reports/SWEEP-DECISIONS-test/report.md` |
+| SWEEP-DECISIONS | REPO-SWEEP 감사의 사용자 결정 8건 반영 | dev(직접) | 구현 eb8f6f4(기준 c2ec335). 사용자 결정(2026-11-10): 진행 8건, 유지 5건, 보류 2건. 해당 시험 15개 통과, lint ERROR 0, WARNING 3. review need: skip(코드 11개 파일 143줄). PR #152 병합(58a3d81, 완료 SHA f51f1ec). CI `checks` 통과, main 체크아웃과 `fullops/dev` 동기화. 릴리스는 하지 않았다 | `docs/evaluations/qa-reports/SWEEP-DECISIONS-test/report.md` |
+| RELEASE-1.23.0 | 1.23.0 릴리스(#151·#152), fullops-meter 0.12.1, JevPlay 0.1.4 | dev(직접) | 사용자 지시(2026-11-10)로 진행. 릴리스 노트는 주 담당이 두 PR의 동작 변경 기록과 코드를 대조해 썼다(하위 에이전트는 사용량 한도로 쓰지 않음). `tests/update.py`·`check.py`·`deps.py`·`caveman-start.py`·`standard.cjs` 통과. 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.23.0을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.23.0.md` |
 
 ## 대기 목록
 
@@ -138,5 +139,5 @@ summary: 현재 작업
 - `integration.pending()`은 읽지 못하는 기록에서 여전히 예외를 낸다. 호출자(`orca_wait.py`, `issue_mode.py wait`)가 묶음을 잃지 않게 막았다. 건너뛰게 하면 깨진 기록이 Stop 게이트를 조용히 풀 수 있어 그대로 뒀다(low).
 - `flow_gate.settlement_command`는 따옴표 없는 역슬래시 경로와 PowerShell `& "...orca.exe"` 형식을 여전히 읽지 못한다. Stop의 `settled_in_runtime`이 보완한다(low).
 
-- 이 PC의 hook 런타임 사본 64개(137MB)는 지우지 않았다. 재개 조건: 1.23.0 설치 뒤 사용자가 모든 호스트 세션을 닫고 `deps.py --prune-runtime`을 실행할 때.
+- 이 PC의 hook 런타임 사본 64개(137MB)는 지우지 않았다. 재개 조건: 사용자의 1.23.0 업데이트 지시 뒤 모든 호스트 세션을 닫고 `deps.py --prune-runtime`을 실행할 때.
 - `adapters/`·`scripts/build.py` 변경의 dist 일치 검사는 CI에만 있다(low). 재개 조건: 로컬에서 놓친 일이 생길 때.
