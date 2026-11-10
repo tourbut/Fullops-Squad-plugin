@@ -6,7 +6,7 @@
       "name": "구현",
       "status": "doing",
       "deliverables": [],
-      "note": "1.20.0: 주요 흐름 고정 세트, 통합 후보 기본값(#82 P4)"
+      "note": "REPO-SWEEP: 감사 확정 47건 정리와 하네스 후속 6건 구현, 독립 리뷰 대기"
     },
     {
       "name": "QA",

@@ -47,10 +47,11 @@ summary: 현재 작업
 | RELEASE-1.22.0 | 1.22.0 릴리스(#104 후보 A) | dev(직접) | 사용자 지시로 진행. 태그·GitHub 릴리스 v1.22.0 게시. 병합 f8363f7 | `docs/releases/1.22.0.md` |
 | FULLOPS-UPDATE-1.22.0 | ShinPC 설치와 레포 적용 버전을 1.22.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, `plugin_version` 1.22.0. `deps.py --check`는 `.in_use` 표지 때문에 한 번 실패했고 `--runtime-only` 뒤 통과. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.22.0.md` |
 | RELEASE-1.22.1 | 1.22.1 릴리스(`.in_use` 표지 오탐 수정) | dev(직접) | 사용자 지시로 진행. 수정 병합(#149, d1f8797). 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.22.1을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.22.1.md` |
+| REPO-SWEEP | 감사로 확정한 정리 47건과 하네스 후속 개선 6건 | dev(직접) | 구현 eaed03d(기준 10c0695). 감사 Workflow 77건 중 확정 47, 반박 14, 사용자 결정 16. 구현 Workflow의 반박 리뷰 5개는 주간 사용량 한도로 실패해 주 담당이 diff를 직접 읽었다. `npm test` 종료코드 0, lint ERROR 0. review need: required/ask(코드 46개 파일 745줄) → 사용자 결정(2026-11-10)으로 독립 리뷰 진행. 같은 날 결정: 모델 후보 변경, 결정 16건은 병합 뒤 항목별로 정한다 | `docs/evaluations/qa-reports/REPO-SWEEP-test/report.md` |
 
 ## 대기 목록
 
-2026-11-07에 main 체크아웃 세션에서 이관했다. 담당은 모두 dev(`claude` `claude-opus-5-5` `high`, 사용자 지정), 작업 공간은 `fullops/dev` 워크트리다.
+2026-11-07에 main 체크아웃 세션에서 이관했다. 담당은 모두 dev(`claude` `claude-opus-5-5` `high`, 사용자 지정), 작업 공간은 `fullops/dev` 워크트리다. 2026-11-10 사용자 결정으로 dev·architecture는 `claude-fable-5-2` `high`로 바꾸고 reviewer는 `claude-opus-5-5` `high`로 둔다.
 
 | 순서 | 과제 키 | 목표 | 재개 조건 | 원천 |
 |---|---|---|---|---|

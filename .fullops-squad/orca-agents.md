@@ -44,8 +44,8 @@ coordinator는 비용이 낮은 모델로 계속 띄워 두고, 설계 역할은
 - `dev` `codex` `gpt-6-sol` `low`: 문구·수치 변경 같은 단순 수정
 ```
 
-- `dev` `claude` `claude-opus-5-5` `high`: dev의 모든 작업. 사용자 지정(2026-11-07)
-- `architecture` `claude` `claude-opus-5-5` `high`: 설계 문서와 역할별 지시서
+- `dev` `claude` `claude-fable-5-2` `high`: dev의 모든 작업. 사용자 지정(2026-11-10)
+- `architecture` `claude` `claude-fable-5-2` `high`: 설계 문서와 역할별 지시서. 사용자 지정(2026-11-10)
 - `reviewer` `claude` `claude-opus-5-5` `high`: 병합 전 고정 SHA 독립 코드 리뷰
 
 ## 라우팅 기준
