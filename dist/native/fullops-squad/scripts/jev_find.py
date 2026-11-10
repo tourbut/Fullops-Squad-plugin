@@ -101,11 +101,11 @@ def ranked(answer, cumulative, most):
     return picked
 
 
-def find(repo, role, key, call, limit=12, handover=None, scope='code', strategy='batch'):
+def find(repo, role, key, call, limit=12, scope='code', strategy='batch'):
     if not 1 <= limit <= MAX_OPTIONS or strategy not in ('batch', 'rerank', 'hierarchical'):
         raise ValueError('limit must be 1..255; strategy must be batch, rerank or hierarchical')
     started = time.monotonic()
-    _, text = instruction(repo, role, key, handover)
+    _, text = instruction(repo, role, key)
     task = safe_text(f'{key}\n' + task_excerpt(text))
     head = git(repo, 'rev-parse', 'HEAD')
     indexed = metadata(repo, head, scope)
@@ -243,7 +243,6 @@ def main():
     parser.add_argument('--repo', required=True)
     parser.add_argument('--key', required=True)
     parser.add_argument('--role', help='find: 지시서를 받는 역할')
-    parser.add_argument('--handover', help='find: 현재 역할 인박스의 상대 경로. .fullops-squad/handovers/to_<역할>.md만 허용')
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--scope', choices=('code', 'documents'), default='code', help='documents: 하네스 문서를 포함한 Markdown의 title·summary로 탐색')
     parser.add_argument('--force', action='store_true', help='이전 결과를 history에 보존하고 갱신')
@@ -268,7 +267,7 @@ def main():
 
             def call(payload):
                 return request(payload, api_key(args.env_file, repo))
-            result = reused or find(repo, args.role, args.key, call, args.limit, args.handover, args.scope)
+            result = reused or find(repo, args.role, args.key, call, args.limit, args.scope)
             if result['input_sha256'] != identity['input_sha256']:
                 raise ValueError('search input changed while preparing result; retry')
         else:

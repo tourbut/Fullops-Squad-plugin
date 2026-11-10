@@ -22,13 +22,7 @@ def main():
         original = inbox.read_bytes()
         side = repo / '.fullops-squad/handovers/K2.md'
         side.write_text('# K2 — 별도 과제\n', encoding='utf-8')
-        try:
-            work.instruction(repo, 'dev', 'K2', '.fullops-squad/handovers/K2.md')
-        except ValueError as error:
-            assert '역할 인박스' in str(error)
-        else:
-            raise AssertionError('과제명 파일을 현재 지시서로 허용함')
-        assert work.instruction(repo, 'dev', 'K1', '.fullops-squad/handovers/to_dev.md')[0] == inbox
+        assert work.instruction(repo, 'dev', 'K1')[0] == inbox
 
         def hook(tool):
             output = subprocess.check_output([sys.executable, str(SCRIPTS / 'flow_gate.py'), 'tool'],

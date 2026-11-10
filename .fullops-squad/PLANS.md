@@ -47,7 +47,8 @@ summary: 현재 작업
 | RELEASE-1.22.0 | 1.22.0 릴리스(#104 후보 A) | dev(직접) | 사용자 지시로 진행. 태그·GitHub 릴리스 v1.22.0 게시. 병합 f8363f7 | `docs/releases/1.22.0.md` |
 | FULLOPS-UPDATE-1.22.0 | ShinPC 설치와 레포 적용 버전을 1.22.0으로 갱신 | dev(직접) | 필수 적용 0건, `update.py --verify` 0/0, `plugin_version` 1.22.0. `deps.py --check`는 `.in_use` 표지 때문에 한 번 실패했고 `--runtime-only` 뒤 통과. `/reload-plugins`는 사용자 실행 대기 | `docs/exec-plans/phases/FULLOPS-UPDATE-1.22.0.md` |
 | RELEASE-1.22.1 | 1.22.1 릴리스(`.in_use` 표지 오탐 수정) | dev(직접) | 사용자 지시로 진행. 수정 병합(#149, d1f8797). 이 PR의 병합 커밋에 태그·GitHub 릴리스 v1.22.1을 게시한다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.22.1.md` |
-| REPO-SWEEP | 감사로 확정한 정리 47건과 하네스 후속 개선 6건 | dev(직접) | 구현 eaed03d(기준 10c0695). 감사 Workflow 77건 중 확정 47, 반박 14, 사용자 결정 16. 구현 Workflow의 반박 리뷰 5개는 주간 사용량 한도로 실패해 주 담당이 diff를 직접 읽었다. `npm test` 종료코드 0, lint ERROR 0. review need: required/ask(코드 46개 파일 745줄) → 사용자 결정(2026-11-10)으로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`(launch.effective 동일), run_4dd66e077d5f, task_0e0d2cdc8c3a, ctx_9115bd97e54d, 리뷰 SHA 95f0edb. 결과 수락: critical·high·medium 0, low 1(PLANS 모델 후보 줄, 이 커밋에서 정리). `review.py check` 통과(reviewed 59, skipped 53). 게이트 통과용 오프라인 route는 배정 뒤 지웠고 커밋하지 않았다. 같은 날 결정: 모델 후보 변경, 결정 16건은 병합 뒤 항목별로 정한다 | `docs/evaluations/qa-reports/REPO-SWEEP-test/report.md` |
+| REPO-SWEEP | 감사로 확정한 정리 47건과 하네스 후속 개선 6건 | dev(직접) | 구현 eaed03d(기준 10c0695). 감사 Workflow 77건 중 확정 47, 반박 14, 사용자 결정 16. 구현 Workflow의 반박 리뷰 5개는 주간 사용량 한도로 실패해 주 담당이 diff를 직접 읽었다. `npm test` 종료코드 0, lint ERROR 0. review need: required/ask(코드 46개 파일 745줄) → 사용자 결정(2026-11-10)으로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`(launch.effective 동일), run_4dd66e077d5f, task_0e0d2cdc8c3a, ctx_9115bd97e54d, 리뷰 SHA 95f0edb. 결과 수락: critical·high·medium 0, low 1(PLANS 모델 후보 줄, 이 커밋에서 정리). `review.py check` 통과(reviewed 59, skipped 53). 게이트 통과용 오프라인 route는 배정 뒤 지웠고 커밋하지 않았다. 같은 날 결정: 모델 후보 변경, 결정 16건은 병합 뒤 항목별로 정한다. PR #151 병합(c2ec335, 완료 SHA 1e154d8). 리뷰 SHA 95f0edb 뒤의 커밋 2개는 기록만 바꿨다(PLANS·핸드오버 로그·리뷰 폴더). CI `checks`·`claude-review` 통과, snapshot 정리, main 체크아웃과 `fullops/dev` 동기화. 릴리스는 하지 않았다 | `docs/evaluations/qa-reports/REPO-SWEEP-test/report.md` |
+| SWEEP-DECISIONS | REPO-SWEEP 감사의 사용자 결정 8건 반영 | dev(직접) | 구현 eb8f6f4(기준 c2ec335). 사용자 결정(2026-11-10): 진행 8건, 유지 5건, 보류 2건. 해당 시험 15개 통과, lint ERROR 0, WARNING 3. review need: skip(코드 11개 파일 143줄). PR #152 | `docs/evaluations/qa-reports/SWEEP-DECISIONS-test/report.md` |
 
 ## 대기 목록
 
@@ -131,8 +132,11 @@ summary: 현재 작업
 
 담당은 dev다. 감사 전문은 `.fullops-squad/local/REPO-SWEEP-audit.json`(gitignore)이고 요약은 [보고서](docs/evaluations/qa-reports/REPO-SWEEP-test/report.md)에 있다.
 
-- 사용자 결정이 필요한 16건은 구현하지 않았다. 릴리스 노트가 유지를 약속한 CLI 옵션 4건(`checkpoint --receipt`, `--token`, `env_link.py --worktree`, `frontend.py --dry-run`), 문서화된 설정·옵션 2건(`autonomy_policy.delay_minutes`·`approval_hours`, `--handover`), 삭제 후보 3건(`tests/handover-audit.py`, find의 `rerank`·`hierarchical`, observe의 claims 경로 약 300줄), 정책 4건(런타임 스냅샷 정리, 이 레포 `lint.json`의 issue-mode·packaging 경로, 리뷰 워크플로 경로), 성능 1건(coor 세션 hook마다 이슈 상태 재기록), meter의 구버전 Orca `--full` 재시도 1건. 재개 조건: 사용자 결정.
+- 사용자 결정 항목(2026-11-10 결정): 8건은 SWEEP-DECISIONS로 반영했다. 유지 5건: `checkpoint --receipt`, `env_link.py --worktree`, `frontend.py --dry-run`, find의 `rerank`·`hierarchical`, observe의 claims 경로. 보류 2건: coor 세션 hook마다 이슈 상태 재기록(재개 조건: lease 계산 설계와 실측), meter의 구버전 Orca `--full` 재시도(재개 조건: 최소 Orca 버전을 문서에 못박을 때).
 - JevPlay 0.1.4(`Nearest`의 24개 상한 제거)는 Unity에서 컴파일·실행하지 않았다. 재개 조건: Unity 레포에서 `unity_bridge.py install` 뒤 확인.
 - grok `spawn_subagent` matcher는 실제 grok 세션에서 확인하지 않았다. 재개 조건: GROK-WAKE-CHECK와 함께.
 - `integration.pending()`은 읽지 못하는 기록에서 여전히 예외를 낸다. 호출자(`orca_wait.py`, `issue_mode.py wait`)가 묶음을 잃지 않게 막았다. 건너뛰게 하면 깨진 기록이 Stop 게이트를 조용히 풀 수 있어 그대로 뒀다(low).
 - `flow_gate.settlement_command`는 따옴표 없는 역슬래시 경로와 PowerShell `& "...orca.exe"` 형식을 여전히 읽지 못한다. Stop의 `settled_in_runtime`이 보완한다(low).
+
+- 이 PC의 hook 런타임 사본 64개(137MB)는 지우지 않았다. 재개 조건: 1.23.0 설치 뒤 사용자가 모든 호스트 세션을 닫고 `deps.py --prune-runtime`을 실행할 때.
+- `adapters/`·`scripts/build.py` 변경의 dist 일치 검사는 CI에만 있다(low). 재개 조건: 로컬에서 놓친 일이 생길 때.

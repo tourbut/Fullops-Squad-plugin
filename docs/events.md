@@ -104,9 +104,7 @@ FullOps가 coordinator·orca-helm·봇에 넘기는 사건과 사용자 결정�
 "autonomy_policy": {
   "mode": "shadow",
   "auto": ["**/*.md", "docs/**", "tests/**"],
-  "ask": [".github/**", ".fullops-squad/fullops.json", "**/auth/**", "**/migrations/**", "..."],
-  "delay_minutes": 60,
-  "approval_hours": 24
+  "ask": [".github/**", ".fullops-squad/fullops.json", "**/auth/**", "**/migrations/**", "..."]
 }
 ```
 

@@ -26,8 +26,6 @@ POLICY = {
             '**/auth/**', '**/*auth*.*', '**/*payment*/**', '**/*billing*/**', '**/migrations/**', '**/*.sql',
             '**/Dockerfile', '**/docker-compose*.yml', '**/deploy/**', '**/*.tf', '**/.env*',
             '**/package.json', '**/package-lock.json', '**/pnpm-lock.yaml', '**/pyproject.toml', '**/requirements*.txt'],
-    'delay_minutes': 60,
-    'approval_hours': 24,
 }
 UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.CalledProcessError)
 
@@ -42,8 +40,6 @@ def rules(config):
         raise ValueError('autonomy_policy.mode는 아직 shadow만 지원합니다')
     if any(not isinstance(merged[k], list) or not all(isinstance(g, str) and g for g in merged[k]) for k in ('auto', 'ask')):
         raise ValueError('autonomy_policy.auto·ask는 경로 glob 목록이어야 합니다')
-    if any(type(merged[k]) is not int or merged[k] < 1 for k in ('delay_minutes', 'approval_hours')):
-        raise ValueError('autonomy_policy.delay_minutes·approval_hours는 1 이상 정수여야 합니다')
     return merged
 
 

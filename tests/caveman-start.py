@@ -120,6 +120,20 @@ with tempfile.TemporaryDirectory(prefix='fullops hook ') as directory:
         source.rename(home / 'new-cache-removed')
         assert invoke(commands[0]).strip() == 'updated runtime'
         assert (root / 'packages' / first / 'scripts/done_gate.py').is_file()
+        # An explicit prune keeps only the current snapshot, and refuses when it cannot tell which one that is.
+        pointer = (root / 'current.json').read_bytes()
+        current = json.loads(pointer)['package']
+        removed = hook_runtime.prune()
+        assert first in removed and damaged in removed and current not in removed, removed
+        assert [path.name for path in (root / 'packages').iterdir()] == [current]
+        assert invoke(commands[0]).strip() == 'updated runtime'
+        (root / 'current.json').write_text('{"package": "unknown"}', encoding='utf-8')
+        try:
+            hook_runtime.prune()
+            raise AssertionError('Expected a refusal')
+        except ValueError:
+            assert (root / 'packages' / current).is_dir()
+        (root / 'current.json').write_bytes(pointer)
         for command in commands:
             invoke(command)
 print('PASS: stable hook commands survive cache removal, updates and failed publication')

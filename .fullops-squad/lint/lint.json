@@ -12,6 +12,8 @@
         "plugins/fullops-squad/scripts/issue_mode.py",
         "plugins/fullops-squad/scripts/issue_github.py",
         "plugins/fullops-squad/scripts/flow_gate.py",
+        "plugins/fullops-squad/scripts/integration.py",
+        "plugins/fullops-squad/scripts/orca_wait.py",
         "tests/issue-mode.py"
       ]
     },
@@ -61,10 +63,9 @@
         "tests/standard.cjs"
       ],
       "paths": [
-        "plugins/**",
-        "adapters/**",
-        "dist/**",
-        "scripts/build.py"
+        "plugins/fullops-squad/**",
+        "tests/standard.cjs",
+        "tests/vendor/**"
       ]
     },
     {

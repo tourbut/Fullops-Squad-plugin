@@ -101,9 +101,7 @@ def lease_token(store, name):
 
 
 def token_options(parser):
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--token')
-    group.add_argument('--token-file', help='Git 제외·비공개 enable 결과 JSON; token을 argv에 넣지 않는다')
+    parser.add_argument('--token-file', required=True, help='Git 제외·비공개 enable 결과 JSON; token을 argv에 넣지 않는다')
 
 
 class Store:

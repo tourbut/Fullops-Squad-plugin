@@ -11,6 +11,8 @@ on:
       - "scripts/**"
       - "tests/**"
       - "bin/**"
+      - "dependencies.json"
+      - "package.json"
       - ".github/workflows/**"
 
 # A newer push to the same PR cancels the review still running for the older one.
