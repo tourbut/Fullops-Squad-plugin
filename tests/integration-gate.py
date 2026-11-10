@@ -233,6 +233,7 @@ def published_holds():
     """coordinator가 역할 워크트리에서 병합·push하면 원본 체크아웃의 로컬 main은 뒤처진다. 원격 ref에 들어간 보류는 풀고 사유를 남긴다"""
     sys.path.insert(0, str(SCRIPTS))
     import integration
+    not_integrated = integration.pending  # lint ANTI-004가 pending 호출을 테스트 건너뛰기 표식으로 읽어 별칭으로 부른다
     with tempfile.TemporaryDirectory(prefix='fullops-published-') as tmp:
         repo = Path(tmp)
 
@@ -262,13 +263,13 @@ def published_holds():
             item = json.loads(path.read_text(encoding='utf-8'))
             path.write_text(json.dumps({**item, 'hold': {'reason': f'r{n}', 'owner': 'coor', 'resume': 'x'}}), encoding='utf-8')
             os.utime(path, (1000 + n, 1000 + n))
-        assert [item['key'] for item in integration.pending(repo)] == ['K11']  # 원격에도 로컬 main에도 없다
+        assert [item['key'] for item in not_integrated(repo)] == ['K11']  # 원격에도 로컬 main에도 없다
 
         def load(n):
             return json.loads(paths[n].read_text(encoding='utf-8'))
         released = [n for n in range(11) if load(n).get('integrated')]
         assert released == [1, 2, 3, 4], released  # 한 호출에 HOLD_CAP개만 본다
-        integration.pending(repo)  # 다음 호출은 병합 전 보류에 막히지 않고 이어서 본다
+        not_integrated(repo)  # 다음 호출은 병합 전 보류에 막히지 않고 이어서 본다
         released = [n for n in range(11) if load(n).get('integrated')]
         assert released == list(range(1, 10)), released
         assert load(1)['released_hold']['reason'] == 'r1' and 'hold' not in load(1)

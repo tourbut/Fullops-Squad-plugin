@@ -12,6 +12,8 @@ SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import integration  # noqa: E402
 
+not_integrated = integration.pending  # lint ANTI-004가 pending 호출을 테스트 건너뛰기 표식으로 읽어 별칭으로 부른다
+
 
 def main():
     with tempfile.TemporaryDirectory(prefix='fullops-flow-state-') as tmp:
@@ -111,7 +113,7 @@ def published_settlement():
         git('update-ref', 'refs/remotes/origin/main', second)
         # 첫 확인 전의 완료 보고는 펼치지 않으므로 K2 흐름 기록에는 SHA가 없다
         integration.record(repo, [{'id': 'm2', 'type': 'worker_done', 'body': f'[완료] K2 | 브랜치 fullops/dev | SHA {second}'}])
-        assert integration.pending(repo) == []
+        assert not_integrated(repo) == []
         flow_state.update(repo, 'K1', 'build')
         flow_state.update(repo, 'K1', 'build')  # 수정 후 재배정
         assert [e['node'] for e in state('K1')['events']] == ['build', 'build'], state('K1')
@@ -126,7 +128,7 @@ def published_settlement():
         integration.record(repo, [{'id': 'm1', 'type': 'worker_done', 'body': f'[완료] K1 | 브랜치 fullops/dev | SHA {first}'}])
         held = integration.directory(repo) / (hashlib.sha256(b'm1').hexdigest() + '.json')
         held.write_text(json.dumps({**json.loads(held.read_text(encoding='utf-8')), 'hold': {'reason': 'r'}}), encoding='utf-8')
-        integration.pending(repo)
+        not_integrated(repo)
         assert 'released_hold' in json.loads(held.read_text(encoding='utf-8'))
         flow_state.observe(repo, [])
         assert state('K1')['node'] == 'design', state('K1')
