@@ -261,6 +261,19 @@ def main():
              'orca orchestration send --from w --type worker_done --task-id t-1 --dispatch-id d-1 --outcome succeeded'},
              toolResponse={'exit_code': 0, 'stdout': json.dumps({'ok': True, 'result': {'message': {'id': 'msg1'}}})})
         assert hook('stop', sessionId='g') == {}
+        # StopFailure: 정산 전 worker만 coordinator에 escalation을 한 번 보낸다. lead·정산된 worker는 보내지 않는다
+        sends, recorder = repo / '.git/failure-sends.jsonl', repo / '.git/failure-orca.py'
+        recorder.write_text('import json, os, sys\n'
+                            'open(os.environ["FAKE_SEND_LOG"], "a", encoding="utf-8").write(json.dumps(sys.argv[1:]) + "\\n")\n'
+                            'print(json.dumps({"ok": True, "result": {}}))\n', encoding='utf-8')
+        failing = {'FULLOPS_ORCA_CLI': str(fake_cli('failure-orca', recorder)), 'FAKE_SEND_LOG': str(sends)}
+        for session in ('w', 'w', 'g', 'lead'):
+            assert hook('failure', native_env=failing, session_id=session, hook_event_name='StopFailure', error='rate_limit',
+                        last_assistant_message="You've hit your session limit") == {}
+        sent = [json.loads(line) for line in sends.read_text(encoding='utf-8').splitlines()]
+        assert len(sent) == 1 and sent[0][:4] == ['orchestration', 'send', '--type', 'escalation'], sent
+        assert {'d-1', 't-1'} <= set(sent[0]) and 'rate_limit' in ' '.join(sent[0]), sent
+        assert hook('stop', session_id='w')['decision'] == 'block'  # escalation은 정산이 아니다
         assert hook('tool', session_id='w', tool_name='Bash', tool_input={'command': 'git status'}) == {}
         # 분류만 하고 배정하지 않은 과제는 종료를 한 번 막는다(대화 요약 뒤 배정을 잊는 경우)
         route_cmd = 'python3 C:/plugins/fullops-squad/scripts/jev_route.py --repo . --key WIN-1 --request "Windows 점검"'

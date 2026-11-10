@@ -51,6 +51,17 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I -X utf8 -c \"from pathlib import Path; import runpy; runpy.run_path(str(Path.home()/'.fullops-squad/runtime/fullops-squad/scripts/hook_runtime.py'),run_name='__main__')\" flow_gate failure",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

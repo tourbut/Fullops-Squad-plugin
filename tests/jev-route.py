@@ -181,6 +181,12 @@ def main():
                                  '--request', '버그 수정', '--force'], capture_output=True, text=True)
         assert forced.returncode == 0 and '이전 결과' in forced.stderr
         assert len(list((repo / '.fullops-squad/docs/evaluations/jev').glob('T-6-route.prior-*.json'))) == 1
+        # 덮어쓴 이전 사본은 템플릿 .gitignore가 커밋에서 뺀다. 현재 결과는 그대로 추적한다
+        jev_dir = repo / '.fullops-squad/docs/evaluations/jev'
+        prior = next(jev_dir.glob('T-6-route.prior-*.json')).relative_to(repo).as_posix()
+        ignored = subprocess.run(['git', '-C', tmp, 'check-ignore', prior, '.fullops-squad/docs/evaluations/jev/history/T-6-route-x.json',
+                                  '.fullops-squad/docs/evaluations/jev/T-6-route.json'], capture_output=True, text=True).stdout.split()
+        assert ignored == [prior, '.fullops-squad/docs/evaluations/jev/history/T-6-route-x.json'], ignored
         assert '기존 결과' in again.stderr
     print('PASS: jev route guide state, simple/design thresholds, designer fallback, secret refusal, CLI record')
 

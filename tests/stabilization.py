@@ -802,7 +802,7 @@ class Stabilization(unittest.TestCase):
         bound = subprocess.run(command, capture_output=True, text=True)
         self.assertEqual(bound.returncode, 0, bound.stderr)
         self.assertEqual(json.loads(path.read_text())['attempt'], work.input_identity(self.repo, 'dev', 'K1', {})['attempt'])
-        self.assertTrue(json.loads(path.read_text())['requires_packet'])
+        self.assertNotIn('requires_packet', json.loads(path.read_text()))  # 패킷은 선택이다
         inbox, content = work.instruction(self.repo, 'dev', 'K1')
         inbox.write_text(content.replace('rename fetch_user API', 'different instruction'))
         self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
@@ -819,6 +819,26 @@ class Stabilization(unittest.TestCase):
         completed = original.replace('[ ]', '[x]').replace('미작성.', '보고와 검증 기록.')
         self.assertEqual(work.instruction_digest(original), work.instruction_digest(completed))
         self.assertNotEqual(work.instruction_digest(original), work.instruction_digest(original.replace('read source', 'edit source')))
+
+    def test_route_without_packet_finishes_and_packet_file_keeps_contract(self):
+        inbox = self.new()
+        route = jev_find.result_path(self.repo, 'K1', 'route')
+        storage.write_json(route, {'task_key': 'K1', 'head': self.git('rev-parse', 'HEAD'), 'role': 'dev', 'route': 'simple'})
+        text = inbox.read_text().partition('## 완료 보고\n')[0] + '## 완료 보고\n검증 완료.\n'
+        inbox.write_text(text)
+        jev_packet.check(self.repo, 'dev', 'K1', completion=True, text=text)
+        packet = jev_find.result_path(self.repo, 'K1', 'packet')
+        storage.write_json(packet, jev_packet.packet(self.repo, 'dev', 'K1'))
+        with self.assertRaisesRegex(ValueError, '탐색 패킷'):  # 만든 패킷은 지금처럼 완료 기록을 요구한다
+            work.finish(self.repo, 'dev', 'K1')
+        packet.unlink()
+        storage.write_json(route, {**json.loads(route.read_text()), 'requires_packet': True})
+        with self.assertRaisesRegex(ValueError, '탐색 패킷'):  # 기존 requires_packet true 기록은 의미를 유지한다
+            jev_packet.check(self.repo, 'dev', 'K1', completion=True, text=text)
+        route.unlink()
+        with redirect_stdout(io.StringIO()):
+            work.finish(self.repo, 'dev', 'K1')
+        self.assertEqual(inbox.read_bytes(), b'')
 
     def test_packet_survives_dispatch_metadata_and_finish(self):
         inbox = self.new()

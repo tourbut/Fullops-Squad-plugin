@@ -937,7 +937,19 @@ def complete(store, github, token, identifier, worktree, review_key, base, head,
         raise ValueError('완료 직전 snapshot/작성자/열림 상태를 재확인하세요')
     if integration.git(worktree, 'rev-parse', 'HEAD') != head:
         raise ValueError('완료 SHA가 현재 작업 공간과 다릅니다')
-    review.check(worktree, review_key, base, head, task_key=job['task_key'])
+    cleanup = review.safe_file(worktree, f'.fullops-squad/docs/evaluations/qa-reports/{review_key}-review/snapshot-cleanup.json')
+    # 정리 영수증이 있어도 snapshot 제거가 끝나지 않았으면(state가 removed가 아니면) live 검사를 쓴다
+    if cleanup.is_file() and json.loads(cleanup.read_text(encoding='utf-8')).get('state') == 'removed':
+        # 수락 후 snapshot까지 정리한 리뷰는 live 검사가 불가능하다. 보존 증거·SHA·규칙·과제 패킷으로 같은 조건을 본다.
+        accepted = review.historical(worktree, review_key)
+        result = json.loads(review.safe_file(worktree, f'.fullops-squad/docs/evaluations/qa-reports/{review_key}-review/result.json').read_text(encoding='utf-8'))
+        if (accepted['base'], accepted['head']) != (review.sha(worktree, base), review.sha(worktree, head)):
+            raise ValueError('base/head가 변경됐습니다. 새 리뷰를 준비하세요')
+        if not review.hash_matches(result['rule_sha256'], review.safe_file(worktree, '.fullops-squad/review/rule.json')):
+            raise ValueError('리뷰 규칙이 변경됐습니다')
+        review.check_packets(worktree, job['task_key'], head)
+    else:
+        review.check(worktree, review_key, base, head, task_key=job['task_key'])
     config = state['config']
     pr = github.get(f"/repos/{config['repository']}/pulls/{int(pr_number)}")
     head_branch = pr.get('head', {}).get('ref', '')
@@ -1017,7 +1029,9 @@ def worker_job(store, state, session, context):
     if not context.get('dispatch'):
         return None, None
     # 이슈와 무관한 worker는 도구 호출마다 Orca를 부르지 않는다. 끝났고 종료까지 확인한 attempt에는 새 worker가 없다.
-    if not bound and not any(j.get('task_key') and (j['status'] not in FINAL or occupies(j)) for j in state['jobs'].values()):
+    # 모드 OFF면 보류 job은 자동 실행되지 않는다. 무관한 worker를 그 job 때문에 조회·차단하지 않고 점유 job만 본다.
+    enabled = (state.get('owner') or {}).get('enabled')
+    if not bound and not any(j.get('task_key') and (occupies(j) or (enabled and j['status'] not in FINAL)) for j in state['jobs'].values()):
         return None, None
     # attempt와 Run이 그대로면 Orca의 답도 그대로다. 바뀌면 scope가 달라져 다시 묻는다.
     scope = digest([[j['task_key'], j.get('run'), sorted(j.get('child_runs', {}))] for j in state['jobs'].values() if j.get('task_key')])

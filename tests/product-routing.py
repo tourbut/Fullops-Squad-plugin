@@ -98,10 +98,14 @@ with tempfile.TemporaryDirectory(prefix='fullops-product-') as tmp:
     subprocess.run(['git', '-C', tmp, '-c', 'user.name=t', '-c', 'user.email=t@example.test', 'commit', '-qm', 'setup'], check=True)
     worker = repo / '.git/dev'
     subprocess.run(['git', '-C', tmp, 'worktree', 'add', '-q', '-b', 'fullops/dev', str(worker)], check=True)
-    assert '패킷' in hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')
+    assert '패킷' not in hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')  # 패킷은 선택이다
     work.new(worker, 'dev', 'IMPLEMENT', '확정 요구의 구현', 'HEAD')
     packet = jev_packet.packet(worker, 'dev', 'IMPLEMENT')
-    storage.write_json(jev_find.result_path(worker, 'IMPLEMENT', 'packet'), packet)
+    for value in ({**packet, 'head': 'stale'}, packet):  # gate는 루트의 패킷 파일로 필수 여부를, worker의 파일로 내용을 본다
+        for base in (repo, worker):
+            storage.write_json(jev_find.result_path(base, 'IMPLEMENT', 'packet'), value)
+        if value is not packet:
+            assert '패킷' in hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')  # 만든 패킷은 검사한다
     assert not hook(f'orca orchestration worker-start --run r1 --worktree "{worker}" --spec "IMPLEMENT 작업"')
     patch = ('*** Begin Patch\n*** Update File: .fullops-squad/handovers/to_dev.md\n@@\n'
              '+# IMPLEMENT — 구현\n+orca orchestration worker-start --spec "본문 예시"\n*** End Patch\n')

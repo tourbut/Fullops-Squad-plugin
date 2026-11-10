@@ -395,7 +395,8 @@ def baseline_denial(root, command):
         if route and settings['roles'].get(route['role']) != branch:
             return 'route 담당 역할과 worker 브랜치가 다릅니다. 기존 역할 경로를 선택하거나 근거를 남겨 재분류하세요.'
         packet = Path(root) / f'.fullops-squad/docs/evaluations/jev/{dispatch_key(command)}-packet.json'
-        if packet.is_file() or (route and route.get('requires_packet')):
+        # 패킷은 선택이다. coordinator 쪽이나 worker 워크트리에 패킷이 있거나 route가 요구할 때만 검사한다
+        if packet.is_file() or (worker.resolve() / packet.relative_to(root)).is_file() or (route and route.get('requires_packet')):
             from jev_packet import check
             check(worker.resolve(), route['role'], dispatch_key(command), required=True)
     except (OSError, ValueError, KeyError, TypeError) as error:

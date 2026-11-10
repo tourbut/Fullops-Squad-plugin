@@ -177,8 +177,25 @@ def handover():
                 fails(lambda: mode.complete(store, api, token, 101, root, 'key', head, head, 1), 'attempt')
             assert store.read()['jobs']['101']['status'] == 'changed'
             set_status('101', 'reviewing')
+        # 수락 후 snapshot까지 정리한 리뷰는 live 검사 대신 보존 증거·SHA·규칙으로 완료한다.
+        import review
+        folder = root / '.fullops-squad/docs/evaluations/qa-reports/cleaned-review'
+        folder.mkdir(parents=True)
+        rule = root / '.fullops-squad/review/rule.json'
+        rule.parent.mkdir(parents=True, exist_ok=True)
+        rule.write_text('{}')
+        independence = {'implementer_session': 'a', 'reviewer_session': 'b'}
+        (folder / 'result.json').write_text(json.dumps({'base': head, 'head': head, 'rule_sha256': review.rule_hash(rule), 'independence': independence}))
+        for name in ('preview.json', 'rules.json', 'lint.json', 'report.md'):
+            (folder / name).write_text('{}')
+        (folder / 'snapshot-cleanup.json').write_text(json.dumps({'state': 'removed', 'live_check': 'passed', 'base': head, 'head': head,
+            'independence': independence, 'evidence_sha256': review.evidence_hashes(root, 'cleaned')}))
+        with patch('review.check', side_effect=AssertionError('live check')):
+            rule.write_text('{"changed": 1}')
+            fails(lambda: mode.complete(store, api, token, 101, root, 'cleaned', head, head, 1), '규칙')
+            rule.write_text('{}')
             with patch.object(api, 'issue', side_effect=unlocked(real_issue)):
-                mode.complete(store, api, token, 101, root, 'key', head, head, 1)
+                mode.complete(store, api, token, 101, root, 'cleaned', head, head, 1)
         assert store.read()['jobs']['101']['status'] == 'completed'
 
         # 끝난 이슈만 남으면 worker hook은 Orca를 부르지 않는다.
@@ -286,6 +303,41 @@ def handover():
             fails(lambda: mode.question(store, api, third['token'], 102, '권한은?'))
         saved = store.read()
         assert list(saved['outbox'].values())[-1]['status'] == 'failed' and saved['jobs']['102']['status'] == 'running'
+
+
+def inert_when_off():
+    """모드 OFF의 보류 job은 무관한 worker를 조회·차단하지 않는다. 점유 job과 모드 ON은 그대로 확인한다."""
+    with tempfile.TemporaryDirectory(prefix='fullops-issue-off-') as temporary:
+        root = repository(Path(temporary))
+        store, api = mode.Store(root), API()
+        mode.configure(store, api, 'owner/service', ['author'], interval=60, approved=True)
+        receipt = mode.hook_path(root, 'first')
+        receipt.parent.mkdir(exist_ok=True)
+        receipt.write_text(json.dumps({'provider_session': 'first'}))
+        token = mode.activate(store, Orca(), 'coor', 'run', 'term', 'first')['token']
+        api.issues = [issue(1)]
+        mode.poll(store, api, token)
+        mode.claim(store, api, token)
+        build, context = ['python3', 'build.py'], {'dispatch': 'other', 'task': 'other-task'}
+        def boundary():
+            return mode.boundary(root, 'plain', ' '.join(build), [], [build], context)
+        with store.edit() as state:
+            state['jobs']['101']['status'] = 'awaiting_author'
+            state['owner']['enabled'] = False
+        with patch.object(mode.integration, 'orca', side_effect=AssertionError('Orca queried')):
+            assert boundary() is None
+        with store.edit() as state:
+            state['jobs']['101']['dispatch_intents'] = [{'at': iso(time.time())}]
+            state['jobs']['101']['settled'] = False
+        with patch.object(mode.integration, 'orca', return_value=None) as lookup:
+            assert 'Orca' in boundary()
+        assert lookup.call_count == 1
+        with store.edit() as state:
+            state['jobs']['101'].pop('dispatch_intents')
+            state['owner']['enabled'] = True
+        with patch.object(mode.integration, 'orca', return_value=None) as lookup:
+            assert 'Orca' in boundary()
+        assert lookup.call_count == 1
 
 
 def main():
@@ -1033,6 +1085,7 @@ def main():
     with patch.object(client, 'request', return_value=(200, {}, missing)):
         assert client.issue('o/r', 1) is None
     handover()
+    inert_when_off()
     print('PASS: issue-mode atomic FIFO/lease, author IDs, API recovery/304, question outbox, same-author answers, boundaries, review failure and handover fencing')
 
 

@@ -854,6 +854,14 @@ def main(event=None):
             issue_mode.heartbeat(root, field(event, 'session_id'))
         except Exception:  # noqa: BLE001
             pass
+    if mode == 'failure' and state.get('dispatch') and not state.get('settled') and state.get('failure_sent') != state['dispatch']:
+        # StopFailure: 모델 한도·API 오류로 끝난 worker는 worker_done을 보내지 못한다. coordinator에 한 번만 알리고 정산하지 않는다
+        state['failure_sent'] = state['dispatch']
+        detail = ' '.join(str(field(event, k) or '') for k in ('error', 'error_details', 'last_assistant_message')).strip()[:300]
+        ids = ['--dispatch-id', state['dispatch'], *(['--task-id', state['task']] if state.get('task') else [])]
+        orca('orchestration', 'send', '--type', 'escalation', '--subject', 'worker가 모델 한도·API 오류로 멈춤', '--body',
+             f"모델 사용 한도 또는 API 오류로 worker 턴이 끝났습니다({detail or '오류 내용 없음'}). "
+             f"Task {state.get('task') or '알 수 없음'}, Dispatch {state['dispatch']}.", *ids)
     if mode == 'stop' and (field(event, 'reason') or 'end_turn') == 'end_turn':
         if state.get('dispatch') and not state.get('settled') and settled_in_runtime(state):
             state['settled'] = True
