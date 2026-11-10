@@ -50,7 +50,7 @@ summary: 현재 작업
 | REPO-SWEEP | 감사로 확정한 정리 47건과 하네스 후속 개선 6건 | dev(직접) | 구현 eaed03d(기준 10c0695). 감사 Workflow 77건 중 확정 47, 반박 14, 사용자 결정 16. 구현 Workflow의 반박 리뷰 5개는 주간 사용량 한도로 실패해 주 담당이 diff를 직접 읽었다. `npm test` 종료코드 0, lint ERROR 0. review need: required/ask(코드 46개 파일 745줄) → 사용자 결정(2026-11-10)으로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`(launch.effective 동일), run_4dd66e077d5f, task_0e0d2cdc8c3a, ctx_9115bd97e54d, 리뷰 SHA 95f0edb. 결과 수락: critical·high·medium 0, low 1(PLANS 모델 후보 줄, 이 커밋에서 정리). `review.py check` 통과(reviewed 59, skipped 53). 게이트 통과용 오프라인 route는 배정 뒤 지웠고 커밋하지 않았다. 같은 날 결정: 모델 후보 변경, 결정 16건은 병합 뒤 항목별로 정한다. PR #151 병합(c2ec335, 완료 SHA 1e154d8). 리뷰 SHA 95f0edb 뒤의 커밋 2개는 기록만 바꿨다(PLANS·핸드오버 로그·리뷰 폴더). CI `checks`·`claude-review` 통과, snapshot 정리, main 체크아웃과 `fullops/dev` 동기화. 릴리스는 하지 않았다 | `docs/evaluations/qa-reports/REPO-SWEEP-test/report.md` |
 | SWEEP-DECISIONS | REPO-SWEEP 감사의 사용자 결정 8건 반영 | dev(직접) | 구현 eb8f6f4(기준 c2ec335). 사용자 결정(2026-11-10): 진행 8건, 유지 5건, 보류 2건. 해당 시험 15개 통과, lint ERROR 0, WARNING 3. review need: skip(코드 11개 파일 143줄). PR #152 병합(58a3d81, 완료 SHA f51f1ec). CI `checks` 통과, main 체크아웃과 `fullops/dev` 동기화. 릴리스는 하지 않았다 | `docs/evaluations/qa-reports/SWEEP-DECISIONS-test/report.md` |
 | RELEASE-1.23.0 | 1.23.0 릴리스(#151·#152), fullops-meter 0.12.1, JevPlay 0.1.4 | dev(직접) | 사용자 지시(2026-11-10)로 진행. 릴리스 노트는 주 담당이 두 PR의 동작 변경 기록과 코드를 대조해 썼다(하위 에이전트는 사용량 한도로 쓰지 않음). `tests/update.py`·`check.py`·`deps.py`·`caveman-start.py`·`standard.cjs` 통과. PR #153 병합(6a71d41, 완료 SHA dbc42e4), CI `checks`·`claude-review` 통과(지적 없음). 병합 커밋에 태그·GitHub 릴리스 v1.23.0을 게시했다. 이 PC와 레포 적용은 지시 범위 밖이라 하지 않았다 | `docs/releases/1.23.0.md` |
-| HARNESS-AUTONOMY | 사람 개입을 줄이는 하네스 개선 1~5단계 | dev(직접) | 구현 71772b2·bd8c67c·a56b095·3979644(기준 6a71d41), 로컬 커밋만. 사용자 결정(2026-11-10): 지표는 과제당 사람 턴 수와 사람 없이 이어진 과제 수, 되돌릴 수 있는 디자인 선택과 버그 수정 여부는 항상 자율, 배포·운영 부하 테스트·backfill·운영 데이터 정리는 사용자 승인, 패킷 선택화, 이슈 모드 OFF fencing 해제, 모델 한도는 대기·재배정 2회. 표적 시험 21개 통과, lint ERROR 0. review need: required/ask(코드 23개 파일 744줄). push·PR·릴리스·jevpet 적용은 승인 대기 | `docs/evaluations/qa-reports/HARNESS-AUTONOMY-test/report.md` |
+| HARNESS-AUTONOMY | 사람 개입을 줄이는 하네스 개선 1~5단계 | dev(직접) | 구현 71772b2·bd8c67c·a56b095·3979644(기준 6a71d41), 로컬 커밋만. 사용자 결정(2026-11-10): 지표는 과제당 사람 턴 수와 사람 없이 이어진 과제 수, 되돌릴 수 있는 디자인 선택과 버그 수정 여부는 항상 자율, 배포·운영 부하 테스트·backfill·운영 데이터 정리는 사용자 승인, 패킷 선택화, 이슈 모드 OFF fencing 해제, 모델 한도는 대기·재배정 2회. 표적 시험 21개 통과, lint ERROR 0. review need: required/ask(코드 23개 파일 744줄) → 사용자 결정으로 독립 리뷰 진행. 리뷰어 `claude` `claude-opus-5-5` `high`(launch 동일), run_1931c62599ac, task_77b8b46527ac, ctx_1571c8a51128, 리뷰 SHA 8f11810. 결과 수락: critical·high·medium 0, low 5(후속 등재). `review.py check` 통과(reviewed 43, skipped 39). 게이트 통과용 오프라인 route는 배정 뒤 지웠고 커밋하지 않았다. 사용자 결정: 병합 뒤 1.24.0 릴리스까지 진행, jevpet 적용은 대상·범위 보고 뒤 따로 승인 | `docs/evaluations/qa-reports/HARNESS-AUTONOMY-test/report.md` |
 
 ## 대기 목록
 
@@ -142,3 +142,15 @@ summary: 현재 작업
 
 - 이 PC의 hook 런타임 사본 64개(137MB)는 지우지 않았다. 재개 조건: 사용자의 1.23.0 업데이트 지시 뒤 모든 호스트 세션을 닫고 `deps.py --prune-runtime`을 실행할 때.
 - `adapters/`·`scripts/build.py` 변경의 dist 일치 검사는 CI에만 있다(low). 재개 조건: 로컬에서 놓친 일이 생길 때.
+
+### HARNESS-AUTONOMY 후속
+
+담당은 dev다. 독립 리뷰(`HARNESS-AUTONOMY-review`)의 low 5건과 못 한 검증이다.
+
+- lead Stop의 대기 행 차단 문구에 운영 배포·부하 테스트·backfill·데이터 정리 예외가 없다(low). 승인 규칙은 세션 시작 안내와 스킬에 있다. 재개 조건: 다음 `flow_gate.py` 변경.
+- lead SessionStart의 `review.prune`이 다른 세션의 `creating` snapshot 기록을 닫을 수 있다(low, 좁은 경합). 재개 조건: 실제 발생.
+- 사람 턴 기록의 기계 알림 목록(`MACHINE_PROMPTS`)은 추정이다(low). 재개 조건: 실제 Claude Code·Orca 세션에서 알림 문구를 확인할 때.
+- `tests/stabilization.py`가 1회 실패했고 원인을 찾지 못했다(low). 같은 트리에서 2회 다시 통과했다. 재개 조건: 재발.
+- StopFailure hook, 현황판 두 지표 화면, Codex·grok coordinator의 Stop, worker 워크트리에만 패킷이 있을 때의 배정 검사는 실제 환경이나 전용 시험으로 확인하지 못했다. 재개 조건: jevpet 적용 뒤 실사용.
+- jevpet 적용(1.24.0 레포 적용, PLANS 상태 어휘, `.gitignore` 두 줄, 추적 중인 사본 정리)은 대상과 범위를 보고하고 따로 승인받는다. 삭제 명령은 확인 전에 실행하지 않는다.
+- 뒤로 미룬 안: 대기 시간 경과 확정(`wait_minutes`), 레포별 상시 정책 키, 결정 장부 이동, 리뷰 기준 0의 판정 문구.
