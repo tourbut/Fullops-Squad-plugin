@@ -1,5 +1,4 @@
 """stub 응답으로 dispatch 문맥 분류의 입력 조립·제외 추천·원문 미전송·거부·실패 시 전부 유지를 확인한다."""
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,9 +9,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
-spec = importlib.util.spec_from_file_location('jev_context', SCRIPTS / 'jev_context.py')
-jev = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(jev)
+import jev_context as jev  # noqa: E402
 import jev_observe  # noqa: E402 — SCRIPTS를 경로에 넣은 뒤 import한다
 for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED', 'FULLOPS_JEV_CACHE_BYPASS'):
     os.environ.pop(name, None)  # 셸의 Jev 끄기·캐시 우회 설정과 무관하게 stub과 캐시 적중을 검사한다

@@ -1,6 +1,5 @@
 """임시 Git 레포로 setup·핸드오버·산출물 검사·설치 계획을 확인한다."""
 from datetime import date
-import importlib.util
 from pathlib import Path
 import subprocess
 import sys
@@ -8,13 +7,12 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
-
-
-def load(name, path):
-    spec = importlib.util.spec_from_file_location(name, ROOT / path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+sys.path.insert(1, str(ROOT / 'scripts'))  # 플러그인 scripts 뒤, tests/ 앞: tests/에 같은 이름(deps·deliverables)이 있다
+import build  # noqa: E402
+import deliverables  # noqa: E402
+import install  # noqa: E402
+import setup  # noqa: E402
+import work  # noqa: E402
 
 
 def snapshot(root):
@@ -42,11 +40,6 @@ def text_io_encoding():
 
 def main():
     text_io_encoding()
-    setup = load('setup', 'plugins/fullops-squad/scripts/setup.py')
-    work = load('work', 'plugins/fullops-squad/scripts/work.py')
-    deliverables = load('deliverables', 'plugins/fullops-squad/scripts/deliverables.py')
-    install = load('install', 'scripts/install.py')
-    build = load('build', 'scripts/build.py')
     dependencies = __import__('json').loads((ROOT / 'dependencies.json').read_text(encoding='utf-8'))
     assert set(dependencies['mcp']) == {'context7'}  # codebase-memory-mcp는 0.4.1에서 제거했다
     assert dependencies['mcp']['context7']['package'] == '@upstash/context7-mcp@latest'
@@ -160,7 +153,7 @@ def main():
         else:
             raise AssertionError('빈 완료 보고 아카이브')
         placeholder = work.TEMPLATE.read_text(encoding='utf-8').partition('## 완료 보고\n')[2]
-        inbox.write_text(inbox.read_text(encoding='utf-8').replace(placeholder, '브랜치 main / SHA 미커밋 / 검증 통과 / 로그 보존.\n'))
+        inbox.write_text(inbox.read_text(encoding='utf-8').replace(placeholder, '브랜치 main / SHA 미커밋 / 검증 통과 / 로그 보존.\n'), encoding='utf-8')
         completed = inbox.read_text(encoding='utf-8')
         work.finish(repo, 'backend_dev', 'TEST-1')
         assert inbox.read_bytes() == b''
@@ -310,15 +303,14 @@ def main():
         else:
             raise AssertionError('잘못된 활성화 설정 허용')
         assert snapshot(other) == state
-    for host in ('codex', 'claude-code', 'grok', 'agy', 'both', 'all'):
+    for host in ('codex', 'claude-code', 'grok', 'agy', 'all'):
         plan = list(install.commands(host))
         assert all('setup.py' not in ' '.join(cmd) for cmd in plan)
         skills = [cmd for cmd in plan if cmd[0] == 'npx']
         assert skills and all('--global' in cmd and '--agent' in cmd for cmd in skills)
         assert all('universal' not in cmd for cmd in skills)
         hosts = {cmd[0] for cmd in plan} - {'npx'}
-        assert hosts == {'all': {'npm', 'codex', 'claude', 'grok', 'agy'},
-                         'both': {'npm', 'codex', 'claude'}}.get(host, {'npm', 'claude' if host == 'claude-code' else host})
+        assert hosts == ({'npm', 'codex', 'claude', 'grok', 'agy'} if host == 'all' else {'npm', 'claude' if host == 'claude-code' else host})
         assert plan[0] == ['npm', 'install', '--global', '@upstash/context7-mcp@latest', '@alibaba-group/open-code-review@latest']
         assert any(cmd[4] == 'alibaba/open-code-review' and 'open-code-review-delegate' in cmd for cmd in skills)
         for source, name in (('JuliusBrussee/caveman', 'caveman'), ('typesafe-ai/skills', 'typesafe-ai')):

@@ -170,7 +170,7 @@ def active_base(repo):
 
 
 def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, title=None,
-          upstream=None, downstream=None, path=None, today=None, all_sources=False):
+          upstream=None, downstream=None, path=None, all_sources=False):
     """원천 문서에 front matter를 정해진 형식으로 쓰고, 인덱스 표의 상태를 같은 값으로 맞춘다."""
     base = active_base(repo)
     index = base / INDEX
@@ -229,7 +229,7 @@ def stamp(repo, doc_id=None, task=None, status=None, owner=None, summary=None, t
         states = [document_status(front_matter(f.read_text(encoding='utf-8')) or {}, doc_id) for f in siblings]
         if any(s != effective and not (s is None and effective == 'draft') for s in states):
             raise ValueError('여러 원천의 상태를 일부만 전환할 수 없습니다. 다른 원천의 상태를 검토해 일치시킨 뒤 재시도하세요')
-    meta["updated"] = (today or date.today()).isoformat()
+    meta["updated"] = date.today().isoformat()
     tasks = meta.get("tasks") if isinstance(meta.get("tasks"), list) else ([meta["tasks"]] if meta.get("tasks") else [])
     if task and task not in tasks:
         tasks.append(task)

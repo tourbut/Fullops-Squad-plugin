@@ -22,7 +22,6 @@ def begin(out, scenario):
     hashes = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in files}
     return {'plugin_version': plugin['version'], 'target_sha': target.stdout.strip() if target.returncode == 0 else None,
             'worktree_dirty': bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
-            'executor_sha256': hashes[files[0]],
             'scenario_sha256': hashlib.sha256(json.dumps(scenario, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
             'executor_files_sha256': hashes}
 

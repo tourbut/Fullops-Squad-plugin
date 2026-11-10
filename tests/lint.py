@@ -482,6 +482,14 @@ def command_scope():
                 assert 'paths' in str(error)
             else:
                 raise AssertionError(f'paths={bad!r}를 받아들임')
+        for bad in ('npm test', {'name': 'bad', 'run': 'npm test'}):  # 객체가 아닌 명령은 traceback이 아니라 설정 오류다
+            with patch.object(checks, 'config_blob', return_value=json.dumps({**checks.DEFAULT, 'commands': [bad]}).encode()):
+                try:
+                    checks.load_config(repo, 'HEAD')
+                except ValueError as error:
+                    assert 'run' in str(error)
+                else:
+                    raise AssertionError(f'명령 {bad!r}를 받아들임')
 
 
 def tune_report():

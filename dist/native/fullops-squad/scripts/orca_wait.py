@@ -128,14 +128,19 @@ def main():
             ack = None  # 전달한 ack는 이번 호출에서 처리됐다
             messages = result.get('messages') or []
             if messages and not all(m.get('type') in quiet for m in messages):
+                root, problem, waiting = Path(args.repo).resolve(), None, []
+                failures = (OSError, ValueError, KeyError, subprocess.SubprocessError)
                 try:
-                    integration.record(Path(args.repo).resolve(), messages)
-                    problem = None
-                except (OSError, ValueError, subprocess.SubprocessError) as error:  # 이미 소비된 묶음은 기록 실패와 함께 돌려준다
+                    integration.record(root, messages)
+                except failures as error:  # 이미 소비된 묶음은 기록 실패와 함께 돌려준다
                     problem = str(error)
+                try:
+                    waiting = integration.pending(root)
+                except failures as error:  # 통합 대기 조회가 실패해도 묶음은 돌려준다
+                    problem = problem or str(error)
                 print(json.dumps({'status': 'actionable', 'deliveryId': result.get('deliveryId'),
                                   'messages': messages, 'absorbed': summarize(absorbed), 'record_error': problem,
-                                  'integration': integration.pending(Path(args.repo).resolve())}, ensure_ascii=False, indent=1))
+                                  'integration': waiting}, ensure_ascii=False, indent=1))
                 return 0
             if messages:
                 absorbed += messages

@@ -3,7 +3,6 @@
 import argparse
 import ast
 import json
-from pathlib import Path
 import re
 import subprocess
 
@@ -209,7 +208,7 @@ def packet(repo, role, key, seeds=(), required=(), updates=(), decisions=()):
         'snapshot': 'HEAD search with tracked worktree and explicit/required local overlays',
         'source_hash_policy': 'verify before worker start; regenerate on change; completion allows implementation changes',
         'categories': {c: [i['path'] for i in items if c in i['categories']] for c in CATEGORIES},
-        'input_partial': len(text) > 3500, 'task_excerpt': task_excerpt(text), 'instruction': inbox.relative_to(repo).as_posix(),
+        'input_partial': task_excerpt(text) != text, 'task_excerpt': task_excerpt(text), 'instruction': inbox.relative_to(repo).as_posix(),
         'partial': bool(unknown), 'unknown': unknown, 'producer_status': producer_status,
         'worker_decisions': decisions, 'worker_decisions_mode': 'annotations; original recommendations preserved',
         'fallback': 'bounded string/definition search; dynamic references and language server semantics unverified',

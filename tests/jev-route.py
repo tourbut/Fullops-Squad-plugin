@@ -1,5 +1,4 @@
 """stub 응답으로 Jev 라우팅의 기준 전달·simple/design 판정·설계 역할 fallback·결과 기록을 확인한다."""
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,9 +9,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
-spec = importlib.util.spec_from_file_location('jev_route', SCRIPTS / 'jev_route.py')
-jev = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(jev)
+import jev_route as jev  # noqa: E402
 from flow_gate import handover_denial
 for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED', 'TYPESAFE_API_KEY', 'OPENROUTER_API_KEY'):
     os.environ.pop(name, None)  # 셸의 Jev 끄기·키 설정과 무관하게 stub과 키 없는 CLI를 검사한다

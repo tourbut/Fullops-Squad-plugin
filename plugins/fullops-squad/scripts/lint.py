@@ -82,10 +82,10 @@ def load_config(repo, ref):
     if config.get('schema_version') != 1:
         raise ValueError('지원하지 않는 lint 설정 버전')
     for command in config['commands']:
-        policy.command_selected(command, 'standard')
-        run = command.get('run')
-        if not command.get('name') or not isinstance(run, list) or not run or not all(isinstance(a, str) for a in run):
+        run = isinstance(command, dict) and command.get('run')
+        if not run or not isinstance(run, list) or not command.get('name') or not all(isinstance(a, str) for a in run):
             raise ValueError('lint 명령은 name과 문자열 배열 run이 필요합니다')
+        policy.command_selected(command, 'standard')
         paths = command.get('paths')
         if 'paths' in command and (not isinstance(paths, list) or not paths or not all(isinstance(p, str) and p for p in paths)):
             raise ValueError(f'lint 명령 paths는 비어 있지 않은 glob 문자열 배열입니다: {command["name"]}')
@@ -495,15 +495,13 @@ def lint(repo, base_ref, raise_level=None):
                         'unavailable': sum(c['status'] == 'unavailable' for c in commands)}}
 
 
-def stamp(repo, result):
+def stamp(gate, result):
     """done-gate(Stop hook)가 읽는 통과 기록. 체크아웃별 git 디렉터리에 둔다."""
     try:
-        gate = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
-        gate.mkdir(exist_ok=True)
         if json.loads((gate / 'lint-attempt.json').read_text(encoding='utf-8'))['attempt'] != result['attempt']:
             return
         write_json(gate / 'pass.json', {k: result[k] for k in ('attempt', 'head', 'base', 'merge_base', 'config_sha256')})
-    except (OSError, ValueError, KeyError, subprocess.CalledProcessError):
+    except (OSError, ValueError, KeyError):
         pass  # 기록 실패는 lint 결과를 바꾸지 않는다
 
 
@@ -555,7 +553,7 @@ def main():
         if args.out:
             write_json(Path(args.out), result)
         if not (result['summary']['errors'] or result['summary']['unavailable']):
-            stamp(repo, result)
+            stamp(lock.parent / 'fullops-gate', result)
     except (OSError, ValueError, KeyError, TypeError, re.error, subprocess.CalledProcessError) as error:
         parser.exit(2, f'lint 실패: {error}\n')
     finally:

@@ -31,6 +31,14 @@ def slot(folder):
                key=lambda path: path.stat().st_mtime if path.exists() else 0)
 
 
+def program(event):
+    """명령의 실행 파일 이름. 실측에서 시험 로그와 파일 덤프(cat·sed)를 가른다. 값이 비밀일 수 있는 `K=V` 대입은 건너뛴다"""
+    tool = event.get('tool_input')
+    words = str(tool.get('command') or '').split() if isinstance(tool, dict) else []
+    # shortcut: 공백이 있는 경로는 앞 조각만 남는다, 실측에 방해되면 shlex로 바꾼다
+    return next((re.split(r'[\\/]', word.strip('\'"'))[-1][:40] for word in words if '=' not in word), '')
+
+
 def replacement(root, event):
     """줄인 tool_response. 줄일 것이 없거나 다른 형식이면 None"""
     response = event.get('tool_response')
@@ -49,6 +57,6 @@ def replacement(root, event):
     notice = f'[FullOps: 출력이 길어 줄였다. 종료코드 0. 원문은 Read 도구로 {path} 를 읽는다. 통과 근거는 원문으로 확인한다]'
     updated = {**response, 'stdout': shorten(stdout, notice) or stdout, 'stderr': shorten(stderr, notice) or stderr}
     with (folder / 'trim.jsonl').open('a', encoding='utf-8') as log:  # #104 2단계: 절감량 실측
-        log.write(json.dumps({'time': int(time.time()), 'raw': len(stdout) + len(stderr),
+        log.write(json.dumps({'time': int(time.time()), 'command': program(event), 'raw': len(stdout) + len(stderr),
                               'sent': len(updated['stdout']) + len(updated['stderr'])}) + '\n')
     return updated

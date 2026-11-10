@@ -125,9 +125,10 @@ def code_changes(root, state, all_files=False):
     entries = reflog(root)
     own = [line.split(' ', 1)[0] for line in entries[:max(0, len(entries) - state['reflog'])]
            if line.split(' ', 1)[1:2] and line.split(' ', 1)[1].startswith('commit')]
-    committed = set()
-    for sha in own:
-        committed |= set(git(root, 'diff-tree', '-z', '--no-commit-id', '--name-only', '-r', '--root', sha).split('\0'))
+    # 커밋마다 git을 띄우지 않는다. --stdin은 줄바꿈으로 끝난 SHA만 읽는다.
+    committed = set(subprocess.check_output(
+        ['git', '-C', str(root), 'diff-tree', '--stdin', '-z', '--no-commit-id', '--name-only', '-r', '--root'],
+        input=''.join(sha + '\n' for sha in own), text=True, encoding='utf-8', stderr=subprocess.DEVNULL).split('\0')) if own else set()
     fields = subprocess.check_output(['git', '-C', str(root), 'status', '--porcelain', '-z', '--untracked-files=all'],
                                      text=True, encoding='utf-8').split('\0')
     dirty, i = set(), 0

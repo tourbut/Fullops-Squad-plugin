@@ -151,6 +151,16 @@ def main():
         assert '모듈.py' in hook('stop')['reason'], '따옴표로 감싼 비ASCII 경로도 코드 변경이다'
         git('reset', '-q', '--hard', 'HEAD~1')
 
+        # 세션이 만든 커밋이 여럿이면 가장 오래된 커밋의 파일도 빠지지 않는다.
+        assert hook('start', session='two', source='resume') == {}
+        (repo / 'first.py').write_text('a = 1\n', encoding='utf-8')
+        commit('first')
+        (repo / 'second.py').write_text('b = 1\n', encoding='utf-8')
+        commit('second')
+        reason = hook('stop', session='two')['reason']
+        assert 'first.py' in reason and 'second.py' in reason, reason
+        git('reset', '-q', '--hard', 'HEAD~2')
+
         # 다른 체크아웃에서 만든 커밋을 fast-forward로 받는 것은 이 세션의 코드 변경이 아니다.
         worker = repo.parent / f'{repo.name}-worker'
         git('worktree', 'add', '-q', '-b', 'fullops/dev-work', str(worker))

@@ -34,12 +34,8 @@ def normalize_source(source):
     return source.removeprefix("https://github.com/").removesuffix(".git").rstrip("/")
 
 
-def skill_source(skill):
-    return skill['source']
-
-
 def skill_command(skill, agents):
-    return ["npx", "--yes", manifest().get('skill_cli', 'skills@latest'), "add", skill_source(skill),
+    return ["npx", "--yes", manifest().get('skill_cli', 'skills@latest'), "add", skill['source'],
             "--skill", *skill['names'], "--global", "--agent", *agents, "--yes"]
 
 
@@ -53,7 +49,7 @@ def commands(host, registered=None, plugin=None):
     registered는 {cli: {마켓플레이스 이름: 출처}}이며 이미 등록된 마켓플레이스는 건너뛰고 출처가 다르면 멈춘다.
     """
     deps = manifest()
-    agents = {"all": list(HOSTS), "both": ["codex", "claude-code"]}.get(host, [host])
+    agents = HOSTS if host == "all" else [host]
     yield ["npm", "install", "--global", *[server["package"] for server in deps["mcp"].values()],
            *[tool["package"] for tool in deps["tools"]]]
     for skill in deps['skills']:
@@ -169,7 +165,7 @@ def required_skills(host):
 
 
 def command_skills(host, command):
-    item = next((s for s in [*manifest()['skills'], *manifest().get('optional_skills', [])] if skill_source(s) == command[4]),
+    item = next((s for s in [*manifest()['skills'], *manifest().get('optional_skills', [])] if s['source'] == command[4]),
                 {'source': command[4], 'names': command[command.index('--skill') + 1:command.index('--global')]})
     agents = command[command.index('--agent') + 1:command.index('--yes', 2)] if '--agent' in command else [host]
     return [('agy' if agent == 'antigravity-cli' else agent, item) for agent in agents]
@@ -320,11 +316,12 @@ def install_host(host, plan, plugin=None, refresh_shared=True):
         host_only = command[0] == 'npx' and any(command[4] == s['source'] for s in [*manifest()['codex']['skills'], *manifest()['portable_skills']])
         refresh = host_only or refresh_shared and (command[:3] == ['npm', 'install', '--global'] or command[0] == 'npx') or (
             command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and command[3] in dependency_plugins(host))
-        valid = not tool_problems() if command[:3] == ['npm', 'install', '--global'] else \
-            not command_skill_problems(host, command) \
-            if command[0] == 'npx' else not plugin_problems(host, [command[3]], identity.get('plugin') if command[3] == 'fullops-squad@fullops-squad' else None) \
-            if command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and host in ('codex', 'claude-code') else False
-        if refresh or token not in receipt['completed'] or not valid:
+        # 설치 상태 검사는 프로세스를 띄우므로 결과를 쓸 때만 실행한다
+        if refresh or token not in receipt['completed'] or (
+                tool_problems() if command[:3] == ['npm', 'install', '--global'] else
+                command_skill_problems(host, command) if command[0] == 'npx' else
+                plugin_problems(host, [command[3]], identity.get('plugin') if command[3] == 'fullops-squad@fullops-squad' else None)
+                if command[1:3] in (['plugin', 'add'], ['plugin', 'install']) and host in ('codex', 'claude-code') else True):
             if command[0] == 'npx':
                 backup_skills(host, command)
             run([command], False)
@@ -366,7 +363,7 @@ def run(plan, dry_run):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--host", choices=["all", "both", *HOSTS], help="의존성을 설치할 CLI")
+    parser.add_argument("--host", choices=["all", *HOSTS], help="의존성을 설치할 CLI")
     parser.add_argument("--dry-run", action="store_true", help="실행할 명령만 출력한다")
     parser.add_argument("--runtime-only", action="store_true", help="외부 의존성 설치 없이 고정 hook 실행 경로만 갱신")
     parser.add_argument("--check", action="store_true", help="--host와 함께 전체 구성·설치 완료를 검사. 단독 사용은 CLI 존재만 확인")
@@ -377,8 +374,8 @@ def main():
             parser.error('--runtime-only는 다른 옵션과 함께 사용하지 않습니다')
         print(hook_runtime.install(HERE))
         return
+    hosts = HOSTS if args.host == 'all' else [args.host]
     if args.check:
-        hosts = {'all': HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host])
         absent = [f'{host}: {problem}' for host in hosts for problem in check_host(host)] if args.host else missing_tools()
         print(('호스트 의존성 검증 완료' if args.host else '필수 CLI 존재 확인 (skill/plugin/version 검사는 --host 필요)') if not absent else '의존성 미완료: ' + ', '.join(absent))
         raise SystemExit(1 if absent else 0)
@@ -386,12 +383,12 @@ def main():
         parser.error("--host가 필요합니다")
     cli = {"claude-code": "claude"}.get(args.host, args.host)
     try:
-        clis = ('codex', 'claude') if args.host in ('all', 'both') else (cli,)
+        clis = ('codex', 'claude') if args.host == 'all' else (cli,)
         registered = {} if args.dry_run or args.host in ("grok", "agy") else {c: registered_marketplaces(c) for c in clis}
         if args.dry_run:
             run(commands(args.host, registered), True)
         else:
-            for n, host in enumerate({'all': HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host])):
+            for n, host in enumerate(hosts):
                 install_host(host, list(commands(host, registered)), refresh_shared=not args.no_refresh and n == 0)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"의존성 설치 실패: {error}\n")

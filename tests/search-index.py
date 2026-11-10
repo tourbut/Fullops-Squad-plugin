@@ -213,8 +213,10 @@ class SearchIndex(unittest.TestCase):
                 answers['exists'] = {'type': 'noul', 'noul': 0.01}
             return {'model': 'typesafe/jev-test', 'answers': answers,
                     'usage': {'input_tokens': 1, 'output_tokens': 1, 'cost': 0}}, 0
-        with patch.object(jev_find, 'code_map', return_value=entries):
+        indexed = [{'path': path, 'summary': '', 'headings': [], 'definitions': [], 'searchable': True} for path, _ in entries]
+        with patch.object(jev_find, 'metadata', return_value=indexed) as scanned:
             found = jev_find.find(self.repo, 'dev', 'S-1', call, limit=2, strategy='hierarchical')
+        scanned.assert_called_once()  # find는 메타데이터 색인을 한 번만 만든다
         self.assertEqual(found['presented_files'], 260)
         self.assertEqual(found['existence']['status'], 'not_confirmed')
         self.assertEqual(len(found['unselected_files']), 258)

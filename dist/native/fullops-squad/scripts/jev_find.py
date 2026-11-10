@@ -108,10 +108,8 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code', strategy=
     _, text = instruction(repo, role, key, handover)
     task = safe_text(f'{key}\n' + task_excerpt(text))
     head = git(repo, 'rev-parse', 'HEAD')
-    entries = code_map(repo, head, scope)
     indexed = metadata(repo, head, scope)
-    details = {item['path']: description(item) for item in indexed if item['searchable']}
-    entries = [(path, details.get(path, summary)) for path, summary in entries]
+    entries = [(item['path'], description(item)) for item in indexed if item['searchable']]
     paths = {path for path, _ in entries}
     seed_paths, seed_error = explicit_seeds(repo, head, text, paths)
     identity = input_identity(repo, role, key, find_options(scope, limit, strategy))
@@ -121,7 +119,7 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code', strategy=
               'version': 'jev-find-v2', 'requested_model': MODEL, 'files': len(entries),
               'scope': scope, 'passes': [], 'candidates': [], 'existence': None, 'truncated': False,
               'usage': {'input_tokens': 0, 'output_tokens': 0, 'cost': 0}, 'latency_seconds': 0.0, 'error': None,
-              'calls': [], 'semantic_search': not offline(), 'snapshot': 'HEAD metadata; no worktree overlay',
+              'calls': [], 'snapshot': 'HEAD metadata; no worktree overlay',
               'map_sha256': digest(json.dumps(entries, ensure_ascii=False).encode()), 'strategy': strategy, 'seed_paths': seed_paths}
     result['unreadable_files'] = [item['path'] for item in indexed if item.get('read_error')]
     result['seed_search_error'] = seed_error
@@ -186,7 +184,7 @@ def find(repo, role, key, call, limit=12, handover=None, scope='code', strategy=
         result['unselected_files'] = [path for path, _ in entries]
     result.update(presented_files=seen, partial=seen != len(entries) or len(result['passes']) > 1 or bool(result['unreadable_files']) or bool(seed_error),
                   fallback='local Git/keyword/symbol search' if result['error'] or len(result['passes']) > 1 else None,
-                  input_partial=len(text) > 3500, instruction_chars=len(text))
+                  input_partial=task_excerpt(text) != text, instruction_chars=len(text))
     result.setdefault('ranking_status', 'local_only' if offline() else 'unknown')
     if not entries:
         result['existence'] = {'status': 'unknown', 'found_probability': None, 'basis': 'empty metadata map'}

@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'plugins/fullops-squad/scripts/orca_wait.py'
@@ -51,52 +52,40 @@ def lookup():
         exe = Path(tmp) / 'Programs/orca/resources/bin/orca.exe'
         exe.parent.mkdir(parents=True)
         exe.write_text('', encoding='utf-8')
-        saved = {k: os.environ.get(k) for k in ('PATH', 'LOCALAPPDATA', 'ORCA_CLI_COMMAND')}
-        try:
-            os.environ.update({'PATH': tmp, 'LOCALAPPDATA': tmp})
+        with patch.dict(os.environ, {'PATH': tmp, 'LOCALAPPDATA': tmp}):
             os.environ.pop('ORCA_CLI_COMMAND', None)
             assert orca_wait.find_orca() == str(exe), orca_wait.find_orca()
-        finally:
-            for k, v in saved.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
 
 
 def main():
     lookup()
     import orca_wait
-    with tempfile.TemporaryDirectory(prefix='fullops-wait-config-') as tmp:
-        saved = os.environ.pop('FULLOPS_WORKER_CHECK_MINUTES', None)
-        try:
-            assert orca_wait.settings(tmp) == {'check_minutes': 60, 'ready_timeout_seconds': 90, 'log_limit': 30}
-            path = Path(tmp) / '.fullops-squad/.env'
-            path.parent.mkdir()
-            path.write_text('OPENROUTER_API_KEY=private\nFULLOPS_WORKER_CHECK_MINUTES="120" # minutes\n'
-                            'FULLOPS_WORKER_READY_TIMEOUT_SECONDS=180\nFULLOPS_WORKER_LOG_LIMIT=20\n', encoding='utf-8')
-            assert orca_wait.settings(tmp) == {'check_minutes': 120, 'ready_timeout_seconds': 180, 'log_limit': 20}
-            done = subprocess.run([sys.executable, str(SCRIPT), '--repo', tmp, '--settings'], capture_output=True, text=True)
-            assert done.returncode == 0 and 'private' not in done.stdout and json.loads(done.stdout)['log_limit'] == 20
-            os.environ['FULLOPS_WORKER_CHECK_MINUTES'] = '90'
-            assert orca_wait.settings(tmp)['check_minutes'] == 90
-            os.environ.pop('FULLOPS_WORKER_CHECK_MINUTES')
-            for value in ('0', '-1', 'nan', 'inf', 'private'):
-                path.write_text(f'FULLOPS_WORKER_CHECK_MINUTES={value}\n', encoding='utf-8')
-                try:
-                    orca_wait.settings(tmp)
-                    raise AssertionError('invalid interval accepted')
-                except ValueError:
-                    pass
-            path.write_text('FULLOPS_WORKER_LOG_LIMIT=1.5\n', encoding='utf-8')
+    with tempfile.TemporaryDirectory(prefix='fullops-wait-config-') as tmp, patch.dict(os.environ):
+        os.environ.pop('FULLOPS_WORKER_CHECK_MINUTES', None)
+        assert orca_wait.settings(tmp) == {'check_minutes': 60, 'ready_timeout_seconds': 90, 'log_limit': 30}
+        path = Path(tmp) / '.fullops-squad/.env'
+        path.parent.mkdir()
+        path.write_text('OPENROUTER_API_KEY=private\nFULLOPS_WORKER_CHECK_MINUTES="120" # minutes\n'
+                        'FULLOPS_WORKER_READY_TIMEOUT_SECONDS=180\nFULLOPS_WORKER_LOG_LIMIT=20\n', encoding='utf-8')
+        assert orca_wait.settings(tmp) == {'check_minutes': 120, 'ready_timeout_seconds': 180, 'log_limit': 20}
+        done = subprocess.run([sys.executable, str(SCRIPT), '--repo', tmp, '--settings'], capture_output=True, text=True)
+        assert done.returncode == 0 and 'private' not in done.stdout and json.loads(done.stdout)['log_limit'] == 20
+        os.environ['FULLOPS_WORKER_CHECK_MINUTES'] = '90'
+        assert orca_wait.settings(tmp)['check_minutes'] == 90
+        os.environ.pop('FULLOPS_WORKER_CHECK_MINUTES')
+        for value in ('0', '-1', 'nan', 'inf', 'private'):
+            path.write_text(f'FULLOPS_WORKER_CHECK_MINUTES={value}\n', encoding='utf-8')
             try:
                 orca_wait.settings(tmp)
-                raise AssertionError('fractional log limit accepted')
+                raise AssertionError('invalid interval accepted')
             except ValueError:
                 pass
-        finally:
-            if saved is not None:
-                os.environ['FULLOPS_WORKER_CHECK_MINUTES'] = saved
+        path.write_text('FULLOPS_WORKER_LOG_LIMIT=1.5\n', encoding='utf-8')
+        try:
+            orca_wait.settings(tmp)
+            raise AssertionError('fractional log limit accepted')
+        except ValueError:
+            pass
     with tempfile.TemporaryDirectory(prefix='fullops-orca-wait-') as tmp:
         fake = Path(tmp) / 'orca'
         fake.write_text(FAKE)
@@ -112,6 +101,7 @@ def main():
         assert [m['type'] for m in out['messages']] == ['heartbeat', 'worker_done']
         assert out['absorbed']['heartbeats']['term_w1']['at'] == '2026-09-23 10:01'
         assert [m['type'] for m in out['absorbed']['others']] == ['status']
+        assert out['record_error'] is None and out['integration'] == [], out
         acks = [c[c.index('--ack') + 1] if '--ack' in c else None for c in calls]
         assert acks == ['d0', 'd1', 'd2'], acks
         assert all('--types' not in c and '--wait' in c and c[c.index('--run') + 1] == 'run_1' for c in calls)
@@ -139,6 +129,13 @@ def main():
         code, out, _ = run(tmp, [batch('d1', 'heartbeat'),
                                  {'id': 'x', 'ok': False, 'error': {'code': 'consumer_fenced', 'message': 'no'}}])
         assert code == 2 and out['status'] == 'error' and 'consumer_fenced' in out['error'] and out['pending_ack'] == 'd1', out
+
+        # 통합 대기 조회가 실패해도(git.base 없는 설정, 읽지 못하는 설정) 이미 소비한 묶음은 오류와 함께 돌려준다.
+        for broken in ('{"git": {"remote": "origin"}}', 'not json'):
+            (Path(tmp) / '.fullops-squad/fullops.json').write_text(broken, encoding='utf-8')
+            code, out, _ = run(tmp, [batch('d1', 'question')])
+            assert code == 0 and out['status'] == 'actionable' and out['deliveryId'] == 'd1', out
+            assert out['messages'][0]['type'] == 'question' and out['record_error'] and out['integration'] == [], out
     print('PASS: orca wait absorbs heartbeat/status, acks in order, returns actionable, idle timeout, errors')
 
 

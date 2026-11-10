@@ -47,7 +47,7 @@ def git_calls(root, commands):
             if target:
                 here = Path(target) if Path(target).is_absolute() else here / target
             continue
-        if Path(first).stem != 'git':
+        if Path(first).stem.lower() != 'git':  # Windows는 git.EXE
             continue
         args, where = [w.strip('\'"') for w in words[1:]], here
         while args and args[0] in ('-C', '-c'):
@@ -142,7 +142,7 @@ def advice(root, files, level, handover_pattern):
                 notes.append(f"지시서 {relative}가 {', '.join(asks)} 캡처를 요구합니다. 테스트 레벨 {level}의 개발 과제는 lint와 변경 동작 테스트로 "
                              '검증하고 보고용 캡처를 만들지 않습니다. 화면 품질은 통합 후보의 큰 틀 검수에서 봅니다. 반응형·테마가 이번 변경 대상이 아니면 '
                              '그 요구를 빼고, 꼭 필요하면 레벨을 올리거나 사용자에게 물으세요(rules/common/testing.md).')
-        elif _folder(relative) and relative.endswith('/report.md'):
+        elif _folder(relative) and not _folder(relative).endswith('-review') and relative.endswith('/report.md'):  # 리뷰 보고서는 템플릿만 44줄이다
             lines = len(text.splitlines())
             if lines > REPORT_LINES:
                 notes.append(f'보고서 {relative}가 {lines}줄입니다. 테스트 레벨 {level}의 보고서는 판정 항목과 결과 표, 실패·미실행·한계만 적고 '

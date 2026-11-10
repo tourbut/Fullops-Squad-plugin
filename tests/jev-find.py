@@ -1,5 +1,4 @@
-"""stub 응답으로 Jev 코드 탐색의 지도 구성·순위·존재 판정·디렉터리 2단계·실패 처리·적중률 기록을 확인한다."""
-import importlib.util
+"""stub 응답으로 Jev 코드 탐색의 지도 구성·순위·존재 판정·255개 초과 배치·실패 처리·적중률 기록을 확인한다."""
 import json
 import os
 from pathlib import Path
@@ -10,9 +9,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / 'plugins/fullops-squad/scripts'
 sys.path.insert(0, str(SCRIPTS))
-spec = importlib.util.spec_from_file_location('jev_find', SCRIPTS / 'jev_find.py')
-jev = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(jev)
+import jev_find as jev  # noqa: E402
 for name in ('FULLOPS_OFFLINE', 'FULLOPS_JEV_ENABLED'):
     os.environ.pop(name, None)  # 셸의 Jev 끄기 설정과 무관하게 stub 판정을 검사한다
 
@@ -163,7 +160,7 @@ def main():
                      '--from', base, '--to', 'HEAD']
         done = subprocess.run(score_cmd, capture_output=True, text=True, env=env, encoding='utf-8')
         assert done.returncode == 0 and 'recall' in done.stdout, done.stdout + done.stderr
-    print('PASS: jev find map, ranking, existence, directory pass, fallback, score vs actual diff, CLI')
+    print('PASS: jev find map, ranking, existence, batch pass, fallback, score vs actual diff, CLI')
 
 
 if __name__ == '__main__':

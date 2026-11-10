@@ -37,30 +37,27 @@ export type Row = {
 export const asRecord = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
 
+/** The fields of a JSON object given as text; `{}` for anything else, text that is not JSON included. */
+export const parseRecord = (source: string): Record<string, unknown> => {
+  try {
+    return asRecord(JSON.parse(source))
+  } catch {
+    return {}
+  }
+}
+
 export const text = (value: unknown): string => (typeof value === 'string' ? value : '')
 
 /** The Orca run this coordinator is bound to, from `orca orchestration run-current --json`; null when none. */
 export const parseRunId = (stdout: string): string | null => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(stdout)
-  } catch {
-    return null
-  }
-  const run = asRecord(asRecord(asRecord(parsed).result).run)
+  const run = asRecord(asRecord(parseRecord(stdout).result).run)
   const id = text(run.id) || text(run.runId)
   return id === '' ? null : id
 }
 
 /** The rows of `orca orchestration worker-list --json`; empty for anything that is not that. */
 export const parseRows = (stdout: string): Row[] => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(stdout)
-  } catch {
-    return []
-  }
-  const workers = asRecord(asRecord(asRecord(parsed).result)).workers
+  const workers = asRecord(parseRecord(stdout).result).workers
   if (!Array.isArray(workers)) return []
   return workers.map(item => {
     const worker = asRecord(item)
@@ -87,13 +84,7 @@ const OVER = new Set(['completed', 'cancelled', 'canceled', 'failed'])
  * for a worker (no dispatch yet and not over), in listing order.
  */
 export const parseTasks = (stdout: string, sent: ReadonlySet<string> = new Set()): { keys: Record<string, string>; queued: string[] } => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(stdout)
-  } catch {
-    return { keys: {}, queued: [] }
-  }
-  const tasks = asRecord(asRecord(parsed).result).tasks
+  const tasks = asRecord(parseRecord(stdout).result).tasks
   const keys: Record<string, string> = {}
   const queued: string[] = []
   if (Array.isArray(tasks)) {
@@ -196,13 +187,7 @@ export const stepOf = (name: string, input: Record<string, unknown>): string => 
 
 /** A worker's latest words and tool calls, from `orca orchestration worker-read --source transcript --json`. */
 export const parseProgress = (stdout: string): Progress | null => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(stdout)
-  } catch {
-    return null
-  }
-  const messages = asRecord(asRecord(asRecord(parsed).result).transcript).messages
+  const messages = asRecord(asRecord(parseRecord(stdout).result).transcript).messages
   if (!Array.isArray(messages)) return null
   let said = ''
   let at = 0

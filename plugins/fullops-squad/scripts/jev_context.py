@@ -76,7 +76,7 @@ def context(repo, role, key, paths, call, required=(), handover=None):
     return {**outcome, **input_identity(repo, role, key, {'policy': 'context-v2', 'paths': paths, 'required': list(required)}),
             'unsent_sources': unsent, 'refused_paths': refused,
             'elapsed_seconds': round(time.monotonic() - started, 3),
-            'input_partial': len(text) > 3500, 'instruction_chars': len(text)}
+            'input_partial': task_excerpt(text) != text, 'instruction_chars': len(text)}
 
 
 def report(result):

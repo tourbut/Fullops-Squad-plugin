@@ -6,6 +6,7 @@
 coordinator 세션이 끝날 때마다 작업 현황판 데이터(board/board-data.js)를 다시 만든다.
 Claude Code·Codex(snake_case)와 grok(camelCase) 입력을 함께 읽는다. 셸 우회까지 막지는 못하며, 어떤 오류도 작업을 막지 않는다.
 """
+import functools
 import hashlib
 import json
 import os
@@ -23,8 +24,8 @@ import deliverables
 import integration
 import policy
 from orca_wait import find_orca
-from done_gate import CODE, field, git
-from jev_route import coordinator_role, guide, marked_role, product_roles
+from done_gate import CODE, field, git, run_hook
+from jev_route import REVIEWER, coordinator_role, guide, marked_role, product_roles
 from storage import write_json
 
 DISPATCH = re.compile(r'--dispatch-id[ =]+([A-Za-z0-9_.:-]+)')
@@ -33,7 +34,9 @@ SEND_LIMIT = 20  # coordinator가 terminal send로 보낼 수 있는 글자 수.
 HANDOVER = re.compile(r'(?:^|/)\.fullops-squad/handovers/to_([a-z][a-z0-9_-]*)\.md$')
 TITLE = re.compile(r'#\s+([A-Za-z0-9][A-Za-z0-9._-]*)\s+—')
 STARTED = re.compile(r'\borchestration\s+worker-start\b.*?--run[ =]+["\']?([A-Za-z0-9_-]+)', re.S)
-ORCA = ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev')
+ORCA = ('orca', 'orca.exe', 'orca.cmd', 'orca-ide', 'orca-dev')  # 실행 파일 이름은 소문자로 바꿔 비교한다(Windows는 orca.EXE)
+PYTHON = re.compile(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', re.I)
+REVIEW = re.compile(r'\bPurpose\s*[:=]\s*review\b', re.I)
 ROUTED = re.compile(r'\bjev_route\.py\b.*?--key[ =]+["\']?([A-Za-z0-9][A-Za-z0-9._-]*)', re.S)
 
 
@@ -168,7 +171,7 @@ def inbox_denial(root, name, content):
 
 def dispatch_inbox_denial(command):
     """추가 자료만으로 착수하지 않고 현재 역할 인박스를 전달하게 한다."""
-    if re.search(r'\bPurpose\s*[:=]\s*review\b', command, re.I):
+    if REVIEW.search(command):
         return None  # 리뷰어는 인박스가 아니라 완료 로그·지시서 원문을 요구사항 근거로 읽는다.
     paths = re.findall(r'handovers[/\\][^\s\'"`]+\.md', command)
     if paths and not any(re.fullmatch(r'handovers[/\\]to_[a-z][a-z0-9_-]*\.md', path) for path in paths):
@@ -260,7 +263,7 @@ def shell_commands(command):
 
 def operation_commands(command, operation, group='orchestration'):
     return [' '.join(words) for words in shell_commands(command) if
-            Path(words[0]).name in ORCA and
+            Path(words[0]).name.lower() in ORCA and
             words[1:3] == [group, operation] and not any(word in ('--help', '-h') for word in words)]
 
 
@@ -272,7 +275,7 @@ def settlement_command(command, state):
         words = list(lexer)
     except ValueError:
         return None
-    if len(words) < 4 or Path(words[0]).name not in ORCA or words[1:3] != ['orchestration', 'send']:
+    if len(words) < 4 or Path(words[0]).name.lower() not in ORCA or words[1:3] != ['orchestration', 'send']:
         return None
     if any(word in ('--help', '-h') or re.fullmatch(r'[;&|]+', word) for word in words):
         return None
@@ -405,9 +408,10 @@ def handled(root, key):
     return done.returncode == 0 and bool(integration.key_present(key, done.stdout))
 
 
-def task_listing(run):
-    """spec을 읽으므로 --full이 필요하다. 기본 응답(Orca 1.4.246+)에는 id·status·title만 온다."""
-    return orca('orchestration', 'task-list', *(['--run', run.group(1)] if run else []), '--full')
+@functools.lru_cache(maxsize=None)
+def task_list(run):
+    """hook 한 번에 Run마다 한 번만 읽는다. dispatch_spec와 route_key_denial이 같은 `--task`를 본다."""
+    return integration.task_list(run)
 
 
 def route_key_denial(root, command):
@@ -421,20 +425,26 @@ def route_key_denial(root, command):
         text += ' Task key: ' + (key_in(None, handover) or '')
     task, run = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', command), re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', command)
     if task:
-        listing = task_listing(run)
+        listing = task_list(run and run.group(1))
         if listing is None:
             return None  # 과제 내용을 확인할 수 없으면 막지 않는다
         found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
         text += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '')
     named = integration.dispatch_key(text)
-    for key in keys:
-        if key == named:
-            route = route_of(root, key)
-            if not route:
-                return f'{key}의 route 기록 스키마가 잘못됐습니다. jev_route.py로 재분류하세요.'
-            if route.get('route') == 'unresolved':
-                return f'{key}의 담당 역할이 미확정입니다. 근거와 함께 재분류한 뒤 배정하세요.'
-            return None
+    if named in keys:
+        route = route_of(root, named)
+        if not route:
+            return f'{named}의 route 기록 스키마가 잘못됐습니다. jev_route.py로 재분류하세요.'
+        if route.get('route') == 'unresolved':
+            return f'{named}의 담당 역할이 미확정입니다. 근거와 함께 재분류한 뒤 배정하세요.'
+        return None
+    if named and REVIEW.search(text):  # dev 직접 작업의 리뷰는 route가 없다. `jev_route.py --model-only --role reviewer` 기록으로 통과한다
+        try:
+            record = json.loads((jev / f'{named}-model-{REVIEWER}.json').read_text(encoding='utf-8'))
+            if record.get('task_key') == named and record.get('role') == REVIEWER:
+                return None
+        except (OSError, ValueError, AttributeError):
+            pass
     where = f"`--task {task.group(1)}` 과제의 spec" if task else 'dispatch 명령의 spec'
     recent = ', '.join(keys[:5]) or '없음'
     return (f'{where}에 Jev로 분류한 과제 키가 보이지 않습니다. 모든 배정은 `jev_route.py --key <과제 키>`로 먼저 분류하고, '
@@ -457,7 +467,7 @@ def dispatch_spec(command, dispatch):
     task = re.search(r'--task[ =]+["\']?(task_[A-Za-z0-9]+)', dispatch)
     if task:
         run = re.search(r'--run[ =]+["\']?([A-Za-z0-9_-]+)', dispatch)
-        listing = task_listing(run)
+        listing = task_list(run and run.group(1))
         if listing is not None:
             found = next((t for t in listing.get('tasks') or [] if t.get('id') == task.group(1)), {})
             result += ' Task key: ' + (integration.dispatch_key('--spec ' + json.dumps(found.get('spec') or '')) or '') + ' ' + str(found.get('spec') or '')
@@ -474,7 +484,7 @@ def delegation_denial(root, event, state, config, starting, lead):
         return None
     if native:
         import issue_mode
-        if (integration.directory(root).parent / 'fullops-issues/state.sqlite').is_file():
+        if issue_state_exists(root):
             automatic = issue_mode.Store(root).read()
             owner = automatic.get('owner') or {}
             session = field(event, 'session_id')
@@ -537,14 +547,14 @@ def tool_denial(root, event, state):
     if candidate:
         state['sending'] = {**candidate, 'tool_use_id': field(event, 'tool_use_id')}
     starting = operation_commands(command, 'worker-start')
-    python_commands = [' '.join(words) for words in shell_commands(command) if re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name)]
+    python_commands = [' '.join(words) for words in shell_commands(command) if PYTHON.fullmatch(Path(words[0]).name)]
     for run in STARTED.findall('\n'.join(starting)):  # 띄운 worker의 결과를 받기 전에 끝내지 않게 Run을 기억한다
         state['runs'] = sorted(set(state.get('runs', [])) | {run})
     for key in ROUTED.findall('\n'.join(python_commands)):  # 분류한 과제는 세션이 끝나기 전에 배정했는지 확인한다
         state['routed'] = sorted(set(state.get('routed', [])) | {key})
-    role, designer = context(root)
-    lead = primary(root, state)
     config = policy.load(root)
+    role, lead = policy.identity(root, config, coordinator_role(root), bool(state.get('dispatch')))
+    designer = marked_role(root, '설계')
     creating = operation_commands(command, 'task-create')
     specs = {item: dispatch_spec(command, item) for item in starting + creating}
     denial = delegation_denial(root, event, state, config, [specs[item] for item in starting], lead)
@@ -575,11 +585,10 @@ def tool_denial(root, event, state):
             inbox = orca('orchestration', 'check', *flags, '--peek')
             if inbox is not None:
                 integration.record(root, inbox.get('messages') or [])
-    injection_commands = operation_commands(command, 'send', 'terminal') + operation_commands(command, 'dispatch')
-    if INJECT.search('\n'.join(injection_commands)):
+    sends = operation_commands(command, 'send', 'terminal')
+    if INJECT.search('\n'.join(sends + operation_commands(command, 'dispatch'))):
         return '지시서를 터미널로 주입하면 worker가 `worker_done`을 보낼 수 없습니다. `orchestration worker-start --run <run id>`로 띄우세요.'
-    if lead and any(len(sent_text(send)) > SEND_LIMIT for send in
-                                     operation_commands(command, 'send', group='terminal')):
+    if lead and any(len(sent_text(send)) > SEND_LIMIT for send in sends):
         return ('작업 지시를 `terminal send`로 보내면 Orca 추적 밖에서 돌아 `worker_done`·Run 대기·Stop 검사가 빠집니다. '
                 '같은 과제의 후속은 조건이 맞으면 `worker-start --terminal <핸들>`로 붙이고, 실패하거나 오래 쉰 세션이면 '
                 '새 세션으로 dispatch하세요(spec에 지시서 경로·이전 SHA). 짧은 확인 입력만 직접 보낼 수 있습니다.')
@@ -681,7 +690,7 @@ def main(event=None):
         if mode == 'tool' and len(commands) == 1:
             words = commands[0]
             # hook은 runtime 복사본에서 돈다. 경로 대신 같은 setup.py 내용인지 본다
-            if len(words) > 2 and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(words[0]).name) and (
+            if len(words) > 2 and PYTHON.fullmatch(Path(words[0]).name) and (
                     (script := Path(words[1].strip('\'"'))).name == 'setup.py' and script.is_file() and
                     script.read_bytes() == Path(__file__).with_name('setup.py').read_bytes()) and '--repo' in words:
                 index = words.index('--repo')
@@ -869,5 +878,4 @@ def main(event=None):
 
 
 if __name__ == '__main__':
-    from done_gate import run_hook
     print(json.dumps(run_hook(main, 'flow'), ensure_ascii=False))

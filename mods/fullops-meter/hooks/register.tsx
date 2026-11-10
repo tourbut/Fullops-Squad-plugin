@@ -74,8 +74,7 @@ type Shared = {
   timers: Timer[]
   /** undefined: not read yet; null: auto-compaction is off. */
   compactAt: number | null | undefined
-  isFirstPoll: boolean
-  /** When the last worker poll ran, so a stall is told of once, as it crosses the limit; 0 before any. */
+  /** When the last worker poll ran, so a stall is told of once, as it crosses the limit; 0 before any, which also marks the first poll. */
   lastPollAt: number
   isFullOps: boolean
   /** Each checkout read so far, by its root. */
@@ -253,8 +252,7 @@ async function pollWorkers($: EngineInterface, shared: Shared): Promise<void> {
   const sent = new Set(rows.map(row => row.taskId))
   const { keys, queued } = tasks.exitCode === 0 ? parseTasks(tasks.stdout, sent) : { keys: known?.keys ?? {}, queued: known?.queued ?? [] }
   const seen = await read($, seenAtom)
-  const merged = reconcile(seen, rows, keys, now, shared.isFirstPoll)
-  shared.isFirstPoll = false
+  const merged = reconcile(seen, rows, keys, now, shared.lastPollAt === 0)
   await update($, seenAtom, () => merged.seen)
   await update($, fullopsAtom, before => (before === null ? null : { ...before, keys, queued }))
   const before = (await read($, meterAtom))?.workers ?? []
@@ -361,13 +359,8 @@ async function readReviews($: EngineInterface): Promise<Review[]> {
     folders.map(async folder => {
       const dir = `${REVIEWS}/${folder.name}`
       const result = await $.fs.read(`${dir}/result.json`).catch(() => null)
-      let marker = null
-      for (const [file, name] of MARKERS) {
-        if (await $.fs.exists(`${dir}/${file}`).catch(() => false)) {
-          marker = name
-          break
-        }
-      }
+      const names = new Set((await $.fs.list(dir).catch(() => [])).map(entry => entry.name))
+      const marker = MARKERS.find(([file]) => names.has(file))?.[1] ?? null
       return summarizeReview(folder.name.slice(0, -'-review'.length), result, marker, folder.mtimeMs)
     }),
   )
@@ -457,7 +450,6 @@ export const register: Register = (on, options) => {
     isPolling: false,
     timers: [],
     compactAt: undefined,
-    isFirstPoll: true,
     lastPollAt: 0,
     isFullOps: false,
     locations: {},
@@ -471,8 +463,6 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     // The meter is not reset here: a reload runs session.start again, and `$.state` is the session's own anyway.
-    // 0.2.0 pinned its line with $.ui.status, which the engine prefixes with the plugin name; clear what it left.
-    $.ui.status(undefined)
     shared.isFullOps = await $.fs.exists(CONFIG).catch(() => false)
     await $.command
       .register({ name: COMMAND, description: 'Model, context, cache and worker status (hide/show toggles the band, history lists the requests)', argumentHint: '[hide|show|history]' })
