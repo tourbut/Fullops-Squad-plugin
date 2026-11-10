@@ -1,0 +1,743 @@
+{
+  "schema_version": "1",
+  "mode": "range",
+  "repository": "C:/Users/shin/orca/workspaces/Fullops-Squad-plugin/dev",
+  "from": "10c0695df4f66d6a76e94c1b9c9579eae3d84a4e",
+  "to": "95f0edbe1e47d07a36570bb7b720d0ac4b98f6ea",
+  "merge_base": "10c0695df4f66d6a76e94c1b9c9579eae3d84a4e",
+  "total_files": 112,
+  "reviewable_count": 59,
+  "excluded_count": 53,
+  "total_insertions": 818,
+  "total_deletions": 676,
+  "reviewable_files": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 14,
+      "deletions": 6
+    },
+    {
+      "path": ".fullops-squad/board/board.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/REPO-SWEEP-test/report.md",
+      "status": "added",
+      "insertions": 42,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "status": "modified",
+      "insertions": 86,
+      "deletions": 0
+    },
+    {
+      "path": ".fullops-squad/lint/lint.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": ".fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "bin/fullops-squad.cjs",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "mods/fullops-meter/.claude-plugin/plugin.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "mods/fullops-meter/hooks/flow.ts",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 8
+    },
+    {
+      "path": "mods/fullops-meter/hooks/fullops.ts",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 22
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.test.tsx",
+      "status": "modified",
+      "insertions": 35,
+      "deletions": 1
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.tsx",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 14
+    },
+    {
+      "path": "mods/fullops-meter/hooks/workers.ts",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 28
+    },
+    {
+      "path": "package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 4
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/assets/unity/com.fullops.jevplay/Runtime/JevPlay.cs",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4
+    },
+    {
+      "path": "plugins/fullops-squad/assets/unity/com.fullops.jevplay/package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/autonomy.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 8
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/deliverables.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 16
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/done_gate.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 3
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 37,
+      "deletions": 29
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/harness_gate.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 25
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 5
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_observe.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_packet.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 7
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 8
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/orca_wait.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 4
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/output_trim.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 12
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/session_cache.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/setup.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/test_record.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 1
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "scripts/install.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3
+    },
+    {
+      "path": "tests/check.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 17
+    },
+    {
+      "path": "tests/common-rules.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 13
+    },
+    {
+      "path": "tests/delegation.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1
+    },
+    {
+      "path": "tests/deps.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 2
+    },
+    {
+      "path": "tests/done-gate.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 0
+    },
+    {
+      "path": "tests/flow-gate.py",
+      "status": "modified",
+      "insertions": 24,
+      "deletions": 20
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "status": "modified",
+      "insertions": 27,
+      "deletions": 27
+    },
+    {
+      "path": "tests/jev-context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 4
+    },
+    {
+      "path": "tests/jev-find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 6
+    },
+    {
+      "path": "tests/jev-route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 4
+    },
+    {
+      "path": "tests/lint.py",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 0
+    },
+    {
+      "path": "tests/operating-policy.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 3
+    },
+    {
+      "path": "tests/orca-wait.py",
+      "status": "modified",
+      "insertions": 32,
+      "deletions": 35
+    },
+    {
+      "path": "tests/output-trim.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2
+    },
+    {
+      "path": "tests/search-index.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1
+    },
+    {
+      "path": "tests/session-regressions.py",
+      "status": "modified",
+      "insertions": 15,
+      "deletions": 4
+    },
+    {
+      "path": "tests/stabilization.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1
+    }
+  ],
+  "excluded_files": [
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/unity/com.fullops.jevplay/Runtime/JevPlay.cs",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/unity/com.fullops.jevplay/package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/autonomy.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/deliverables.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 16,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/done_gate.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 37,
+      "deletions": 29,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/harness_gate.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 25,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 5,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_observe.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_packet.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 7,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_test_web.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/orca_wait.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/output_trim.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 12,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/session_cache.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/setup.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/test_record.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/unity/com.fullops.jevplay/Runtime/JevPlay.cs",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/unity/com.fullops.jevplay/package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/hooks/codex.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/autonomy.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/deliverables.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 16,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/done_gate.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 3,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 37,
+      "deletions": 29,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/harness_gate.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 25,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 5,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_observe.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_packet.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 7,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_test_web.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 8,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/orca_wait.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/output_trim.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 12,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/session_cache.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/setup.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/test_record.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 1,
+      "exclude_reason": "user_exclude"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude"
+    }
+  ],
+  "fullops_review_schema_version": 2
+}
