@@ -106,6 +106,20 @@ def install(package):
     return root
 
 
+def prune():
+    """Remove every snapshot but the current one. A running hook may still use an old one, so nothing calls this automatically."""
+    import shutil
+
+    packages = runtime_root() / 'packages'
+    key = json.loads((packages.parent / 'current.json').read_text(encoding='utf-8'))['package']
+    if not isinstance(key, str) or not re.fullmatch(r'[0-9a-f]{64}', key) or not (packages / key).is_dir():
+        raise ValueError('Invalid runtime package')
+    stale = [path for path in packages.iterdir() if path.is_dir() and path.name != key]
+    for path in stale:
+        shutil.rmtree(path, ignore_errors=True)
+    return [path.name for path in stale if not path.exists()]
+
+
 def run():
     root = Path(__file__).resolve().parents[1]
     current = json.loads((root / 'current.json').read_text(encoding='utf-8'))

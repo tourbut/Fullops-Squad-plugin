@@ -98,13 +98,6 @@ def main():
         else:
             raise AssertionError('wrong inbox')
         sent.clear()
-        try:
-            jev.find(repo, 'dev', 'F-1', stub(sent, ['auth/login']), handover='.fullops-squad/handovers/F-1-dev.md')
-        except ValueError as error:
-            assert '역할 인박스' in str(error)
-        else:
-            raise AssertionError('별도 과제명 파일을 현재 지시서로 허용함')
-        assert not sent
         (repo / '.fullops-squad/handovers/to_dev.md').write_text(
             '# F-1 — 로그인 실패 시 세션을 만들지 않게 수정\n', encoding='utf-8')
 

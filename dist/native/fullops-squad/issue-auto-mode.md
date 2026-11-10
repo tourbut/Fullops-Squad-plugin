@@ -50,7 +50,7 @@ credential 문자열이 포함된 API 페이지는 ETag 캐시를 저장하지 �
 
 ## 호스트 승인과 lease 파일
 
-`enable` 결과 JSON은 현재 coor 작업 공간 안의 Git 제외 파일에 저장한다. 예: `.fullops-squad/.env.issue-mode-lease.json` (`.env*` 제외 규칙 확인, POSIX에서는 현재 사용자 소유의 0600 파일을 미리 준비). 이후 `wait`, `claim`, `checkpoint`, `question`, `answers`, `sync`, `reconcile`, `complete`, `poll`에는 `--token-file <그 JSON 경로>`를 사용한다. CLI가 파일에서 token을 읽고 기존 lease/현재 coor 검증을 수행한다. token 값을 argv·모델 입력·보고서에 복사하거나 인라인 interpreter로 전달할 필요가 없다. 기존 `--token` 입력은 호환을 위해 유지한다.
+`enable` 결과 JSON은 현재 coor 작업 공간 안의 Git 제외 파일에 저장한다. 예: `.fullops-squad/.env.issue-mode-lease.json` (`.env*` 제외 규칙 확인, POSIX에서는 현재 사용자 소유의 0600 파일을 미리 준비). 이후 `wait`, `claim`, `checkpoint`, `question`, `answers`, `sync`, `reconcile`, `complete`, `poll`에는 `--token-file <그 JSON 경로>`를 사용한다. CLI가 파일에서 token을 읽고 기존 lease/현재 coor 검증을 수행한다. token 값을 argv·모델 입력·보고서에 복사하거나 인라인 interpreter로 전달할 필요가 없다.
 
 Claude의 Bash 허용 규칙과 리다이렉트 대상 파일 권한은 별도다. i-Docs Claude 2.1.294에서 정확한 enable 명령을 허용해도 작업 공간 밖 `/tmp` 출력은 자동 심사에 거부됐고, 명령 인자·규칙을 유지한 채 작업 공간 안의 Git 제외 0600 출력 파일로 바꾸자 활성화됐다. [Claude 리다이렉트 권한](https://code.claude.com/docs/en/permissions#redirections)을 확인한다. 호스트가 명령을 거부하면 해당 명령/경로와 사용자 승인 범위를 확인하고 정상 승인 경로로 처리한다. 전역 정책이나 우회 모드를 변경하지 않는다.
 

@@ -366,13 +366,14 @@ def main():
     parser.add_argument("--host", choices=["all", *HOSTS], help="의존성을 설치할 CLI")
     parser.add_argument("--dry-run", action="store_true", help="실행할 명령만 출력한다")
     parser.add_argument("--runtime-only", action="store_true", help="외부 의존성 설치 없이 고정 hook 실행 경로만 갱신")
+    parser.add_argument("--prune-runtime", action="store_true", help="현재 것이 아닌 hook 런타임 사본을 지운다. 모든 호스트 세션을 닫은 뒤 실행한다")
     parser.add_argument("--check", action="store_true", help="--host와 함께 전체 구성·설치 완료를 검사. 단독 사용은 CLI 존재만 확인")
     parser.add_argument("--no-refresh", action="store_true", help="공용 의존성(전역 npm 도구·사용자 스킬)은 빠졌을 때만 설치한다. 같은 실행에서 이미 갱신했을 때 쓴다")
     args = parser.parse_args()
-    if args.runtime_only:
-        if args.check or args.dry_run or args.host:
-            parser.error('--runtime-only는 다른 옵션과 함께 사용하지 않습니다')
-        print(hook_runtime.install(HERE))
+    if args.runtime_only or args.prune_runtime:
+        if args.check or args.dry_run or args.host or args.runtime_only and args.prune_runtime:
+            parser.error('--runtime-only와 --prune-runtime은 다른 옵션과 함께 사용하지 않습니다')
+        print(hook_runtime.install(HERE) if args.runtime_only else f'지운 런타임 사본 {len(hook_runtime.prune())}개')
         return
     hosts = HOSTS if args.host == 'all' else [args.host]
     if args.check:
