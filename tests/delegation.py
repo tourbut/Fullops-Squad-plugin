@@ -169,8 +169,11 @@ class Delegation(unittest.TestCase):
         self.assertIsNone(flow_gate.delegation_denial(self.repo, {}, {'dispatch': 'parent'}, self.config, [spec], False))
         dispatch = 'orca orchestration worker-start --run r --task task_saved'
         review = 'Task key: K; Purpose: review; Review SHA: abc; Implementer session: a; Reviewer session: b'
-        with patch.object(flow_gate, 'orca', return_value={'tasks': [{'id': 'task_saved', 'spec': review}]}):
+        self.addCleanup(flow_gate.task_list.cache_clear)
+        with patch.object(flow_gate.integration, 'orca', return_value={'tasks': [{'id': 'task_saved', 'spec': review}]}) as cli:
             spec = flow_gate.dispatch_spec(dispatch, dispatch)
+            flow_gate.route_key_denial(self.repo, spec)  # 같은 hook의 두 번째 조회는 Orca를 다시 부르지 않는다
+        cli.assert_called_once_with('orchestration', 'task-list', '--run', 'r', '--full', cwd=None)
         config = {**self.config, 'mode': 'dev', 'subagent_level': 'off'}
         self.assertIsNone(flow_gate.delegation_denial(self.repo, {}, {}, config, [spec], True))
 

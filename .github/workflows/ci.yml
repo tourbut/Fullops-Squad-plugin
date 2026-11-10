@@ -39,7 +39,7 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Build native package
         run: python3 scripts/build.py
-      - name: Run setup, handover, common-rules and schema checks
+      - name: Run npm test
         run: npm test
       - name: Check committed build output and catalogs match the source
         run: |

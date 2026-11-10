@@ -159,9 +159,17 @@ class OperatingPolicy(unittest.TestCase):
             self.apply(**options)
         extra.unlink()
         gate = Path(self.git('rev-parse', '--absolute-git-dir')) / 'fullops-gate/flow-worker.json'
-        storage.write_json(gate, {'dispatch': 'active', 'settled': False})
-        with self.assertRaisesRegex(ValueError, 'dispatch'):
-            self.apply(**options)
+        storage.write_json(gate, {'dispatch': 'd1', 'task': 't1', 'settled': False})
+        with patch.object(flow_gate, 'orca', return_value=None):  # Orca를 확인하지 못하면 그대로 막는다.
+            with self.assertRaisesRegex(ValueError, 'dispatch'):
+                self.apply(**options)
+        # 끝난 세션이 settled를 남기지 못했어도 Orca가 완료로 보는 dispatch는 전환을 막지 않는다.
+        settled = {'dispatchId': 'd1', 'taskId': 't1', 'state': 'succeeded', 'stage': 'settled'}
+        with patch.object(flow_gate, 'orca', return_value=settled):
+            setup.transition_preflight(self.repo)
+        with patch.object(flow_gate, 'orca', return_value={**settled, 'state': 'ready', 'stage': 'input_accepted'}):
+            with self.assertRaisesRegex(ValueError, 'dispatch'):
+                setup.transition_preflight(self.repo)
         storage.write_json(gate, {'runs': ['run1']})
         with patch.object(flow_gate, 'run_state', return_value=(1, [])) as peek:
             with self.assertRaisesRegex(ValueError, 'Run'):
@@ -300,6 +308,25 @@ class OperatingPolicy(unittest.TestCase):
         result['independence'].update(reviewer_session='author', read_only=True, snapshot_path=str(self.repo))
         with self.assertRaisesRegex(ValueError, '서로 다른'):
             review.check_independence(self.repo, result)
+
+    def test_direct_review_survives_record_commits_but_not_code_commits(self):
+        (self.repo / 'app.py').write_text('value = 1\n', encoding='utf-8')
+        reviewed = self.commit()
+        storage.write_json(self.repo / '.fullops-squad/docs/evaluations/qa-reports/K-review/result.json',
+                           {'base': self.base, 'head': reviewed, 'review_schema_version': 2,
+                            'independence': {'implementer_session': 'author'}})
+        plans = self.repo / '.fullops-squad/PLANS.md'
+        plans.write_text(plans.read_text(encoding='utf-8') + '\n리뷰 수락 기록\n', encoding='utf-8')
+        records = self.commit()  # 리뷰 증거와 PLANS만 바꾼 커밋
+        with patch.object(review, 'check') as check:
+            review.direct_check(self.repo, self.base, records, 'author')
+            check.assert_called_once_with(self.repo, 'K', self.base, reviewed)  # 리뷰한 SHA로 검증한다.
+        (self.repo / 'app.py').write_text('value = 2\n', encoding='utf-8')
+        code = self.commit()
+        with patch.object(review, 'check') as check:
+            with self.assertRaisesRegex(ValueError, '독립 리뷰'):
+                review.direct_check(self.repo, self.base, code, 'author')
+            check.assert_not_called()
 
     def test_direct_stop_cannot_skip_lint_or_independent_review(self):
         self.apply(local_only=True, mode='dev')

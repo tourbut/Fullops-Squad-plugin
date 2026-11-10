@@ -27,6 +27,16 @@ def main():
         def denied(output):
             return output.get('hookSpecificOutput', {}).get('permissionDecisionReason', '')
 
+        def fake_cli(name, script):
+            """가짜 Orca CLI. Windows는 .cmd, 그 밖은 sh wrapper로 script를 실행한다"""
+            cli = repo / '.git' / (name + '.cmd' if os.name == 'nt' else name)
+            if os.name == 'nt':
+                cli.write_text(f'@"{sys.executable}" "{script}" %*\n', encoding='utf-8')
+            else:
+                cli.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding='utf-8')
+                cli.chmod(0o755)
+            return cli
+
         def route(key, kind, role):
             path = repo / f'.fullops-squad/docs/evaluations/jev/{key}-route.json'
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +90,8 @@ def main():
         assert bash('orca terminal send --terminal t1 --text "y"') == {}  # 확인 프롬프트 응답은 허용
         assert bash('orca terminal send --terminal t1 --key Enter') == {}
         assert '--run' in denied(bash('orca orchestration worker-start --spec "K1 작업" --agent codex'))
+        # Windows의 find_orca()는 ...\orca.EXE를 주고 세션 안내가 그 경로를 쓰라고 한다
+        assert '--run' in denied(bash('C:/Orca/bin/orca.EXE orchestration worker-start --spec "K1 작업" --agent codex'))
         assert '분류한 과제 키' in denied(bash('orca orchestration worker-start --run r1 --spec "K1 작업" --agent codex'))
         route('K1', 'simple', 'dev')
         assert bash('orca orchestration worker-start --run r1 --spec "K1 작업" --agent codex') == {}
@@ -97,13 +109,7 @@ def main():
                       '{"id": "task_ok", "spec": "Task key K1 follow-up"}, {"id": "task_bad", "spec": "Task key loose-check"}]\n'
                       'rows = tasks if "--full" in sys.argv else [{"id": t["id"], "status": "ready", "title": "x"} for t in tasks]\n'
                       'print(json.dumps({"ok": True, "result": {"tasks": rows}}))\n', encoding='utf-8')
-        tcli = repo / '.git' / ('fake-tasks.cmd' if os.name == 'nt' else 'fake-tasks')
-        if os.name == 'nt':
-            tcli.write_text(f'@"{sys.executable}" "{tl}" %*\n', encoding='utf-8')
-        else:
-            tcli.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{tl}" "$@"\n', encoding='utf-8')
-            tcli.chmod(0o755)
-        os.environ['FULLOPS_ORCA_CLI'] = str(tcli)
+        os.environ['FULLOPS_ORCA_CLI'] = str(fake_cli('fake-tasks', tl))
         assert bash('orca orchestration worker-start --run r1 --task task_ok --agent codex') == {}
         bad = denied(bash('orca orchestration worker-start --run r1 --task task_bad --agent codex'))
         assert '--task task_bad' in bad and 'K1' in bad, bad  # 최근 분류된 키를 알려 준다
@@ -217,7 +223,6 @@ def main():
         assert hook('stop', session_id='r') == {}  # 지시서에 과제 키가 있으면 배정한 것으로 본다
         hook('tool', session_id='r2', tool_name='Bash', tool_input={'command': route_cmd.replace('WIN-1', 'WIN-2')})
         assert hook('stop', session_id='r2').get('decision') == 'block'
-        plans = repo / '.fullops-squad/PLANS.md'
         plans.write_text(plans.read_text(encoding='utf-8') + '| WIN-2 | Windows 점검 | ops | 보류: Editor 사용 중 | |\n', encoding='utf-8')
         assert hook('stop', session_id='r2') == {}  # PLANS.md에 보류를 적으면 통과
         (repo / '.fullops-squad/handovers/to_art.md').write_text('', encoding='utf-8')
@@ -229,13 +234,7 @@ def main():
                         'state = json.load(open(os.environ["FAKE_ORCA_STATE"], encoding="utf-8"))\n'
                         'key = "messages" if "check" in sys.argv else "workers"\n'
                         'print(json.dumps({"ok": True, "result": {key: state[key]}}))\n', encoding='utf-8')
-        cli = repo / '.git' / ('fake-orca.cmd' if os.name == 'nt' else 'fake-orca')
-        if os.name == 'nt':
-            cli.write_text(f'@"{sys.executable}" "{fake}" %*\n', encoding='utf-8')
-        else:
-            cli.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{fake}" "$@"\n', encoding='utf-8')
-            cli.chmod(0o755)
-        os.environ.update({'FULLOPS_ORCA_CLI': str(cli), 'FAKE_ORCA_STATE': str(fake_state)})
+        os.environ.update({'FULLOPS_ORCA_CLI': str(fake_cli('fake-orca', fake)), 'FAKE_ORCA_STATE': str(fake_state)})
 
         def scenario(messages, workers):
             fake_state.write_text(json.dumps({'messages': messages, 'workers': workers}), encoding='utf-8')
@@ -297,9 +296,7 @@ def main():
 
         git('worktree', 'remove', str(devtree))
         # coordinator를 역할 워크트리에서 운영: 라우팅 기준의 coordinator 역할 줄로 판정한다
-        agents = repo / '.fullops-squad/orca-agents.md'
-        agents.write_text(agents.read_text(encoding='utf-8').replace('- 설계 역할: `architecture`',
-                                                                      '- 설계 역할: `architecture`\n- coordinator 역할: `art`'), encoding='utf-8')
+        agents_md.write_text(plain.replace('- 설계 역할: `architecture`', '- 설계 역할: `architecture`\n- coordinator 역할: `art`'), encoding='utf-8')
         git('checkout', '-q', '-B', roles['art'])
         assert 'jev_route.py' in hook('start', session_id='ca', source='startup')['hookSpecificOutput']['additionalContext']
         assert '분류한 과제 키' in denied(hook('tool', session_id='ca', tool_name='Bash', tool_input={
@@ -313,6 +310,9 @@ def main():
         # Windows의 PowerShell 도구도 셸 hook을 거친다(빠지면 모든 셸 차단이 우회된다)
         hooks = json.loads((SCRIPTS.parent / 'hooks/hooks.json').read_text(encoding='utf-8'))['hooks']
         assert all('PowerShell' in group['matcher'].split('|') for event in ('PreToolUse', 'PostToolUse', 'PostToolUseFailure') for group in hooks[event])
+        # native_delegation()이 세는 도구는 모두 PreToolUse matcher에 있어야 hook이 불린다
+        assert all(name in group['matcher'].split('|') for name in ('Agent', 'Task', 'spawn_agent', 'followup_task', 'spawn_subagent')
+                   for group in hooks['PreToolUse'])
         # 검증 증거: 보고서가 링크하지 않은 qa-reports 캡처의 커밋과 같은 과제의 차수 폴더를 막는다
         reports = repo / '.fullops-squad/docs/evaluations/qa-reports'
         task = reports / 'K1-DEV-test'
@@ -324,8 +324,8 @@ def main():
         git('add', str(task / 'report.md'), str(task / 'shots/a.png'), str(task / 'shots/b.png'))
         commit = denied(hook('tool', session_id='ev', tool_name='Bash', tool_input={'command': 'git commit -m "K1 증거"'}))
         assert 'shots/b.png' in commit and 'shots/a.png' not in commit and 'c.png' not in commit and 'raw/' in commit, commit
-        broad = denied(hook('tool', session_id='ev', tool_name='PowerShell', tool_input={'command': 'git add -A; git commit -m x'}))
-        assert 'c.png' in broad and 'd.png' not in broad, broad  # 같은 명령의 넓은 add도 본다. raw/는 gitignore
+        broad = denied(hook('tool', session_id='ev', tool_name='PowerShell', tool_input={'command': 'git.EXE add -A; Git commit -m x'}))
+        assert 'c.png' in broad and 'd.png' not in broad, broad  # 같은 명령의 넓은 add도 본다. raw/는 gitignore. Windows의 git.EXE도 git이다
         (task / 'report.md').write_text('# K1\n\n![](shots/a.png) ![](shots/b.png) ![](shots/c.png)\n', encoding='utf-8')
         assert not denied(hook('tool', session_id='ev', tool_name='Bash', tool_input={'command': 'git add -A && git commit -m x'}))
         assert not denied(hook('tool', session_id='ev', tool_name='Bash', tool_input={'command': 'git status'}))
@@ -346,6 +346,10 @@ def main():
         assert hook('post', session_id='ad', tool_name='Write', tool_input={'file_path': str(inbox)}) == {}  # 같은 지적은 한 번
         (task / 'report.md').write_text('\n'.join(['| 검사 | 통과 |'] * 45), encoding='utf-8')
         assert '45줄' in hook('post', session_id='ad', tool_name='Edit', tool_input={'file_path': str(task / 'report.md')})['hookSpecificOutput']['additionalContext']
+        review_report = reports / 'K1-DEV-review/report.md'  # 리뷰 보고서는 템플릿만으로 40줄을 넘으므로 줄 수를 알리지 않는다
+        review_report.parent.mkdir()
+        review_report.write_text('\n'.join(['| 검사 | 통과 |'] * 45), encoding='utf-8')
+        assert hook('post', session_id='ad', tool_name='Edit', tool_input={'file_path': str(review_report)}) == {}
         # 커밋하지 않는 raw/를 링크한 보고서는 레벨과 무관하게 쓴 직후 알린다(#94)
         (task / 'report.md').write_text('# K1\n\n![](shots/a.png) [로그](raw/d.png) [외부](https://x.test/raw/y)\n', encoding='utf-8')
         raw = hook('post', session_id='raw', tool_name='Write', tool_input={'file_path': str(task / 'report.md')})['hookSpecificOutput']['additionalContext']

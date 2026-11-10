@@ -203,6 +203,7 @@ class Stabilization(unittest.TestCase):
             self.assertIsNone(flow_gate.settlement_command(bad, state))
         self.assertIsNotNone(flow_gate.settlement_command(command.replace('worker_done', 'escalation'), state))
         self.assertIsNotNone(flow_gate.settlement_command(command.replace('orca ', 'orca-dev ', 1), state))
+        self.assertIsNotNone(flow_gate.settlement_command(command.replace('orca ', 'ORCA.EXE ', 1), state))  # Windows 실행 파일 이름
         projection = {'dispatchId': 'd1', 'taskId': 't1', 'outcome': 'succeeded', 'stage': {'dispatch': 'completed'}}
         with patch.object(flow_gate, 'orca', return_value={'projection': projection}):
             self.assertTrue(flow_gate.settled_in_runtime(state))
@@ -785,7 +786,8 @@ class Stabilization(unittest.TestCase):
             return {'model': 'typesafe/jev-test', 'usage': {'input_tokens': 1, 'output_tokens': 1, 'cost': 0.001}, 'answers': {
                 'where': {'type': 'choice', 'choice': labels[0], 'confidence': probabilities[labels[0]], 'probabilities': probabilities},
                 'exists': {'type': 'noul', 'noul': 0.95}}}, 0.01
-        with patch.object(jev_find, 'code_map', return_value=entries):
+        indexed = [{'path': path, 'summary': '', 'headings': [], 'definitions': [], 'searchable': True} for path, _ in entries]
+        with patch.object(jev_find, 'metadata', return_value=indexed):
             result = jev_find.find(self.repo, 'dev', 'K1', call, limit=2)
         self.assertTrue(result['partial'])
         self.assertEqual(result['ranking_status'], 'batch_only')

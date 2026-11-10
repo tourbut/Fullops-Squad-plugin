@@ -165,7 +165,7 @@ function expectedVersion(target, execute = run) {
 
 function compareVersion(a, b) {
   if (![a, b].every(v => typeof v === 'string' && /^\d+\.\d+\.\d+$/.test(v))) throw new Error('목표 stable SemVer를 확인할 수 없습니다');
-  const left = a.split(/[.-]/).slice(0, 3).map(Number), right = b.split(/[.-]/).slice(0, 3).map(Number);
+  const left = a.split('.').map(Number), right = b.split('.').map(Number);
   for (let i = 0; i < 3; i++) if (left[i] !== right[i]) return left[i] - right[i];
   return 0;
 }
@@ -238,7 +238,7 @@ function main(argv = process.argv.slice(2), execute = run) {
           if (!expected && target.host === 'grok' && !before) continue;
           if (!expected) throw new Error('목표 버전 확인 불가: marketplace manifest를 확인한 뒤 재시도하세요');
           compareVersion(expected, expected);
-          if (before && expected && compareVersion(expected, before.version) < 0) throw new Error('marketplace 대상 downgrade를 거부합니다');
+          if (before && compareVersion(expected, before.version) < 0) throw new Error('marketplace 대상 downgrade를 거부합니다');
         }
       }
       const after = pluginInfo(target, execute);

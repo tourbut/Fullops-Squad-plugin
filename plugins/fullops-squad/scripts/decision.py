@@ -108,7 +108,7 @@ def brief(root):
             '답을 받으면 decision.py answer로 닫고, 필요 없어진 결정은 drop한다.')
 
 
-def main(argv=None):
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['add', 'answer', 'drop', 'list'])
     parser.add_argument('--repo', default='.')
@@ -128,7 +128,7 @@ def main(argv=None):
     parser.add_argument('--origin', choices=['user', 'bot'], default='user', help='add: 요청이 들어온 진입점')
     parser.add_argument('--allow', action='append', default=[], help='add: 답할 수 있는 사람(반복, 없으면 누구나)')
     parser.add_argument('--via', choices=['user', 'bot'], default='user', help='answer: 답이 들어온 경로')
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     root = Path(git(args.repo, 'rev-parse', '--show-toplevel'))
     try:
         if args.action == 'add':

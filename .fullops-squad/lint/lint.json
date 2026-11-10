@@ -36,7 +36,7 @@
       ],
       "paths": [
         "plugins/fullops-squad/scripts/flow_gate.py",
-        "plugins/fullops-squad/scripts/hook_runtime.py",
+        "plugins/fullops-squad/scripts/harness_gate.py",
         "tests/flow-gate.py"
       ]
     },

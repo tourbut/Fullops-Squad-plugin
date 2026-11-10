@@ -28,8 +28,7 @@ class SessionRegressions(unittest.TestCase):
             'schema_version': 1, 'roles': {'dev': 'fullops/dev'}, 'git': {'remote': 'origin', 'base': 'main'}}), encoding='utf-8')
 
     def gate(self, command):
-        with patch.object(flow_gate, 'context', return_value=('coordinator', None)):
-            return flow_gate.tool_denial(self.root, {'tool_input': {'cmd': command}}, {})
+        return flow_gate.tool_denial(self.root, {'tool_input': {'cmd': command}}, {})
 
     def test_help_batch_and_real_dispatch(self):
         self.assertIsNone(self.gate('orca orchestration worker-start --help; git status --short'))
@@ -53,6 +52,20 @@ class SessionRegressions(unittest.TestCase):
         self.assertIsNone(flow_gate.route_key_denial(self.root, '--spec "Task key: K1. Read inbox"'))
         for key in ('K1.2', 'K1-other', 'K10'):
             self.assertIsNotNone(flow_gate.route_key_denial(self.root, f'--spec "Task key: {key}"'))
+
+    def test_reviewer_record_passes_review_dispatch_without_route(self):
+        routes = self.root / '.fullops-squad/docs/evaluations/jev'
+        routes.mkdir(parents=True)
+        spec = '--spec "Task key: DIRECT-1; Purpose: review; Review SHA: abc"'
+        self.assertIn('분류한 과제 키', flow_gate.route_key_denial(self.root, spec))
+        record = routes / 'DIRECT-1-model-reviewer.json'
+        record.write_text(json.dumps({'version': 'model-v2', 'task_key': 'DIRECT-1', 'role': 'reviewer'}), encoding='utf-8')
+        self.assertIsNone(flow_gate.route_key_denial(self.root, spec))
+        # 다른 배정은 그대로 막는다: 리뷰가 아닌 spec, 기록이 없는 키, 다른 과제의 기록
+        for denied in (spec.replace('review;', 'implementation;'), spec.replace('DIRECT-1', 'DIRECT-2')):
+            self.assertIn('분류한 과제 키', flow_gate.route_key_denial(self.root, denied), denied)
+        record.write_text(json.dumps({'version': 'model-v2', 'task_key': 'OTHER', 'role': 'reviewer'}), encoding='utf-8')
+        self.assertIn('분류한 과제 키', flow_gate.route_key_denial(self.root, spec))
 
     def test_path_and_id_selector_keep_baseline_check(self):
         def git(root, *args):
@@ -126,7 +139,6 @@ class SessionRegressions(unittest.TestCase):
         nested.write_text('# K1 — completed\n', encoding='utf-8')
         self.assertTrue(flow_gate.handled(self.root, 'K1'))
         self.assertFalse(flow_gate.handled(self.root, 'K10'))
-        subprocess.run(['git', 'init', '-q', '-b', 'main', str(self.root)], check=True)
         def git(*args):
             subprocess.run(['git', '-C', str(self.root), *args], check=True, capture_output=True)
         git('add', '.')
@@ -142,7 +154,6 @@ class SessionRegressions(unittest.TestCase):
         self.assertFalse(nested.exists())
 
     def test_unknown_hold_has_actionable_error(self):
-        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         result = subprocess.run([sys.executable, str(SCRIPTS / 'integration.py'), '--repo', str(self.root),
                                  'hold', '--message', 'unknown', '--reason', 'review', '--owner', 'dev',
                                  '--resume', 'review passed'], capture_output=True, text=True, encoding='utf-8',

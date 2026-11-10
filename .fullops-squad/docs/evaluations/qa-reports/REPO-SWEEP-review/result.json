@@ -1,0 +1,978 @@
+{
+  "base": "10c0695df4f66d6a76e94c1b9c9579eae3d84a4e",
+  "head": "95f0edbe1e47d07a36570bb7b720d0ac4b98f6ea",
+  "rule_sha256": "34c8f6e8fc6b3173858399ed6415b38056c60c83f5aa93bb908b54ab6c588657",
+  "ocr_version": "open-code-review v1.13.6 (891df1b) windows/amd64\nbuilt at: 2026-11-05T11:38:31Z\nhttps://github.com/alibaba/open-code-review",
+  "prepared_at": "2026-11-10T06:02:27+00:00",
+  "reviewer": "claude / claude-opus-5-5 / effort high (reviewer session reviewer-79d4a997-af21-4114-9666-ee2cc6519d2d)",
+  "conclusion": "수락. critical 0, high 0, medium 0, low 1(미해결, PLANS.md 후속). 감사 확정 47건과 개발 6건이 diff에 반영됐고 회귀 위험은 찾지 못했다.",
+  "files": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "status": "modified",
+      "insertions": 14,
+      "deletions": 6,
+      "review_status": "reviewed",
+      "reason": "REPO-SWEEP 기록·후속 절을 확인했다. 135행 모델 후보 후속이 같은 커밋의 결정과 어긋난다(finding)"
+    },
+    {
+      "path": ".fullops-squad/board/board.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "현황판 note 한 줄 갱신. 형식만 확인"
+    },
+    {
+      "path": ".fullops-squad/docs/evaluations/qa-reports/REPO-SWEEP-test/report.md",
+      "status": "added",
+      "insertions": 42,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "검증 보고. 결과 표·건너뛴 항목·동작 변경·못 한 검증을 diff와 lint.json에 대조했다"
+    },
+    {
+      "path": ".fullops-squad/handovers/to_dev.md",
+      "status": "modified",
+      "insertions": 86,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "지시서. 완료 기준·파일 소유권·사용자 결정 16건 제외 범위를 diff와 대조했다"
+    },
+    {
+      "path": ".fullops-squad/lint/lint.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "flow-gate paths의 hook_runtime.py→harness_gate.py. tests/flow-gate.py:316-376이 harness_gate를 실행함을 확인했다. LINT-001은 병합 뒤 적용"
+    },
+    {
+      "path": ".fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "dev·architecture 후보를 claude-fable-5-2로 변경. PLANS.md 54행의 2026-11-10 사용자 결정과 일치"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "단계 이름만 변경. 실행 명령 동일"
+    },
+    {
+      "path": "bin/fullops-squad.cjs",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "compareVersion은 앞의 정규식이 X.Y.Z를 보장하므로 split(\".\")와 동등. expected는 바로 위에서 null이면 throw하므로 조건 축약 동등"
+    },
+    {
+      "path": "mods/fullops-meter/.claude-plugin/plugin.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. JSON 파싱 중복을 parseRecord로 합침(동작 동일), isFirstPoll을 lastPollAt===0으로 대체, 리뷰 표지를 fs.list 한 번으로 읽음(새 시험), 0.2.0 status 정리 삭제"
+    },
+    {
+      "path": "mods/fullops-meter/hooks/flow.ts",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. JSON 파싱 중복을 parseRecord로 합침(동작 동일), isFirstPoll을 lastPollAt===0으로 대체, 리뷰 표지를 fs.list 한 번으로 읽음(새 시험), 0.2.0 status 정리 삭제"
+    },
+    {
+      "path": "mods/fullops-meter/hooks/fullops.ts",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 22,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. JSON 파싱 중복을 parseRecord로 합침(동작 동일), isFirstPoll을 lastPollAt===0으로 대체, 리뷰 표지를 fs.list 한 번으로 읽음(새 시험), 0.2.0 status 정리 삭제"
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.test.tsx",
+      "status": "modified",
+      "insertions": 35,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. JSON 파싱 중복을 parseRecord로 합침(동작 동일), isFirstPoll을 lastPollAt===0으로 대체, 리뷰 표지를 fs.list 한 번으로 읽음(새 시험), 0.2.0 status 정리 삭제"
+    },
+    {
+      "path": "mods/fullops-meter/hooks/register.tsx",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 14,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. JSON 파싱 중복을 parseRecord로 합침(동작 동일), isFirstPoll을 lastPollAt===0으로 대체, 리뷰 표지를 fs.list 한 번으로 읽음(새 시험), 0.2.0 status 정리 삭제"
+    },
+    {
+      "path": "mods/fullops-meter/hooks/workers.ts",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 28,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. JSON 파싱 중복을 parseRecord로 합침(동작 동일), isFirstPoll을 lastPollAt===0으로 대체, 리뷰 표지를 fs.list 한 번으로 읽음(새 시험), 0.2.0 status 정리 삭제"
+    },
+    {
+      "path": "package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "npm script 3개(test:web-engine·test:web-browser·test:motion) 삭제. 문서·CI·스크립트에서 참조 없음을 grep으로 확인. 의존성 변경 없음"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/repository/.fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "템플릿 모델 id claude-sonnet-5→claude-sonnet-5-5"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/unity/com.fullops.jevplay/Runtime/JevPlay.cs",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "Actors() 인자 제거. 남은 호출 3곳(186·217행)이 인자 없이 맞음을 확인. Snapshot은 Take(24) 유지, Nearest는 상한 제거. Unity 컴파일 미실행(보고서 기재)"
+    },
+    {
+      "path": "plugins/fullops-squad/assets/unity/com.fullops.jevplay/package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "버전 0.1.3→0.1.4만 변경. 의존성 변경 없음"
+    },
+    {
+      "path": "plugins/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "PreToolUse matcher에 spawn_subagent 추가. dist 두 사본에도 반영됨을 확인"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/autonomy.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/deliverables.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 16,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/done_gate.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 37,
+      "deletions": 29,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/harness_gate.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 25,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 5,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_observe.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_packet.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 7,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/jev_test_web.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 8,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/orca_wait.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/output_trim.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 12,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/session_cache.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/setup.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/scripts/test_record.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff와 호출 관계(함수 정의·호출자·시험)를 직접 읽어 검토했다"
+    },
+    {
+      "path": "plugins/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "decision.py add 예시에 --question 추가, 리뷰어 배정 게이트 설명 추가. flow_gate 동작과 일치"
+    },
+    {
+      "path": "scripts/install.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "--host both 삭제. deps.py와 같은 처리"
+    },
+    {
+      "path": "tests/check.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 17,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/common-rules.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 13,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/delegation.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/deps.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/done-gate.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/flow-gate.py",
+      "status": "modified",
+      "insertions": 24,
+      "deletions": 20,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/issue-mode.py",
+      "status": "modified",
+      "insertions": 27,
+      "deletions": 27,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/jev-context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/jev-find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 6,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/jev-route.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/lint.py",
+      "status": "modified",
+      "insertions": 8,
+      "deletions": 0,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/operating-policy.py",
+      "status": "modified",
+      "insertions": 30,
+      "deletions": 3,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/orca-wait.py",
+      "status": "modified",
+      "insertions": 32,
+      "deletions": 35,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/output-trim.py",
+      "status": "modified",
+      "insertions": 5,
+      "deletions": 2,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/search-index.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/session-regressions.py",
+      "status": "modified",
+      "insertions": 15,
+      "deletions": 4,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "tests/stabilization.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 1,
+      "review_status": "reviewed",
+      "reason": "diff 직접 검토. 시험 정리·추가 assert 확인. 기대값 완화나 삭제된 검증 없음(tests/deps.py의 삭제 assert는 23행에 같은 검사가 남음)"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/repository/.fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/unity/com.fullops.jevplay/Runtime/JevPlay.cs",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/assets/unity/com.fullops.jevplay/package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/autonomy.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/deliverables.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 16,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/done_gate.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 37,
+      "deletions": 29,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/harness_gate.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 25,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 5,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_observe.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_packet.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 7,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/jev_test_web.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/orca_wait.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/output_trim.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 12,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/session_cache.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/setup.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/scripts/test_record.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/directory/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/repository/.fullops-squad/orca-agents.md",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/unity/com.fullops.jevplay/Runtime/JevPlay.cs",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/assets/unity/com.fullops.jevplay/package.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/hooks/codex.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/hooks/hooks.json",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/autonomy.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/decision.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/deliverables.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/deps.py",
+      "status": "modified",
+      "insertions": 13,
+      "deletions": 16,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/done_gate.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 3,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/flow_gate.py",
+      "status": "modified",
+      "insertions": 37,
+      "deletions": 29,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/harness_gate.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/issue_mode.py",
+      "status": "modified",
+      "insertions": 20,
+      "deletions": 25,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_context.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_find.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 5,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_observe.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_packet.py",
+      "status": "modified",
+      "insertions": 1,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_route.py",
+      "status": "modified",
+      "insertions": 4,
+      "deletions": 7,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/jev_test_web.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/lint.py",
+      "status": "modified",
+      "insertions": 6,
+      "deletions": 8,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/orca_wait.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/output_trim.py",
+      "status": "modified",
+      "insertions": 9,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/review.py",
+      "status": "modified",
+      "insertions": 10,
+      "deletions": 12,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/session_cache.py",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/setup.py",
+      "status": "modified",
+      "insertions": 3,
+      "deletions": 4,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/scripts/test_record.py",
+      "status": "modified",
+      "insertions": 0,
+      "deletions": 1,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    },
+    {
+      "path": "dist/native/fullops-squad/skills/fullops-orca/SKILL.md",
+      "status": "modified",
+      "insertions": 2,
+      "deletions": 2,
+      "exclude_reason": "user_exclude",
+      "review_status": "skipped",
+      "reason": "scripts/build.py 생성물(user_exclude). 원본과 바이트 비교해 동일함을 확인했다. dist/directory/hooks/hooks.json만 기존 빌드 변환(run.sh 경로)으로 다르고 spawn_subagent matcher는 반영됐다"
+    }
+  ],
+  "findings": [
+    {
+      "path": ".fullops-squad/PLANS.md",
+      "start_line": 135,
+      "end_line": 135,
+      "severity": "low",
+      "resolved": false,
+      "content": "[준수] REPO-SWEEP 후속의 \"이 레포 모델 후보(orca-agents.md)를 claude-fable-5-2로 바꿀지. 재개 조건: 사용자 결정.\" 항목이 남아 있다. 같은 커밋(95f0edb)이 54행에 2026-11-10 사용자 결정을 적고 orca-agents.md를 이미 바꿨다. 다음 세션이 끝난 결정을 대기 항목으로 읽는다. 이 줄을 지우거나 완료로 바꾼다."
+    }
+  ],
+  "review_schema_version": 2,
+  "independence": {
+    "implementer_session": "f0726204-9981-4e4d-9372-476f2ff7eca3",
+    "reviewer_session": "reviewer-79d4a997-af21-4114-9666-ee2cc6519d2d",
+    "snapshot_path": "C:\\Users\\shin\\orca\\workspaces\\Fullops-Squad-plugin\\.fullops-review-957d5b65c0ba4873a14d5601bced8d83",
+    "snapshot_head": "95f0edbe1e47d07a36570bb7b720d0ac4b98f6ea",
+    "read_only": true
+  }
+}

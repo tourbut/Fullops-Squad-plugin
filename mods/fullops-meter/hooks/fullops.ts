@@ -1,6 +1,6 @@
 import type { Decision, IssueMode, Review, Worker } from '../types'
 import { ago } from './meter'
-import { asRecord, declaredKey, text } from './workers'
+import { asRecord, declaredKey, parseRecord, text } from './workers'
 
 export type Config = { mode: string; primaryRole: string | null; roles: Record<string, string> }
 
@@ -46,13 +46,7 @@ export const summarizeReview = (key: string, result: string | null, marker: Mark
   if (marker === 'superseded' || marker === 'abandoned' || result === null) {
     return { key, state: marker ?? 'open', conclusion: '', unresolved: 0, findings: 0, worst: null, at }
   }
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(result)
-  } catch {
-    parsed = {}
-  }
-  const record = asRecord(parsed)
+  const record = parseRecord(result)
   // prepare writes result.json with an empty conclusion; the review is under way until the reviewer gives one, as review.py check requires.
   if (text(record.conclusion).trim() === '') return { key, state: marker ?? 'open', conclusion: '', unresolved: 0, findings: 0, worst: null, at }
   const findings = Array.isArray(record.findings) ? record.findings.map(asRecord) : []
@@ -192,13 +186,7 @@ export const commonDirOf = (gitDir: string, commondir: string | null): string =>
 
 /** One `fullops-decisions/D<n>.json` record, or null when it is not an open decision. */
 export const parseDecision = (source: string): Decision | null => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(source)
-  } catch {
-    return null
-  }
-  const record = asRecord(parsed)
+  const record = parseRecord(source)
   const id = text(record.id)
   const question = text(record.question)
   if (record.status !== 'open' || !/^D\d+$/.test(id) || question === '') return null
@@ -215,13 +203,7 @@ export const parseDecision = (source: string): Decision | null => {
 
 /** The issue auto mode summary, or null when it is not a readable record. */
 export const parseIssueMode = (source: string): IssueMode | null => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(source)
-  } catch {
-    return null
-  }
-  const record = asRecord(parsed)
+  const record = parseRecord(source)
   const repository = text(record.repository)
   if (repository === '') return null
   const job = asRecord(record.job)

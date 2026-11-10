@@ -1,6 +1,6 @@
 import type { FlowTask, Review, Worker } from '../types'
 import { ago } from './meter'
-import { STAGES, asRecord, text } from './workers'
+import { STAGES, parseRecord, text } from './workers'
 
 /** The task lifecycle of docs/flow-graph.md, in the node ids flow_state.py writes. */
 export const NODES = ['intent', 'design', 'assign', 'build', 'report', 'review', 'merge', 'qa', 'done'] as const
@@ -29,13 +29,7 @@ export const taskOf = (key: string, roles: readonly string[]): string => {
 
 /** One `fullops-flow/<key>.json` record, or null when it is not one. */
 export const parseFlow = (source: string): FlowTask | null => {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(source)
-  } catch {
-    return null
-  }
-  const record = asRecord(parsed)
+  const record = parseRecord(source)
   const key = text(record.key)
   const node = NODES.findIndex(name => name === record.node)
   if (key === '' || node === -1) return null

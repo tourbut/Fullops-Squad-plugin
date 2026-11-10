@@ -521,7 +521,6 @@ def observe(data, repo, call):
             judgments = {qid: checked_answer(answers[qid], question['criteria']) for qid, question in questions.items()}
         outcome['request_max_seconds'] = slowest
         outcome['response_model'] = model
-        outcome['usage'] = total
         for cid, signal in signals.items():
             context['signals'][cid] = signal
             if signal['decision'] == 'suggest_omit':
@@ -561,7 +560,6 @@ def observe(data, repo, call):
                 verdict['status'] = (('insufficient_evidence' if answer['choice'] == 'insufficient' else answer['choice'])
                                      if top >= 0.9 and answer['confidence'] >= 0.8 else 'uncertain')
     except Exception:  # noqa: BLE001 — 호출 실패는 추천을 보수적으로 유지한다.
-        outcome['latency_seconds'] = round(time.monotonic() - started, 3)
         context['recommended_ids'] = baseline[:]
         context['signals'] = {}
         context['conflict_ids'], context['caution_ids'] = [], []

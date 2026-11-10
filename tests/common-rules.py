@@ -1,6 +1,5 @@
 """공통 규칙의 배포·연결·보존을 검증한다. LLM의 규칙 준수를 판정하지 않는다."""
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -15,23 +14,15 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'plugins/fullops-squad/scripts'))
+sys.path.insert(1, str(ROOT / 'scripts'))  # 플러그인 scripts 뒤, tests/ 앞: tests/에 같은 이름(deps·deliverables)이 있다
+import build  # noqa: E402
+import setup  # noqa: E402
+import work  # noqa: E402
 PLUGIN = ROOT / 'plugins/fullops-squad'
 ASSETS = PLUGIN / 'assets/repository/.fullops-squad'
 RULES = Path('.fullops-squad/rules/common')
 RULE_NAMES = {'coding-style.md', 'testing.md', 'security.md'}
 BUNDLE_NAMES = RULE_NAMES | {'README.md', 'ECC-LICENSE.txt'}
-
-
-def load(name, relative):
-    spec = importlib.util.spec_from_file_location(name, ROOT / relative)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-setup = load('fullops_setup_test', 'plugins/fullops-squad/scripts/setup.py')
-work = load('fullops_work_test', 'plugins/fullops-squad/scripts/work.py')
-build = load('fullops_build_test', 'scripts/build.py')
 
 
 def snapshot(root):

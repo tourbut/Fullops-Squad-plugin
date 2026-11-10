@@ -5,7 +5,6 @@
 읽지 못한 입력과 애매한 경우는 ask다. lint ERROR와 미해결 critical/high는 등급과 관계없이 blocked다.
 """
 import argparse
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
@@ -31,10 +30,6 @@ POLICY = {
     'approval_hours': 24,
 }
 UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.CalledProcessError)
-
-
-def now():
-    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 def rules(config):
@@ -82,7 +77,7 @@ def open_findings(repo, key):
 def judge(repo, base, head, key=None, review_key=None, lint=None, origin='user'):
     out = {'version': VERSION, 'kind': 'autonomy_judgment', 'mode': 'shadow', 'grade': 'ask', 'merge_allowed': False,
            'blocked': False, 'blockers': [], 'reasons': [], 'key': key, 'origin': origin, 'base': base, 'head': head,
-           'merge_base': None, 'policy': None, 'inputs': {}, 'judged_at': now()}
+           'merge_base': None, 'policy': None, 'inputs': {}, 'judged_at': decision.now()}
     try:
         base, head = review.sha(repo, base), review.sha(repo, head)
         need = review.need(repo, base, head)
@@ -161,7 +156,7 @@ def compare(repo):
     return rows
 
 
-def main(argv=None):
+def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('action', choices=['judge', 'compare'])
     parser.add_argument('--repo', default='.')
@@ -172,7 +167,7 @@ def main(argv=None):
     parser.add_argument('--lint', help='lint-result.json 경로. 없으면 등록된 워크트리에서 같은 base·head 결과를 찾는다')
     parser.add_argument('--origin', choices=['user', 'bot'], default='user', help='요청이 들어온 진입점')
     parser.add_argument('--record', action='store_true', help='Git 공용 디렉터리 fullops-autonomy/에 판정을 남긴다')
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     repo = Path(args.repo).resolve()
     if args.action == 'compare':
         print(json.dumps({'judgments': compare(repo)}, ensure_ascii=False))

@@ -25,7 +25,7 @@ coordinator는 비용이 낮은 모델로 계속 띄워 두고, 설계 역할은
 
 ```text
 - `dev` `codex` `gpt-6-sol` `low`: 문구·수치 변경 같은 단순 수정
-- `dev` `claude` `claude-sonnet-5` `medium`: 기존 패턴을 따르는 일반 구현과 버그 수정
+- `dev` `claude` `claude-sonnet-5-5` `medium`: 기존 패턴을 따르는 일반 구현과 버그 수정
 - `dev` `claude` `claude-opus-5-5` `high`: 설계 판단이 섞이거나 여러 모듈에 걸친 구현
 - `reviewer` `claude` `claude-opus-5-5` `high`: 병합 전 고정 SHA 독립 코드 리뷰
 ```

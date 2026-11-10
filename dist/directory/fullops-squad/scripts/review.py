@@ -14,11 +14,12 @@ from datetime import date, datetime, timezone
 
 import jev_find
 import deliverables
+import policy
 from lint import changed_paths, code_changes, load_config, matches, skips_paths, skips_tests, NO_CODE, PATHS
 from jev_route import product_roles
 from work import active_repo, archived, safe_file, KEY
 from storage import write_json, atomic_write
-from done_gate import ancestor
+from done_gate import ancestor, records_only
 
 
 CMD_META = r'[&|<>^%"]'
@@ -76,7 +77,6 @@ def file_entry(item, reviewable):
 
 def need(repo, base, head):
     """기준 설정(merge-base)의 review_policy로 독립 리뷰 필요 여부를 정한다. 작업 브랜치가 기준을 낮추지 못한다."""
-    import policy
     base, head = sha(repo, base), sha(repo, head)
     merge_base = subprocess.check_output(['git', '-C', str(repo), 'merge-base', base, head], text=True, encoding='utf-8').strip()
     rules = policy.config_at_ref(repo, merge_base)[0]['review_policy']
@@ -186,7 +186,6 @@ def prepare(repo, key, base, head, lint_source=None):
                        [file_entry(item, False) for item in preview['excluded_files']],
               'findings': []}
     managed = snapshot_record(repo, key)
-    import policy
     if product_roles(repo) or managed.is_file() or policy.load(repo)['mode'] == 'dev':
         preview['fullops_review_schema_version'] = 2
         result.update(review_schema_version=2, independence={'implementer_session': '', 'reviewer_session': '',
@@ -465,7 +464,6 @@ def check_lint(repo, result, lint):
     if lint.get('merge_base') != merge_base or lint['config_sha256'] != digest:
         raise ValueError('lint 설정이 merge-base와 다릅니다. worker 브랜치의 설정 변경은 병합 후 적용됩니다')
     code = code_changes(repo, merge_base, result['head'], settings)
-    import policy
     level, policy_digest = policy.at_ref(repo, merge_base)
     if lint.get('test_level') in policy.LEVELS and policy.LEVELS.index(lint['test_level']) > policy.LEVELS.index(level):
         level = lint['test_level']  # `lint.py --level`로 올려 돌린 결과는 그 레벨로 확인한다
@@ -565,7 +563,10 @@ def direct_check(repo, base, head, implementer):
         result = json.loads(path.read_text(encoding='utf-8'))
         if not isinstance(result, dict) or not isinstance(result.get('independence', {}), dict):
             raise ValueError('독립 리뷰 result·independence는 객체여야 합니다')
-        if (result.get('base'), result.get('head')) != (base, head):
+        reviewed = result.get('head')
+        # 리뷰 뒤 완료 기록·검증 보고·계획·현황판만 바꾼 커밋은 리뷰한 SHA를 그대로 인정한다.
+        if result.get('base') != base or not isinstance(reviewed, str) or not (
+                reviewed == head or records_only(repo, reviewed, head)):
             continue
         if result.get('review_schema_version') != 2 or result.get('independence', {}).get('implementer_session') != implementer:
             continue
@@ -576,7 +577,7 @@ def direct_check(repo, base, head, implementer):
             if path.with_name('snapshot-cleanup.json').is_file():
                 historical(repo, key)  # Already accepted and cleaned; this is completion, not a new acceptance.
             else:
-                check(repo, key, base, head)
+                check(repo, key, base, reviewed)
         return
     raise ValueError('직접 구현의 현재 SHA는 대규모 변경이지만 독립 리뷰·면제 기록이 없습니다. 사용자에게 리뷰 진행 여부를 묻고, '
                      '진행하면 fullops-review 절차를 완료하고, 생략하면 review.py waive --decided-by user로 기록하세요')
@@ -658,13 +659,12 @@ def main():
         if args.mode not in ('need', 'prune') and not KEY.fullmatch(args.key or ''):
             raise ValueError('과제 키는 영문·숫자·점·밑줄·하이픈만 사용하세요')
         repo = active_repo(args.repo)
+        ranged = args.mode in ('need', 'waive') or args.mode in ('prepare', 'check') and not args.historical
+        if ranged and (not getattr(args, 'from') or not args.to):
+            raise ValueError('--from과 --to가 필요합니다')
         if args.mode == 'need':
-            if not getattr(args, 'from') or not args.to:
-                raise ValueError('--from과 --to가 필요합니다')
             print(json.dumps(need(repo, getattr(args, 'from'), args.to), ensure_ascii=False))
         elif args.mode == 'waive':
-            if not getattr(args, 'from') or not args.to:
-                raise ValueError('--from과 --to가 필요합니다')
             waive(repo, args.key, getattr(args, 'from'), args.to, args.reason, args.decided_by)
         elif args.mode == 'prune':
             print(json.dumps(prune(repo), ensure_ascii=False, indent=2))
@@ -683,8 +683,6 @@ def main():
             if args.mode != 'check' or (args.to and sha(repo, args.to) != data['head']) or (getattr(args, 'from') and sha(repo, getattr(args, 'from')) != data['base']):
                 raise ValueError('historical은 보존된 SHA의 check에만 사용하세요')
             print('과거 완료 증거 확인: 신규 수락 아님')
-        elif not getattr(args, 'from') or not args.to:
-            raise ValueError('--from과 --to가 필요합니다')
         elif args.mode == 'prepare':
             prepare(repo, args.key, getattr(args, 'from'), args.to, args.lint)
         else:

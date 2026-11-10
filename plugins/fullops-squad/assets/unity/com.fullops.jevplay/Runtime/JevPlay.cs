@@ -183,7 +183,7 @@ namespace Fullops.JevPlay
 
         State Snapshot(int step, List<Choice> choices)
         {
-            var actors = Actors(false);
+            var actors = Actors();
             return new State
             {
                 step = step, gameTime = Time.time, gamePaused = gameScale == 0f, player = Player(), actors = actors.Take(24).ToArray(),
@@ -200,7 +200,7 @@ namespace Fullops.JevPlay
             return p == null ? null : new Actor { name = p.name, group = "player", x = p.position.x, y = p.position.y };
         }
 
-        Actor[] Actors(bool limited = true)
+        Actor[] Actors()
         {
             var player = Player();
             var result = new List<Actor>();
@@ -211,8 +211,7 @@ namespace Fullops.JevPlay
                     result.Add(new Actor { name = t.name, group = g.name, x = t.position.x, y = t.position.y, distance = d,
                         direction = Direction(dx, dy), withinReach = player != null && d <= config.reach });
                 }
-            var ordered = result.OrderBy(a => a.distance);
-            return (limited ? ordered.Take(24) : ordered).ToArray();
+            return result.OrderBy(a => a.distance).ToArray();
         }
 
         Actor Nearest(string group) => Actors().FirstOrDefault(a => a.group == group);

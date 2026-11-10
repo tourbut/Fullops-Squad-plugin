@@ -22,7 +22,7 @@ def commands(host, registered=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--host", choices=["all", "both", *deps.HOSTS], default="all")
+    parser.add_argument("--host", choices=["all", *deps.HOSTS], default="all")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.dry_run:
@@ -30,13 +30,13 @@ def main():
     else:
         subprocess.run([sys.executable, str(ROOT / "scripts/build.py")], check=True, cwd=ROOT)
     try:
-        clis = {"all": ["codex", "claude"], "both": ["codex", "claude"], "codex": ["codex"], "claude-code": ["claude"]}.get(args.host, [])
+        clis = {"all": ["codex", "claude"], "codex": ["codex"], "claude-code": ["claude"]}.get(args.host, [])
         registered = {} if args.dry_run else {cli: deps.registered_marketplaces(cli) for cli in clis}
         plan = list(commands(args.host, registered))  # 모든 출처 충돌을 설치 전에 검사한다.
         if args.dry_run:
             deps.run(plan, True)
         else:
-            for n, host in enumerate({'all': deps.HOSTS, 'both': ('codex', 'claude-code')}.get(args.host, [args.host])):
+            for n, host in enumerate(deps.HOSTS if args.host == 'all' else [args.host]):
                 deps.install_host(host, list(commands(host, registered)), {'source': str(ROOT), 'package': PLUGIN},
                                   refresh_shared=n == 0)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:

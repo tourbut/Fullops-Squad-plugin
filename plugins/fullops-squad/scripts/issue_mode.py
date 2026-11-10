@@ -275,8 +275,8 @@ def owner_identity(store, orca, owner):
     return orca.identity(owner['session'], owner['run'], owner['terminal'], owner['provider_session'], receipt)
 
 
-def activate(store, orca, session, run, terminal, provider_session, now=None):
-    now = time.time() if now is None else now
+def activate(store, orca, session, run, terminal, provider_session):
+    now = time.time()
     incarnation = owner_identity(store, orca, {'session': session, 'run': run, 'terminal': terminal,
                                              'provider_session': provider_session})
     with store.edit() as state:
@@ -307,10 +307,10 @@ def activate(store, orca, session, run, terminal, provider_session, now=None):
         return owner
 
 
-def guard(state, token, now=None):
+def guard(state, token):
     owner = state['owner']
     if (not owner or not owner['enabled'] or owner['token'] != token or
-            Path(owner['end_marker']).is_file() or owner['expires'] <= (time.time() if now is None else now)):
+            Path(owner['end_marker']).is_file() or owner['expires'] <= time.time()):
         raise ValueError('모드 OFF, 만료되거나 다른 coor의 fencing token입니다')
     return owner
 
@@ -606,17 +606,16 @@ def question(store, github, token, identifier, text):
         if job['digest'] != saved['jobs'][identifier]['digest'] or str(job['snapshot']['user']['id']) not in state['config']['allowed']:
             raise ValueError('질문 준비 중 snapshot/작성자 정책이 바뀌었습니다')
         marker = '<!-- fullops-question:' + question_id + ' -->'
-        existing = state['outbox'].get(question_id)
-        if existing and existing.get('comment_id'):
-            return existing
+        if recovery and recovery.get('comment_id'):
+            return recovery
         if len(job['questions']) >= state['config']['max_attempts'] * 3:
             raise ValueError('질문/재확인 한도; 사용자에게 보류 상태를 알리세요')
         body = (f"@{author['user']['login']}\n\n질문 ID: {question_id}\n"
                 f"Task: {job['task_key']} / attempt {job['attempt']}\n\n{text}\n\n"
                 f"이 질문 ID를 적어 답변해 주세요. 답변의 충분성과 실행 범위를 확인한 뒤 같은 과제를 재개합니다.\n{marker}")
-        state['outbox'].setdefault(question_id, {'issue_id': identifier, 'marker': marker, 'body': body,
-                                      'status': 'prepared', 'question_id': question_id, 'created_at': iso(time.time()), 'attempts': 0})
-        entry = state['outbox'][question_id]
+        entry = state['outbox'].setdefault(question_id, {
+            'issue_id': identifier, 'marker': marker, 'body': body,
+            'status': 'prepared', 'question_id': question_id, 'created_at': iso(time.time()), 'attempts': 0})
         if entry['status'] not in ('sending', 'uncertain'):
             entry['body'] = body  # 미전송/확정 실패인 경우에만 최신 login으로 갱신한다.
         body = entry['body']
@@ -866,15 +865,9 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
     if unstarted:
         abandon_intents(store, orca, token, identifier, job, reason)
         return
-    task_listing = orca.call('orchestration', 'task-list', '--run', run, '--full')
-    tasks = task_listing.get('tasks') or []
-    workers = orca.call('orchestration', 'worker-list', '--run', run, '--full')
-    if workers.get('page', {}).get('hasMore'):
-        raise ValueError('전체 worker receipt를 확인하지 못했습니다. 다음 페이지 확인 필요')
+    tasks, workers = full_run(orca, run)  # 하위 Run과 같은 기준으로 잘린 목록을 거부한다
     if not_dispatched:
-        if (syncing or job.get('dispatch_intents') or job.get('child_runs') or tasks or workers.get('workers') or
-                task_listing.get('count') != 0 or workers.get('page', {}).get('total') != 0 or
-                workers.get('page', {}).get('hasMore') is not False):
+        if syncing or job.get('dispatch_intents') or job.get('child_runs') or tasks or workers['workers']:
             raise ValueError('dispatch 이력 또는 task/worker 조회 불확실성 때문에 미배정 복구를 허용하지 않습니다')
         with store.edit() as state:
             owner = guard(state, token)
@@ -883,7 +876,7 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
                     current['digest'] != job['digest']):
                 raise ValueError('dispatch 또는 인계 상태가 바뀌었습니다; 다시 확인하세요')
             current['history'].append({'phase': 'reconciled_not_dispatched', 'reason': reason,
-                                       'run': run, 'tasks': task_listing, 'workers': workers, 'receipt': current.get('receipt')})
+                                       'run': run, 'tasks': tasks, 'workers': workers, 'receipt': current.get('receipt')})
             current.update(status='claimed', epoch=owner['epoch'], run=owner['run'], receipt=None, started=time.time(),
                            reason=reason, resume='현재 coor의 새 수신 receipt로 running checkpoint')
         return
@@ -892,10 +885,7 @@ def reconcile(store, orca, token, identifier, reason, syncing=False, not_dispatc
         raise ValueError('기존 task의 부재는 실행하지 않았다는 증거가 아닙니다; 수동 확인 필요')
     live = any(t.get('status') not in ('completed', 'failed', 'cancelled') for t in relevant)
     failed = any(t.get('status') in ('failed', 'cancelled') for t in relevant)
-    entries = workers.get('workers') or []
-    listed_ids = {t.get('id') for t in tasks} - {None}
-    if any(w.get('taskId') not in listed_ids for w in entries):
-        raise ValueError('Run의 worker와 전체 task 목록이 일치하지 않습니다; 다시 sync하세요')
+    entries = workers['workers']
     # 예전 런타임/미확인 fleet의 부재는 종료 증거가 아니다.
     task_ids = {t.get('id') for t in relevant} - {None}
     relevant_workers = [w for w in entries if w.get('taskId') in task_ids]
@@ -1421,8 +1411,13 @@ def wait(store, github, orca, token, ack=None):
         ack = None
         batch = messages.get('messages') or []
         if batch and not all(m.get('type') in ('heartbeat', 'status') for m in batch):
-            integration.record(store.repo, batch)
-            return {'status': 'orchestration_actionable', 'deliveryId': messages.get('deliveryId'), 'messages': batch}
+            try:
+                integration.record(store.repo, batch)
+                problem = None
+            except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:  # 이미 소비된 묶음은 기록 실패와 함께 돌려준다
+                problem = str(error)
+            return {'status': 'orchestration_actionable', 'deliveryId': messages.get('deliveryId'), 'messages': batch,
+                    'record_error': problem}
         if batch:
             ack = messages.get('deliveryId')
 

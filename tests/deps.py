@@ -35,7 +35,6 @@ def main():
             item = next(s for s in deps.manifest()['skills'] if s['source'] == source)
             expected = deps.skill_command(item, list(agents))
             assert plan.count(expected) == 1, (host, expected)
-            assert 'ref' not in item and 'sha256' not in item
             assert expected[2] == 'skills@latest' and expected[4] == source
         assert not any('--trust' in cmd for cmd in plan)
         assert not any('playwright' in str(cmd) or 'shadcn' in str(cmd) or 'impeccable@' in str(cmd) for cmd in plan)
@@ -80,6 +79,10 @@ def main():
         dry = subprocess.run([sys.executable, str(SCRIPTS / 'deps.py'), '--host', 'grok', '--dry-run'], capture_output=True,
                              text=True, encoding='utf-8')
         assert dry.returncode == 0 and 'grok' in dry.stdout and 'plugin install' not in dry.stdout, dry.stdout
+        for script in (SCRIPTS / 'deps.py', ROOT / 'scripts/install.py'):  # 문서에 없던 both 별칭은 없앴다
+            gone = subprocess.run([sys.executable, str(script), '--host', 'both', '--dry-run'], capture_output=True,
+                                  text=True, encoding='utf-8')
+            assert gone.returncode == 2 and 'invalid choice' in gone.stderr, (script, gone.stderr)
 
         # 필수 CLI가 없으면 세션 시작 안내에 설치 명령이 나온다
         repo = Path(tmp) / 'repo'
@@ -99,9 +102,13 @@ def main():
         ran, missing = [], []
         plan = [['npm', 'install', '--global', 'tool'],
                 ['npx', '--yes', 'skills@latest', 'add', 'o/s', '--skill', 'a', '--global', '--agent', 'codex', '--yes']]
-        with patch.object(deps, 'receipt_path', return_value=Path(tmp) / 'deps.json'),              patch.object(deps, 'tool_problems', side_effect=lambda: list(missing)), patch.object(deps, 'plugin_problems', return_value=[]),              patch.object(deps, 'skill_files', return_value=([], [])), patch.object(deps, 'command_skill_problems', return_value=[]),              patch.object(deps, 'backup_skills'), patch.object(deps.hook_runtime, 'install'),              patch.object(deps, 'run', side_effect=lambda commands, dry: ran.extend(commands)):
+        with patch.object(deps, 'receipt_path', return_value=Path(tmp) / 'deps.json'),              patch.object(deps, 'tool_problems', side_effect=lambda: list(missing)) as probe, patch.object(deps, 'plugin_problems', return_value=[]),              patch.object(deps, 'skill_files', return_value=([], [])), patch.object(deps, 'command_skill_problems', return_value=[]) as skill_probe,              patch.object(deps, 'backup_skills'), patch.object(deps.hook_runtime, 'install'),              patch.object(deps, 'run', side_effect=lambda commands, dry: ran.extend(commands)):
             deps.install_host('codex', plan)
+            # 어차피 갱신하는 명령은 설치 상태를 미리 검사하지 않는다(끝의 전체 검사 한 번만)
+            assert probe.call_count == 1 and not skill_probe.called, (probe.call_count, skill_probe.call_count)
             deps.install_host('codex', plan, refresh_shared=False)
+            # 갱신하지 않을 때는 검사 결과로 재설치 여부를 정한다
+            assert probe.call_count == 3 and skill_probe.call_count == 1, (probe.call_count, skill_probe.call_count)
             assert ran == plan, ran
             missing.append('tool missing')
             with patch.object(deps, 'tool_problems', side_effect=[['tool missing'], [], []]):

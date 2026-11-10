@@ -73,12 +73,12 @@ def inspect(worktree, dirs, now, max_context):
             'warm': warm, 'small': small, 'retain': warm and small, 'reason': reason}
 
 
-def main(argv=None):
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--worktree', required=True)
     parser.add_argument('--config-dir', action='append', help='Claude config dir to search (repeatable)')
     parser.add_argument('--max-context', type=int, default=MAX_CONTEXT)
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     result = inspect(args.worktree, args.config_dir, datetime.now(timezone.utc), args.max_context)
     print(json.dumps(result, ensure_ascii=False))
 

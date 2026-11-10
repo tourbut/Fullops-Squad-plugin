@@ -122,7 +122,8 @@ def transition_preflight(repo):
         directory = Path(git(worktree, 'rev-parse', '--absolute-git-dir')) / 'fullops-gate'
         for path in directory.glob('flow-*.json'):
             state = json.loads(path.read_text(encoding='utf-8'))
-            if state.get('dispatch') and not state.get('settled'):
+            # 끝난 세션이 남긴 기록은 Orca의 정본 완료로 확인한다. 확인하지 못하면 그대로 막는다.
+            if state.get('dispatch') and not state.get('settled') and not flow_gate.settled_in_runtime(state):
                 raise ValueError('미완료 dispatch가 있습니다. worker 결과를 처리한 작업 경계에서 전환하세요')
             for run in state.get('runs', []):
                 status = flow_gate.run_state(run)
@@ -177,8 +178,7 @@ def operating_block(content, name):
 def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None, local_only=False,
           mode=None, primary_role=None, test_level=None, rollback=False, subagent_level=None):
     repo = Path(repo).expanduser().resolve(strict=True)
-    root = Path(subprocess.check_output(
-        ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], encoding='utf-8').strip()).resolve()
+    root = Path(git(repo, "rev-parse", "--show-toplevel")).resolve()
     if root != repo:
         raise ValueError(f"레포 루트를 지정하세요: {root}")
     local_journal = Path(git(repo, 'rev-parse', '--absolute-git-dir')) / 'fullops-setup.json'
@@ -325,7 +325,6 @@ def setup(repo, dry_run=False, verbose=False, roles=None, remote=None, base=None
         else:
             changes[name] = (content + ("\n\n" if content else "") + POINTER).encode()
     config.setdefault("plugin_version", json.loads((PLUGIN / "plugin.json").read_text(encoding='utf-8'))["version"])
-    config["roles"] = assigned
     # Preflight the remote only after every local conflict has been checked.
     if not local_only:
         remote = remote if remote is not None else connection.get("remote", "origin")

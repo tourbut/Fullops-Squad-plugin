@@ -31,7 +31,8 @@ with tempfile.TemporaryDirectory(prefix='fullops-trim-') as tmp:
 
     # 줄이는 경우: 앞뒤·오류 줄·안내·원문·다른 필드
     noisy = LONG.replace('line 500\n', 'Traceback in line 500\n')
-    updated = output_trim.replacement(tmp, event(noisy, 'warn', returnCodeInterpretation='kept'))
+    updated = output_trim.replacement(tmp, {**event(noisy, 'warn', returnCodeInterpretation='kept'),
+                                            'tool_input': {'command': 'TOKEN=secret "C:/py/python3.exe" tests/x.py'}})
     text = updated['stdout']
     assert text.startswith('[FullOps: 출력이 길어 줄였다. 종료코드 0.')
     assert 'line 0\n' in text and 'line 999' in text and '501: Traceback in line 500' in text
@@ -41,13 +42,15 @@ with tempfile.TemporaryDirectory(prefix='fullops-trim-') as tmp:
     assert folder.joinpath('output-00.txt').read_text(encoding='utf-8') == f'{noisy}\n--- stderr ---\nwarn'
     entry = json.loads(folder.joinpath('trim.jsonl').read_text(encoding='utf-8'))
     assert entry['raw'] == len(noisy) + 4 and entry['sent'] < entry['raw']
+    assert entry['command'] == 'python3.exe'  # 실행 파일 이름만 남긴다. 대입한 값과 인자는 기록하지 않는다
 
     # 오류 줄이 많아도 상한을 넘지 않는다
     errors = '\n'.join(f'error {i}' for i in range(5000))
     assert output_trim.replacement(tmp, event(errors))['stdout'].count('\n') < output_trim.HEAD + output_trim.TAIL + output_trim.KEPT + 5
+    assert json.loads(folder.joinpath('trim.jsonl').read_text(encoding='utf-8').splitlines()[-1])['command'] == ''  # 명령을 모르면 빈 값
 
     # 슬롯을 넘으면 파일이 늘지 않고 가장 오래된 슬롯을 덮어쓴다
-    for number, _ in enumerate(range(output_trim.SLOTS + 3)):
+    for number in range(output_trim.SLOTS + 3):
         path = output_trim.slot(folder)
         path.write_text('x', encoding='utf-8')
         os.utime(path, (1000 + number, 1000 + number))

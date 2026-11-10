@@ -16,8 +16,10 @@ import subprocess
 from pathlib import Path
 
 from board import deliverables
+import policy
 from jev_observe import MODEL, api_key, checked_answer, checked_noul, request, safe_text, validated, require_online, git_env
-from work import KEY, active_repo, safe_file, input_identity, save_result
+from work import KEY, active_repo, safe_file, input_identity, save_result, validate_role
+from storage import write_json
 
 SIMPLE, ROLE = 0.8, 0.6  # ponytail: 보수적 초기값. 기록된 route 결과와 실제 재작업을 비교해 다시 정한다
 # 산출물마다 독립된 예/아니오로 묻는다. Choice는 여러 문서가 해당하면 확률을 나눠 가져 문서마다 낮아진다
@@ -46,7 +48,6 @@ def guide(repo):
 
 def coordinator_role(repo):
     """라우팅 기준의 "- coordinator 역할: `<역할>`" 줄. 없으면 None(기본 브랜치 체크아웃이 coordinator)."""
-    import policy
     config = policy.load(repo)
     role = marked_role(repo, 'coordinator')
     if config['mode'] == 'coor':
@@ -139,7 +140,6 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
         split = product_roles(repo)
         if not split and result['route'] != 'simple':
             raise ValueError('역할 변경은 simple 분류에서만 허용합니다. design 결과는 설계 역할에 배정하세요')
-        import policy
         config = policy.load(repo)
         primary = config.get('primary_role') if config['mode'] == 'dev' else None
         if override_role not in roles or override_role == coordinator_role(repo) or (not split and override_role == marked_role(repo, '설계') and override_role != primary):
@@ -166,7 +166,6 @@ def route(repo, key, text, call, override_role=None, reason=None, agent=None, mo
 def model_only(repo, key, role, agent=None, model=None, effort=None):
     """설계를 거친 worker·리뷰어 배정 때 coordinator가 고른 tuple을 과제·역할별로 기록한다."""
     if role != REVIEWER:
-        from work import validate_role
         validate_role(repo, role)
     chosen = fixed_model(agent, model, effort)
     if not chosen:
@@ -190,7 +189,6 @@ def classify(repo, key, text, call):
     if designer not in roles:
         return {**result, 'route': 'design', 'error': f'설계 역할 {designer}이 fullops.json에 없습니다'}
     coordinator = coordinator_role(repo)
-    import policy
     config = policy.load(repo)
     excluded = {designer, coordinator}
     if config['mode'] == 'dev':
@@ -315,13 +313,12 @@ def main():
         parser.exit(2, 'Jev 라우팅 실패: ' + ' / '.join(errors) + '\n')
     for error in errors:
         print(f'경고: {error}', file=sys.stderr)
-    output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
         backup = output.with_name(f'{output.stem}.prior-{time.time_ns()}.json')
         with backup.open('xb') as archived:
             archived.write(output.read_bytes())
         print(f'이전 결과 보존: {backup.relative_to(repo)}', file=sys.stderr)
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    write_json(output, result)
     model = result.get('model')
     model_line = (f"모델: {model.get('provider')} {model['model']} via {model['agent']} effort={model['effort']} ({model['source']})" if model
                   else '모델: 미기록 (coordinator가 orca-agents.md `## 모델 후보`에서 골라 --agent --model --effort로 기록)')

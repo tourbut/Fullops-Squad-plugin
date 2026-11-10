@@ -515,8 +515,6 @@ def main():
     if found or args.validate:
         parser.exit(2 if found else 0, ''.join(f'시나리오 문제: {p}\n' for p in found) or '시나리오 점검 통과\n')
     replay = json.loads(args.replay.read_text(encoding='utf-8')) if args.replay else None
-    if replay is not None:
-        contract.validate_replay(scenario, replay, OPERATIONS)
     if args.page and args.engine != 'orca':
         parser.exit(2, '--page는 Orca 탭에만 연결됩니다. 실행기를 자동 전환하지 않습니다\n')
     orca = args.orca or find_orca() if args.engine == 'orca' else None

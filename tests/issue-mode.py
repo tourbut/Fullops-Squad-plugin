@@ -91,14 +91,19 @@ def issue(number, author=42, **changes):
             'user': {'id': author, 'login': 'author'}, 'edit_verified': True, **changes}
 
 
+def repository(root):
+    """origin remote와 FullOps git 설정이 있는 격리 저장소. 없는 폴더는 git init이 만든다."""
+    subprocess.run(['git', 'init', '-q', '-b', 'main', str(root)], check=True)
+    subprocess.run(['git', '-C', str(root), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
+    (root / '.fullops-squad').mkdir()
+    (root / '.fullops-squad/fullops.json').write_text(json.dumps({'git': {'remote': 'origin', 'base': 'main'}}))
+    return root
+
+
 def handover():
     """인계 뒤 fencing, 잠금 밖 GitHub 조회, 시작되지 않은 dispatch intent, 무관한 worker의 Orca 조회."""
     with tempfile.TemporaryDirectory(prefix='fullops-issue-') as temporary:
-        root = Path(temporary)
-        subprocess.run(['git', 'init', '-q', '-b', 'main', str(root)], check=True)
-        subprocess.run(['git', '-C', str(root), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
-        (root / '.fullops-squad').mkdir()
-        (root / '.fullops-squad/fullops.json').write_text(json.dumps({'git': {'remote': 'origin', 'base': 'main'}}))
+        root = repository(Path(temporary))
         store, api = mode.Store(root), API()
         mode.configure(store, api, 'owner/service', ['author'], interval=60, approved=True)
         for session in ('first', 'second', 'third'):
@@ -311,11 +316,7 @@ def main():
         with patch.dict('os.environ', {'ORCA_AGENT_SESSION_ID': 'structured'}), patch.object(adapter, 'call', return_value={}):
             fails(lambda: adapter.identity('provider_session:host', 'run', 'term', 'host', native), 'identity')
     with tempfile.TemporaryDirectory(prefix='fullops-issue-') as temporary:
-        root = Path(temporary)
-        subprocess.run(['git', 'init', '-q', '-b', 'main', str(root)], check=True)
-        subprocess.run(['git', '-C', str(root), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
-        (root / '.fullops-squad').mkdir()
-        (root / '.fullops-squad/fullops.json').write_text(json.dumps({'git': {'remote': 'origin', 'base': 'main'}}))
+        root = repository(Path(temporary))
         store, api = mode.Store(root), API()
         assert store.read()['owner'] is None and store.read()['config'] is None
         fails(lambda: mode.configure(store, api, 'owner/service', ['author']), '사용자')
@@ -405,6 +406,10 @@ def main():
         with patch.object(mode, 'renew'), patch.object(mode.orca_wait, 'check', side_effect=check),                 patch.object(mode.integration, 'record'):
             assert mode.wait(store, api, Orca(), token, 'd1')['deliveryId'] == 'd2'
         assert acks == ['d1']
+        with patch.object(mode, 'renew'), patch.object(mode.orca_wait, 'check', side_effect=check), \
+                patch.object(mode.integration, 'record', side_effect=OSError('disk')):
+            kept = mode.wait(store, api, Orca(), token, 'd1')  # 기록이 실패해도 이미 소비한 묶음은 돌려준다
+        assert kept['deliveryId'] == 'd2' and kept['messages'] and kept['record_error'] == 'disk', kept
         assert mode.claim(store, api, token) is None  # busy: enqueue만, 다른 issue dispatch 없음
         # 실사용에서 coor를 멈춘 조회 명령은 통과하고, 비밀정보·다른 저장소·다른 체크아웃 변경은 막는다.
         for words in (['rg', 'def', str(Path.home() / '.codex/plugins/cache/fullops-squad/scripts/issue_mode.py')],
@@ -866,12 +871,7 @@ def main():
         assert store.read()['jobs']['101']['status'] == 'reviewing'
 
         # 명시 backlog와 반복 silent poll. timer는 모델/dispatch를 호출하지 않는다.
-        backlog = root / 'backlog'
-        backlog.mkdir()
-        subprocess.run(['git', 'init', '-q', '-b', 'main', str(backlog)], check=True)
-        subprocess.run(['git', '-C', str(backlog), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
-        (backlog / '.fullops-squad').mkdir()
-        (backlog / '.fullops-squad/fullops.json').write_text((root / '.fullops-squad/fullops.json').read_text())
+        backlog = repository(root / 'backlog')
         bstore, bapi = mode.Store(backlog), API()
         mode.configure(bstore, bapi, 'owner/service', ['author'], interval=60, backlog=True, approved=True)
         bstart = mode.hook_path(backlog, 'backlog-provider')
@@ -903,12 +903,7 @@ def main():
         assert bstore.read()['jobs']['120']['attempt'] == 0 and bapi.posts == 0
         assert not json.loads(summary_path.read_text(encoding='utf-8'))['enabled'], 'stop must show OFF in the sidebar'
         # 최초 backlog 수집 전에 신규 이슈 전용으로 바꾸면 과거 이슈를 실행하지 않는다.
-        new_only = root / 'new-only'
-        new_only.mkdir()
-        subprocess.run(['git', 'init', '-q', '-b', 'main', str(new_only)], check=True)
-        subprocess.run(['git', '-C', str(new_only), 'remote', 'add', 'origin', 'https://github.com/owner/service.git'], check=True)
-        (new_only / '.fullops-squad').mkdir()
-        (new_only / '.fullops-squad/fullops.json').write_text((root / '.fullops-squad/fullops.json').read_text())
+        new_only = repository(root / 'new-only')
         nstore, napi = mode.Store(new_only), API()
         mode.configure(nstore, napi, 'owner/service', ['author'], backlog=True, approved=True)
         nstart = mode.hook_path(new_only, 'new-only-provider')
@@ -961,7 +956,7 @@ def main():
         with nstore.edit() as state:
             state['jobs']['122'].pop('child_runs')
         with patch.object(empty_run, 'call', return_value={'tasks': [], 'count': 0, 'workers': []}):
-            fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), 'dispatch')
+            fails(lambda: mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manual audit', not_dispatched=True), '전체')
         with nstore.edit() as state:
             state['jobs']['122']['started'] = 0  # 이전 coor 기간은 새 coor의 실행 시간 한도에 넣지 않는다.
         mode.reconcile(nstore, empty_run, next_owner['token'], 122, 'manually verified owner stopped before dispatch', not_dispatched=True)
@@ -987,13 +982,18 @@ def main():
                 if 'task-list' in args and '--full' not in args:  # Orca 1.4.251의 기본 응답
                     return {'tasks': [{'id': 'task', 'status': 'failed', 'title': 'x'}]}
                 if 'task-list' in args:
-                    return {'tasks': [{'id': 'task', 'status': 'failed', 'spec': 'Task key: ' + key}]}
-                return {'workers': [{'taskId': 'task', 'projection': {'liveness': {'verdict': self.verdict}}}]}
-            verdict = 'unverifiable'
+                    return {'tasks': [{'id': 'task', 'status': 'failed', 'spec': 'Task key: ' + key}], 'count': self.count}
+                return {'workers': [{'taskId': 'task', 'projection': {'liveness': {'verdict': self.verdict}}}],
+                        'page': {'total': 1, 'hasMore': False}}
+            verdict, count = 'unverifiable', 1
         runtime = SettledOrca()
         mode.reconcile(store, runtime, newer['token'], 101, '종료 미확인', syncing=True)
         assert not store.read()['jobs']['101']['settled']
-        runtime.verdict = 'exited'
+        # 이슈 자신의 Run도 하위 Run처럼 잘린 task 목록으로는 종료를 확정하지 않는다.
+        runtime.verdict, runtime.count = 'exited', 2
+        fails(lambda: mode.reconcile(store, runtime, newer['token'], 101, '잘린 목록', syncing=True), '전체 task')
+        assert not store.read()['jobs']['101']['settled']
+        runtime.count = 1
         mode.reconcile(store, runtime, newer['token'], 101, '실제 failed task/종료 receipt', syncing=True)
         assert store.read()['jobs']['101']['status'] == 'held' and store.read()['jobs']['101']['settled']
         with store.edit() as state:
